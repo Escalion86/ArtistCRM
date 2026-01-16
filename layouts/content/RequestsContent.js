@@ -1,0 +1,86 @@
+'use client'
+
+import { useMemo, useCallback } from 'react'
+import AutoSizer from 'react-virtualized-auto-sizer'
+import { FixedSizeList as List } from 'react-window'
+import ContentHeader from '@components/ContentHeader'
+import Button from '@components/Button'
+import RequestCardCompact from '@layouts/cards/RequestCardCompact'
+import requestsAtom from '@state/atoms/requestsAtom'
+import { useAtomValue } from 'jotai'
+import { modalsFuncAtom } from '@state/atoms'
+
+const ITEM_HEIGHT = 160
+
+const RequestsContent = () => {
+  const requests = useAtomValue(requestsAtom)
+  const modalsFunc = useAtomValue(modalsFuncAtom)
+
+  const sortedRequests = useMemo(
+    () =>
+      [...requests].sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        return dateB - dateA
+      }),
+    [requests]
+  )
+
+  const renderRow = useCallback(
+    ({ index, style }) => {
+      const request = sortedRequests[index]
+      return (
+        <RequestCardCompact
+          style={style}
+          request={request}
+          onEdit={() => modalsFunc.request?.edit(request._id)}
+          onStatusEdit={(id) => modalsFunc.request?.statusEdit(id)}
+        />
+      )
+    },
+    [sortedRequests, modalsFunc.request]
+  )
+
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <ContentHeader>
+        <div className="flex flex-1 items-center justify-between">
+          <div />
+          <div className="flex items-center gap-3 text-sm text-gray-600">
+            <span>Всего: {requests.length}</span>
+            <Button
+              name="+"
+              collapsing
+              className="action-icon-button h-9 w-9 rounded-full text-lg"
+              onClick={() => modalsFunc.request?.add()}
+              disabled={!modalsFunc.request?.add}
+            />
+          </div>
+        </div>
+      </ContentHeader>
+      <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        {sortedRequests.length > 0 ? (
+          <AutoSizer>
+            {({ height, width }) => (
+              <List
+                height={height}
+                width={width}
+                itemCount={sortedRequests.length}
+                itemSize={ITEM_HEIGHT}
+                itemKey={(index) => sortedRequests[index]._id ?? index}
+              >
+                {renderRow}
+              </List>
+            )}
+          </AutoSizer>
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-gray-500">
+            Заявок пока нет
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default RequestsContent

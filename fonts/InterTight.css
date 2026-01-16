@@ -1,0 +1,143 @@
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight Black'), local('InterTight-Black'),
+        url('InterTight-Black.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight BlackItalic'), local('InterTight-BlackItalic'),
+        url('InterTight-BlackItalic.ttf') format('truetype');
+    font-weight: 900;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight ExtraBold'), local('InterTight-ExtraBold'),
+        url('InterTight-ExtraBold.ttf') format('truetype');
+    font-weight: 800;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight ExtraBoldItalic'), local('InterTight-ExtraBoldItalic'),
+        url('InterTight-ExtraBoldItalic.ttf') format('truetype');
+    font-weight: 800;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight Bold'), local('InterTight-Bold'),
+        url('InterTight-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight BoldItalic'), local('InterTight-BoldItalic'),
+        url('InterTight-BoldItalic.ttf') format('truetype');
+    font-weight: 700;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight ExtraLight'), local('InterTight-ExtraLight'),
+        url('InterTight-ExtraLight.ttf') format('truetype');
+    font-weight: 200;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight ExtraLightItalic'), local('InterTight-ExtraLightItalic'),
+        url('InterTight-ExtraLightItalic.ttf') format('truetype');
+    font-weight: 200;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight'), local('InterTight-Regular'),
+        url('InterTight-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight Italic'), local('InterTight-Italic'),
+        url('InterTight-Italic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight Light'), local('InterTight-Light'),
+        url('InterTight-Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight LightItalic'), local('InterTight-LightItalic'),
+        url('InterTight-LightItalic.ttf') format('truetype');
+    font-weight: 300;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight Medium'), local('InterTight-Medium'),
+        url('InterTight-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight MediumItalic'), local('InterTight-MediumItalic'),
+        url('InterTight-MediumItalic.ttf') format('truetype');
+    font-weight: 500;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight SemiBold'), local('InterTight-SemiBold'),
+        url('InterTight-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight SemiBoldItalic'), local('InterTight-SemiBoldItalic'),
+        url('InterTight-SemiBoldItalic.ttf') format('truetype');
+    font-weight: 600;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight Thin'), local('InterTight-Thin'),
+        url('InterTight-Thin.ttf') format('truetype');
+    font-weight: 100;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: local('InterTight ThinItalic'), local('InterTight-ThinItalic'),
+        url('InterTight-ThinItalic.ttf') format('truetype');
+    font-weight: 100;
+    font-style: italic;
+}

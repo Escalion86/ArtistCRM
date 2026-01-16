@@ -1,0 +1,402 @@
+import DateTimePicker from '@components/DateTimePicker'
+import FormWrapper from '@components/FormWrapper'
+import Input from '@components/Input'
+import InputWrapper from '@components/InputWrapper'
+import ClientPicker from '@components/ClientPicker'
+import EventPicker from '@components/EventPicker'
+import Note from '@components/Note'
+import { TRANSACTION_CATEGORIES, TRANSACTION_TYPES } from '@helpers/constants'
+import { postData, putData } from '@helpers/CRUD'
+import clientsAtom from '@state/atoms/clientsAtom'
+import eventsAtom from '@state/atoms/eventsAtom'
+import transactionsAtom from '@state/atoms/transactionsAtom'
+import { modalsFuncAtom } from '@state/atoms'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useAtomValue, useSetAtom } from 'jotai'
+
+const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
+  const TransactionModal = ({
+    closeModal,
+    setOnConfirmFunc,
+    setOnShowOnCloseConfirmDialog,
+    setDisableConfirm,
+  }) => {
+    const clients = useAtomValue(clientsAtom)
+    const events = useAtomValue(eventsAtom)
+    const modalsFunc = useAtomValue(modalsFuncAtom)
+    const transactions = useAtomValue(transactionsAtom)
+    const setTransactions = useSetAtom(transactionsAtom)
+
+    const transaction = useMemo(
+      () =>
+        transactionId
+          ? transactions.find((item) => item._id === transactionId)
+          : null,
+      [transactionId, transactions]
+    )
+
+    const initialEventId = useMemo(
+      () => eventId ?? transaction?.eventId ?? null,
+      [eventId, transaction?.eventId]
+    )
+    const initialClientId = useMemo(
+      () => transaction?.clientId ?? null,
+      [transaction?.clientId]
+    )
+    const initialAmount = useMemo(
+      () => transaction?.amount ?? 0,
+      [transaction?.amount]
+    )
+    const initialType = useMemo(
+      () => transaction?.type ?? 'income',
+      [transaction?.type]
+    )
+    const initialCategory = useMemo(
+      () => transaction?.category ?? 'other',
+      [transaction?.category]
+    )
+    const [selectedEventId, setSelectedEventId] = useState(initialEventId)
+    const [selectedClientId, setSelectedClientId] = useState(
+      initialClientId ?? null
+    )
+    const selectedEvent = useMemo(() => {
+      const id = selectedEventId
+      return id ? events.find((item) => item._id === id) : null
+    }, [events, selectedEventId])
+    const initialDate = useMemo(() => {
+      if (transaction?.date) return new Date(transaction.date).toISOString()
+      if (selectedEvent?.eventDate)
+        return new Date(selectedEvent.eventDate).toISOString()
+      return new Date().toISOString()
+    }, [selectedEvent?.eventDate, transaction?.date])
+    const initialComment = useMemo(
+      () => transaction?.comment ?? '',
+      [transaction?.comment]
+    )
+
+    const [amount, setAmount] = useState(initialAmount)
+    const [type, setType] = useState(initialType)
+    const [category, setCategory] = useState(initialCategory)
+    const [date, setDate] = useState(initialDate)
+    const [comment, setComment] = useState(initialComment)
+    const [error, setError] = useState('')
+    const [loading, setLoading] = useState(false)
+    const showRelations = !eventId || Boolean(transactionId)
+    const isReadOnly = selectedEvent?.status === 'closed'
+
+    const taxAmount = useMemo(() => {
+      const base = selectedEvent?.contractSum ?? contractSum ?? 0
+      return Number((base * 0.06).toFixed(2))
+    }, [selectedEvent?.contractSum, contractSum])
+
+    const isTaxCategory = category === 'taxes'
+
+    const openEventSelectModal = useCallback(() => {
+      modalsFunc.selectEvents(
+        [selectedEventId],
+        [],
+        (data) => setSelectedEventId(data[0]),
+        [],
+        null,
+        1,
+        false,
+        'Выбор мероприятия'
+      )
+    }, [modalsFunc, selectedEventId])
+
+    useEffect(() => {
+      if (selectedEvent?.clientId) {
+        setSelectedClientId(selectedEvent.clientId)
+      }
+    }, [selectedEvent?.clientId])
+
+    useEffect(() => {
+      if (transactionId) return
+      if (!selectedEvent?.isTransferred) return
+      if (category === 'other') setCategory('colleague_percent')
+      if (type !== 'income') setType('income')
+    }, [transactionId, selectedEvent?.isTransferred, category, type])
+
+    const selectedClient = useMemo(
+      () =>
+        selectedClientId && clients.length
+          ? clients.find((client) => client._id === selectedClientId)
+          : null,
+      [clients, selectedClientId]
+    )
+
+    const isFormChanged = useMemo(
+      () =>
+        initialEventId !== selectedEventId ||
+        initialClientId !== selectedClientId ||
+        initialAmount !== amount ||
+        initialType !== type ||
+        initialCategory !== category ||
+        initialDate !== date ||
+        initialComment !== comment,
+      [
+        selectedEventId,
+        selectedClientId,
+        amount,
+        type,
+        category,
+        date,
+        comment,
+        initialEventId,
+        initialClientId,
+        initialAmount,
+        initialType,
+        initialCategory,
+        initialDate,
+        initialComment,
+      ]
+    )
+
+    const availableCategories = useMemo(
+      () =>
+        TRANSACTION_CATEGORIES.filter(
+          (item) => item.type === type || item.type === 'both'
+        ),
+      [type]
+    )
+
+    useEffect(() => {
+      if (!availableCategories.length) return
+      if (!availableCategories.find((item) => item.value === category)) {
+        setCategory(availableCategories[0].value)
+      }
+    }, [availableCategories, category])
+
+    const handleSave = useCallback(async () => {
+      if (isReadOnly) {
+        setError('Редактирование недоступно для закрытого мероприятия')
+        return
+      }
+      if (!selectedEventId || !selectedClientId) {
+        setError('Укажите мероприятие и клиента')
+        return
+      }
+      setError('')
+      setLoading(true)
+
+      const payload = {
+        amount: Number(amount) || 0,
+        type,
+        category,
+        date,
+        comment: comment?.trim() ?? '',
+      }
+      const payloadContractSum =
+        selectedEvent?.contractSum ?? contractSum ?? undefined
+      const payloadRelations = {
+        eventId: selectedEventId,
+        clientId: selectedClientId,
+      }
+
+      if (transactionId) {
+        const updated = await putData(
+          `/api/transactions/${transactionId}`,
+          {
+            ...payload,
+            ...payloadRelations,
+          },
+          null,
+          null,
+          true
+        )
+        if (updated?.data) {
+          setTransactions((prev) =>
+            prev.map((item) =>
+              item._id === transactionId ? updated.data : item
+            )
+          )
+          closeModal()
+        } else {
+          setError('Не удалось обновить транзакцию')
+        }
+      } else {
+        const created = await postData(
+          '/api/transactions',
+          {
+            ...payload,
+            ...payloadRelations,
+            contractSum: payloadContractSum,
+          },
+          null,
+          null,
+          true
+        )
+        if (created?.data) {
+          setTransactions((prev) => [...prev, created.data])
+          closeModal()
+        } else {
+          setError('Не удалось создать транзакцию')
+        }
+      }
+
+      setLoading(false)
+    }, [
+      amount,
+      type,
+      date,
+      comment,
+      category,
+      selectedEventId,
+      selectedClientId,
+      selectedEvent?.contractSum,
+      isReadOnly,
+      transactionId,
+      contractSum,
+      setTransactions,
+      closeModal,
+    ])
+
+    useEffect(() => {
+      setOnConfirmFunc(isReadOnly ? undefined : handleSave)
+      setOnShowOnCloseConfirmDialog(!isReadOnly && isFormChanged)
+      setDisableConfirm(
+        loading ||
+          isReadOnly ||
+          !selectedEventId ||
+          !selectedClientId ||
+          (transactionId ? !isFormChanged : false)
+      )
+    }, [
+      selectedEventId,
+      selectedClientId,
+      transactionId,
+      handleSave,
+      isFormChanged,
+      loading,
+      setDisableConfirm,
+      setOnConfirmFunc,
+      setOnShowOnCloseConfirmDialog,
+    ])
+
+    return (
+      <FormWrapper>
+        {isReadOnly && (
+          <Note noMargin className="mb-3">
+            Редактирование недоступно, так как мероприятие закрыто.
+          </Note>
+        )}
+        {showRelations && (
+          <>
+            <EventPicker
+              selectedEvent={selectedEvent}
+              selectedEventId={selectedEventId}
+              onSelectClick={openEventSelectModal}
+              label="Мероприятие"
+              required
+              disabled={isReadOnly}
+              showEditButton={!!selectedEventId}
+              fullWidth
+            />
+            <ClientPicker
+              selectedClient={selectedClient}
+              selectedClientId={selectedClientId}
+              onSelectClick={() =>
+                modalsFunc.client?.select((newClientId) => {
+                  setSelectedClientId(newClientId)
+                })
+              }
+              onViewClick={() => modalsFunc.client?.view(selectedClientId)}
+              label="Клиент"
+              required
+              disabled={isReadOnly}
+              fullWidth
+            />
+          </>
+        )}
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Input
+              label="Сумма"
+              type="number"
+              value={amount}
+              onChange={setAmount}
+              min={0}
+              disabled={loading || isReadOnly}
+            />
+          </div>
+          {isTaxCategory && (
+            <button
+              type="button"
+              className="mb-2 rounded border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+              onClick={() => setAmount(taxAmount)}
+              disabled={loading || isReadOnly}
+              title="Рассчитать 6% от договорной суммы"
+            >
+              6%
+            </button>
+          )}
+        </div>
+        <InputWrapper label="Тип" paddingY fitWidth>
+          <div className="flex gap-2">
+            {TRANSACTION_TYPES.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className={`rounded border px-3 py-2 text-sm font-semibold transition ${
+                  type === item.value
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => setType(item.value)}
+                disabled={loading || isReadOnly}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </InputWrapper>
+        <InputWrapper label="Категория" paddingY fitWidth>
+          <div className="flex flex-wrap gap-2">
+            {availableCategories.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className={`rounded border px-3 py-2 text-sm font-semibold transition ${
+                  category === item.value
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => setCategory(item.value)}
+                disabled={loading || isReadOnly}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </InputWrapper>
+        <DateTimePicker
+          value={date}
+          onChange={(value) => setDate(value ?? new Date().toISOString())}
+          label="Дата"
+          disabled={loading || isReadOnly}
+        />
+        <Input
+          label="Комментарий"
+          value={comment}
+          onChange={setComment}
+          disabled={loading || isReadOnly}
+        />
+        {error && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+      </FormWrapper>
+    )
+  }
+
+  const isEdit = Boolean(transactionId)
+
+  return {
+    title: `${isEdit ? 'Редактирование' : 'Создание'} транзакции`,
+    confirmButtonName: isEdit ? 'Сохранить' : 'Создать',
+    Children: TransactionModal,
+  }
+}
+
+export default transactionFunc

@@ -1,0 +1,144 @@
+import { useMemo, useState, useCallback } from 'react'
+import AutoSizer from 'react-virtualized-auto-sizer'
+import { FixedSizeList as List } from 'react-window'
+import TransactionTypeToggleButtons from '@components/IconToggleButtons/TransactionTypeToggleButtons'
+import TransactionCard from '@layouts/cards/TransactionCard'
+import transactionsAtom from '@state/atoms/transactionsAtom'
+import eventsAtom from '@state/atoms/eventsAtom'
+import clientsAtom from '@state/atoms/clientsAtom'
+import { TRANSACTION_TYPES } from '@helpers/constants'
+import { useAtomValue } from 'jotai'
+import { modalsFuncAtom } from '@state/atoms'
+
+const ITEM_HEIGHT = 120
+
+const clientTransactionsFunc = (clientId) => {
+  const ClientTransactionsModal = () => {
+    const transactions = useAtomValue(transactionsAtom)
+    const events = useAtomValue(eventsAtom)
+    const clients = useAtomValue(clientsAtom)
+    const modalsFunc = useAtomValue(modalsFuncAtom)
+    const [typeFilter, setTypeFilter] = useState({
+      income: true,
+      expense: true,
+    })
+
+    const clientsMap = useMemo(
+      () =>
+        clients.reduce((acc, client) => {
+          acc[client._id] = client
+          return acc
+        }, {}),
+      [clients]
+    )
+
+    const eventsMap = useMemo(
+      () =>
+        events.reduce((acc, event) => {
+          acc[event._id] = event
+          return acc
+        }, {}),
+      [events]
+    )
+
+    const typeMap = useMemo(
+      () =>
+        TRANSACTION_TYPES.reduce((acc, item) => {
+          acc[item.value] = item
+          return acc
+        }, {}),
+      []
+    )
+
+    const clientTransactions = useMemo(
+      () =>
+        (transactions ?? [])
+          .filter((transaction) => transaction.clientId === clientId)
+          .sort(
+            (a, b) =>
+              new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime()
+          ),
+      [transactions, clientId]
+    )
+
+    const filteredTransactions = useMemo(() => {
+      if (typeFilter.income && typeFilter.expense) return clientTransactions
+      if (typeFilter.income)
+        return clientTransactions.filter((item) => item.type === 'income')
+      if (typeFilter.expense)
+        return clientTransactions.filter((item) => item.type === 'expense')
+      return clientTransactions
+    }, [clientTransactions, typeFilter])
+
+    const renderRow = useCallback(
+      ({ index, style }) => {
+        const transaction = filteredTransactions[index]
+        const client = clientsMap[transaction.clientId]
+        const event = eventsMap[transaction.eventId]
+        const type = typeMap[transaction.type] ?? typeMap.expense
+        const handleEdit = () =>
+          modalsFunc.transaction?.edit(transaction.eventId, transaction._id)
+
+        return (
+          <TransactionCard
+            style={style}
+            transaction={transaction}
+            client={client}
+            event={event}
+            type={type}
+            onEdit={handleEdit}
+            onDelete={() => {}}
+          />
+        )
+      },
+      [filteredTransactions, clientsMap, eventsMap, typeMap, modalsFunc]
+    )
+
+    return (
+      <div className="flex h-full flex-col gap-3 tablet:h-[60vh]">
+        <div className="flex items-center justify-between gap-3 text-sm text-gray-600">
+          <TransactionTypeToggleButtons
+            value={typeFilter}
+            onChange={setTypeFilter}
+          />
+          <span>
+            {filteredTransactions.length} из {clientTransactions.length}
+          </span>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          {filteredTransactions.length > 0 ? (
+            <AutoSizer>
+              {({ height, width }) => (
+                <List
+                  height={height}
+                  width={width}
+                  itemCount={filteredTransactions.length}
+                  itemSize={ITEM_HEIGHT}
+                  itemKey={(index) =>
+                    filteredTransactions[index]._id ?? index
+                  }
+                >
+                  {renderRow}
+                </List>
+              )}
+            </AutoSizer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-gray-500">
+              Транзакций не найдено
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return {
+    title: 'Транзакции клиента',
+    confirmButtonName: 'Закрыть',
+    showDecline: false,
+    onConfirm: true,
+    Children: ClientTransactionsModal,
+  }
+}
+
+export default clientTransactionsFunc

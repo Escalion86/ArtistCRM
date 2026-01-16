@@ -1,0 +1,288 @@
+@config "../tailwind.config.js";
+@source "../app/**/*.{js,jsx}";
+@source "../pages/**/*.{js,jsx}";
+@source "../components/**/*.{js,jsx}";
+@source "../helpers/**/*.{js,jsx}";
+@source "../layouts/**/*.{js,jsx}";
+@source "../blocks/**/*.{js,jsx}";
+@source "../node_modules/preline/dist/*.js";
+@layer theme, base, mui, components, utilities;
+@import 'tailwindcss';
+
+/* @layer components {
+  .transparentsides {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 25%, black 75%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 25%, black 75%, transparent 100%);
+  }
+} */
+
+/* :root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+} */
+
+body {
+  background: #F5F6F8;
+  color: #1C1D1F;
+  --tx-income: #22c55e;
+  --tx-income-hover: #16a34a;
+  --tx-income-hover-bg: rgba(34, 197, 94, 0.08);
+  --tx-income-text: #ffffff;
+  --tx-income-outline: #22c55e;
+  --tx-expense: #ef4444;
+  --tx-expense-hover: #dc2626;
+  --tx-expense-hover-bg: rgba(239, 68, 68, 0.08);
+  --tx-expense-text: #ffffff;
+  --tx-expense-outline: #ef4444;
+  /* color: rgb(var(--foreground-rgb));
+  background: linear-gradient(to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb)); */
+  font-family: 'Inter Tight', sans-serif;
+}
+
+.contact-button {
+  position: relative;
+  background: linear-gradient(45deg, #0b0b15 0%, #1a1a32 100%);
+  overflow: hidden;
+}
+
+.contact-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(225deg, #ffca4585 0%, #1a1a32 60%);
+  opacity: 0;
+  transition: opacity 280ms ease;
+}
+
+.contact-button:hover::after {
+  opacity: 1;
+}
+
+.contact-button>* {
+  position: relative;
+  z-index: 1;
+}
+
+body.theme-dark {
+  background: #0f172a;
+  color: #e2e8f0;
+  --tx-income: #15803d;
+  --tx-income-hover: #166534;
+  --tx-income-hover-bg: rgba(21, 128, 61, 0.12);
+  --tx-income-text: #f8fafc;
+  --tx-income-outline: #15803d;
+  --tx-expense: #b91c1c;
+  --tx-expense-hover: #991b1b;
+  --tx-expense-hover-bg: rgba(185, 28, 28, 0.12);
+  --tx-expense-text: #f8fafc;
+  --tx-expense-outline: #b91c1c;
+}
+
+body.theme-dark .bg-white {
+  background-color: #111827;
+}
+
+body.theme-dark .bg-gray-50 {
+  background-color: #0b1220;
+}
+
+body.theme-dark .bg-gray-100 {
+  background-color: #0f172a;
+}
+
+body .border-input {
+  border-color: lab(85.1236 -0.612259 -3.7138);
+}
+
+body.theme-dark .border-input {
+  border-color: #1f2937;
+}
+
+body.theme-dark .border-input:hover,
+body.theme-dark .border-input:focus-within {
+  border-color: #AC80EC;
+}
+
+body.theme-dark .border-gray-200 {
+  border-color: #1f2937;
+}
+
+body.theme-dark .border-gray-300 {
+  border-color: #374151;
+}
+
+body.theme-dark .text-gray-900 {
+  color: #f8fafc;
+}
+
+body.theme-dark .text-gray-800 {
+  color: #e2e8f0;
+}
+
+body.theme-dark .text-gray-700 {
+  color: #cbd5e1;
+}
+
+body.theme-dark .text-gray-600 {
+  color: #94a3b8;
+}
+
+body.theme-dark .text-gray-500 {
+  color: #64748b;
+}
+
+body.theme-dark .menu-btn__burger,
+body.theme-dark .menu-btn__burger::before,
+body.theme-dark .menu-btn__burger::after {
+  background-color: #AC80EC;
+  box-shadow: 0 2px 5px rgba(172, 128, 236, 0.5);
+}
+
+body.theme-dark .menu-btn {
+  background-color: #0f172a;
+}
+
+body.theme-dark .sidebar-root .bg-general {
+  background-color: #0f172a;
+}
+
+body.theme-dark .burger-layout {
+  background-color: #0f172a;
+}
+
+body.theme-dark .sidebar-root .text-white {
+  color: #AC80EC;
+}
+
+body.theme-dark .sidebar-root .hover\:text-white:hover {
+  color: #AC80EC;
+}
+
+body.theme-dark .sidebar-root .hover\:bg-white:hover {
+  background-color: #AC80EC;
+}
+
+body.theme-dark .sidebar-root .hover\:bg-general:hover,
+body.theme-dark .sidebar-root .hover\:text-general:hover {
+  color: #0f172a;
+}
+
+body.theme-dark .action-icon-button {
+  background-color: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+body.theme-dark .action-icon-button:hover {
+  background-color: #cbd5e1;
+  color: #0f172a;
+}
+
+body.theme-dark .modal-action-button.bg-general {
+  background-color: #6b3fa8 !important;
+}
+
+body.theme-dark .modal-action-button.bg-general:hover {
+  background-color: #5a3292 !important;
+}
+
+body.theme-dark .modal-action-button.bg-danger {
+  background-color: #7f1d1d !important;
+}
+
+body.theme-dark .modal-action-button.bg-danger:hover {
+  background-color: #6f1a1a !important;
+}
+
+body.theme-dark .text-black {
+  color: #e2e8f0;
+}
+
+body.theme-dark input,
+body.theme-dark textarea,
+body.theme-dark select {
+  color: #e2e8f0;
+}
+
+body.theme-dark select option {
+  background-color: #111827;
+  color: #e2e8f0;
+}
+
+body.theme-dark input::placeholder,
+body.theme-dark textarea::placeholder {
+  color: #64748b;
+}
+
+body.theme-dark .MuiInputBase-root,
+body.theme-dark .MuiInputBase-input,
+body.theme-dark .MuiPickersSectionList-root,
+body.theme-dark .MuiPickersInputBase-root {
+  color: #e2e8f0;
+}
+
+body.theme-dark .MuiSvgIcon-root,
+body.theme-dark .MuiIconButton-root {
+  color: #94a3b8;
+}
+
+body.theme-dark .MuiTab-root {
+  color: #94a3b8;
+}
+
+body.theme-dark .MuiTab-root.Mui-selected {
+  color: #e2e8f0;
+}
+
+body.theme-dark .MuiTabs-indicator {
+  background-color: #e2e8f0;
+}
+
+@layer base {
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* body .modalshow {
+  height: 100vh;
+  overflow-y: hidden;
+} */
+
+/* .carousel::-webkit-scrollbar {
+  display: 'none';
+} */
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.no-transition {
+  scroll-behavior: auto;
+}
+
+.mask-bottom {
+  -webkit-wask-image: linear-gradient(rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0));
+  mask-image: linear-gradient(rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0));
+}
