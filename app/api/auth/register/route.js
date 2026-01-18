@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
+import Tariffs from '@models/Tariffs'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -16,6 +17,12 @@ export const POST = async (req) => {
   if (!phone || !password) {
     return NextResponse.json(
       { success: false, error: 'Укажите телефон и пароль' },
+      { status: 400 }
+    )
+  }
+  if (String(password).length < 8) {
+    return NextResponse.json(
+      { success: false, error: 'Пароль должен быть не менее 8 символов' },
       { status: 400 }
     )
   }
@@ -43,11 +50,22 @@ export const POST = async (req) => {
 
   try {
     const hashed = await bcrypt.hash(password, 10)
+    const cheapestTariff = await Tariffs.findOne({
+      hidden: { $ne: true },
+    })
+      .sort({ price: 1, title: 1 })
+      .lean()
+    const now = new Date()
+    const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
     const user = await Users.create({
       phone,
       password: hashed,
       role: 'user',
       tenantId: null,
+      tariffId: cheapestTariff?._id ?? null,
+      trialActivatedAt: now,
+      trialEndsAt,
+      trialUsed: true,
     })
 
     if (!user.tenantId) {

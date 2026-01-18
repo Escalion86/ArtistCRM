@@ -3,6 +3,7 @@ import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import bcrypt from 'bcryptjs'
+import Tariffs from '@models/Tariffs'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -40,6 +41,12 @@ export const POST = async (req) => {
       { status: 401 }
     )
   }
+  if (!['dev', 'admin'].includes(user?.role)) {
+    return NextResponse.json(
+      { success: false, error: 'Нет доступа' },
+      { status: 403 }
+    )
+  }
   await dbConnect()
 
   const normalizedPhone = normalizePhone(body.phone)
@@ -60,6 +67,15 @@ export const POST = async (req) => {
   const payload = {
     ...body,
     phone: normalizedPhone || '',
+  }
+
+  if (!payload.tariffId) {
+    const cheapestTariff = await Tariffs.findOne({
+      hidden: { $ne: true },
+    })
+      .sort({ price: 1, title: 1 })
+      .lean()
+    payload.tariffId = cheapestTariff?._id ?? null
   }
 
   if (payload.password) {

@@ -4,20 +4,21 @@ import FormWrapper from '@components/FormWrapper'
 import ImageGallery from '@components/ImageGallery'
 import TextLine from '@components/TextLine'
 import UserName from '@components/UserName'
-import ValueItem from '@components/ValuePicker/ValueItem'
-import { faCalendarAlt } from '@fortawesome/free-solid-svg-icons'
 import { GENDERS } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
-import { modalsFuncAtom } from '@state/atoms'
-import eventsUsersSignedUpWithEventStatusByUserIdCountSelector from '@state/selectors/eventsUsersSignedUpWithEventStatusByUserIdCountSelector'
-import isLoggedUserMemberSelector from '@state/selectors/isLoggedUserMemberSelector'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 import userSelector from '@state/selectors/userSelector'
-import { useEffect } from 'react'
+import tariffsAtom from '@state/atoms/tariffsAtom'
+import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 
 const CardButtonsComponent = ({ user }) => (
-  <CardButtons item={user} typeOfItem="user" forForm />
+  <CardButtons
+    item={user}
+    typeOfItem="user"
+    minimalActions
+    alwaysCompact
+  />
 )
 
 const userViewFunc = (userId, params = {}) => {
@@ -30,17 +31,11 @@ const userViewFunc = (userId, params = {}) => {
     setDisableDecline,
     setTopLeftComponent,
   }) => {
-    const modalsFunc = useAtomValue(modalsFuncAtom)
-    const isLoggedUserMember = useAtomValue(isLoggedUserMemberSelector)
     const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
     const isLoggedUserDev = loggedUserActiveRole?.dev
-    const seeUserEvents = loggedUserActiveRole?.users?.seeUserEvents
 
     const user = useAtomValue(userSelector(userId))
-
-    const eventsUsersSignedUpCount = useAtomValue(
-      eventsUsersSignedUpWithEventStatusByUserIdCountSelector(userId)
-    )
+    const tariffs = useAtomValue(tariffsAtom)
 
     useEffect(() => {
       if (!user) closeModal()
@@ -48,17 +43,31 @@ const userViewFunc = (userId, params = {}) => {
 
     useEffect(() => {
       if (setTopLeftComponent)
-        setTopLeftComponent(() => (
-          <CardButtons
-            item={user}
-            typeOfItem="user"
-            forForm
-            showDeleteButton={false}
-          />
-        ))
+        setTopLeftComponent(() => <CardButtonsComponent user={user} />)
     }, [setTopLeftComponent])
 
     if (!user) return null
+
+    const tariffInfo = useMemo(() => {
+      if (!user?.tariffId) return 'Не выбран'
+      const tariff = tariffs.find(
+        (item) => String(item?._id) === String(user.tariffId)
+      )
+      const title = tariff?.title || 'Тариф'
+      if (!user?.tariffActiveUntil) return title
+      const date = new Date(user.tariffActiveUntil)
+      if (Number.isNaN(date.getTime())) return title
+      const day = String(date.getDate()).padStart(2, '0')
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const year = date.getFullYear()
+      return `${title} (${day}.${month}.${year})`
+    }, [tariffs, user?.tariffId, user?.tariffActiveUntil])
+
+    const formattedBalance = useMemo(() => {
+      const value = Number(user?.balance ?? 0)
+      if (!Number.isFinite(value)) return '0'
+      return value.toLocaleString('ru-RU')
+    }, [user?.balance])
 
     return (
       <FormWrapper flex className="flex-col">
@@ -89,22 +98,9 @@ const userViewFunc = (userId, params = {}) => {
             </div>
           )}
           {isLoggedUserDev && <TextLine label="ID">{user?._id}</TextLine>}
-          <TextLine label="Пол">
-            {GENDERS.find((item) => item.value === user.gender)?.name ??
-              '[не указан]'}
-          </TextLine>
-          {/* <div className="flex gap-x-2">
-              <span className="font-bold">Ориентация:</span>
-              <span>
-                {
-                  ORIENTATIONS.find((item) => item.value === user.orientation)
-                    ?.name
-                }
-              </span>
-            </div> */}
-          <TextLine label="Место проживания">
-            {user.town ?? '[не указано]'}
-          </TextLine>
+          <TextLine label="Роль">{user?.role ?? '[не указано]'}</TextLine>
+          <TextLine label="Тариф">{tariffInfo}</TextLine>
+          <TextLine label="Баланс">{formattedBalance} руб.</TextLine>
           <ContactsIconsButtons
             user={user}
             withTitle
@@ -114,36 +110,8 @@ const userViewFunc = (userId, params = {}) => {
           <TextLine label="Дата регистрации">
             {formatDate(user.createdAt)}
           </TextLine>
-
-          <div className="flex flex-col gap-x-2 gap-y-1 tablet:flex-row tablet:items-center">
-            <div className="flex flex-col">
-              <TextLine label="Посетил мероприятий">
-                {eventsUsersSignedUpCount.finished}
-              </TextLine>
-              <TextLine label="Записан на мероприятия">
-                {eventsUsersSignedUpCount.signUp}
-              </TextLine>
-            </div>
-
-            {Boolean(modalsFunc.user?.events) &&
-              (seeUserEvents || isLoggedUserMember) &&
-              (eventsUsersSignedUpCount.finished > 0 ||
-                eventsUsersSignedUpCount.signUp > 0) && (
-                <ValueItem
-                  name="Посмотреть мероприятия с пользователем"
-                  color="general"
-                  icon={faCalendarAlt}
-                  hoverable
-                  onClick={() => modalsFunc.user.events(userId)}
-                />
-              )}
-          </div>
         </div>
 
-        {/* <SelectEventList
-          eventsId={eventUsers.map((eventUser) => eventUser.eventId)}
-          readOnly
-        /> */}
       </FormWrapper>
     )
   }

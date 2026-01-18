@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getCalendarClient, listCalendarEvents } from '@server/googleCalendarClient'
+import getTenantContext from '@server/getTenantContext'
 
 const DEFAULT_TIME_MIN = '2000-01-01T00:00:00.000Z'
 
@@ -19,6 +20,13 @@ const buildExportBlock = (calendarEvent) => {
 
 export const POST = async (req) => {
   const body = await req.json().catch(() => ({}))
+  const { tenantId, user } = await getTenantContext()
+  if (!tenantId || !user?._id) {
+    return NextResponse.json(
+      { success: false, error: 'Не авторизован' },
+      { status: 401 }
+    )
+  }
   const calendarId = body.calendarId ?? process.env.GOOGLE_CALENDAR_ID
 
   if (!calendarId)

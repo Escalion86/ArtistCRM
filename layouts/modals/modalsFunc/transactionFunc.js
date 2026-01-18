@@ -317,6 +317,7 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
               onChange={setAmount}
               min={0}
               disabled={loading || isReadOnly}
+              step={1000}
             />
           </div>
           {isTaxCategory && (

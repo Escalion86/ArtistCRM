@@ -6,13 +6,11 @@ import ContentHeader from '@components/ContentHeader'
 import InputWrapper from '@components/InputWrapper'
 import IconCheckBox from '@components/IconCheckBox'
 import ComboBox from '@components/ComboBox'
-import Button from '@components/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
-import useSnackbar from '@helpers/useSnackbar'
 
 const normalizeTowns = (towns = []) =>
   Array.from(
@@ -41,11 +39,7 @@ const TIME_ZONE_OPTIONS = [
 const SettingsContent = () => {
   const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
-  const snackbar = useSnackbar()
   const [darkTheme, setDarkTheme] = useState(false)
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [isSavingPassword, setIsSavingPassword] = useState(false)
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme')
@@ -101,51 +95,6 @@ const SettingsContent = () => {
           }
           fullWidth
         />
-        <InputWrapper label="Смена пароля" fullWidth>
-          <div className="flex w-full flex-col gap-3 tablet:flex-row">
-            <input
-              type="password"
-              className="flex h-9 flex-1 rounded border border-gray-300 px-3 text-sm"
-              placeholder="Текущий пароль"
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-            />
-            <input
-              type="password"
-              className="flex h-9 flex-1 rounded border border-gray-300 px-3 text-sm"
-              placeholder="Новый пароль"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-            />
-            <Button
-              name="Обновить"
-              className="h-9 px-4"
-              disabled={!currentPassword || !newPassword || isSavingPassword}
-              loading={isSavingPassword}
-              onClick={async () => {
-                setIsSavingPassword(true)
-                await postData(
-                  '/api/auth/change-password',
-                  { currentPassword, newPassword },
-                  (result) => {
-                    if (result?.success === false) {
-                      snackbar.error(
-                        result?.error ?? 'Не удалось обновить пароль'
-                      )
-                      return
-                    }
-                    snackbar.success('Пароль обновлен')
-                    setCurrentPassword('')
-                    setNewPassword('')
-                  },
-                  () => snackbar.error('Не удалось обновить пароль'),
-                  true
-                )
-                setIsSavingPassword(false)
-              }}
-            />
-          </div>
-        </InputWrapper>
         <InputWrapper label="Города" fullWidth>
           <div className="flex w-full items-center justify-between gap-3">
             <div className="flex flex-col gap-1">

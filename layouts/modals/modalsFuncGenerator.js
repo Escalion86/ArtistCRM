@@ -8,8 +8,6 @@ import errorFunc from './modalsFunc/errorFunc'
 import eventFunc from './modalsFunc/eventFunc'
 // import eventSignUpFunc from './modalsFunc/eventSignUpFunc2'
 import eventStatusEditFunc from './modalsFunc/eventStatusEditFunc'
-// import eventUserStatusChangeFunc from './modalsFunc/eventUserStatusChangeFunc'
-// import eventUsersFunc from './modalsFunc/eventUsersFunc'
 import eventViewFunc from './modalsFunc/eventViewFunc'
 import transactionFunc from './modalsFunc/transactionFunc'
 import eventsTagsFunc from './modalsFunc/eventsTagsFunc'
@@ -31,8 +29,14 @@ import userFunc from './modalsFunc/userFunc'
 // import userQuestionnaireFunc from './modalsFunc/userQuestionnaireFunc'
 // import userSignedUpEventsFunc from './modalsFunc/userSignedUpEventsFunc'
 import userViewFunc from './modalsFunc/userViewFunc'
+import userBillingFunc from './modalsFunc/userBillingFunc'
+import userTopupFunc from './modalsFunc/userTopupFunc'
+import userTopupInfoFunc from './modalsFunc/userTopupInfoFunc'
+import userOnboardingFunc from './modalsFunc/userOnboardingFunc'
+import changePasswordFunc from './modalsFunc/changePasswordFunc'
+import userTariffChangeFunc from './modalsFunc/userTariffChangeFunc'
+import tariffFunc from './modalsFunc/tariffFunc'
 // import userSetPasswordFunc from './modalsFunc/userSetPasswordFunc'
-// import { asyncEventsUsersByEventIdSelector } from '@state/asyncSelectors/asyncEventsUsersByEventIdAtom'
 // import eventSignUpToReserveAfterError from './modalsFunc/eventSignUpToReserveAfterError'
 // import roleFunc from './modalsFunc/roleFunc'
 // import browseLocationFunc from './modalsFunc/browseLocationFunc'
@@ -41,30 +45,23 @@ import clientFunc from './modalsFunc/clientFunc'
 import clientViewFunc from './modalsFunc/clientViewFunc'
 import clientTransactionsFunc from './modalsFunc/clientTransactionsFunc'
 import clientSelectFunc from './modalsFunc/clientSelectFunc'
+import clientEventsFunc from './modalsFunc/clientEventsFunc'
 // import userHistoryFunc from './modalsFunc/userHistoryFunc'
 // import userActionsHistoryFunc from './modalsFunc/userActionsHistoryFunc'
 // import userPersonalStatusEditFunc from './modalsFunc/userPersonalStatusEditFunc'
 // import likesEditFunc from './modalsFunc/likesEditFunc'
-// import copyEventUserListFunc from './modalsFunc/copyEventUserListFunc'
 // import likeEditFunc from './modalsFunc/likeEditFunc'
 // import likesViewFunc from './modalsFunc/likesViewFunc'
 // import eventAfterSignUpMessageFunc from './modalsFunc/eventAfterSignUpMessageFunc'
 // import subEventFunc from './modalsFunc/subEventFunc'
-// import eventUserSubEventChangeFunc from './modalsFunc/eventUserSubEventChangeFunc'
 import requestViewFunc from './modalsFunc/requestViewFunc'
 import requestFunc from './modalsFunc/requestFunc'
 import requestStatusEditFunc from './modalsFunc/requestStatusEditFunc'
 
-const modalsFuncGenerator = (
-  router,
-  itemsFunc,
-  loggedUser,
-  siteSettings,
-  loggedUserActiveRole,
-  loggedUserActiveStatus
-) => {
+const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
   const addModal = (value) => setAtomValue(addModalSelector, value)
   // const itemsFunc = getRecoil(itemsFuncAtom)
+  const canManageUsers = ['dev', 'admin'].includes(loggedUser?.role)
 
   return {
     add: addModal,
@@ -205,7 +202,6 @@ const modalsFuncGenerator = (
       add: (eventId) => addModal(eventFunc(eventId, true)),
       edit: (eventId) => addModal(eventFunc(eventId)),
       fromRequest: (requestId) => addModal(eventFunc(null, false, requestId)),
-      // users: (eventId) => addModal(eventUsersFunc(eventId)),
       history: (eventId) => addModal(eventHistoryFunc(eventId)),
       statusEdit: (eventId) => addModal(eventStatusEditFunc(eventId)),
       close: (eventId) =>
@@ -235,26 +231,43 @@ const modalsFuncGenerator = (
       view: (eventId) => addModal(eventViewFunc(eventId)),
       // editLikes: (eventId) => addModal(likesEditFunc(eventId)),
       // viewLikes: (eventId) => addModal(likesViewFunc(eventId)),
-      // copyUsersList: (eventId) => addModal(copyEventUserListFunc(eventId)),
     },
-    // eventUser: {
-    //   editStatus: (eventUser) => addModal(eventUserStatusChangeFunc(eventUser)),
-    //   editSubEvent: (eventUser, onConfirm) =>
-    //     addModal(eventUserSubEventChangeFunc(eventUser, onConfirm)),
-    //   editLike: (eventUser, adminView) =>
-    //     addModal(likeEditFunc(eventUser, adminView)),
-    //   likesResult: (eventUser) => addModal(likeEditFunc(eventUser)),
-    // },
     user: {
-      add: (userId) => addModal(userFunc(userId, true)),
-      edit: (userId) => addModal(userFunc(userId)),
+      add: (userId) =>
+        canManageUsers ? addModal(userFunc(userId, true)) : null,
+      edit: (userId) => (canManageUsers ? addModal(userFunc(userId)) : null),
       delete: (userId) =>
-        addModal({
-          title: 'Удаление пользователя',
-          text: 'Вы уверены, что хотите удалить пользователя?',
-          onConfirm: async () => itemsFunc.user.delete(userId),
-        }),
+        canManageUsers
+          ? addModal({
+              title: 'Удаление пользователя',
+              text: 'Вы уверены, что хотите удалить пользователя?',
+              onConfirm: async () => itemsFunc.user.delete(userId),
+            })
+          : null,
       view: (userId, params) => addModal(userViewFunc(userId, params)),
+      billing: (userId) =>
+        canManageUsers ? addModal(userBillingFunc(userId)) : null,
+      topup: (userId, onSuccess) =>
+        canManageUsers ? addModal(userTopupFunc(userId, onSuccess)) : null,
+      topupInfo: (userId) => addModal(userTopupInfoFunc(userId)),
+      onboarding: () => addModal(userOnboardingFunc()),
+      changePassword: () => addModal(changePasswordFunc()),
+      tariffChange: (userId) =>
+        canManageUsers ? addModal(userTariffChangeFunc(userId)) : null,
+    },
+    tariff: {
+      add: (tariffId) =>
+        canManageUsers ? addModal(tariffFunc(tariffId, true)) : null,
+      edit: (tariffId) =>
+        canManageUsers ? addModal(tariffFunc(tariffId)) : null,
+      delete: (tariffId) =>
+        canManageUsers
+          ? addModal({
+              title: 'Удаление тарифа',
+              text: 'Вы уверены, что хотите удалить тариф?',
+              onConfirm: async () => itemsFunc.tariff.delete(tariffId),
+            })
+          : null,
     },
     service: {
       add: (serviceId) => addModal(serviceFunc(serviceId, true)),
@@ -287,6 +300,7 @@ const modalsFuncGenerator = (
         addModal(clientSelectFunc(onSelect, title, options)),
       view: (clientId) => addModal(clientViewFunc(clientId)),
       transactions: (clientId) => addModal(clientTransactionsFunc(clientId)),
+      events: (clientId) => addModal(clientEventsFunc(clientId)),
     },
     // serviceUser: {
     //   add: (serviceId) => addModal(serviceUserFunc(serviceId, true)),

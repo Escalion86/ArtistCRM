@@ -19,6 +19,12 @@ export const POST = async (req) => {
       { status: 400 }
     )
   }
+  if (String(newPassword).length < 8) {
+    return NextResponse.json(
+      { success: false, error: 'Пароль должен быть не менее 8 символов' },
+      { status: 400 }
+    )
+  }
   if (phone.length !== 11) {
     return NextResponse.json(
       { success: false, error: 'INVALID_PHONE_LENGTH' },

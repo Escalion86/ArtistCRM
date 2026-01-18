@@ -5,6 +5,7 @@ import Requests from '@models/Requests'
 import Transactions from '@models/Transactions'
 import Services from '@models/Services'
 import Users from '@models/Users'
+import Tariffs from '@models/Tariffs'
 import dbConnect from './dbConnect'
 import mongoose from 'mongoose'
 
@@ -22,6 +23,7 @@ const fetchProps = async (user) => {
         requests: [],
         transactions: [],
         services: [],
+        tariffs: [],
         serverSettings: JSON.parse(
           JSON.stringify({
             dateTime: serverDateTime,
@@ -66,12 +68,16 @@ const fetchProps = async (user) => {
     const requests = await Requests.find({ tenantId }).lean()
     const transactions = await Transactions.find({ tenantId }).lean()
     const services = await Services.find({ tenantId }).lean()
+    const tariffs = await Tariffs.find({}).sort({ price: 1, title: 1 }).lean()
     const canManageAllUsers = ['dev', 'admin'].includes(user?.role)
     const usersQuery = canManageAllUsers ? {} : { tenantId }
     const users = await Users.find(usersQuery).select('-password').lean()
+    const loggedUser = user?._id
+      ? await Users.findById(user._id).select('-password').lean()
+      : null
 
     const fetchResult = {
-      loggedUser: JSON.parse(JSON.stringify(user ?? null)),
+      loggedUser: JSON.parse(JSON.stringify(loggedUser ?? user ?? null)),
       clients: JSON.parse(JSON.stringify(clients)),
       events: JSON.parse(JSON.stringify(events)),
       siteSettings: JSON.parse(
@@ -80,6 +86,7 @@ const fetchProps = async (user) => {
       requests: JSON.parse(JSON.stringify(requests)),
       transactions: JSON.parse(JSON.stringify(transactions)),
       services: JSON.parse(JSON.stringify(services)),
+      tariffs: JSON.parse(JSON.stringify(tariffs)),
       users: JSON.parse(JSON.stringify(users)),
       serverSettings: JSON.parse(
         JSON.stringify({
@@ -98,6 +105,7 @@ const fetchProps = async (user) => {
       requests: [],
       transactions: [],
       services: [],
+      tariffs: [],
       users: [],
       serverSettings: JSON.parse(
         JSON.stringify({

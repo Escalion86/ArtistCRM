@@ -4,9 +4,7 @@ import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
 import InputImages from '@components/InputImages'
 import PhoneInput from '@components/PhoneInput'
-import GenderPicker from '@components/ValuePicker/GenderPicker'
 import UserRolePicker from '@components/ValuePicker/UserRolePicker'
-import UserStatusPicker from '@components/ValuePicker/UserStatusPicker'
 import compareArrays from '@helpers/compareArrays'
 import { DEFAULT_USER } from '@helpers/constants'
 import useErrors from '@helpers/useErrors'
@@ -36,7 +34,6 @@ const userFunc = (userId, clone = false) => {
     const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
     const isLoggedUserDev = loggedUserActiveRole?.dev
     const canSetRole = loggedUserActiveRole?.users?.setRole
-    const canSetStatus = loggedUserActiveRole?.users?.setStatus
 
     const user = useAtomValue(userSelector(userId))
     const setUser = useAtomValue(itemsFuncAtom).user.set
@@ -58,11 +55,6 @@ const userFunc = (userId, clone = false) => {
     // const [interests, setInterests] = useState(user?.interests ?? DEFAULT_USER.interests)
     // const [profession, setProfession] = useState(user?.profession ?? DEFAULT_USER.profession)
     // const [orientation, setOrientation] = useState(user?.orientation ?? DEFAULT_USER.orientation)
-    const [gender, setGender] = useState(user?.gender ?? DEFAULT_USER.gender)
-    const [personalStatus, setPersonalStatus] = useState(
-      user?.personalStatus ?? DEFAULT_USER.personalStatus
-    )
-
     const [email, setEmail] = useState(user?.email ?? DEFAULT_USER.email)
     const [phone, setPhone] = useState(user?.phone ?? DEFAULT_USER.phone)
     const [whatsapp, setWhatsapp] = useState(
@@ -77,7 +69,6 @@ const userFunc = (userId, clone = false) => {
     )
     const [vk, setVk] = useState(user?.vk ?? DEFAULT_USER.vk)
     const [images, setImages] = useState(user?.images ?? DEFAULT_USER.images)
-    const [status, setStatus] = useState(user?.status ?? DEFAULT_USER.status)
     const [role, setRole] = useState(user?.role ?? DEFAULT_USER.role)
 
 
@@ -128,8 +119,6 @@ const userFunc = (userId, clone = false) => {
             // profession,
             // orientation,
             password: userId ? undefined : password,
-            gender,
-            personalStatus,
             email,
             phone,
             whatsapp,
@@ -138,7 +127,6 @@ const userFunc = (userId, clone = false) => {
             instagram,
             vk,
             images,
-            status,
             role,
           },
           clone
@@ -213,8 +201,6 @@ const userFunc = (userId, clone = false) => {
         // user?.interests !== interests ||
         // user?.profession !== profession ||
         // user?.orientation !== orientation ||
-        user?.gender !== gender ||
-        user?.personalStatus !== personalStatus ||
         user?.email !== email ||
         user?.phone !== phone ||
         user?.whatsapp !== whatsapp ||
@@ -223,7 +209,6 @@ const userFunc = (userId, clone = false) => {
         user?.instagram !== instagram ||
         user?.vk !== vk ||
         !compareArrays(user?.images, images) ||
-        user?.status !== status ||
         user?.role !== role
 
       setOnConfirmFunc(
@@ -240,8 +225,6 @@ const userFunc = (userId, clone = false) => {
       // interests,
       // profession,
       // orientation,
-      gender,
-      personalStatus,
       email,
       phone,
       whatsapp,
@@ -250,7 +233,6 @@ const userFunc = (userId, clone = false) => {
       instagram,
       vk,
       images,
-      status,
       role,
     ])
 
@@ -334,21 +316,6 @@ const userFunc = (userId, clone = false) => {
             autoComplete="one-time-code"
           />
         )}
-        <GenderPicker
-          gender={gender}
-          onChange={setGender}
-          error={errors.gender}
-        />
-        {/* <OrientationPicker
-          orientation={orientation}
-          onChange={setOrientation}
-        /> */}
-        <Input
-          label="Статус (будет виден всем на карточке)"
-          type="text"
-          value={personalStatus}
-          onChange={setPersonalStatus}
-        />
         <FormWrapper twoColumns>
         <PhoneInput
           label="Телефон"
@@ -404,13 +371,6 @@ const userFunc = (userId, clone = false) => {
           error={errors.email}
           copyPasteButtons
         />
-        {canSetStatus && (
-          <UserStatusPicker
-            status={status}
-            onChange={setStatus}
-            error={errors.status}
-          />
-        )}
         {canSetRole && (
           <UserRolePicker
             roleId={role}

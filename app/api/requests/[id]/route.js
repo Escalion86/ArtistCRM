@@ -8,6 +8,7 @@ import { updateEventInCalendar } from '@server/CRUD'
 import { getCalendarClient } from '@server/googleCalendarClient'
 import formatAddress from '@helpers/formatAddress'
 import getTenantContext from '@server/getTenantContext'
+import getUserTariffAccess from '@server/getUserTariffAccess'
 
 const { GOOGLE_CALENDAR_ID } = process.env
 const WRITE_SCOPE = ['https://www.googleapis.com/auth/calendar']
@@ -178,8 +179,8 @@ const REQUEST_STATUSES = new Set([
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) {
+  const { tenantId, user } = await getTenantContext()
+  if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
       { status: 401 }
@@ -204,6 +205,28 @@ export const PUT = async (req, { params }) => {
   }
 
   if (body.convertToEvent) {
+    const access = await getUserTariffAccess(user._id)
+    if (!access?.trialActive && !access?.hasTariff) {
+      return NextResponse.json(
+        { success: false, error: 'Не выбран тариф' },
+        { status: 403 }
+      )
+    }
+    if (Number.isFinite(access?.eventsPerMonth) && access.eventsPerMonth > 0) {
+      const now = new Date()
+      const start = new Date(now.getFullYear(), now.getMonth(), 1)
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      const count = await Events.countDocuments({
+        tenantId,
+        createdAt: { $gte: start, $lt: end },
+      })
+      if (count >= access.eventsPerMonth) {
+        return NextResponse.json(
+          { success: false, error: 'Достигнут лимит мероприятий' },
+          { status: 403 }
+        )
+      }
+    }
     if (request.eventId)
       return NextResponse.json(
         { success: false, error: 'Заявка уже преобразована в мероприятие' },
@@ -280,12 +303,14 @@ export const PUT = async (req, { params }) => {
     })
 
     let updatedEvent = event
-    try {
-      await updateEventInCalendar(event, req)
-      const refreshedEvent = await Events.findById(event._id).lean()
-      if (refreshedEvent) updatedEvent = refreshedEvent
-    } catch (error) {
-      console.log('Google Calendar convert error', error)
+    if (access?.allowCalendarSync) {
+      try {
+        await updateEventInCalendar(event, req)
+        const refreshedEvent = await Events.findById(event._id).lean()
+        if (refreshedEvent) updatedEvent = refreshedEvent
+      } catch (error) {
+        console.log('Google Calendar convert error', error)
+      }
     }
 
     const updatedRequest = await Requests.findOneAndUpdate(

@@ -16,6 +16,8 @@ import requestDeleteSelector from './selectors/requestDeleteSelector'
 import clientEditSelector from './selectors/clientEditSelector'
 import serviceEditSelector from './selectors/serviceEditSelector'
 import serviceDeleteSelector from './selectors/serviceDeleteSelector'
+import tariffEditSelector from './selectors/tariffEditSelector'
+import tariffDeleteSelector from './selectors/tariffDeleteSelector'
 // import siteSettingsAtom from './atoms/siteSettingsAtom'
 // import questionnaireEditSelector from './selectors/questionnaireEditSelector'
 // import questionnaireDeleteSelector from './selectors/questionnaireDeleteSelector'
@@ -107,6 +109,20 @@ const messages = {
       error: 'Не удалось удалить пользователя',
     },
   },
+  tariff: {
+    update: {
+      success: 'Тариф обновлен',
+      error: 'Не удалось обновить тариф',
+    },
+    add: {
+      success: 'Тариф создан',
+      error: 'Не удалось создать тариф',
+    },
+    delete: {
+      success: 'Тариф удален',
+      error: 'Не удалось удалить тариф',
+    },
+  },
   // eventsUser: {
   //   update: {
   //     success: 'Пользователь на мероприятии обновлен',
@@ -155,6 +171,7 @@ const props = {
   deleteRequest: setFunc(requestDeleteSelector),
   setClient: setFunc(clientEditSelector),
   setUser: setFunc(userEditSelector),
+  setTariff: setFunc(tariffEditSelector),
 
   // setEventsUsers: setFamilyFunc(setEventsUsersSelector),
   // updateEventsUsers: setFamilyFunc(updateEventsUsersSelector),
@@ -170,6 +187,7 @@ const props = {
   setService: setFunc(serviceEditSelector),
   deleteService: setFunc(serviceDeleteSelector),
   deleteUser: setFunc(userDeleteSelector),
+  deleteTariff: setFunc(tariffDeleteSelector),
   // setServicesUser: setFunc(servicesUsersEditSelector),
   // deleteServicesUser: setFunc(servicesUsersDeleteSelector),
   // setRoles: setFunc(rolesAtom),
@@ -184,6 +202,7 @@ const itemsFuncGenerator = (
     'client',
     'service',
     'user',
+    'tariff',
     // 'eventsUser',
     // 'user',
     // 'questionnaire',

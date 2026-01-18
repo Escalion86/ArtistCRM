@@ -110,6 +110,7 @@ const authOptions = {
             tenantId: user.tenantId?.toString() ?? user._id.toString(),
             firstName: user.firstName ?? '',
             secondName: user.secondName ?? '',
+            tariffId: user.tariffId?.toString() ?? null,
           }
         } catch (error) {
           console.log({ error })
@@ -128,6 +129,7 @@ const authOptions = {
         token.tenantId = user.tenantId
         token.firstName = user.firstName
         token.secondName = user.secondName
+        token.tariffId = user.tariffId
       }
       return token
     },
@@ -138,6 +140,7 @@ const authOptions = {
       session.user.tenantId = token.tenantId
       session.user.firstName = token.firstName
       session.user.secondName = token.secondName
+      session.user.tariffId = token.tariffId ?? null
       session.user.name = token.phone
       return session
     },

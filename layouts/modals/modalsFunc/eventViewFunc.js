@@ -9,21 +9,20 @@ import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
 import formatMinutes from '@helpers/formatMinutes'
 import getEventDuration from '@helpers/getEventDuration'
-import isEventClosedFunc from '@helpers/isEventClosed'
 import eventSelector from '@state/selectors/eventSelector'
 import userSelector from '@state/selectors/userSelector'
 import DOMPurify from 'isomorphic-dompurify'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
 
-const CardButtonsComponent = ({ event, isEventClosed }) => (
+const CardButtonsComponent = ({ event, calendarLink }) => (
   <CardButtons
     item={event}
     typeOfItem="event"
-    forForm
-    showEditButton={!isEventClosed}
-    showDeleteButton={false}
+    minimalActions
+    alwaysCompact
+    calendarLink={calendarLink}
   />
 )
 
@@ -44,7 +43,14 @@ const eventViewFunc = (eventId) => {
 
     const duration = getEventDuration(event)
 
-    const isEventClosed = isEventClosedFunc(event)
+    const calendarLink = useMemo(() => {
+      if (!event?.description) return null
+      const match = event.description.match(
+        /https?:\/\/(?:www\.)?google\.com\/calendar\/event\?eid=\S+|https?:\/\/calendar\.google\.com\/calendar\/\S+/i
+      )
+      if (!match?.[0]) return null
+      return match[0].replace(/[),.]+$/, '')
+    }, [event?.description])
     const serviceTitles = (event?.servicesIds ?? [])
       .map((serviceId) => services.find((item) => item._id === serviceId))
       .filter(Boolean)
@@ -53,10 +59,10 @@ const eventViewFunc = (eventId) => {
     useEffect(() => {
       if (setTopLeftComponent) {
         setTopLeftComponent(() => (
-          <CardButtonsComponent event={event} isEventClosed={isEventClosed} />
+          <CardButtonsComponent event={event} calendarLink={calendarLink} />
         ))
       }
-    }, [event, isEventClosed, setTopLeftComponent])
+    }, [event, calendarLink, setTopLeftComponent])
 
     if (!event || !eventId)
       return (
@@ -76,11 +82,7 @@ const eventViewFunc = (eventId) => {
               )}
               {!setTopLeftComponent && (
                 <div className="flex flex-1 justify-end">
-                  <CardButtonsComponent
-                    event={event}
-                    isEventClosed={isEventClosed}
-                    showDeleteButton={false}
-                  />
+                  <CardButtonsComponent event={event} calendarLink={calendarLink} />
                 </div>
               )}
             </div>

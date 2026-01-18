@@ -8,7 +8,8 @@ import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import servicesAtom from '@state/atoms/servicesAtom'
 import usersAtom from '@state/atoms/usersAtom'
-import { useEffect } from 'react'
+import tariffsAtom from '@state/atoms/tariffsAtom'
+import { useEffect, useRef } from 'react'
 import LoadingSpinner from '@components/LoadingSpinner'
 import ModalsPortal from '@layouts/modals/ModalsPortal'
 import isSiteLoadingAtom from '@state/atoms/isSiteLoadingAtom'
@@ -20,6 +21,9 @@ import modalsFuncGenerator from '@layouts/modals/modalsFuncGenerator'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import itemsFuncGenerator from '@state/itemsFuncGenerator'
 import useSnackbar from '@helpers/useSnackbar'
+import { getUserTariffAccess } from '@helpers/tariffAccess'
+import { pages } from '@helpers/constants'
+import isPageAllowedForRole from '@helpers/pageAccess'
 
 const StateLoader = (props) => {
   if (props.error && Object.keys(props.error).length > 0)
@@ -49,6 +53,7 @@ const StateLoader = (props) => {
   // const setQuestionnairesState = useSetAtom(questionnairesAtom)
   // const setQuestionnairesUsersState = useSetAtom(questionnairesUsersAtom)
   const setServicesState = useSetAtom(servicesAtom)
+  const setTariffsState = useSetAtom(tariffsAtom)
   // const setServicesUsersState = useSetAtom(servicesUsersAtom)
   // const setServerSettingsState = useSetAtom(serverSettingsAtom)
 
@@ -62,7 +67,8 @@ const StateLoader = (props) => {
     setModalsFunc(
       modalsFuncGenerator(
         router,
-        itemsFunc
+        itemsFunc,
+        loggedUser
         // loggedUser,
         // siteSettingsState,
       )
@@ -76,6 +82,7 @@ const StateLoader = (props) => {
     setClientsState(props.clients)
     setTransactionsState(props.transactions ?? [])
     setServicesState(props.services ?? [])
+    setTariffsState(props.tariffs ?? [])
     setUsersState(props.users ?? [])
     setSiteSettingsState(props.siteSettings)
     setIsSiteLoading(false)
@@ -86,6 +93,7 @@ const StateLoader = (props) => {
     props.requests,
     props.siteSettings,
     props.services,
+    props.tariffs,
     props.transactions,
     props.users,
     setClientsState,
@@ -94,10 +102,57 @@ const StateLoader = (props) => {
     setLoggedUser,
     setRequestsState,
     setServicesState,
+    setTariffsState,
     setUsersState,
     setSiteSettingsState,
     setTransactionsState,
   ])
+
+  useEffect(() => {
+    if (!loggedUser?._id) return
+    const access = getUserTariffAccess(loggedUser, props.tariffs ?? [])
+    const needsTariff = !access.trialActive && !access.hasTariff
+    const allowedPages = ['tariff-select', 'tariffs']
+    if (needsTariff && props.page && !allowedPages.includes(props.page)) {
+      router.push('/cabinet/tariff-select')
+    }
+  }, [loggedUser?._id, loggedUser?.tariffId, props.page, router])
+
+  const onboardingShownRef = useRef(false)
+
+  useEffect(() => {
+    if (!loggedUser?._id || onboardingShownRef.current) return
+    const firstName = loggedUser?.firstName?.trim() ?? ''
+    const secondName = loggedUser?.secondName?.trim() ?? ''
+    const town =
+      loggedUser?.town?.trim() ?? siteSettingsState?.defaultTown?.trim() ?? ''
+    const timeZone = siteSettingsState?.timeZone ?? ''
+    const needsOnboarding =
+      !firstName || !secondName || !town || !timeZone
+
+    if (needsOnboarding && modalFunc?.user?.onboarding) {
+      onboardingShownRef.current = true
+      modalFunc.user.onboarding()
+    }
+  }, [
+    loggedUser?._id,
+    loggedUser?.firstName,
+    loggedUser?.secondName,
+    loggedUser?.town,
+    siteSettingsState?.defaultTown,
+    siteSettingsState?.timeZone,
+    modalFunc,
+  ])
+
+  useEffect(() => {
+    if (!loggedUser?._id || !props.page) return
+    const role = loggedUser?.role ?? 'user'
+    const pageConfig = pages.find((item) => item.href === props.page)
+    const isAllowed = isPageAllowedForRole(pageConfig?.accessRoles, role)
+    if (!isAllowed) {
+      router.push('/cabinet/requests')
+    }
+  }, [loggedUser?._id, loggedUser?.role, props.page, router])
 
   // useEffect(() => {
   //   if (loggedUser) {

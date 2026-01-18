@@ -61,7 +61,6 @@ const RequestCard = ({
   //   loggedUserToEventStatusSelector(eventId)
   // )
 
-  // const eventAssistants = eventUsers
   //   .filter((item) => item.user && item.status === 'assistant')
   //   .map((item) => item.user)
 
@@ -72,7 +71,7 @@ const RequestCard = ({
     <CardWrapper
       loading={loading}
       error={error}
-      onClick={() => !loading && modalsFunc.request.edit(request._id)}
+      onClick={() => !loading && modalsFunc.request.view(request._id)}
       gap={false}
       hidden={hidden}
       style={style}
@@ -106,7 +105,8 @@ const RequestCard = ({
                 <CardButtons
                   item={request}
                   typeOfItem="request"
-                  showEditButton={false}
+                  showEditButton={!request?.eventId}
+                  showDeleteButton={!request?.eventId}
                   calendarLink={request.calendarLink}
                 />
               )}

@@ -1,6 +1,5 @@
 import upperCaseFirst from '@helpers/upperCaseFirst'
 import cn from 'classnames'
-import TextLinesLimiter from './TextLinesLimiter'
 
 const UserName = ({ user, className, noWrap, thin, showStatus, trunc }) => {
   if (!user) return null
@@ -13,39 +12,28 @@ const UserName = ({ user, className, noWrap, thin, showStatus, trunc }) => {
         className
       )}
     >
-      {trunc ? (
-        <TextLinesLimiter
-          className="flex-1 leading-[14px]"
-          lines={typeof trunc === 'number' ? trunc : 1}
-        >{`${upperCaseFirst(user.firstName)}${
-          user.thirdName ? upperCaseFirst(user.thirdName) : ''
-        }${
-          user.secondName ? upperCaseFirst(user.secondName) : ''
-        }`}</TextLinesLimiter>
-      ) : (
-        <div
-          className={cn(
-            'flex flex-1 gap-x-1 leading-[14px]',
-            noWrap ? 'flex-nowrap' : 'flex-wrap'
-          )}
-        >
-          {user?.firstName && (
-            <span className={cn(thin ? 'max-h-3 overflow-visible' : '')}>
-              {upperCaseFirst(user.firstName)}
-            </span>
-          )}
-          {user?.thirdName && (
-            <span className={cn(thin ? 'max-h-3 overflow-visible' : '')}>
-              {upperCaseFirst(user.thirdName)}
-            </span>
-          )}
-          {user?.secondName && (
-            <span className={cn(thin ? 'max-h-3 overflow-visible' : '')}>
-              {upperCaseFirst(user.secondName)}
-            </span>
-          )}
-        </div>
-      )}
+      <div
+        className={cn(
+          'flex flex-1 gap-x-1 leading-[14px]',
+          noWrap ? 'flex-nowrap' : 'flex-wrap'
+        )}
+      >
+        {user?.firstName && (
+          <span className={cn(thin ? 'max-h-3 overflow-visible' : '')}>
+            {upperCaseFirst(user.firstName)}
+          </span>
+        )}
+        {user?.thirdName && (
+          <span className={cn(thin ? 'max-h-3 overflow-visible' : '')}>
+            {upperCaseFirst(user.thirdName)}
+          </span>
+        )}
+        {user?.secondName && (
+          <span className={cn(thin ? 'max-h-3 overflow-visible' : '')}>
+            {upperCaseFirst(user.secondName)}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

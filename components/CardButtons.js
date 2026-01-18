@@ -5,13 +5,16 @@ import {
   faCalendarAlt,
   faClipboardList,
   faCode,
+  faExchangeAlt,
   faEllipsisV,
   faExternalLinkAlt,
+  faMoneyBill,
   faPencilAlt,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { EVENT_STATUSES, SERVICE_USER_STATUSES } from '@helpers/constants'
 import { modalsFuncAtom } from '@state/atoms'
+import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import windowDimensionsTailwindSelector from '@state/selectors/windowDimensionsTailwindSelector'
 import cn from 'classnames'
 import { useAtomValue } from 'jotai'
@@ -54,7 +57,12 @@ const CardButtons = ({
   onOpenCalendar,
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const loggedUser = useAtomValue(loggedUserAtom)
   const device = useAtomValue(windowDimensionsTailwindSelector)
+
+  const canManageUsers = ['dev', 'admin'].includes(loggedUser?.role)
+  const canManageItem =
+    typeOfItem !== 'user' && typeOfItem !== 'tariff' ? true : canManageUsers
 
   const copyId = useCopyToClipboard(item._id, 'ID скопирован в буфер обмена')
 
@@ -69,31 +77,37 @@ const CardButtons = ({
 
   const show = minimalActions
     ? {
-        editBtn: showEditButton,
-        cloneBtn: typeOfItem !== 'user',
+        editBtn: showEditButton && canManageItem,
+        cloneBtn: typeOfItem !== 'user' && typeOfItem !== 'tariff',
         openCalendar:
           (typeOfItem === 'event' || typeOfItem === 'request') &&
           Boolean(calendarLink),
         viewRequest: typeOfItem === 'event' && Boolean(item?.requestId),
-        deleteBtn: showDeleteButton && item.status !== 'closed',
+        deleteBtn:
+          showDeleteButton && canManageItem && item.status !== 'closed',
+        userBilling: typeOfItem === 'user' && canManageUsers,
+        userTariff: typeOfItem === 'user' && canManageUsers,
+        userEvents: typeOfItem === 'client',
       }
     : {
         copyId: true,
         userActionsHistory: typeOfItem === 'user',
+        userBilling: typeOfItem === 'user' && canManageUsers,
+        userTariff: typeOfItem === 'user' && canManageUsers,
         setPasswordBtn: true,
         addToCalendar: typeOfItem === 'event',
-        eventUsersBtn: typeOfItem === 'event',
         openCalendar:
           (typeOfItem === 'event' || typeOfItem === 'request') &&
           Boolean(calendarLink),
         viewRequest: typeOfItem === 'event' && Boolean(item?.requestId),
         upBtn: onUpClick && upDownSee,
         downBtn: onDownClick && upDownSee,
-        editBtn: showEditButton,
-        cloneBtn: typeOfItem !== 'user',
+        editBtn: showEditButton && canManageItem,
+        cloneBtn: typeOfItem !== 'user' && typeOfItem !== 'tariff',
         showOnSiteBtn: showOnSiteOnClick,
-        statusBtn: true,
-        deleteBtn: showDeleteButton && item.status !== 'closed',
+        statusBtn: typeOfItem !== 'client',
+        deleteBtn:
+          showDeleteButton && canManageItem && item.status !== 'closed',
         userEvents: typeOfItem === 'client',
       }
 
@@ -148,6 +162,26 @@ const CardButtons = ({
           tooltipText="Переместить ниже"
         />
       )}
+      {show.userBilling && (
+        <ItemComponent
+          icon={faMoneyBill}
+          onClick={() => {
+            modalsFunc[typeOfItem].billing(item._id)
+          }}
+          color="green"
+          tooltipText="Баланс и платежи"
+        />
+      )}
+      {show.userTariff && (
+        <ItemComponent
+          icon={faExchangeAlt}
+          onClick={() => {
+            modalsFunc[typeOfItem].tariffChange(item._id)
+          }}
+          color="blue"
+          tooltipText="Сменить тариф"
+        />
+      )}
       {show.userEvents && (
         <ItemComponent
           icon={faCalendarAlt}
@@ -155,7 +189,11 @@ const CardButtons = ({
             modalsFunc[typeOfItem].events(item._id)
           }}
           color="blue"
-          tooltipText="Мероприятия с пользователем"
+          tooltipText={
+            typeOfItem === 'client'
+              ? 'Заявки и мероприятия'
+              : 'Мероприятия с пользователем'
+          }
         />
       )}
       {show.openCalendar && (

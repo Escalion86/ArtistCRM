@@ -16,6 +16,10 @@ const ServiceCard = ({ service, style }) => {
     ? formatMinutes(service.duration)
     : 'Не указана'
   const description = service.description || 'Описание отсутствует'
+  const previewImage =
+    Array.isArray(service.images) && service.images.length > 0
+      ? service.images[0]
+      : null
 
   return (
     <div style={style} className="px-2 py-2">
@@ -38,7 +42,15 @@ const ServiceCard = ({ service, style }) => {
           />
         </div>
 
-        <div className="flex h-full w-full flex-col gap-2">
+        <div className="flex h-full w-full gap-3">
+          {previewImage && (
+            <img
+              src={previewImage}
+              alt="service"
+              className="h-16 w-16 min-w-[64px] rounded-lg object-cover"
+            />
+          )}
+          <div className="flex h-full w-full flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-base font-semibold text-gray-900">
               {service.title || 'Без названия'}
@@ -53,6 +65,7 @@ const ServiceCard = ({ service, style }) => {
           <TextLinesLimiter className="text-sm text-gray-600" lines={3}>
             {description}
           </TextLinesLimiter>
+          </div>
         </div>
       </div>
     </div>
@@ -64,6 +77,7 @@ ServiceCard.propTypes = {
     _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     title: PropTypes.string,
     description: PropTypes.string,
+    images: PropTypes.arrayOf(PropTypes.string),
     duration: PropTypes.number,
   }).isRequired,
   style: PropTypes.shape({}),

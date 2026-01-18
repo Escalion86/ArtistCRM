@@ -10,6 +10,7 @@ import {
   listCalendarEvents,
 } from '@server/googleCalendarClient'
 import getTenantContext from '@server/getTenantContext'
+import getUserTariffAccess from '@server/getUserTariffAccess'
 
 const DEFAULT_TIME_MIN = '2000-01-01T00:00:00.000Z'
 const EMPTY_CLIENT_NAME = 'Клиент из Google Calendar'
@@ -255,11 +256,18 @@ const buildEventUpdate = (
 
 export const POST = async (req) => {
   const body = await req.json().catch(() => ({}))
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) {
+  const { tenantId, user } = await getTenantContext()
+  if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
       { status: 401 }
+    )
+  }
+  const access = await getUserTariffAccess(user._id)
+  if (!access?.allowCalendarSync) {
+    return NextResponse.json(
+      { success: false, error: 'Синхронизация с календарем недоступна' },
+      { status: 403 }
     )
   }
   const calendarId = body.calendarId ?? process.env.GOOGLE_CALENDAR_ID
@@ -283,6 +291,26 @@ export const POST = async (req) => {
     )
 
   await dbConnect()
+  let createdThisMonth = 0
+  const accessLimit =
+    Number.isFinite(access?.eventsPerMonth) && access.eventsPerMonth > 0
+      ? access.eventsPerMonth
+      : null
+  if (accessLimit) {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    createdThisMonth = await Events.countDocuments({
+      tenantId,
+      createdAt: { $gte: start, $lt: end },
+    })
+    if (createdThisMonth >= accessLimit) {
+      return NextResponse.json(
+        { success: false, error: 'Достигнут лимит мероприятий' },
+        { status: 403 }
+      )
+    }
+  }
 
   const settings = await ensureSiteSettings(tenantId)
   const storedSyncToken = settings?.custom?.get('googleCalendarSyncToken')
@@ -347,6 +375,23 @@ export const POST = async (req) => {
       continue
     }
 
+    if (accessLimit) {
+      const existing = await Events.findOne({
+        googleCalendarId: item.id,
+        tenantId,
+      })
+        .select('_id')
+        .lean()
+      if (!existing && createdThisMonth >= accessLimit) {
+        skipped.push({
+          googleId: item?.id ?? null,
+          title: item?.summary ?? 'Без названия',
+          reason: 'Лимит мероприятий',
+        })
+        continue
+      }
+    }
+
     const parsed = parseGoogleEvent(item)
     const parsedTown = normalizeTown(parsed?.address?.town)
     const detectedTown =
@@ -397,6 +442,12 @@ export const POST = async (req) => {
         rawResult: true,
       }
     )
+    if (
+      accessLimit &&
+      dbResult?.lastErrorObject?.updatedExisting === false
+    ) {
+      createdThisMonth += 1
+    }
 
     let eventId = dbResult.value?._id ?? null
     if (!eventId) {

@@ -8,7 +8,6 @@ const usersSchema = {
   tenantId: {
     type: Schema.Types.ObjectId,
     ref: 'Users',
-    index: true,
     default: null,
   },
   firstName: {
@@ -75,6 +74,41 @@ const usersSchema = {
   vk: {
     type: String,
     default: '',
+  },
+  tariffId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Tariffs',
+    default: null,
+  },
+  trialActivatedAt: {
+    type: Date,
+    default: null,
+  },
+  trialEndsAt: {
+    type: Date,
+    default: null,
+  },
+  trialUsed: {
+    type: Boolean,
+    default: false,
+  },
+  balance: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  billingStatus: {
+    type: String,
+    default: 'active',
+    enum: ['active', 'paused', 'debt', 'cancelled'],
+  },
+  tariffActiveUntil: {
+    type: Date,
+    default: null,
+  },
+  nextChargeAt: {
+    type: Date,
+    default: null,
   },
   role: {
     type: String,

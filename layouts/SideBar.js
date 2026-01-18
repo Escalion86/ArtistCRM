@@ -5,9 +5,11 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { pages, pagesGroups } from '@helpers/constants'
+import isPageAllowedForRole from '@helpers/pageAccess'
 import menuOpenAtom from '@state/atoms/menuOpen'
 import windowDimensionsAtom from '@state/atoms/windowDimensionsAtom'
 import windowDimensionsTailwindSelector from '@state/selectors/windowDimensionsTailwindSelector'
+import loggedUserAtom from '@state/atoms/loggedUserAtom'
 // import badgesSelector from '@state/selectors/badgesSelector'
 import cn from 'classnames'
 import { motion } from 'framer-motion'
@@ -15,7 +17,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 
-const menuCfg = () => {
+const menuCfg = (role) => {
   // const visiblePages = pages.filter((page) => )
 
   const result = pagesGroups
@@ -32,6 +34,7 @@ const menuCfg = () => {
       const pagesItems = pages.reduce((totalPages, page) => {
         if (
           page.group === group.id
+          && isPageAllowedForRole(page.accessRoles, role)
           //  &&
           // page.roleAccess(userActiveRole, userActiveStatusName)
           // page.accessRoles.includes(userActiveRole) &&
@@ -258,6 +261,8 @@ const SideBar = ({ page }) => {
   const [scrollable, setScrollable] = useState(false)
   const { height } = useAtomValue(windowDimensionsAtom)
   const device = useAtomValue(windowDimensionsTailwindSelector)
+  const loggedUser = useAtomValue(loggedUserAtom)
+  const role = loggedUser?.role ?? 'user'
   const isMobile =
     device === 'phoneV' || device === 'phoneH' || device === 'tablet'
   const motionVariants = isMobile ? mobileVariants : variants
@@ -336,7 +341,7 @@ const SideBar = ({ page }) => {
         layout
       >
         <div className="flex w-full flex-col overflow-x-hidden">
-          <Menu menuCfg={menuCfg()} activePage={page} />
+          <Menu menuCfg={menuCfg(role)} activePage={page} />
         </div>
       </motion.div>
       <motion.div

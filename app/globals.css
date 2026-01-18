@@ -282,6 +282,31 @@ body.theme-dark .MuiTabs-indicator {
   scroll-behavior: auto;
 }
 
+.landing-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: landing-reveal 700ms ease forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+.landing-stagger {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: landing-reveal 650ms ease forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes landing-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .mask-bottom {
   -webkit-wask-image: linear-gradient(rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0));
   mask-image: linear-gradient(rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0));

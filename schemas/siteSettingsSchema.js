@@ -4,7 +4,6 @@ const siteSettingsSchema = {
   tenantId: {
     type: Schema.Types.ObjectId,
     ref: 'Users',
-    index: true,
     default: null,
   },
   email: {

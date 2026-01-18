@@ -6,9 +6,9 @@ import '../fonts/Montserrat.css'
 import '../fonts/FuturaPT.css'
 
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter'
-import { Suspense } from 'react'
-import Metrika from './components/metrika'
-import Script from 'next/script'
+// import { Suspense } from 'react'
+// import Metrika from './components/metrika'
+// import Script from 'next/script'
 // import Head from 'next/head'
 
 export const metadata = {
@@ -22,7 +22,7 @@ export default function RootLayout({ children }) {
     <html lang="ru" className="scroll-smooth" data-scroll-behavior="smooth">
       <body>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-          {isProduction && (
+          {/* {isProduction && (
             <>
               <Script id="yandex-metrika" strategy="afterInteractive">
                 {`
@@ -44,7 +44,7 @@ export default function RootLayout({ children }) {
                 <Metrika />
               </Suspense>
             </>
-          )}
+          )} */}
           {children}
         </AppRouterCacheProvider>
       </body>

@@ -11,6 +11,7 @@ import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import usersAtom from '@state/atoms/usersAtom'
 import { useAtom, useAtomValue } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
+import { modalsFuncAtom } from '@state/atoms'
 
 const normalizePhone = (value) =>
   value ? String(value).replace(/[^\d]/g, '') : ''
@@ -19,6 +20,7 @@ const QuestionnaireContent = () => {
   const [loggedUser, setLoggedUser] = useAtom(loggedUserAtom)
   const users = useAtomValue(usersAtom)
   const setUser = useAtomValue(itemsFuncAtom).user.set
+  const modalsFunc = useAtomValue(modalsFuncAtom)
 
   const [firstName, setFirstName] = useState(DEFAULT_USER.firstName)
   const [secondName, setSecondName] = useState(DEFAULT_USER.secondName)
@@ -224,7 +226,14 @@ const QuestionnaireContent = () => {
         />
       </FormWrapper>
       <ErrorsList errors={errors} />
-      <div className="mt-4 flex items-center justify-end">
+      <div className="mt-4 flex items-center justify-between">
+        <button
+          type="button"
+          className="h-9 cursor-pointer rounded border border-gray-300 px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+          onClick={() => modalsFunc.user?.changePassword?.()}
+        >
+          Сменить пароль
+        </button>
         <button
           type="button"
           className="modal-action-button bg-general px-6 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"

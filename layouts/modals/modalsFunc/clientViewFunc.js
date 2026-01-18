@@ -1,12 +1,23 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import clientSelector from '@state/selectors/clientSelector'
 import eventsAtom from '@state/atoms/eventsAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
+import CardButtons from '@components/CardButtons'
+
+const CardButtonsComponent = ({ client, onEdit }) => (
+  <CardButtons
+    item={client}
+    typeOfItem="client"
+    minimalActions
+    alwaysCompact
+    onEdit={onEdit}
+  />
+)
 
 const clientViewFunc = (clientId) => {
-  const ClientViewModal = () => {
+  const ClientViewModal = ({ setTopLeftComponent }) => {
     const client = useAtomValue(clientSelector(clientId))
     const events = useAtomValue(eventsAtom)
     const transactions = useAtomValue(transactionsAtom)
@@ -68,13 +79,31 @@ const clientViewFunc = (clientId) => {
     )
     const balanceTotal = incomeTotal - expenseTotal
 
+    useEffect(() => {
+      if (setTopLeftComponent)
+        setTopLeftComponent(() => (
+          <CardButtonsComponent
+            client={client}
+            onEdit={() => modalsFunc.client?.edit(clientId)}
+          />
+        ))
+    }, [client, clientId, modalsFunc.client, setTopLeftComponent])
+
     return (
       <div className="flex flex-col gap-4 text-sm text-gray-800">
-        <div className="p-4 bg-white border border-gray-200 rounded-lg">
+        <div className="relative p-4 bg-white border border-gray-200 rounded-lg">
           <div className="text-lg font-semibold text-gray-900">
             {[client.firstName, client.secondName].filter(Boolean).join(' ') ||
               'Без имени'}
           </div>
+          {!setTopLeftComponent && (
+            <div className="absolute right-4 top-4">
+              <CardButtonsComponent
+                client={client}
+                onEdit={() => modalsFunc.client?.edit(clientId)}
+              />
+            </div>
+          )}
           <div className="mt-1 text-gray-600">
             {client.phone ? `+${client.phone}` : 'Телефон не указан'}
           </div>

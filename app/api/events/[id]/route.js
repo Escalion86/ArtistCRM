@@ -4,6 +4,7 @@ import Requests from '@models/Requests'
 import dbConnect from '@server/dbConnect'
 import { updateEventInCalendar } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
+import getUserTariffAccess from '@server/getUserTariffAccess'
 
 const EVENT_STATUSES = new Set([
   'canceled',
@@ -44,14 +45,50 @@ const normalizeAddress = (rawAddress, legacyLocation) => {
   return normalized
 }
 
+const hasDocuments = (payload) => {
+  const invoiceLinks = Array.isArray(payload?.invoiceLinks)
+    ? payload.invoiceLinks
+    : []
+  const receiptLinks = Array.isArray(payload?.receiptLinks)
+    ? payload.receiptLinks
+    : []
+  return (
+    invoiceLinks.some((item) => Boolean(item)) ||
+    receiptLinks.some((item) => Boolean(item))
+  )
+}
+
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) {
+  const { tenantId, user } = await getTenantContext()
+  if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
       { status: 401 }
+    )
+  }
+  const access = await getUserTariffAccess(user._id)
+  if (!access?.trialActive && !access?.hasTariff) {
+    return NextResponse.json(
+      { success: false, error: 'Не выбран тариф' },
+      { status: 403 }
+    )
+  }
+  if (!access?.allowDocuments && hasDocuments(body)) {
+    return NextResponse.json(
+      { success: false, error: 'Доступ к документам недоступен' },
+      { status: 403 }
+    )
+  }
+  if (
+    body.calendarImportChecked !== undefined &&
+    Boolean(body.calendarImportChecked) &&
+    !access?.allowCalendarSync
+  ) {
+    return NextResponse.json(
+      { success: false, error: 'Синхронизация с календарем недоступна' },
+      { status: 403 }
     )
   }
   await dbConnect()
@@ -100,7 +137,7 @@ export const PUT = async (req, { params }) => {
       { status: 404 }
     )
 
-  if (event.calendarImportChecked) {
+  if (event.calendarImportChecked && access?.allowCalendarSync) {
     try {
       await updateEventInCalendar(event, req)
     } catch (error) {

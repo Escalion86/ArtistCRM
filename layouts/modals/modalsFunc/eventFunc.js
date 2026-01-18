@@ -27,11 +27,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import Input from '@components/Input'
 import AddressPicker from '@components/AddressPicker'
+import InputWrapper from '@components/InputWrapper'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import servicesAtom from '@state/atoms/servicesAtom'
-import CheckBox from '@components/CheckBox'
-import InputWrapper from '@components/InputWrapper'
+import ServiceMultiSelect from '@components/ServiceMultiSelect'
+import serviceFunc from './serviceFunc'
 
 const normalizeAddressValue = (rawAddress) => {
   const normalized = { ...DEFAULT_ADDRESS }
@@ -79,7 +79,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     const setEvent = itemsFunc?.event?.set
     const convertRequest = itemsFunc?.request?.convert
     const clients = useAtomValue(clientsAtom)
-    const services = useAtomValue(servicesAtom)
     const loggedUser = useAtomValue(loggedUserAtom)
     const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
     const colleagues = useMemo(
@@ -521,6 +520,20 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       })
     }
 
+    const openServiceCreateModal = () => {
+      modalsFunc.add(
+        serviceFunc(null, true, (createdService) => {
+          if (!createdService?._id) return
+          setServicesIds((prev) =>
+            prev.includes(createdService._id)
+              ? prev
+              : [...prev, createdService._id]
+          )
+          removeError('servicesIds')
+        })
+      )
+    }
+
     const selectedColleague = useMemo(
       () =>
         colleagueId && colleagues.length
@@ -556,35 +569,14 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       <TabContext value="Общие">
         <TabPanel tabName="Общие">
           <FormWrapper>
-            <InputWrapper label="Услуги" error={errors.servicesIds}>
-              <div className="flex flex-col gap-1">
-                {services.length === 0 ? (
-                  <div className="text-sm text-gray-500">
-                    Услуги не добавлены
-                  </div>
-                ) : (
-                  services.map((service) => {
-                    const checked = servicesIds.includes(service._id)
-                    return (
-                      <CheckBox
-                        key={service._id}
-                        checked={checked}
-                        label={service.title}
-                        noMargin
-                        onClick={() => {
-                          removeError('servicesIds')
-                          setServicesIds((prev) =>
-                            checked
-                              ? prev.filter((id) => id !== service._id)
-                              : [...prev, service._id]
-                          )
-                        }}
-                      />
-                    )
-                  })
-                )}
-              </div>
-            </InputWrapper>
+            <ServiceMultiSelect
+              value={servicesIds}
+              onChange={setServicesIds}
+              onCreate={openServiceCreateModal}
+              error={errors.servicesIds}
+              required
+              onClearError={() => removeError('servicesIds')}
+            />
             <ClientPicker
               selectedClient={selectedClient}
               selectedClientId={clientId}
@@ -688,6 +680,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               value={contractSum}
               onChange={setContractSum}
               min={0}
+              step={1000}
             />
             <IconCheckBox
               checked={isByContract}
@@ -711,7 +704,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         className="flex items-center gap-2"
                       >
                         <input
-                          className="h-8 w-full rounded border border-gray-200 px-2 text-sm text-gray-900 focus:border-general focus:outline-none"
+                          className="w-full h-8 px-2 text-sm text-gray-900 border border-gray-200 rounded focus:border-general focus:outline-none"
                           type="text"
                           value={link}
                           placeholder="Введите ссылку"
@@ -726,7 +719,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         />
                         <button
                           type="button"
-                          className="h-8 rounded border border-gray-200 px-2 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                          className="h-8 px-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded hover:bg-gray-100"
                           onClick={() =>
                             setInvoiceLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
@@ -739,10 +732,8 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                     ))}
                     <button
                       type="button"
-                      className="h-8 w-fit rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                      onClick={() =>
-                        setInvoiceLinks((prev) => [...prev, ''])
-                      }
+                      className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded w-fit hover:bg-gray-50"
+                      onClick={() => setInvoiceLinks((prev) => [...prev, ''])}
                     >
                       Добавить ссылку
                     </button>
@@ -761,7 +752,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         className="flex items-center gap-2"
                       >
                         <input
-                          className="h-8 w-full rounded border border-gray-200 px-2 text-sm text-gray-900 focus:border-general focus:outline-none"
+                          className="w-full h-8 px-2 text-sm text-gray-900 border border-gray-200 rounded focus:border-general focus:outline-none"
                           type="text"
                           value={link}
                           placeholder="Введите ссылку"
@@ -776,7 +767,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         />
                         <button
                           type="button"
-                          className="h-8 rounded border border-gray-200 px-2 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                          className="h-8 px-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded hover:bg-gray-100"
                           onClick={() =>
                             setReceiptLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
@@ -789,10 +780,8 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                     ))}
                     <button
                       type="button"
-                      className="h-8 w-fit rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                      onClick={() =>
-                        setReceiptLinks((prev) => [...prev, ''])
-                      }
+                      className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded w-fit hover:bg-gray-50"
+                      onClick={() => setReceiptLinks((prev) => [...prev, ''])}
                     >
                       Добавить ссылку
                     </button>
@@ -807,7 +796,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               </div>
               <button
                 type="button"
-                className="rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="px-4 py-2 text-sm font-semibold text-white transition rounded shadow bg-emerald-600 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => openTransactionModal()}
                 disabled={financeLoading || !event?._id || !event?.clientId}
               >
@@ -816,12 +805,12 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
             </div>
 
             {financeError && (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
                 {financeError}
               </div>
             )}
 
-            <div className="rounded border border-gray-200 bg-white shadow-sm">
+            <div className="bg-white border border-gray-200 rounded shadow-sm">
               {eventTransactions.length === 0 ? (
                 <div className="px-3 py-4 text-sm text-gray-500">
                   Транзакции не найдены
@@ -839,9 +828,9 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                     incomeTransactions.map((transaction) => (
                       <div
                         key={transaction._id}
-                        className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
+                        className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
                       >
-                        <div className="flex flex-1 flex-wrap gap-3 text-sm">
+                        <div className="flex flex-wrap flex-1 gap-3 text-sm">
                           <span className="font-semibold text-gray-900">
                             {transaction.amount.toLocaleString()} руб.
                           </span>
@@ -875,7 +864,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            className="rounded border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            className="px-3 py-1 text-sm font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
                             onClick={() =>
                               openTransactionModal(transaction._id)
                             }
@@ -885,7 +874,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                           </button>
                           <button
                             type="button"
-                            className="rounded border border-red-300 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50"
+                            className="px-3 py-1 text-sm font-semibold text-red-700 border border-red-300 rounded hover:bg-red-50"
                             onClick={() =>
                               handleDeleteTransaction(transaction._id)
                             }
@@ -908,9 +897,9 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                     expenseTransactions.map((transaction) => (
                       <div
                         key={transaction._id}
-                        className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
+                        className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
                       >
-                        <div className="flex flex-1 flex-wrap gap-3 text-sm">
+                        <div className="flex flex-wrap flex-1 gap-3 text-sm">
                           <span className="font-semibold text-gray-900">
                             {transaction.amount.toLocaleString()} руб.
                           </span>
@@ -944,7 +933,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            className="rounded border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            className="px-3 py-1 text-sm font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
                             onClick={() =>
                               openTransactionModal(transaction._id)
                             }
@@ -954,7 +943,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                           </button>
                           <button
                             type="button"
-                            className="rounded border border-red-300 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50"
+                            className="px-3 py-1 text-sm font-semibold text-red-700 border border-red-300 rounded hover:bg-red-50"
                             onClick={() =>
                               handleDeleteTransaction(transaction._id)
                             }

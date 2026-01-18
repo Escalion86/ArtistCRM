@@ -25,7 +25,7 @@ const statusClassNames = {
 
 const statusMap = createStatusMap(REQUEST_STATUSES)
 
-const RequestCardCompact = ({ request, style, onEdit, onStatusEdit }) => {
+const RequestCardCompact = ({ request, style, onEdit, onView, onStatusEdit }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const status = statusMap[request.status] ?? statusMap.new
   const statusColor = statusClassNames[status?.value] || 'bg-blue-500'
@@ -59,7 +59,7 @@ const RequestCardCompact = ({ request, style, onEdit, onStatusEdit }) => {
       <div
         role="button"
         tabIndex={0}
-        onClick={onEdit}
+        onClick={onView}
         className="group relative flex h-full w-full cursor-pointer overflow-visible rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-gray-300 hover:shadow"
       >
         <div
@@ -81,6 +81,8 @@ const RequestCardCompact = ({ request, style, onEdit, onStatusEdit }) => {
             typeOfItem="request"
             minimalActions
             alwaysCompact
+            showEditButton={!hasEvent}
+            showDeleteButton={!hasEvent}
             onEdit={onEdit}
             calendarLink={calendarLink}
           />
@@ -149,7 +151,7 @@ const RequestCardCompact = ({ request, style, onEdit, onStatusEdit }) => {
           onClick={(event) => {
             event.stopPropagation()
             if (hasEvent) {
-              modalsFunc.event?.edit(request.eventId)
+              modalsFunc.event?.view(request.eventId)
             } else {
               modalsFunc.event?.fromRequest(request._id)
             }
@@ -204,6 +206,7 @@ RequestCardCompact.propTypes = {
   }).isRequired,
   style: PropTypes.shape({}),
   onEdit: PropTypes.func.isRequired,
+  onView: PropTypes.func.isRequired,
   onStatusEdit: PropTypes.func,
 }
 

@@ -139,7 +139,7 @@ const EventCard = ({ eventId, style }) => {
     <div style={style} className="px-2 py-1">
       <div
         className="laptop:flex-row laptop:items-start laptop:gap-4 relative flex cursor-pointer flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        onClick={() => modalsFunc.event?.edit(event._id)}
+        onClick={() => modalsFunc.event?.view(event._id)}
       >
         <div
           className="absolute top-2 right-2 z-10"

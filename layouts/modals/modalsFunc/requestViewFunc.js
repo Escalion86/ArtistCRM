@@ -4,6 +4,18 @@ import requestSelector from '@state/selectors/requestSelector'
 import DOMPurify from 'isomorphic-dompurify'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
+import CardButtons from '@components/CardButtons'
+import { useEffect } from 'react'
+
+const CardButtonsComponent = ({ request }) => (
+  <CardButtons
+    item={request}
+    typeOfItem="request"
+    showEditButton={false}
+    showDeleteButton={!request?.eventId}
+    calendarLink={request?.calendarLink}
+  />
+)
 
 const requestViewFunc = (requestId) => {
   const RequestViewModal = ({
@@ -35,9 +47,19 @@ const requestViewFunc = (requestId) => {
       .filter(Boolean)
       .map((service) => service.title)
 
+    useEffect(() => {
+      if (setTopLeftComponent)
+        setTopLeftComponent(() => <CardButtonsComponent request={request} />)
+    }, [request, setTopLeftComponent])
+
     return (
       <div className="flex flex-col">
-        <div className="flex flex-1 flex-col items-start justify-center px-1 text-sm text-black">
+        <div className="relative flex flex-1 flex-col items-start justify-center px-1 text-sm text-black">
+          {!setTopLeftComponent && (
+            <div className="absolute right-0 top-0">
+              <CardButtonsComponent request={request} />
+            </div>
+          )}
           <div className="flex gap-x-1">
             <div className="font-bold">Тип:</div>
             <div>{requestType}</div>

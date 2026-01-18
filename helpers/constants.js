@@ -366,6 +366,14 @@ export const DEFAULT_USER = Object.freeze({
   birthday: null,
   gender: null,
   images: [],
+  tariffId: null,
+  trialActivatedAt: null,
+  trialEndsAt: null,
+  trialUsed: false,
+  balance: 0,
+  billingStatus: 'active',
+  tariffActiveUntil: null,
+  nextChargeAt: null,
   role: 'user',
   town: '',
   lastActivityAt: null,
@@ -548,7 +556,18 @@ export const DEFAULT_ADDITIONAL_BLOCK = Object.freeze({
 export const DEFAULT_SERVICE = Object.freeze({
   title: '',
   description: '',
+  images: [],
   duration: 0,
+})
+
+export const DEFAULT_TARIFF = Object.freeze({
+  title: '',
+  eventsPerMonth: 0,
+  price: 0,
+  allowCalendarSync: false,
+  allowStatistics: false,
+  allowDocuments: false,
+  hidden: false,
 })
 
 export const DEFAULT_PRODUCT = Object.freeze({
@@ -731,6 +750,7 @@ export const pages = [
     name: 'Пользователи',
     href: 'users',
     icon: faUsers,
+    accessRoles: ['admin', 'dev'],
   },
   {
     id: 20,
@@ -740,11 +760,20 @@ export const pages = [
     icon: faCog,
   },
   {
+    id: 21,
+    group: 6,
+    name: 'Тарифы',
+    href: 'tariffs',
+    icon: faMoneyBill,
+    accessRoles: ['admin', 'dev'],
+  },
+  {
     id: 99,
     group: 99,
     name: 'Разработчик',
     href: 'dev',
     icon: faBug,
+    accessRoles: ['dev'],
   },
 ]
 

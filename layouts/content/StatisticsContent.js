@@ -5,9 +5,14 @@ import { ResponsiveBar } from '@nivo/bar'
 import { useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
 import ComboBox from '@components/ComboBox'
+import Button from '@components/Button'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
+import tariffsAtom from '@state/atoms/tariffsAtom'
+import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { MONTHS_FULL_1 } from '@helpers/constants'
+import { getUserTariffAccess } from '@helpers/tariffAccess'
+import { useRouter } from 'next/navigation'
 
 const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
 
@@ -17,6 +22,27 @@ const getMonthKey = (date, year) =>
 const StatisticsContent = () => {
   const transactions = useAtomValue(transactionsAtom)
   const events = useAtomValue(eventsAtom)
+  const tariffs = useAtomValue(tariffsAtom)
+  const loggedUser = useAtomValue(loggedUserAtom)
+  const access = getUserTariffAccess(loggedUser, tariffs)
+  const router = useRouter()
+
+  if (!access.allowStatistics) {
+    return (
+      <div className="flex h-full flex-col gap-4">
+        <ContentHeader />
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 rounded-lg border border-gray-200 bg-white px-4 text-gray-500">
+          <div className="text-center text-lg font-semibold text-gray-700">
+            Статистика доступна только на расширенном тарифе
+          </div>
+          <Button
+            name="Сменить тариф"
+            onClick={() => router.push('/cabinet/tariff-select')}
+          />
+        </div>
+      </div>
+    )
+  }
 
   const eventsMap = useMemo(() => {
     const map = new Map()

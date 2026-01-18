@@ -8,6 +8,8 @@ import StatisticsContent from './StatisticsContent'
 import ServicesContent from './ServicesContent'
 import UsersContent from './UsersContent'
 import QuestionnaireContent from './QuestionnaireContent'
+import TariffsContent from './TariffsContent'
+import TariffSelectContent from './TariffSelectContent'
 
 const UpcomingEventsContent = () => <EventsContent filter="upcoming" />
 const PastEventsContent = () => <EventsContent filter="past" />
@@ -44,6 +46,14 @@ export const CONTENTS = Object.freeze({
   settings: {
     Component: SettingsContent,
     name: 'Настройки',
+  },
+  tariffs: {
+    Component: TariffsContent,
+    name: 'Тарифы',
+  },
+  'tariff-select': {
+    Component: TariffSelectContent,
+    name: 'Выбор тарифа',
   },
   services: {
     Component: ServicesContent,

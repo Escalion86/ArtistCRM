@@ -4,7 +4,6 @@ const servicesSchema = {
   tenantId: {
     type: Schema.Types.ObjectId,
     ref: 'Users',
-    index: true,
     default: null,
   },
   title: {
@@ -15,6 +14,10 @@ const servicesSchema = {
   description: {
     type: String,
     default: '',
+  },
+  images: {
+    type: Array,
+    default: [],
   },
   duration: {
     type: Number,

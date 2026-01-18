@@ -15,6 +15,7 @@ const Button = forwardRef(
       loading = false,
       stopPropagation,
       thin = false,
+      superThin = false,
       big = false,
       icon,
       collapsing,
@@ -29,8 +30,14 @@ const Button = forwardRef(
         {...props}
         ref={ref}
         className={cn(
-          'cursor-not-allowed bg-gray-300 bg-opacity-90 px-4 text-white',
-          big ? 'py-2 text-xl' : thin ? 'h-8 py-0.5' : 'h-9 py-1',
+          'bg-opacity-90 cursor-not-allowed bg-gray-300 px-4 text-white',
+          big
+            ? 'py-2 text-xl'
+            : thin
+            ? 'h-8 py-0.5'
+            : superThin
+            ? 'h-7 max-h-7 py-0.5'
+            : 'h-9 py-1',
           rounded ? (big ? 'rounded-lg' : 'rounded') : '',
           className
         )}
@@ -51,10 +58,16 @@ const Button = forwardRef(
             : undefined
         }
         className={cn(
-          'prevent-select-text flex items-center justify-center gap-x-2 overflow-hidden whitespace-nowrap bg-opacity-90 text-base font-normal text-white duration-300',
+          'prevent-select-text bg-opacity-90 flex items-center justify-center gap-x-2 overflow-hidden text-base font-normal whitespace-nowrap text-white duration-300',
           rounded ? (big ? 'rounded-lg' : 'rounded') : '',
           iconRight ? 'flex-row-reverse' : '',
-          big ? 'py-2 text-xl' : thin ? 'h-8 py-0.5' : 'h-9 py-1',
+          big
+            ? 'py-2 text-xl'
+            : thin
+            ? 'h-8 py-0.5'
+            : superThin
+            ? 'h-7 max-h-7 py-0.5'
+            : 'h-9 py-1',
           className,
           disabled
             ? 'cursor-not-allowed bg-gray-300 text-white'
@@ -63,7 +76,7 @@ const Button = forwardRef(
         )}
       >
         {icon && (
-          <FontAwesomeIcon icon={icon} className="min-w-5 min-h-5 h-5 w-5" />
+          <FontAwesomeIcon icon={icon} className="w-5 h-5 min-h-5 min-w-5" />
         )}
         {name}
       </button>

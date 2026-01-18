@@ -71,6 +71,10 @@ const LoginInputs = () => {
   const submitReset = async (event) => {
     event.preventDefault()
     if (!resetPhone || !resetPassword) return
+    if (String(resetPassword).length < 8) {
+      alert('Пароль должен быть не менее 8 символов')
+      return
+    }
     setIsResetLoading(true)
     setResetPhoneHint(false)
     try {
@@ -108,6 +112,10 @@ const LoginInputs = () => {
     if (!registerPhone || !registerPassword || !registerPasswordRepeat) return
     if (registerPassword !== registerPasswordRepeat) {
       alert('Пароли не совпадают')
+      return
+    }
+    if (String(registerPassword).length < 8) {
+      alert('Пароль должен быть не менее 8 символов')
       return
     }
     setIsRegisterLoading(true)

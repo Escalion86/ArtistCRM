@@ -1,17 +1,13 @@
 'use client'
 
-import { useMemo, useState, useCallback } from 'react'
-import AutoSizer from 'react-virtualized-auto-sizer'
-import { FixedSizeList as List } from 'react-window'
+import { useMemo, useState } from 'react'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
 import Input from '@components/Input'
-import UserCard from '@layouts/cards/UserCard'
+import UsersList from '@layouts/lists/UsersList'
 import usersAtom from '@state/atoms/usersAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useAtomValue } from 'jotai'
-
-const ITEM_HEIGHT = 101
 
 const UsersContent = () => {
   const users = useAtomValue(usersAtom)
@@ -45,25 +41,17 @@ const UsersContent = () => {
       })
   }, [search, users])
 
-  const renderRow = useCallback(
-    ({ index, style }) => {
-      const user = filteredUsers[index]
-      return <UserCard style={style} userId={user._id} />
-    },
-    [filteredUsers]
-  )
-
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex flex-col h-full gap-4">
       <ContentHeader>
-        <div className="flex flex-1 items-center justify-between">
+        <div className="flex items-center justify-between flex-1">
           <div />
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <span>Всего: {users.length}</span>
             <Button
               name="+"
               collapsing
-              className="action-icon-button h-9 w-9 rounded-full text-lg"
+              className="text-lg rounded-full action-icon-button h-9 w-9"
               onClick={() => modalsFunc.user?.add()}
               disabled={!modalsFunc.user?.add}
             />
@@ -79,23 +67,11 @@ const UsersContent = () => {
           noMargin
         />
       </div>
-      <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="flex-1 min-h-0 overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
         {filteredUsers.length > 0 ? (
-          <AutoSizer>
-            {({ height, width }) => (
-              <List
-                height={height}
-                width={width}
-                itemCount={filteredUsers.length}
-                itemSize={ITEM_HEIGHT}
-                itemKey={(index) => filteredUsers[index]?._id ?? index}
-              >
-                {renderRow}
-              </List>
-            )}
-          </AutoSizer>
+          <UsersList users={filteredUsers} />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-gray-500">
+          <div className="flex items-center justify-center h-full text-sm text-gray-500">
             Пользователи не найдены
           </div>
         )}

@@ -1,4 +1,5 @@
-import { faCheck } from '@fortawesome/free-solid-svg-icons/faCheck'
+import { faSquare } from '@fortawesome/free-regular-svg-icons/faSquare'
+import { faSquareCheck } from '@fortawesome/free-regular-svg-icons/faSquareCheck'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cn from 'classnames'
 
@@ -16,12 +17,24 @@ const IconCheckBox = ({
   error,
   noMargin,
   disabled,
-  checkedIcon = faCheck,
-  uncheckedIcon,
-  checkedIconColor = '#7a5151',
-  uncheckedIconColor = '#9ca3af',
+  checkedIcon = faSquareCheck,
+  uncheckedIcon = faSquare,
+  checkedIconColor = null,
+  uncheckedIconColor = null,
 }) => {
   if (readOnly && !checked) return null
+  const useDefaultColors =
+    checkedIconColor === null && uncheckedIconColor === null
+  const iconColor = disabled
+    ? '#9ca3af'
+    : checked
+      ? checkedIconColor
+      : uncheckedIconColor
+  const iconToneClass = useDefaultColors
+    ? checked
+      ? 'text-general'
+      : 'text-gray-400'
+    : ''
 
   return (
     (!readOnly || checked) && (
@@ -42,15 +55,12 @@ const IconCheckBox = ({
               : small
                 ? 'min-w-4 min-h-4 w-4 h-4'
                 : 'min-w-5 min-h-5 w-5 h-5',
+            iconToneClass,
             iconClassName
           )}
           icon={checked || !uncheckedIcon ? checkedIcon : uncheckedIcon}
           color={
-            disabled
-              ? '#9ca3af'
-              : checked
-                ? checkedIconColor
-                : uncheckedIconColor
+            iconColor === null || iconColor === undefined ? undefined : iconColor
           }
           onClick={!readOnly || disabled ? onClick : null}
         />

@@ -16,9 +16,8 @@ import AddressPicker from '@components/AddressPicker'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { postData } from '@helpers/CRUD'
-import servicesAtom from '@state/atoms/servicesAtom'
-import CheckBox from '@components/CheckBox'
-import InputWrapper from '@components/InputWrapper'
+import ServiceMultiSelect from '@components/ServiceMultiSelect'
+import serviceFunc from './serviceFunc'
 
 const requestFunc = (requestId, clone = false) => {
   const RequestModal = ({
@@ -33,7 +32,6 @@ const requestFunc = (requestId, clone = false) => {
     const request = useAtomValue(requestSelector(requestId))
     const setRequest = useAtomValue(itemsFuncAtom).request.set
     const clients = useAtomValue(clientsAtom)
-    const services = useAtomValue(servicesAtom)
     const loggedUser = useAtomValue(loggedUserAtom)
     const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -49,9 +47,7 @@ const requestFunc = (requestId, clone = false) => {
     const [contractSum, setContractSum] = useState(
       DEFAULT_REQUEST.contractSum ?? 0
     )
-    const [comment, setComment] = useState(
-      DEFAULT_REQUEST.comment ?? ''
-    )
+    const [comment, setComment] = useState(DEFAULT_REQUEST.comment ?? '')
     const [yandexAim, setYandexAim] = useState('')
     const [servicesIds, setServicesIds] = useState(
       DEFAULT_REQUEST.servicesIds ?? []
@@ -88,10 +84,7 @@ const requestFunc = (requestId, clone = false) => {
           : DEFAULT_REQUEST.createdAt)
 
       const eventDateValue =
-        request?.eventDate ??
-        request?.date ??
-        DEFAULT_REQUEST.eventDate ??
-        null
+        request?.eventDate ?? request?.date ?? DEFAULT_REQUEST.eventDate ?? null
 
       const legacyLocation = [
         request?.town,
@@ -102,10 +95,7 @@ const requestFunc = (requestId, clone = false) => {
         .filter(Boolean)
         .join(', ')
 
-      const addressValue = normalizeAddress(
-        request?.address,
-        legacyLocation
-      )
+      const addressValue = normalizeAddress(request?.address, legacyLocation)
 
       if (
         (!requestId || clone) &&
@@ -187,8 +177,7 @@ const requestFunc = (requestId, clone = false) => {
     }, [address?.town, siteSettings?.towns])
 
     const handleCreateTown = async (town) => {
-      const normalizedTown =
-        typeof town === 'string' ? town.trim() : ''
+      const normalizedTown = typeof town === 'string' ? town.trim() : ''
       if (!normalizedTown) return
       const nextTowns = Array.from(
         new Set([...(siteSettings?.towns ?? []), normalizedTown])
@@ -208,6 +197,20 @@ const requestFunc = (requestId, clone = false) => {
         setClientId(newClientId)
         removeError('clientId')
       })
+    }
+
+    const openServiceCreateModal = () => {
+      modalsFunc.add(
+        serviceFunc(null, true, (createdService) => {
+          if (!createdService?._id) return
+          setServicesIds((prev) =>
+            prev.includes(createdService._id)
+              ? prev
+              : [...prev, createdService._id]
+          )
+          removeError('servicesIds')
+        })
+      )
     }
 
     const onClickConfirm = useCallback(async () => {
@@ -243,7 +246,10 @@ const requestFunc = (requestId, clone = false) => {
           createdAt || (clone || !requestId ? new Date().toISOString() : null)
         const normalizedEventDate = eventDate ?? null
 
-        const clientNameValue = [selectedClient?.firstName, selectedClient?.secondName]
+        const clientNameValue = [
+          selectedClient?.firstName,
+          selectedClient?.secondName,
+        ]
           .filter(Boolean)
           .join(' ')
 
@@ -338,33 +344,14 @@ const requestFunc = (requestId, clone = false) => {
     ])
     return (
       <FormWrapper>
-        <InputWrapper label="Услуги" required error={errors.servicesIds}>
-          <div className="flex flex-col gap-1">
-            {services.length === 0 ? (
-              <div className="text-sm text-gray-500">Услуги не добавлены</div>
-            ) : (
-              services.map((service) => {
-                const checked = servicesIds.includes(service._id)
-                return (
-                  <CheckBox
-                    key={service._id}
-                    checked={checked}
-                    label={service.title}
-                    noMargin
-                    onClick={() => {
-                      removeError('servicesIds')
-                      setServicesIds((prev) =>
-                        checked
-                          ? prev.filter((id) => id !== service._id)
-                          : [...prev, service._id]
-                      )
-                    }}
-                  />
-                )
-              })
-            )}
-          </div>
-        </InputWrapper>
+        <ServiceMultiSelect
+          value={servicesIds}
+          onChange={setServicesIds}
+          onCreate={openServiceCreateModal}
+          error={errors.servicesIds}
+          required
+          onClearError={() => removeError('servicesIds')}
+        />
         <ClientPicker
           selectedClient={selectedClient}
           selectedClientId={clientId}
@@ -416,6 +403,7 @@ const requestFunc = (requestId, clone = false) => {
           value={contractSum}
           onChange={setContractSum}
           min={0}
+          step={1000}
         />
         <Textarea
           label="Комментарий"

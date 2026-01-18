@@ -115,7 +115,6 @@ export default async function handler(req, res) {
 
       return res?.status(201).json({ success: true, data })
 
-      // return res?.status(201).json({ success: true, data: eventUser })
     } catch (error) {
       console.log(error)
       return res?.status(400).json({ success: false, error })

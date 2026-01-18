@@ -34,6 +34,7 @@ const RequestsContent = () => {
           style={style}
           request={request}
           onEdit={() => modalsFunc.request?.edit(request._id)}
+          onView={() => modalsFunc.request?.view(request._id)}
           onStatusEdit={(id) => modalsFunc.request?.statusEdit(id)}
         />
       )
