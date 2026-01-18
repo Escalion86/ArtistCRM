@@ -30,7 +30,6 @@
     "@mui/lab": "^7.0.1-beta.20",
     "@mui/material": "^7.3.6",
     "@mui/material-nextjs": "^7.3.7",
-    "@mui/styled-engine-sc": "^7.3.6",
     "@mui/x-date-pickers": "^8.24.0",
     "@nivo/bar": "^0.88.0",
     "@popperjs/core": "^2.11.8",
@@ -64,7 +63,6 @@
     "react-tiny-popover": "^8.0.4",
     "react-virtualized-auto-sizer": "^1.0.23",
     "react-window": "^1.8.10",
-    "styled-components": "^6.1.8",
     "uid": "^2.0.2",
     "undici": "^7.16.0"
   },
