@@ -3,7 +3,19 @@
 import PropTypes from 'prop-types'
 import { useEffect } from 'react'
 
+import styledEngineStyled from '@mui/styled-engine'
 import { sendClientLog } from '@helpers/clientLog'
+
+const getStyledEngineInfo = () => {
+  try {
+    return {
+      type: typeof styledEngineStyled,
+      name: styledEngineStyled?.name,
+    }
+  } catch (error) {
+    return { error: String(error) }
+  }
+}
 
 const GlobalError = ({ error, reset }) => {
   useEffect(() => {
@@ -13,6 +25,7 @@ const GlobalError = ({ error, reset }) => {
       stack: error?.stack,
       digest: error?.digest,
       url: typeof window !== 'undefined' ? window.location.href : undefined,
+      styledEngine: getStyledEngineInfo(),
     })
   }, [error])
 

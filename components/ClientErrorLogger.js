@@ -3,6 +3,7 @@
 import PropTypes from 'prop-types'
 import { useEffect } from 'react'
 
+import styledEngineStyled from '@mui/styled-engine'
 import { sendClientLog } from '@helpers/clientLog'
 
 const MAX_LENGTH = 2000
@@ -23,6 +24,19 @@ const truncate = (value) => {
   return `${text.slice(0, MAX_LENGTH)}...`
 }
 
+const getStyledEngineInfo = () => {
+  try {
+    const source = styledEngineStyled?.toString?.()
+    return {
+      type: typeof styledEngineStyled,
+      name: styledEngineStyled?.name,
+      source: source ? truncate(source) : undefined,
+    }
+  } catch (error) {
+    return { error: String(error) }
+  }
+}
+
 const ClientErrorLogger = ({ enabled }) => {
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') return undefined
@@ -32,6 +46,7 @@ const ClientErrorLogger = ({ enabled }) => {
         const error = event?.error
         sendClientLog({
           type: 'error',
+          name: error?.name,
           message: truncate(event?.message || error?.message),
           stack: truncate(error?.stack),
           source: event?.filename,
@@ -39,6 +54,7 @@ const ClientErrorLogger = ({ enabled }) => {
           column: event?.colno,
           url: window.location.href,
           userAgent: navigator.userAgent,
+          styledEngine: getStyledEngineInfo(),
         })
       } catch (error) {
         return undefined
@@ -50,10 +66,12 @@ const ClientErrorLogger = ({ enabled }) => {
         const reason = event?.reason
         sendClientLog({
           type: 'unhandledrejection',
+          name: reason?.name,
           message: truncate(reason?.message || reason),
           stack: truncate(reason?.stack),
           url: window.location.href,
           userAgent: navigator.userAgent,
+          styledEngine: getStyledEngineInfo(),
         })
       } catch (error) {
         return undefined
