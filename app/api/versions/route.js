@@ -1,5 +1,10 @@
 import fs from 'fs'
 import path from 'path'
+import { createRequire } from 'module'
+
+export const runtime = 'nodejs'
+
+const require = createRequire(import.meta.url)
 
 const readJSON = (filePath) => {
   try {
@@ -13,9 +18,7 @@ const readJSON = (filePath) => {
 
 const resolvePackageJson = (pkgName) => {
   try {
-    return require.resolve(`${pkgName}/package.json`, {
-      paths: [process.cwd()],
-    })
+    return require.resolve(`${pkgName}/package.json`)
   } catch (error) {
     return null
   }
