@@ -6,6 +6,7 @@ import '../fonts/Montserrat.css'
 import '../fonts/FuturaPT.css'
 
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter'
+import ClientErrorLogger from '@components/ClientErrorLogger'
 // import { Suspense } from 'react'
 // import Metrika from './components/metrika'
 // import Script from 'next/script'
@@ -22,6 +23,7 @@ export default function RootLayout({ children }) {
     <html lang="ru" className="scroll-smooth" data-scroll-behavior="smooth">
       <body>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
+          <ClientErrorLogger enabled={isProduction} />
           {/* {isProduction && (
             <>
               <Script id="yandex-metrika" strategy="afterInteractive">
