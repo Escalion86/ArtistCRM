@@ -199,8 +199,8 @@ const Modal = ({
     <motion.div
       className={
         cn(
-          'absolute left-0 top-0 z-50 flex h-screen w-full transform justify-center bg-gray-800 bg-opacity-80 duration-200 tablet:items-center tablet:overflow-y-auto',
-          subModalText ? 'tablet:pb-5 tablet:pt-10' : 'tablet:py-5'
+          'fixed inset-0 z-50 flex w-full transform justify-center overflow-y-auto bg-gray-800 bg-opacity-80 duration-200 tablet:items-center',
+          subModalText ? 'py-4 tablet:pb-5 tablet:pt-10' : 'py-4 tablet:py-5'
         )
         //  + (rendered ? ' opacity-100' : ' opacity-0')
       }
@@ -212,7 +212,7 @@ const Modal = ({
       <motion.div
         className={
           cn(
-            'real-screen-height laptop:w-9/12 relative flex w-full min-w-84 flex-col border-l border-primary bg-white pb-1 duration-300 tablet:my-auto tablet:h-auto tablet:w-[95%] tablet:min-w-156 tablet:rounded-lg tablet:pb-2',
+            'real-screen-height laptop:w-9/12 relative flex h-[100dvh] w-full min-w-84 flex-col overflow-hidden border-l border-primary bg-white pb-1 duration-300 tablet:my-auto tablet:h-auto tablet:w-[95%] tablet:min-w-156 tablet:rounded-lg tablet:pb-2 tablet:overflow-visible',
             titleState ? 'pt-3' : 'pt-12'
           )
           // + (rendered ? '' : ' scale-50')
