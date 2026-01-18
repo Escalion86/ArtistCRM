@@ -4,7 +4,7 @@ const LoadingContent = () => {
   return (
     <div
       style={{ gridArea: 'loading' }}
-      className="flex h-screen w-full flex-1 flex-col items-center justify-center overflow-hidden"
+      className="flex h-[100dvh] w-full flex-1 flex-col items-center justify-center overflow-hidden"
     >
       <LoadingSpinner size="lg" text="Загрузка..." />
     </div>

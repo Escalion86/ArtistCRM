@@ -161,7 +161,7 @@ const LoginInputs = () => {
   }
 
   return (
-    <div className="relative flex min-h-screen w-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#1b1235] via-[#2a0f4a] to-[#25113b] px-4 py-10">
+    <div className="relative flex min-h-[100dvh] w-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#1b1235] via-[#2a0f4a] to-[#25113b] px-4 py-10">
       <div className="pointer-events-none absolute top-12 -left-28 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl" />
       <div className="pointer-events-none absolute -right-28 bottom-12 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl" />
 

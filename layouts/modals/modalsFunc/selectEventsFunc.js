@@ -150,7 +150,7 @@ const selectEventsFunc = (
         />
         <div
           style={{ height: sortedEvents.length * 34 + 2 }}
-          className={`tablet:flex-none border-gray-700 border-t flex-col tablet:max-h-[calc(100vh-185px)]`}
+          className={`tablet:flex-none border-gray-700 border-t flex-col tablet:max-h-[calc(100dvh-185px)]`}
         >
           <ListWrapper itemCount={sortedEvents.length} itemSize={34}>
             {({ index, style }) => (

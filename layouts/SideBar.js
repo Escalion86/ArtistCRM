@@ -316,7 +316,7 @@ const SideBar = ({ page }) => {
       className={cn(
         'sidebar-root bottom-0 top-0 z-50 flex max-h-full flex-col',
         isMobile
-          ? 'fixed bottom-0 left-0 top-16 max-h-[calc(100vh-4rem)] min-w-0 max-w-[320px] overflow-hidden bg-transparent'
+          ? 'fixed bottom-0 left-0 top-16 max-h-[calc(100dvh-4rem)] min-w-0 max-w-[320px] overflow-hidden bg-transparent'
           : 'relative w-0 min-w-16 bg-blue-200 tablet:w-16 tablet:min-w-16'
       )}
       // style={{ gridArea: 'sidebar' }}

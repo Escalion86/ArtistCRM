@@ -282,6 +282,13 @@ body.theme-dark .MuiTabs-indicator {
   scroll-behavior: auto;
 }
 
+.real-screen-height {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 .landing-reveal {
   opacity: 0;
   transform: translateY(18px);

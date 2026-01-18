@@ -175,7 +175,7 @@ const selectUsersFunc = (
         </div> */}
         <div
           style={{ height: sortedUsers.length * 41 + 2 }}
-          className={`tablet:flex-none border-gray-700 border-t flex-col tablet:max-h-[calc(100vh-185px)]`}
+          className={`tablet:flex-none border-gray-700 border-t flex-col tablet:max-h-[calc(100dvh-185px)]`}
         >
           <ListWrapper itemCount={sortedUsers.length} itemSize={41}>
             {({ index, style }) => (
