@@ -172,9 +172,9 @@ const LoginInputs = () => {
       <div className="pointer-events-none absolute top-12 -left-28 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl" />
       <div className="pointer-events-none absolute -right-28 bottom-12 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl" />
 
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl ring-1 ring-purple-100">
+      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl ring-1 ring-general/30">
         <div className="mb-6">
-          <div className="text-xs tracking-[0.2em] text-purple-500 uppercase">
+          <div className="text-xs tracking-[0.2em] text-general uppercase">
             ArtistCRM
           </div>
           <h1 className="mt-2 text-2xl font-semibold text-gray-900">
@@ -361,27 +361,41 @@ const LoginInputs = () => {
           <div className="mt-6 flex flex-col gap-2">
             <button
               type="button"
-              className="w-full text-center text-sm font-medium text-purple-600 transition hover:text-purple-800"
+              className="w-full text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
               onClick={() => setMode('reset')}
             >
               Забыли пароль?
             </button>
             <button
               type="button"
-              className="w-full text-center text-sm font-medium text-purple-600 transition hover:text-purple-800"
+              className="w-full text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
               onClick={() => setMode('register')}
             >
               Создать аккаунт
             </button>
+            <Link
+              href="/"
+              className="w-full text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+            >
+              На главную
+            </Link>
           </div>
         ) : (
-          <button
-            type="button"
-            className="mt-6 w-full text-center text-sm font-medium text-purple-600 transition hover:text-purple-800"
-            onClick={() => setMode('login')}
-          >
-            Вернуться ко входу
-          </button>
+          <div className="mt-6 flex flex-col gap-2">
+            <button
+              type="button"
+              className="w-full text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              onClick={() => setMode('login')}
+            >
+              Вернуться ко входу
+            </button>
+            <Link
+              href="/"
+              className="w-full text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+            >
+              На главную
+            </Link>
+          </div>
         )}
       </div>
     </div>

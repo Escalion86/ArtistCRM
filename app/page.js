@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import dbConnect from '@server/dbConnect'
 import Tariffs from '@models/Tariffs'
+import { getServerSession } from 'next-auth'
+import authOptions from './api/auth/[...nextauth]/_options'
+import { redirect } from 'next/navigation'
 
 export const metadata = {
   title: 'ArtistCRM - CRM для артистов',
@@ -23,6 +26,10 @@ const formatEventsLimit = (limit) => {
 }
 
 export default async function HomePage() {
+  const session = await getServerSession(authOptions)
+  if (session?.user?._id) {
+    redirect('/cabinet')
+  }
   let tariffs = []
   try {
     await dbConnect()
