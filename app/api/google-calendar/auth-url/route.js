@@ -12,6 +12,16 @@ export const runtime = 'nodejs'
 const encodeState = (payload) =>
   Buffer.from(JSON.stringify(payload)).toString('base64url')
 
+const normalizeBaseUrl = (value) => {
+  if (!value) return null
+  const trimmed = String(value).trim().replace(/\/+$/, '')
+  if (!trimmed) return null
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed
+  }
+  return `https://${trimmed}`
+}
+
 export const GET = async (req) => {
   const { user } = await getTenantContext()
   if (!user?._id) {
@@ -58,10 +68,12 @@ export const GET = async (req) => {
   })
 
   const response = NextResponse.json({ success: true, data: { url } })
-  const hostname = req.nextUrl.hostname || ''
-  const cookieDomain = hostname.startsWith('www.')
+  const baseUrl = normalizeBaseUrl(process.env.DOMAIN)
+  const hostname = baseUrl ? new URL(baseUrl).hostname : req.nextUrl.hostname
+  const cleanHost = hostname?.startsWith('www.')
     ? hostname.replace(/^www\./, '')
-    : undefined
+    : hostname
+  const cookieDomain = cleanHost && cleanHost.includes('.') ? cleanHost : undefined
   response.cookies.set('gc_oauth_state', nonce, {
     httpOnly: true,
     sameSite: 'lax',

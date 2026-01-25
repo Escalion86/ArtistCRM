@@ -17,6 +17,16 @@ const decodeState = (value) => {
   }
 }
 
+const normalizeBaseUrl = (value) => {
+  if (!value) return null
+  const trimmed = String(value).trim().replace(/\/+$/, '')
+  if (!trimmed) return null
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed
+  }
+  return `https://${trimmed}`
+}
+
 export const GET = async (req) => {
   const { user } = await getTenantContext()
   if (!user?._id) {
@@ -48,9 +58,10 @@ export const GET = async (req) => {
 
   const decodedState = decodeState(state)
   const redirect = decodedState?.redirect || '/cabinet/profile'
+  const baseUrl = normalizeBaseUrl(process.env.DOMAIN) || req.nextUrl.origin
   if (!decodedState?.nonce || decodedState.nonce !== cookieState) {
     const response = NextResponse.redirect(
-      new URL(`${redirect}?gc_error=state`, req.nextUrl.origin)
+      new URL(`${redirect}?gc_error=state`, baseUrl)
     )
     response.cookies.delete('gc_oauth_state')
     return response
@@ -86,7 +97,7 @@ export const GET = async (req) => {
 
   await existing.save()
 
-  const response = NextResponse.redirect(new URL(redirect, req.nextUrl.origin))
+  const response = NextResponse.redirect(new URL(redirect, baseUrl))
   response.cookies.delete('gc_oauth_state')
   return response
 }
