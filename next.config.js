@@ -11,6 +11,7 @@ const nextConfig = {
     unoptimized: true,
   },
   productionBrowserSourceMaps: true,
+  turbopack: {},
 }
 
 module.exports = withPWA(nextConfig)
