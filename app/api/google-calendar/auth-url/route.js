@@ -58,11 +58,17 @@ export const GET = async (req) => {
   })
 
   const response = NextResponse.json({ success: true, data: { url } })
+  const hostname = req.nextUrl.hostname || ''
+  const cookieDomain = hostname.startsWith('www.')
+    ? hostname.replace(/^www\./, '')
+    : undefined
   response.cookies.set('gc_oauth_state', nonce, {
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 10 * 60,
     path: '/',
+    secure: process.env.NODE_ENV === 'production',
+    domain: cookieDomain,
   })
   return response
 }

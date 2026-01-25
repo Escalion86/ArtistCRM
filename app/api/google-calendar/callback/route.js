@@ -47,14 +47,14 @@ export const GET = async (req) => {
   }
 
   const decodedState = decodeState(state)
+  const redirect = decodedState?.redirect || '/cabinet/profile'
   if (!decodedState?.nonce || decodedState.nonce !== cookieState) {
-    return NextResponse.json(
-      { success: false, error: 'Некорректный state' },
-      { status: 400 }
+    const response = NextResponse.redirect(
+      new URL(`${redirect}?gc_error=state`, req.nextUrl.origin)
     )
+    response.cookies.delete('gc_oauth_state')
+    return response
   }
-
-  const redirect = decodedState.redirect || '/cabinet/profile'
 
   const { tokens } = await oauth.getToken(code)
   await dbConnect()
