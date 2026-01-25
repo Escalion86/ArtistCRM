@@ -17,7 +17,6 @@ export const metadata = {
   description: 'Уникальное шоу на любое мероприятие',
   applicationName: 'ArtistCRM',
   manifest: '/manifest.json',
-  themeColor: '#111111',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -40,6 +39,10 @@ export const metadata = {
       { url: '/icons/AppImages/ios/180.png', sizes: '180x180', type: 'image/png' },
     ],
   },
+}
+
+export const viewport = {
+  themeColor: '#111111',
 }
 
 export default function RootLayout({ children }) {
