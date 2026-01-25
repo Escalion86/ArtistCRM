@@ -61,7 +61,7 @@ export const CardWrapper = ({
               device === 'phoneH' ||
               device == 'tablet') && (
               <div className="absolute top-0 left-0 z-10 w-12 h-12 overflow-hidden">
-                <div className="absolute w-24 h-24 pb-1 pr-1 bg-purple-500 rounded-full pt-[54px] pl-[54px] -left-12 -top-12">
+                <div className="absolute w-24 h-24 pb-1 pr-1 bg-general rounded-full pt-[54px] pl-[54px] -left-12 -top-12">
                   <FontAwesomeIcon
                     className="text-white w-7 h-7"
                     icon={faEyeSlash}

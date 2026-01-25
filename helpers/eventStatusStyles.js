@@ -36,12 +36,12 @@ export const EVENT_STATUS_UI_STYLES = {
     },
   },
   transferred: {
-    badge: 'bg-purple-100 text-purple-800',
+    badge: 'bg-general/20 text-general',
     button: {
       active:
-        'border-purple-500 !bg-purple-500 !text-white shadow-sm hover:brightness-95',
+        'border-general !bg-general !text-black shadow-sm hover:brightness-95',
       inactive:
-        'border-purple-500 text-purple-600 bg-white hover:bg-purple-50 hover:text-purple-700',
+        'border-general text-general bg-white hover:bg-general/10 hover:text-[#6f582f]',
     },
   },
   active: {

@@ -168,9 +168,9 @@ const LoginInputs = () => {
   }
 
   return (
-    <div className="relative flex min-h-[100dvh] w-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#1b1235] via-[#2a0f4a] to-[#25113b] px-4 py-10">
-      <div className="pointer-events-none absolute top-12 -left-28 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl" />
-      <div className="pointer-events-none absolute -right-28 bottom-12 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl" />
+    <div className="relative flex min-h-[100dvh] w-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#f7efe1] via-[#ebd3a5] to-[#d8ba86] px-4 py-10">
+      <div className="pointer-events-none absolute top-12 -left-28 h-64 w-64 rounded-full bg-[#ebd3a5]/30 blur-3xl" />
+      <div className="pointer-events-none absolute -right-28 bottom-12 h-64 w-64 rounded-full bg-[#c9a86a]/30 blur-3xl" />
 
       <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl ring-1 ring-general/30">
         <div className="mb-6">
@@ -235,7 +235,7 @@ const LoginInputs = () => {
             />
 
             <button
-              className="bg-general mt-2 w-full rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="bg-general mt-2 w-full rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
               type="submit"
               disabled={!loginPhone || !loginPassword || isSubmitting}
             >
@@ -274,7 +274,7 @@ const LoginInputs = () => {
 
             <button
               type="submit"
-              className="bg-general mt-2 w-full rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="bg-general mt-2 w-full rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
               disabled={!resetPhone || !resetPassword || isResetLoading}
             >
               {isResetLoading ? 'Сохранение...' : 'Сбросить пароль'}
@@ -343,7 +343,7 @@ const LoginInputs = () => {
 
             <button
               type="submit"
-              className="mt-2 w-full rounded-lg bg-general px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="mt-2 w-full rounded-lg bg-general px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
               disabled={
                 !registerPhone ||
                 !registerPassword ||

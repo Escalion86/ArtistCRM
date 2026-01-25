@@ -45,8 +45,8 @@ export default async function HomePage() {
     <main className="relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute right-0 rounded-full from-general/40 -top-24 h-72 w-72 bg-gradient-to-br via-white/10 to-transparent blur-3xl" />
-        <div className="via-general/20 absolute bottom-0 left-0 h-80 w-80 rounded-full bg-gradient-to-tr from-[#6b3fa8]/30 to-transparent blur-3xl" />
-        <div className="absolute inset-x-0 top-40 mx-auto h-64 w-[80%] bg-[radial-gradient(circle_at_center,rgba(172,128,236,0.18),transparent_60%)]" />
+        <div className="via-general/20 absolute bottom-0 left-0 h-80 w-80 rounded-full bg-gradient-to-tr from-[#c9a86a]/30 to-transparent blur-3xl" />
+        <div className="absolute inset-x-0 top-40 mx-auto h-64 w-[80%] bg-[radial-gradient(circle_at_center,rgba(201,168,106,0.22),transparent_60%)]" />
       </div>
 
       <section className="relative flex flex-col max-w-6xl gap-10 px-6 pt-20 pb-16 mx-auto lg:flex-row lg:items-center">

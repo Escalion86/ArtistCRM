@@ -33,6 +33,8 @@
 body {
   background: #F5F6F8;
   color: #1C1D1F;
+  --sidebar-bg: #8a6f3b;
+  --sidebar-text: #1C1D1F;
   --tx-income: #22c55e;
   --tx-income-hover: #16a34a;
   --tx-income-hover-bg: rgba(34, 197, 94, 0.08);
@@ -75,8 +77,10 @@ body {
 }
 
 body.theme-dark {
-  background: #0f172a;
+  background: #0f0c09;
   color: #e2e8f0;
+  --sidebar-bg: #3b2f1d;
+  --sidebar-text: #f7efe1;
   --tx-income: #15803d;
   --tx-income-hover: #166534;
   --tx-income-hover-bg: rgba(21, 128, 61, 0.12);
@@ -90,15 +94,15 @@ body.theme-dark {
 }
 
 body.theme-dark .bg-white {
-  background-color: #111827;
+  background-color: #14110d;
 }
 
 body.theme-dark .bg-gray-50 {
-  background-color: #0b1220;
+  background-color: #100d0a;
 }
 
 body.theme-dark .bg-gray-100 {
-  background-color: #0f172a;
+  background-color: #17130f;
 }
 
 body .border-input {
@@ -106,7 +110,7 @@ body .border-input {
 }
 
 body.theme-dark .border-input {
-  border-color: #1f2937;
+  border-color: #484034;
 }
 
 body.theme-dark .border-input:hover,
@@ -145,32 +149,28 @@ body.theme-dark .text-gray-500 {
 body.theme-dark .menu-btn__burger,
 body.theme-dark .menu-btn__burger::before,
 body.theme-dark .menu-btn__burger::after {
-  background-color: #C9A86A;
-  box-shadow: 0 2px 5px rgba(201, 168, 106, 0.5);
+  background-color: var(--sidebar-text);
+  box-shadow: 0 2px 5px rgba(247, 239, 225, 0.5);
 }
 
 body.theme-dark .menu-btn {
-  background-color: #0f172a;
+  background-color: var(--sidebar-bg);
 }
 
-body.theme-dark .sidebar-root .bg-general {
-  background-color: #0f172a;
-}
-
-body.theme-dark .sidebar-bg {
-  background-color: #EBD3A5;
+body.theme-dark .sidebar-root {
+  color: #f7efe1;
 }
 
 body.theme-dark .burger-layout {
-  background-color: #0f172a;
+  background-color: var(--sidebar-bg);
 }
 
 body.theme-dark .sidebar-root .text-white {
-  color: #EBD3A5;
+  color: #f7efe1;
 }
 
 body.theme-dark .sidebar-root .hover\:text-white:hover {
-  color: #EBD3A5;
+  color: #1f1b14;
 }
 
 body.theme-dark .sidebar-root .hover\:bg-white:hover {
@@ -179,11 +179,11 @@ body.theme-dark .sidebar-root .hover\:bg-white:hover {
 
 body.theme-dark .sidebar-root .hover\:bg-general:hover,
 body.theme-dark .sidebar-root .hover\:text-general:hover {
-  color: #0f172a;
+  color: #1f1b14;
 }
 
 .sidebar-bg {
-  background-color: #8a6f3b;
+  background-color: var(--sidebar-bg);
 }
 
 body.theme-dark .action-icon-button {
