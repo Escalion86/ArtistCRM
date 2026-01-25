@@ -1,5 +1,5 @@
 import { atom } from 'jotai'
-import { atomFamily } from 'jotai/utils'
+import { atomFamily } from 'jotai-family'
 import { DEFAULT_TARIFF } from '@helpers/constants'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 

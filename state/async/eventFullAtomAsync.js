@@ -3,7 +3,8 @@ import { getData } from '@helpers/CRUD'
 import { DEFAULT_EVENT } from '@helpers/constants'
 import isLoadedAtom from '@state/atoms/isLoadedAtom'
 // import eventsAtom from '@state/atoms/eventsAtom'
-import { atomFamily, atomWithDefault } from 'jotai/utils'
+import { atomWithDefault } from 'jotai/utils'
+import { atomFamily } from 'jotai-family'
 import { setAtomValue } from '@state/storeHelpers'
 
 export const eventFullSelectorAsync = atomFamily((id) =>

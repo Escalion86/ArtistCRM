@@ -49,7 +49,7 @@ export const PUT = async (req, { params }) => {
   await dbConnect()
 
   const canManageAllUsers = isAdmin
-  const query = canManageAllUsers ? { _id: id } : { _id: id, tenantId }
+  const query = canManageAllUsers || isSelf ? { _id: id } : { _id: id, tenantId }
   const existing = await Users.findOne(query)
   if (!existing) {
     return NextResponse.json(
@@ -208,6 +208,7 @@ export const PUT = async (req, { params }) => {
       if (result?.error) return result.error
     } else {
       Object.assign(update, body)
+      if (!existing.tenantId) update.tenantId = existing._id
       if (body.phone !== undefined) {
         const normalizedPhone = normalizePhone(body.phone)
         if (normalizedPhone) {

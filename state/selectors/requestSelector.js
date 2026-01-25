@@ -1,5 +1,5 @@
 import { atom } from 'jotai'
-import { atomFamily } from 'jotai/utils'
+import { atomFamily } from 'jotai-family'
 import { DEFAULT_REQUEST } from '@helpers/constants'
 import requestsAtom from '@state/atoms/requestsAtom'
 

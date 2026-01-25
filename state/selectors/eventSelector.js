@@ -1,5 +1,5 @@
 import { atom } from 'jotai'
-import { atomFamily } from 'jotai/utils'
+import { atomFamily } from 'jotai-family'
 import eventsAtom from '@state/atoms/eventsAtom'
 
 export const eventSelector = atomFamily((id) =>

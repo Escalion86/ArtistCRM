@@ -44,6 +44,7 @@
     "googleapis": "^170.1.0",
     "isomorphic-dompurify": "^2.14.0",
     "jotai": "^2.16.2",
+    "jotai-family": "^1.0.1",
     "mongodb": "^7.0.0",
     "mongoose": "^9.1.5",
     "next": "^16.1.4",
