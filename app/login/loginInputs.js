@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import Input from '@components/Input'
@@ -61,6 +62,7 @@ const LoginInputs = () => {
   const [registerPassword, setRegisterPassword] = useState('')
   const [registerPasswordRepeat, setRegisterPasswordRepeat] = useState('')
   const [isRegisterLoading, setIsRegisterLoading] = useState(false)
+  const [registerTermsAccepted, setRegisterTermsAccepted] = useState(false)
   const [loginPhoneHint, setLoginPhoneHint] = useState(false)
   const [resetPhoneHint, setResetPhoneHint] = useState(false)
   const [registerPhoneHint, setRegisterPhoneHint] = useState(false)
@@ -110,6 +112,10 @@ const LoginInputs = () => {
   const submitRegister = async (event) => {
     event.preventDefault()
     if (!registerPhone || !registerPassword || !registerPasswordRepeat) return
+    if (!registerTermsAccepted) {
+      alert('Необходимо принять Политику и Соглашение')
+      return
+    }
     if (registerPassword !== registerPasswordRepeat) {
       alert('Пароли не совпадают')
       return
@@ -149,6 +155,7 @@ const LoginInputs = () => {
         setRegisterPhone(null)
         setRegisterPassword('')
         setRegisterPasswordRepeat('')
+        setRegisterTermsAccepted(false)
         setMode('login')
         return
       }
@@ -312,6 +319,28 @@ const LoginInputs = () => {
               noMargin
             />
 
+            <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 cursor-pointer"
+                checked={registerTermsAccepted}
+                onChange={(event) =>
+                  setRegisterTermsAccepted(event.target.checked)
+                }
+              />
+              <span>
+                Я принимаю{' '}
+                <Link href="/privacy" className="text-general">
+                  Политику конфиденциальности
+                </Link>{' '}
+                и{' '}
+                <Link href="/terms" className="text-general">
+                  Пользовательское соглашение
+                </Link>
+                .
+              </span>
+            </label>
+
             <button
               type="submit"
               className="mt-2 w-full rounded-lg bg-general px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-300"
@@ -319,6 +348,7 @@ const LoginInputs = () => {
                 !registerPhone ||
                 !registerPassword ||
                 !registerPasswordRepeat ||
+                !registerTermsAccepted ||
                 isRegisterLoading
               }
             >
