@@ -58,7 +58,8 @@ export const PUT = async (req, { params }) => {
   await dbConnect()
 
   const canManageAllUsers = isAdmin
-  const query = canManageAllUsers || isSelf ? { _id: id } : { _id: id, tenantId }
+  const query =
+    canManageAllUsers || isSelf ? { _id: id } : { _id: id, tenantId }
   const existing = await Users.findOne(query)
   if (!existing) {
     console.log('[users][PUT] not found', { query })
