@@ -205,6 +205,15 @@ body.theme-dark .modal-action-button.bg-danger:hover {
   background-color: #6f1a1a !important;
 }
 
+body.theme-dark .modal-action-button:disabled {
+  background-color: #4b5563 !important;
+  color: #e5e7eb !important;
+}
+
+body.theme-dark .modal-action-button:disabled:hover {
+  background-color: #4b5563 !important;
+}
+
 body.theme-dark .text-black {
   color: #e2e8f0;
 }
@@ -317,4 +326,12 @@ body.theme-dark .MuiTabs-indicator {
 .mask-bottom {
   -webkit-wask-image: linear-gradient(rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0));
   mask-image: linear-gradient(rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0));
+}
+
+.profile-sticky-bar {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+body.theme-dark .profile-sticky-bar {
+  background-color: rgba(15, 23, 42, 0.95);
 }

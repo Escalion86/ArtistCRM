@@ -264,7 +264,7 @@ const ProfileContent = () => {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto px-2 pb-6">
-      <div className="sticky top-0 z-10 -mx-2 border-b border-gray-200 bg-white/95 px-2 py-2 backdrop-blur">
+      <div className="profile-sticky-bar sticky top-0 z-10 -mx-2 border-b border-gray-200 px-2 py-2 backdrop-blur">
         <div className="flex justify-end">
           <button
             type="button"
