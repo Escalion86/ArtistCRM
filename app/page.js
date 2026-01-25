@@ -55,6 +55,10 @@ export default async function HomePage() {
             доходов, держать связь с клиентами и закрывать документы по каждому
             мероприятию без хаоса и табличек.
           </p>
+          <p className="max-w-xl mt-3 text-sm text-gray-600 landing-reveal sm:text-base">
+            CRM — это система, где артист хранит клиентов, заявки, оплаты и
+            историю выступлений в одном месте.
+          </p>
           <div className="flex flex-wrap items-center gap-4 mt-8 landing-reveal">
             <Link
               href="/login"
@@ -141,7 +145,7 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-          <div className="absolute hidden p-5 border shadow-lg landing-reveal -right-6 -bottom-6 w-60 rounded-3xl border-white/70 bg-white/80 backdrop-blur lg:block">
+          <div className="hidden p-5 border shadow-lg landing-reveal w-60 rounded-3xl border-white/70 bg-white/80 backdrop-blur lg:static lg:mt-6 lg:block xl:absolute xl:-right-6 xl:-bottom-6">
             <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
               Синхронизация
             </p>

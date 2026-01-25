@@ -32,15 +32,15 @@ module.exports = {
           '6px 6px 26px 0px rgba(255, 255, 255, 0.35) inset, 0px 25px 36px 0px rgba(255, 255, 255, 0.20) inset',
       },
       colors: {
-        general: '#AC80EC',
-        button: 'linear-gradient(63deg, #692DC1 0%, #AC80EC 100%)',
+        general: '#EBD3A5',
+        button: 'linear-gradient(63deg, #C9A86A 0%, #EBD3A5 100%)',
         'button-hover':
-          'linear-gradient(45deg, #692DC1 0%, #AC80EC 47.23%, #A676EC 100%)',
+          'linear-gradient(45deg, #B88F52 0%, #E1C993 47.23%, #EBD3A5 100%)',
         'button-push':
-          'linear-gradient(0deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.05) 100%), linear-gradient(45deg, #692DC1 0%, #AC80EC 47.23%, #A676EC 100%)',
+          'linear-gradient(0deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.05) 100%), linear-gradient(45deg, #B88F52 0%, #E1C993 47.23%, #EBD3A5 100%)',
 
         header: '#4D9DC4',
-        'general-light': '#ebe0e0',
+        'general-light': '#F4E7C8',
         primary: '#2A323B',
         secondary: '#D3D0C9',
         third: '#176D8F',

@@ -111,7 +111,7 @@ body.theme-dark .border-input {
 
 body.theme-dark .border-input:hover,
 body.theme-dark .border-input:focus-within {
-  border-color: #AC80EC;
+  border-color: #C9A86A;
 }
 
 body.theme-dark .border-gray-200 {
@@ -145,8 +145,8 @@ body.theme-dark .text-gray-500 {
 body.theme-dark .menu-btn__burger,
 body.theme-dark .menu-btn__burger::before,
 body.theme-dark .menu-btn__burger::after {
-  background-color: #AC80EC;
-  box-shadow: 0 2px 5px rgba(172, 128, 236, 0.5);
+  background-color: #C9A86A;
+  box-shadow: 0 2px 5px rgba(201, 168, 106, 0.5);
 }
 
 body.theme-dark .menu-btn {
@@ -157,25 +157,33 @@ body.theme-dark .sidebar-root .bg-general {
   background-color: #0f172a;
 }
 
+body.theme-dark .sidebar-bg {
+  background-color: #EBD3A5;
+}
+
 body.theme-dark .burger-layout {
   background-color: #0f172a;
 }
 
 body.theme-dark .sidebar-root .text-white {
-  color: #AC80EC;
+  color: #EBD3A5;
 }
 
 body.theme-dark .sidebar-root .hover\:text-white:hover {
-  color: #AC80EC;
+  color: #EBD3A5;
 }
 
 body.theme-dark .sidebar-root .hover\:bg-white:hover {
-  background-color: #AC80EC;
+  background-color: #EBD3A5;
 }
 
 body.theme-dark .sidebar-root .hover\:bg-general:hover,
 body.theme-dark .sidebar-root .hover\:text-general:hover {
   color: #0f172a;
+}
+
+.sidebar-bg {
+  background-color: #8a6f3b;
 }
 
 body.theme-dark .action-icon-button {
@@ -190,11 +198,11 @@ body.theme-dark .action-icon-button:hover {
 }
 
 body.theme-dark .modal-action-button.bg-general {
-  background-color: #6b3fa8 !important;
+  background-color: #C9A86A !important;
 }
 
 body.theme-dark .modal-action-button.bg-general:hover {
-  background-color: #5a3292 !important;
+  background-color: #B88F52 !important;
 }
 
 body.theme-dark .modal-action-button.bg-danger {
@@ -212,6 +220,18 @@ body.theme-dark .modal-action-button:disabled {
 
 body.theme-dark .modal-action-button:disabled:hover {
   background-color: #4b5563 !important;
+}
+
+.bg-general.text-white {
+  color: #1C1D1F;
+}
+
+.text-general {
+  color: #8a6f3b;
+}
+
+body.theme-dark .text-general {
+  color: #EBD3A5;
 }
 
 body.theme-dark .text-black {

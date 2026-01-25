@@ -317,7 +317,7 @@ const SideBar = ({ page }) => {
         'sidebar-root bottom-0 top-0 z-50 flex max-h-full flex-col',
         isMobile
           ? 'fixed bottom-0 left-0 top-16 max-h-[calc(100dvh-4rem)] min-w-0 max-w-[320px] overflow-hidden bg-transparent'
-          : 'relative w-0 min-w-16 bg-blue-200 tablet:w-16 tablet:min-w-16'
+          : 'relative w-0 min-w-16 sidebar-bg tablet:w-16 tablet:min-w-16'
       )}
       // style={{ gridArea: 'sidebar' }}
       ref={wrapperRef}
@@ -331,7 +331,7 @@ const SideBar = ({ page }) => {
         ref={menuRef}
         className={cn(
           'absolute top-0 z-10 h-full max-h-full w-full items-start overflow-y-hidden',
-          isMobile ? 'bg-general shadow-2xl' : ''
+          isMobile ? 'sidebar-bg shadow-2xl' : 'sidebar-bg'
         )}
         style={{ scrollBehavior: 'smooth' }}
         variants={motionVariants}
@@ -352,7 +352,7 @@ const SideBar = ({ page }) => {
         layout
         className={cn(
           'pointer-events-none absolute bottom-0 top-0',
-          isMobile ? 'bg-transparent' : 'bg-general'
+          isMobile ? 'bg-transparent' : 'sidebar-bg'
         )}
       />
       {scrollable && (
@@ -360,7 +360,7 @@ const SideBar = ({ page }) => {
           {scrollPos > 0 && (
             <div
               onClick={() => handleScrollPosition(-120)}
-              className="absolute left-0 right-0 top-0 z-50 h-10 w-full cursor-pointer rounded-b-2xl border-t bg-general"
+              className="absolute left-0 right-0 top-0 z-50 h-10 w-full cursor-pointer rounded-b-2xl border-t sidebar-bg"
             >
               <div className="flex h-full w-full items-center justify-center rounded-2xl border-b border-white">
                 <FontAwesomeIcon
@@ -375,7 +375,7 @@ const SideBar = ({ page }) => {
             scrollPos && (
             <div
               onClick={() => handleScrollPosition(120)}
-              className="absolute bottom-0 left-0 right-0 z-50 h-10 w-full cursor-pointer rounded-t-2xl border-b bg-general"
+              className="absolute bottom-0 left-0 right-0 z-50 h-10 w-full cursor-pointer rounded-t-2xl border-b sidebar-bg"
             >
               <div className="flex h-full w-full items-center justify-center rounded-2xl border-t border-white">
                 <FontAwesomeIcon
