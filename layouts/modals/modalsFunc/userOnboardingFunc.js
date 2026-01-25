@@ -187,6 +187,7 @@ const userOnboardingFunc = () => {
     title: 'Заполните профиль',
     showDecline: false,
     closeButtonShow: false,
+    declineButtonShow: false,
     crossShow: false,
     Children: UserOnboardingModal,
   }
