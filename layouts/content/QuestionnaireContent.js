@@ -35,6 +35,17 @@ const QuestionnaireContent = () => {
   const [vk, setVk] = useState(DEFAULT_USER.vk)
   const [images, setImages] = useState(DEFAULT_USER.images)
   const [isSaving, setIsSaving] = useState(false)
+  const [calendarStatus, setCalendarStatus] = useState({
+    loading: true,
+    allowCalendarSync: false,
+    connected: false,
+    enabled: false,
+    calendarId: '',
+  })
+  const [calendarItems, setCalendarItems] = useState([])
+  const [selectedCalendarId, setSelectedCalendarId] = useState('')
+  const [calendarError, setCalendarError] = useState('')
+  const [calendarLoading, setCalendarLoading] = useState(false)
 
   const [errors, checkErrors, addError, removeError, clearErrors] = useErrors()
 
@@ -53,6 +64,119 @@ const QuestionnaireContent = () => {
     setImages(loggedUser.images ?? DEFAULT_USER.images)
     clearErrors()
   }, [loggedUser])
+
+  const loadCalendarStatus = async () => {
+    setCalendarError('')
+    setCalendarStatus((prev) => ({ ...prev, loading: true }))
+    try {
+      const response = await fetch('/api/google-calendar/status')
+      const result = await response.json()
+      if (!result?.success) {
+        setCalendarError(result?.error || 'Не удалось загрузить статус')
+        setCalendarStatus((prev) => ({ ...prev, loading: false }))
+        return
+      }
+      setCalendarStatus({ loading: false, ...result.data })
+    } catch (error) {
+      setCalendarError('Не удалось загрузить статус')
+      setCalendarStatus((prev) => ({ ...prev, loading: false }))
+    }
+  }
+
+  useEffect(() => {
+    loadCalendarStatus()
+  }, [])
+
+  const handleConnectCalendar = async () => {
+    if (calendarLoading) return
+    setCalendarLoading(true)
+    setCalendarError('')
+    try {
+      const response = await fetch(
+        '/api/google-calendar/auth-url?redirect=/cabinet/questionnaire'
+      )
+      const result = await response.json()
+      if (!result?.success || !result?.data?.url) {
+        setCalendarError(result?.error || 'Не удалось получить ссылку')
+        setCalendarLoading(false)
+        return
+      }
+      window.location.href = result.data.url
+    } catch (error) {
+      setCalendarError('Не удалось подключить календарь')
+      setCalendarLoading(false)
+    }
+  }
+
+  const handleLoadCalendars = async () => {
+    if (calendarLoading) return
+    setCalendarLoading(true)
+    setCalendarError('')
+    try {
+      const response = await fetch('/api/google-calendar/calendars')
+      const result = await response.json()
+      if (!result?.success) {
+        setCalendarError(result?.error || 'Не удалось загрузить календари')
+        setCalendarLoading(false)
+        return
+      }
+      const calendars = Array.isArray(result?.data?.calendars)
+        ? result.data.calendars
+        : []
+      const selectedId = result?.data?.selectedId || ''
+      setCalendarItems(calendars)
+      setSelectedCalendarId(selectedId)
+    } catch (error) {
+      setCalendarError('Не удалось загрузить календари')
+    }
+    setCalendarLoading(false)
+  }
+
+  const handleSelectCalendar = async () => {
+    if (!selectedCalendarId || calendarLoading) return
+    setCalendarLoading(true)
+    setCalendarError('')
+    try {
+      const response = await fetch('/api/google-calendar/select', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ calendarId: selectedCalendarId }),
+      })
+      const result = await response.json()
+      if (!result?.success) {
+        setCalendarError(result?.error || 'Не удалось сохранить календарь')
+        setCalendarLoading(false)
+        return
+      }
+      await loadCalendarStatus()
+    } catch (error) {
+      setCalendarError('Не удалось сохранить календарь')
+    }
+    setCalendarLoading(false)
+  }
+
+  const handleDisconnectCalendar = async () => {
+    if (calendarLoading) return
+    setCalendarLoading(true)
+    setCalendarError('')
+    try {
+      const response = await fetch('/api/google-calendar/disconnect', {
+        method: 'POST',
+      })
+      const result = await response.json()
+      if (!result?.success) {
+        setCalendarError(result?.error || 'Не удалось отключить календарь')
+        setCalendarLoading(false)
+        return
+      }
+      setCalendarItems([])
+      setSelectedCalendarId('')
+      await loadCalendarStatus()
+    } catch (error) {
+      setCalendarError('Не удалось отключить календарь')
+    }
+    setCalendarLoading(false)
+  }
 
   const isFormChanged = useMemo(() => {
     if (!loggedUser) return false
@@ -226,6 +350,86 @@ const QuestionnaireContent = () => {
         />
       </FormWrapper>
       <ErrorsList errors={errors} />
+      <div className="mt-6 rounded border border-gray-200 bg-white p-4">
+        <div className="text-sm font-semibold text-gray-800">
+          Google Calendar
+        </div>
+        {!calendarStatus.allowCalendarSync ? (
+          <div className="mt-2 text-sm text-gray-600">
+            Синхронизация доступна только на тарифах с поддержкой календаря.
+          </div>
+        ) : (
+          <>
+            <div className="mt-2 text-sm text-gray-600">
+              {calendarStatus.connected
+                ? 'Подключен'
+                : 'Не подключен'}
+            </div>
+            {calendarStatus.connected && calendarStatus.calendarId ? (
+              <div className="mt-1 text-xs text-gray-500">
+                Календарь: {calendarStatus.calendarId}
+              </div>
+            ) : null}
+            {calendarError ? (
+              <div className="mt-2 text-xs text-red-600">{calendarError}</div>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {!calendarStatus.connected ? (
+                <button
+                  type="button"
+                  className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                  onClick={handleConnectCalendar}
+                  disabled={calendarLoading || calendarStatus.loading}
+                >
+                  {calendarLoading ? 'Подключение...' : 'Подключить Google Calendar'}
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                    onClick={handleLoadCalendars}
+                    disabled={calendarLoading}
+                  >
+                    Выбрать календарь
+                  </button>
+                  <button
+                    type="button"
+                    className="modal-action-button bg-danger px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                    onClick={handleDisconnectCalendar}
+                    disabled={calendarLoading}
+                  >
+                    Отключить
+                  </button>
+                </>
+              )}
+            </div>
+            {calendarItems.length > 0 ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <select
+                  className="h-9 rounded border border-gray-300 px-2 text-sm"
+                  value={selectedCalendarId}
+                  onChange={(event) => setSelectedCalendarId(event.target.value)}
+                >
+                  {calendarItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.primary ? 'Основной' : item.summary || item.id}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                  onClick={handleSelectCalendar}
+                  disabled={!selectedCalendarId || calendarLoading}
+                >
+                  Сохранить
+                </button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
       <div className="mt-4 flex items-center justify-between">
         <button
           type="button"

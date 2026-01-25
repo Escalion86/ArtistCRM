@@ -77,6 +77,10 @@ const requestsSchema = {
     type: String,
     default: '',
   },
+  googleCalendarCalendarId: {
+    type: String,
+    default: '',
+  },
 }
 
 export default requestsSchema

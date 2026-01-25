@@ -104,6 +104,10 @@ const eventsSchema = {
     type: String,
     default: null,
   },
+  googleCalendarCalendarId: {
+    type: String,
+    default: '',
+  },
   importedFromCalendar: {
     type: Boolean,
     default: false,

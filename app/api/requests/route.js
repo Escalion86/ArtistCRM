@@ -7,8 +7,13 @@ import dbConnect from '@server/dbConnect'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
 import telegramPost from '@server/telegramApi'
-import { getCalendarClient } from '@server/googleCalendarClient'
+import {
+  getUserCalendarClient,
+  getUserCalendarId,
+  normalizeCalendarSettings,
+} from '@server/googleUserCalendarClient'
 import getTenantContext from '@server/getTenantContext'
+import getUserTariffAccess from '@server/getUserTariffAccess'
 
 const normalizePhone = (phone) =>
   typeof phone === 'string'
@@ -86,8 +91,6 @@ const sendTelegramMassage = async (text, url) =>
     true
   )
 
-const WRITE_SCOPE = ['https://www.googleapis.com/auth/calendar']
-const { GOOGLE_CALENDAR_ID } = process.env
 const DEFAULT_TIME_ZONE = 'Asia/Krasnoyarsk'
 
 const getSiteTimeZone = async (tenantId) => {
@@ -129,9 +132,9 @@ const base64Url = (value) =>
     .replace(/\//g, '_')
     .replace(/=+$/, '')
 
-const buildCalendarLink = (googleEventId) => {
-  if (!googleEventId || !GOOGLE_CALENDAR_ID) return null
-  const payload = `${googleEventId} ${GOOGLE_CALENDAR_ID}`
+const buildCalendarLink = (googleEventId, calendarId) => {
+  if (!googleEventId || !calendarId) return null
+  const payload = `${googleEventId} ${calendarId}`
   return `https://www.google.com/calendar/event?eid=${base64Url(payload)}`
 }
 
@@ -193,11 +196,12 @@ const buildRequestCalendarPayload = (request, timeZone = DEFAULT_TIME_ZONE) => {
   return payload
 }
 
-const createRequestCalendarEvent = async (request, timeZone) => {
-  const calendarId = GOOGLE_CALENDAR_ID
-  if (!calendarId) return null
-  const calendar = await getCalendarClient(WRITE_SCOPE)
+const createRequestCalendarEvent = async (request, timeZone, user) => {
+  const settings = normalizeCalendarSettings(user)
+  if (!settings.enabled || !settings.refreshToken) return null
+  const calendar = getUserCalendarClient(user)
   if (!calendar) return null
+  const calendarId = getUserCalendarId(user)
 
   const resource = buildRequestCalendarPayload(request, timeZone)
   try {
@@ -236,7 +240,10 @@ export const GET = async () => {
     .lean()
   const prepared = requests.map((request) => ({
     ...request,
-    calendarLink: buildCalendarLink(request.googleCalendarId),
+    calendarLink: buildCalendarLink(
+      request.googleCalendarId,
+      request.googleCalendarCalendarId
+    ),
   }))
 
   return NextResponse.json({ success: true, data: prepared }, { status: 200 })
@@ -244,7 +251,8 @@ export const GET = async () => {
 
 export const POST = async (req) => {
   const body = await req.json()
-  const { tenantId: sessionTenantId } = await getTenantContext()
+  const { tenantId: sessionTenantId, user: sessionUser } =
+    await getTenantContext()
   const clientName = (body.clientName ?? body.name ?? '').trim() || 'Не указан'
   const rawPhone = body.clientPhone ?? body.phone ?? ''
   const contactChannels =
@@ -313,6 +321,10 @@ export const POST = async (req) => {
   }
 
   const timeZone = await getSiteTimeZone(tenantId)
+  const tenantUser =
+    isCabinetRequest && sessionUser?._id
+      ? sessionUser
+      : await Users.findById(tenantId).lean()
 
   const normalizedPhone = normalizePhone(rawPhone)
   const contacts = sanitizeContacts(contactChannels)
@@ -401,17 +413,37 @@ export const POST = async (req) => {
   })
 
   let googleCalendarId = null
+  let googleCalendarCalendarId = null
   let calendarLink = null
   try {
-    googleCalendarId = await createRequestCalendarEvent(request, timeZone)
-    calendarLink = buildCalendarLink(googleCalendarId)
+    const access = tenantUser?._id
+      ? await getUserTariffAccess(tenantUser._id)
+      : null
+    if (access?.allowCalendarSync && tenantUser) {
+      googleCalendarId = await createRequestCalendarEvent(
+        request,
+        timeZone,
+        tenantUser
+      )
+      if (googleCalendarId) {
+        googleCalendarCalendarId = getUserCalendarId(tenantUser)
+        calendarLink = buildCalendarLink(
+          googleCalendarId,
+          googleCalendarCalendarId
+        )
+      }
+    }
   } catch (error) {
     console.log('Google Calendar request create error', error)
   }
 
   if (googleCalendarId) {
-    await Requests.findByIdAndUpdate(request._id, { googleCalendarId })
+    await Requests.findByIdAndUpdate(request._id, {
+      googleCalendarId,
+      googleCalendarCalendarId,
+    })
     request.googleCalendarId = googleCalendarId
+    request.googleCalendarCalendarId = googleCalendarCalendarId
   }
   request.calendarLink = calendarLink
 

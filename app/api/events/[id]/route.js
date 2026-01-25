@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import Events from '@models/Events'
 import Requests from '@models/Requests'
 import dbConnect from '@server/dbConnect'
-import { updateEventInCalendar } from '@server/CRUD'
+import { deleteEventFromCalendar, updateEventInCalendar } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 
@@ -139,7 +139,7 @@ export const PUT = async (req, { params }) => {
 
   if (event.calendarImportChecked && access?.allowCalendarSync) {
     try {
-      await updateEventInCalendar(event, req)
+      await updateEventInCalendar(event, req, user)
     } catch (error) {
       console.log('Google Calendar update error', error)
     }
@@ -150,8 +150,8 @@ export const PUT = async (req, { params }) => {
 
 export const DELETE = async (req, { params }) => {
   const { id } = await params
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) {
+  const { tenantId, user } = await getTenantContext()
+  if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
       { status: 401 }
@@ -172,6 +172,20 @@ export const DELETE = async (req, { params }) => {
       eventId: null,
       }
     )
+  }
+  if (deleted.googleCalendarId) {
+    try {
+      const access = await getUserTariffAccess(user._id)
+      if (access?.allowCalendarSync) {
+        await deleteEventFromCalendar(
+          deleted.googleCalendarId,
+          deleted.googleCalendarCalendarId,
+          user
+        )
+      }
+    } catch (error) {
+      console.log('Google Calendar delete error', error)
+    }
   }
   return NextResponse.json({ success: true }, { status: 200 })
 }

@@ -75,7 +75,7 @@ export const POST = async (req) => {
   let responseEvent = event
   if (!event?.importedFromCalendar && access?.allowCalendarSync) {
     try {
-      await updateEventInCalendar(event, req)
+      await updateEventInCalendar(event, req, user)
       const refreshed = await Events.findById(event._id).lean()
       if (refreshed) responseEvent = refreshed
     } catch (error) {

@@ -3,14 +3,17 @@ import Clients from '@models/Clients'
 import Events from '@models/Events'
 import Transactions from '@models/Transactions'
 import SiteSettings from '@models/SiteSettings'
+import Users from '@models/Users'
 import { parseGoogleEvent } from '@helpers/googleCalendarParsers'
 import dbConnect from '@server/dbConnect'
-import {
-  getCalendarClient,
-  listCalendarEvents,
-} from '@server/googleCalendarClient'
+import { listCalendarEvents } from '@server/googleCalendarClient'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import {
+  getUserCalendarClient,
+  getUserCalendarId,
+  normalizeCalendarSettings,
+} from '@server/googleUserCalendarClient'
 
 const DEFAULT_TIME_MIN = '2000-01-01T00:00:00.000Z'
 const EMPTY_CLIENT_NAME = 'Клиент из Google Calendar'
@@ -222,11 +225,13 @@ const buildEventUpdate = (
   googleEventId,
   clientId,
   calendarEvent,
-  tenantId
+  tenantId,
+  calendarId
 ) => {
   const setPayload = {
     tenantId,
     googleCalendarId: googleEventId,
+    googleCalendarCalendarId: calendarId,
     description: buildDescriptionFromCalendar(parsedEvent, calendarEvent),
     status: parsedEvent.status,
     importedFromCalendar: true,
@@ -270,27 +275,24 @@ export const POST = async (req) => {
       { status: 403 }
     )
   }
-  const calendarId = body.calendarId ?? process.env.GOOGLE_CALENDAR_ID
   const forceFullSync = Boolean(body.forceFullSync)
 
-  if (!calendarId)
+  await dbConnect()
+  const settings = normalizeCalendarSettings(user)
+  if (!settings.enabled || !settings.refreshToken) {
     return NextResponse.json(
-      { success: false, error: 'Укажите GOOGLE_CALENDAR_ID или calendarId' },
+      { success: false, error: 'Google Calendar не подключен' },
       { status: 400 }
     )
-
-  const calendar = await getCalendarClient()
-  if (!calendar)
+  }
+  const calendar = getUserCalendarClient(user)
+  if (!calendar) {
     return NextResponse.json(
-      {
-        success: false,
-        error:
-          'Не найден файл google_calendar_token.json. Положите файл с ключами в корень проекта или укажите GOOGLE_CALENDAR_CREDENTIALS_PATH.',
-      },
+      { success: false, error: 'Не удалось подключиться к Google Calendar' },
       { status: 500 }
     )
-
-  await dbConnect()
+  }
+  const calendarId = getUserCalendarId(user)
   let createdThisMonth = 0
   const accessLimit =
     Number.isFinite(access?.eventsPerMonth) && access.eventsPerMonth > 0
@@ -312,11 +314,11 @@ export const POST = async (req) => {
     }
   }
 
-  const settings = await ensureSiteSettings(tenantId)
-  const storedSyncToken = settings?.custom?.get('googleCalendarSyncToken')
-  const settingsTowns = Array.isArray(settings?.towns) ? settings.towns : []
+  const siteSettings = await ensureSiteSettings(tenantId)
+  const storedSyncToken = settings.syncToken || null
+  const settingsTowns = Array.isArray(siteSettings?.towns) ? siteSettings.towns : []
   const townsToAdd = new Set()
-  const defaultTown = normalizeTown(settings?.defaultTown ?? '')
+  const defaultTown = normalizeTown(siteSettings?.defaultTown ?? '')
   const syncToken = forceFullSync ? null : body.syncToken ?? storedSyncToken ?? null
   const timeMin = body.timeMin ?? (syncToken ? undefined : DEFAULT_TIME_MIN)
   const timeMax = body.timeMax ?? undefined
@@ -340,8 +342,9 @@ export const POST = async (req) => {
   }
 
   if (googleEvents.nextSyncToken) {
-    settings.custom.set('googleCalendarSyncToken', googleEvents.nextSyncToken)
-    await settings.save()
+    await Users.findByIdAndUpdate(user._id, {
+      'googleCalendar.syncToken': googleEvents.nextSyncToken,
+    })
   }
 
   const results = []
@@ -429,7 +432,8 @@ export const POST = async (req) => {
       item.id,
       client?._id,
       item,
-      tenantId
+      tenantId,
+      calendarId
     )
 
     const dbResult = await Events.findOneAndUpdate(
@@ -521,10 +525,10 @@ export const POST = async (req) => {
   }
 
   if (townsToAdd.size > 0) {
-    settings.towns = Array.from(
+    siteSettings.towns = Array.from(
       new Set([...settingsTowns, ...Array.from(townsToAdd)])
     )
-    await settings.save()
+    await siteSettings.save()
   }
 
   return NextResponse.json(

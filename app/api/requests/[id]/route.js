@@ -5,13 +5,15 @@ import Clients from '@models/Clients'
 import SiteSettings from '@models/SiteSettings'
 import dbConnect from '@server/dbConnect'
 import { updateEventInCalendar } from '@server/CRUD'
-import { getCalendarClient } from '@server/googleCalendarClient'
+import {
+  getUserCalendarClient,
+  getUserCalendarId,
+  normalizeCalendarSettings,
+} from '@server/googleUserCalendarClient'
 import formatAddress from '@helpers/formatAddress'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 
-const { GOOGLE_CALENDAR_ID } = process.env
-const WRITE_SCOPE = ['https://www.googleapis.com/auth/calendar']
 const DEFAULT_TIME_ZONE = 'Asia/Krasnoyarsk'
 
 const getSiteTimeZone = async (tenantId) => {
@@ -42,9 +44,9 @@ const base64Url = (value) =>
     .replace(/\//g, '_')
     .replace(/=+$/, '')
 
-const buildCalendarLink = (googleEventId) => {
-  if (!googleEventId || !GOOGLE_CALENDAR_ID) return null
-  const payload = `${googleEventId} ${GOOGLE_CALENDAR_ID}`
+const buildCalendarLink = (googleEventId, calendarId) => {
+  if (!googleEventId || !calendarId) return null
+  const payload = `${googleEventId} ${calendarId}`
   return `https://www.google.com/calendar/event?eid=${base64Url(payload)}`
 }
 
@@ -106,13 +108,16 @@ const buildRequestCalendarPayload = (request, timeZone = DEFAULT_TIME_ZONE) => {
   return payload
 }
 
-const updateRequestCalendarEvent = async (request, timeZone) => {
-  if (!request?.googleCalendarId || !GOOGLE_CALENDAR_ID) return
-  const calendar = await getCalendarClient(WRITE_SCOPE)
+const updateRequestCalendarEvent = async (request, timeZone, user) => {
+  if (!request?.googleCalendarId) return
+  const settings = normalizeCalendarSettings(user)
+  if (!settings.enabled || !settings.refreshToken) return
+  const calendar = getUserCalendarClient(user)
   if (!calendar) return
+  const calendarId = request.googleCalendarCalendarId || getUserCalendarId(user)
   const resource = buildRequestCalendarPayload(request, timeZone)
   await calendar.events.update({
-    calendarId: GOOGLE_CALENDAR_ID,
+    calendarId,
     eventId: request.googleCalendarId,
     resource,
   })
@@ -291,6 +296,7 @@ export const PUT = async (req, { params }) => {
       requestDate: request.createdAt,
       dateEnd: eventData.dateEnd ?? null,
       googleCalendarId: request.googleCalendarId ?? null,
+      googleCalendarCalendarId: request.googleCalendarCalendarId ?? '',
       address: normalizedAddress,
       contractSum: normalizedContractSum,
       status: eventData.status ?? 'planned',
@@ -305,7 +311,7 @@ export const PUT = async (req, { params }) => {
     let updatedEvent = event
     if (access?.allowCalendarSync) {
       try {
-        await updateEventInCalendar(event, req)
+        await updateEventInCalendar(event, req, user)
         const refreshedEvent = await Events.findById(event._id).lean()
         if (refreshedEvent) updatedEvent = refreshedEvent
       } catch (error) {
@@ -332,7 +338,10 @@ export const PUT = async (req, { params }) => {
         data: {
           request: {
             ...updatedRequest.toJSON(),
-            calendarLink: buildCalendarLink(updatedRequest.googleCalendarId),
+            calendarLink: buildCalendarLink(
+              updatedRequest.googleCalendarId,
+              updatedRequest.googleCalendarCalendarId
+            ),
           },
           event: updatedEvent,
           client,
@@ -402,7 +411,17 @@ export const PUT = async (req, { params }) => {
 
   if (updatedRequest?.googleCalendarId) {
     try {
-      await updateRequestCalendarEvent(updatedRequest, timeZone)
+      const access = await getUserTariffAccess(user._id)
+      if (access?.allowCalendarSync) {
+        if (!updatedRequest.googleCalendarCalendarId) {
+          const calendarId = getUserCalendarId(user)
+          await Requests.findByIdAndUpdate(updatedRequest._id, {
+            googleCalendarCalendarId: calendarId,
+          })
+          updatedRequest.googleCalendarCalendarId = calendarId
+        }
+        await updateRequestCalendarEvent(updatedRequest, timeZone, user)
+      }
     } catch (error) {
       console.log('Google Calendar request update error', error)
     }
@@ -427,7 +446,10 @@ export const PUT = async (req, { params }) => {
       data: {
         request: {
           ...updatedRequest.toJSON(),
-          calendarLink: buildCalendarLink(updatedRequest.googleCalendarId),
+          calendarLink: buildCalendarLink(
+            updatedRequest.googleCalendarId,
+            updatedRequest.googleCalendarCalendarId
+          ),
         },
         client,
       },

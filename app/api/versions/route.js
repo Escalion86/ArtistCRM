@@ -25,10 +25,15 @@ const resolvePackageJson = (pkgName) => {
 }
 
 const extractVersion = (pkgName) => {
-  const pkgPath = resolvePackageJson(pkgName)
-  if (!pkgPath) return null
-  const data = readJSON(pkgPath)
-  return data?.version ?? null
+  try {
+    const pkg = require(`${pkgName}/package.json`)
+    return { version: pkg?.version ?? null }
+  } catch (error) {
+    const pkgPath = resolvePackageJson(pkgName)
+    if (!pkgPath) return { version: null, error: String(error) }
+    const data = readJSON(pkgPath)
+    return { version: data?.version ?? null, path: pkgPath }
+  }
 }
 
 const getRootVersions = () => {
@@ -57,10 +62,18 @@ export async function GET() {
     return acc
   }, {})
 
+  const diagnostics = {
+    runtime: process.env.NEXT_RUNTIME,
+    node: process.versions?.node,
+    cwd: process.cwd(),
+    hasNodeModules: fs.existsSync(path.join(process.cwd(), 'node_modules')),
+  }
+
   return Response.json(
     {
       installed,
       declared: rootVersions,
+      diagnostics,
     },
     { status: 200 }
   )

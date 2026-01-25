@@ -131,6 +131,20 @@ const usersSchema = {
     of: Schema.Types.Mixed,
     default: DEFAULT_USERS_NOTIFICATIONS,
   },
+  googleCalendar: {
+    type: {
+      enabled: { type: Boolean, default: false },
+      calendarId: { type: String, default: '' },
+      refreshToken: { type: String, default: '' },
+      accessToken: { type: String, default: '' },
+      tokenExpiry: { type: Date, default: null },
+      scope: { type: String, default: '' },
+      syncToken: { type: String, default: '' },
+      connectedAt: { type: Date, default: null },
+      email: { type: String, default: '' },
+    },
+    default: () => ({}),
+  },
 }
 
 export default usersSchema

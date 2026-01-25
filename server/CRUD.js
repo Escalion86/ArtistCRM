@@ -9,7 +9,11 @@ import DOMPurify from 'isomorphic-dompurify'
 import mongoose from 'mongoose'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 import { NextResponse } from 'next/server'
-import { getCalendarClient } from '@server/googleCalendarClient'
+import {
+  getUserCalendarClient,
+  getUserCalendarId,
+  normalizeCalendarSettings,
+} from '@server/googleUserCalendarClient'
 
 function isJson(str) {
   try {
@@ -81,40 +85,7 @@ const linkAReformer = (link) => {
     : `${textLink} (${text})`
 }
 
-const { google } = require('googleapis')
-const SCOPES = ['https://www.googleapis.com/auth/calendar']
 const DEFAULT_TIME_ZONE = 'Asia/Krasnoyarsk'
-const {
-  GOOGLE_PRIVATE_KEY,
-  GOOGLE_CLIENT_EMAIL,
-  GOOGLE_PROJECT_NUMBER,
-  GOOGLE_CALENDAR_ID,
-} = process.env
-
-const connectToGoogleCalendar = () => {
-  if (
-    !GOOGLE_CLIENT_EMAIL ||
-    !GOOGLE_PRIVATE_KEY ||
-    !SCOPES ||
-    !GOOGLE_PROJECT_NUMBER
-  )
-    return undefined
-
-  const jwtClient = new google.auth.JWT(
-    GOOGLE_CLIENT_EMAIL,
-    null,
-    GOOGLE_PRIVATE_KEY,
-    SCOPES
-  )
-
-  const calendar = google.calendar({
-    version: 'v3',
-    project: GOOGLE_PROJECT_NUMBER,
-    auth: jwtClient,
-  })
-
-  return calendar
-}
 
 const getSiteTimeZone = async (tenantId) => {
   if (!tenantId) return DEFAULT_TIME_ZONE
@@ -125,9 +96,19 @@ const getSiteTimeZone = async (tenantId) => {
   return settings?.timeZone || DEFAULT_TIME_ZONE
 }
 
-const addBlankEventToCalendar = async (tenantId) => {
-  const calendar = await getCalendarClient(SCOPES)
-  if (!calendar) return undefined
+const getCalendarContext = async (user) => {
+  if (!user) return null
+  const settings = normalizeCalendarSettings(user)
+  if (!settings.refreshToken || !settings.enabled) return null
+  const calendar = getUserCalendarClient(user)
+  if (!calendar) return null
+  return { calendar, calendarId: getUserCalendarId(user) }
+}
+
+const addBlankEventToCalendar = async (tenantId, user) => {
+  const context = await getCalendarContext(user)
+  if (!context) return null
+  const { calendar, calendarId } = context
   const timeZone = await getSiteTimeZone(tenantId)
 
   const calendarEvent = {
@@ -154,7 +135,7 @@ const addBlankEventToCalendar = async (tenantId) => {
   const calendarEventData = await new Promise((resolve, reject) => {
     calendar.events.insert(
       {
-        calendarId: GOOGLE_CALENDAR_ID,
+        calendarId,
         resource: calendarEvent,
       },
       (error, result) => {
@@ -177,19 +158,22 @@ const addBlankEventToCalendar = async (tenantId) => {
     )
   })
 
-  return calendarEventData?.data?.id
+  return {
+    googleCalendarId: calendarEventData?.data?.id ?? null,
+    googleCalendarCalendarId: calendarId,
+  }
 }
 
-const deleteEventFromCalendar = async (googleCalendarId) => {
-  if (!googleCalendarId) return
-
-  const calendar = await getCalendarClient(SCOPES)
-  if (!calendar) return undefined
+const deleteEventFromCalendar = async (googleCalendarId, calendarId, user) => {
+  if (!googleCalendarId || !calendarId) return
+  const context = await getCalendarContext(user)
+  if (!context) return undefined
+  const { calendar } = context
 
   const calendarEventData = await new Promise((resolve, reject) => {
     calendar.events.delete(
       {
-        calendarId: GOOGLE_CALENDAR_ID,
+        calendarId,
         eventId: googleCalendarId,
       },
       (error, result) => {
@@ -215,9 +199,11 @@ const deleteEventFromCalendar = async (googleCalendarId) => {
   return calendarEventData
 }
 
-const updateEventInCalendar = async (event, req) => {
-  const calendar = await getCalendarClient(SCOPES)
-  if (!calendar) return undefined
+const updateEventInCalendar = async (event, req, user) => {
+  const context = await getCalendarContext(user)
+  if (!context) return undefined
+  const { calendar, calendarId } = context
+  const effectiveCalendarId = event?.googleCalendarCalendarId || calendarId
   const timeZone = await getSiteTimeZone(event?.tenantId)
 
   // calendar.events.list(
@@ -347,9 +333,9 @@ const updateEventInCalendar = async (event, req) => {
     const createdCalendarEvent = await new Promise((resolve, reject) => {
       calendar.events.insert(
         {
-          calendarId: GOOGLE_CALENDAR_ID,
-          resource: calendarEvent,
-        },
+        calendarId: effectiveCalendarId,
+        resource: calendarEvent,
+      },
         (error, result) => {
           if (error) {
             console.log({ error })
@@ -373,7 +359,10 @@ const updateEventInCalendar = async (event, req) => {
     await dbConnect()
     const updatedEvent = await Events.findByIdAndUpdate(
       event._id,
-      { googleCalendarId: createdCalendarEvent.data.id },
+      {
+        googleCalendarId: createdCalendarEvent.data.id,
+        googleCalendarCalendarId: effectiveCalendarId,
+      },
       {
         new: true,
         runValidators: true,
@@ -392,7 +381,7 @@ const updateEventInCalendar = async (event, req) => {
   const updatedCalendarEvent = await new Promise((resolve, reject) => {
     calendar.events.update(
       {
-        calendarId: GOOGLE_CALENDAR_ID,
+        calendarId: effectiveCalendarId,
         eventId: event.googleCalendarId ?? undefined,
         resource: calendarEvent,
       },
@@ -420,6 +409,12 @@ const updateEventInCalendar = async (event, req) => {
     event._id,
     updatedCalendarEvent.data
   )
+
+  if (!event.googleCalendarCalendarId) {
+    await Events.findByIdAndUpdate(event._id, {
+      googleCalendarCalendarId: effectiveCalendarId,
+    })
+  }
 
   return updatedCalendarEvent
 }
