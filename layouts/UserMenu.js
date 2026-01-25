@@ -232,9 +232,9 @@ const UserMenu = () => {
             title="Смена тарифа"
           />
           <MenuItem
-            href="/cabinet/questionnaire"
+            href="/cabinet/profile"
             icon={faUserAlt}
-            title="Моя анкета"
+            title="Профиль"
           />
           {/* {getParentDir(router.asPath) === 'cabinet' && (
               <MenuItem href="/" icon={faHome} title="Главная страница сайта" />

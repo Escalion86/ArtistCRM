@@ -46,7 +46,7 @@ export const GET = async (req) => {
     )
   }
 
-  const redirect = req.nextUrl.searchParams.get('redirect') || '/cabinet/questionnaire'
+  const redirect = req.nextUrl.searchParams.get('redirect') || '/cabinet/profile'
   const nonce = crypto.randomBytes(16).toString('hex')
   const state = encodeState({ nonce, redirect })
 

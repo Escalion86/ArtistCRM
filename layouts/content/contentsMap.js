@@ -7,7 +7,7 @@ import SettingsContent from './SettingsContent'
 import StatisticsContent from './StatisticsContent'
 import ServicesContent from './ServicesContent'
 import UsersContent from './UsersContent'
-import QuestionnaireContent from './QuestionnaireContent'
+import ProfileContent from './ProfileContent'
 import TariffsContent from './TariffsContent'
 import TariffSelectContent from './TariffSelectContent'
 
@@ -67,8 +67,12 @@ export const CONTENTS = Object.freeze({
     Component: UsersContent,
     name: 'Пользователи',
   },
+  profile: {
+    Component: ProfileContent,
+    name: 'Профиль',
+  },
   questionnaire: {
-    Component: QuestionnaireContent,
-    name: 'Моя анкета',
+    Component: ProfileContent,
+    name: 'Профиль',
   },
 })

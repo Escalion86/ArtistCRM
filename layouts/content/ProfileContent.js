@@ -16,7 +16,7 @@ import { modalsFuncAtom } from '@state/atoms'
 const normalizePhone = (value) =>
   value ? String(value).replace(/[^\d]/g, '') : ''
 
-const QuestionnaireContent = () => {
+const ProfileContent = () => {
   const [loggedUser, setLoggedUser] = useAtom(loggedUserAtom)
   const users = useAtomValue(usersAtom)
   const setUser = useAtomValue(itemsFuncAtom).user.set
@@ -93,7 +93,7 @@ const QuestionnaireContent = () => {
     setCalendarError('')
     try {
       const response = await fetch(
-        '/api/google-calendar/auth-url?redirect=/cabinet/questionnaire'
+        '/api/google-calendar/auth-url?redirect=/cabinet/profile'
       )
       const result = await response.json()
       if (!result?.success || !result?.data?.url) {
@@ -263,192 +263,198 @@ const QuestionnaireContent = () => {
   }
 
   return (
-    <FormWrapper className="px-2">
-      <InputImages
-        label="Фотографии"
-        directory="users"
-        images={images}
-        onChange={(nextImages) => {
-          removeError('images')
-          setImages(nextImages)
-        }}
-        error={errors.images}
-      />
-      <Input
-        label="Имя"
-        type="text"
-        value={firstName}
-        onChange={(value) => {
-          removeError('firstName')
-          setFirstName(value)
-        }}
-        error={errors.firstName}
-        autoComplete="one-time-code"
-      />
-      <Input
-        label="Фамилия"
-        type="text"
-        value={secondName}
-        onChange={(value) => {
-          removeError('secondName')
-          setSecondName(value)
-        }}
-        error={errors.secondName}
-        autoComplete="one-time-code"
-      />
-      <Input
-        label="Отчество"
-        type="text"
-        value={thirdName}
-        onChange={(value) => {
-          removeError('thirdName')
-          setThirdName(value)
-        }}
-        error={errors.thirdName}
-        autoComplete="one-time-code"
-      />
-      <FormWrapper grid>
-        <PhoneInput
-          label="Телефон"
-          value={phone}
-          onChange={setPhone}
-          error={errors.phone}
-          copyPasteButtons
-        />
-        <PhoneInput
-          label="Whatsapp"
-          value={whatsapp}
-          onChange={setWhatsapp}
-          error={errors.whatsapp}
-          copyPasteButtons
-        />
-        <PhoneInput
-          label="Viber"
-          value={viber}
-          onChange={setViber}
-          error={errors.viber}
-          copyPasteButtons
+    <div className="flex h-full flex-col overflow-y-auto px-2 pb-6">
+      <FormWrapper className="w-full">
+        <InputImages
+          label="Фотографии"
+          directory="users"
+          images={images}
+          onChange={(nextImages) => {
+            removeError('images')
+            setImages(nextImages)
+          }}
+          error={errors.images}
         />
         <Input
-          prefix="t.me/"
-          label="Telegram (никнейм)"
-          value={telegram}
-          onChange={setTelegram}
+          label="Имя"
+          type="text"
+          value={firstName}
+          onChange={(value) => {
+            removeError('firstName')
+            setFirstName(value)
+          }}
+          error={errors.firstName}
+          autoComplete="one-time-code"
         />
         <Input
-          prefix="instagram.com/"
-          label="Instagram"
-          value={instagram}
-          onChange={setInstagram}
+          label="Фамилия"
+          type="text"
+          value={secondName}
+          onChange={(value) => {
+            removeError('secondName')
+            setSecondName(value)
+          }}
+          error={errors.secondName}
+          autoComplete="one-time-code"
         />
-        <Input prefix="vk.com/" label="Vk" value={vk} onChange={setVk} />
         <Input
-          label="Email"
-          value={email}
-          onChange={setEmail}
-          error={errors.email}
+          label="Отчество"
+          type="text"
+          value={thirdName}
+          onChange={(value) => {
+            removeError('thirdName')
+            setThirdName(value)
+          }}
+          error={errors.thirdName}
+          autoComplete="one-time-code"
         />
-      </FormWrapper>
-      <ErrorsList errors={errors} />
-      <div className="mt-6 rounded border border-gray-200 bg-white p-4">
-        <div className="text-sm font-semibold text-gray-800">
-          Google Calendar
-        </div>
-        {!calendarStatus.allowCalendarSync ? (
-          <div className="mt-2 text-sm text-gray-600">
-            Синхронизация доступна только на тарифах с поддержкой календаря.
+        <FormWrapper grid>
+          <PhoneInput
+            label="Телефон"
+            value={phone}
+            onChange={setPhone}
+            error={errors.phone}
+            copyPasteButtons
+          />
+          <PhoneInput
+            label="Whatsapp"
+            value={whatsapp}
+            onChange={setWhatsapp}
+            error={errors.whatsapp}
+            copyPasteButtons
+          />
+          <PhoneInput
+            label="Viber"
+            value={viber}
+            onChange={setViber}
+            error={errors.viber}
+            copyPasteButtons
+          />
+          <Input
+            prefix="t.me/"
+            label="Telegram (никнейм)"
+            value={telegram}
+            onChange={setTelegram}
+          />
+          <Input
+            prefix="instagram.com/"
+            label="Instagram"
+            value={instagram}
+            onChange={setInstagram}
+          />
+          <Input prefix="vk.com/" label="Vk" value={vk} onChange={setVk} />
+          <Input
+            label="Email"
+            value={email}
+            onChange={setEmail}
+            error={errors.email}
+          />
+        </FormWrapper>
+        <ErrorsList errors={errors} />
+        <div className="mt-6 rounded border border-gray-200 bg-white p-4">
+          <div className="text-sm font-semibold text-gray-800">
+            Google Calendar
           </div>
-        ) : (
-          <>
+          {!calendarStatus.allowCalendarSync ? (
             <div className="mt-2 text-sm text-gray-600">
-              {calendarStatus.connected
-                ? 'Подключен'
-                : 'Не подключен'}
+              Синхронизация доступна только на тарифах с поддержкой календаря.
             </div>
-            {calendarStatus.connected && calendarStatus.calendarId ? (
-              <div className="mt-1 text-xs text-gray-500">
-                Календарь: {calendarStatus.calendarId}
+          ) : (
+            <>
+              <div className="mt-2 text-sm text-gray-600">
+                {calendarStatus.connected ? 'Подключен' : 'Не подключен'}
               </div>
-            ) : null}
-            {calendarError ? (
-              <div className="mt-2 text-xs text-red-600">{calendarError}</div>
-            ) : null}
-            <div className="mt-3 flex flex-wrap gap-2">
-              {!calendarStatus.connected ? (
-                <button
-                  type="button"
-                  className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-                  onClick={handleConnectCalendar}
-                  disabled={calendarLoading || calendarStatus.loading}
-                >
-                  {calendarLoading ? 'Подключение...' : 'Подключить Google Calendar'}
-                </button>
-              ) : (
-                <>
+              {calendarStatus.connected && calendarStatus.calendarId ? (
+                <div className="mt-1 text-xs text-gray-500">
+                  Календарь: {calendarStatus.calendarId}
+                </div>
+              ) : null}
+              {calendarError ? (
+                <div className="mt-2 text-xs text-red-600">
+                  {calendarError}
+                </div>
+              ) : null}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {!calendarStatus.connected ? (
                   <button
                     type="button"
                     className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-                    onClick={handleLoadCalendars}
-                    disabled={calendarLoading}
+                    onClick={handleConnectCalendar}
+                    disabled={calendarLoading || calendarStatus.loading}
                   >
-                    Выбрать календарь
+                    {calendarLoading
+                      ? 'Подключение...'
+                      : 'Подключить Google Calendar'}
                   </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                      onClick={handleLoadCalendars}
+                      disabled={calendarLoading}
+                    >
+                      Выбрать календарь
+                    </button>
+                    <button
+                      type="button"
+                      className="modal-action-button bg-danger px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                      onClick={handleDisconnectCalendar}
+                      disabled={calendarLoading}
+                    >
+                      Отключить
+                    </button>
+                  </>
+                )}
+              </div>
+              {calendarItems.length > 0 ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <select
+                    className="h-9 rounded border border-gray-300 px-2 text-sm"
+                    value={selectedCalendarId}
+                    onChange={(event) =>
+                      setSelectedCalendarId(event.target.value)
+                    }
+                  >
+                    {calendarItems.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.primary ? 'Основной' : item.summary || item.id}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
-                    className="modal-action-button bg-danger px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-                    onClick={handleDisconnectCalendar}
-                    disabled={calendarLoading}
+                    className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                    onClick={handleSelectCalendar}
+                    disabled={!selectedCalendarId || calendarLoading}
                   >
-                    Отключить
+                    Сохранить
                   </button>
-                </>
-              )}
-            </div>
-            {calendarItems.length > 0 ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <select
-                  className="h-9 rounded border border-gray-300 px-2 text-sm"
-                  value={selectedCalendarId}
-                  onChange={(event) => setSelectedCalendarId(event.target.value)}
-                >
-                  {calendarItems.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.primary ? 'Основной' : item.summary || item.id}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-                  onClick={handleSelectCalendar}
-                  disabled={!selectedCalendarId || calendarLoading}
-                >
-                  Сохранить
-                </button>
-              </div>
-            ) : null}
-          </>
-        )}
-      </div>
-      <div className="mt-4 flex items-center justify-between">
-        <button
-          type="button"
-          className="h-9 cursor-pointer rounded border border-gray-300 px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-          onClick={() => modalsFunc.user?.changePassword?.()}
-        >
-          Сменить пароль
-        </button>
-        <button
-          type="button"
-          className="modal-action-button bg-general px-6 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-          disabled={!isFormChanged || isSaving}
-          onClick={handleSave}
-        >
-          {isSaving ? 'Сохранение...' : 'Сохранить'}
-        </button>
-      </div>
-    </FormWrapper>
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+        <div className="mt-4 flex items-center justify-between">
+          <button
+            type="button"
+            className="h-9 cursor-pointer rounded border border-gray-300 px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+            onClick={() => modalsFunc.user?.changePassword?.()}
+          >
+            Сменить пароль
+          </button>
+          <button
+            type="button"
+            className="modal-action-button bg-general px-6 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+            disabled={!isFormChanged || isSaving}
+            onClick={handleSave}
+          >
+            {isSaving ? 'Сохранение...' : 'Сохранить'}
+          </button>
+        </div>
+      </FormWrapper>
+    </div>
   )
 }
 
-export default QuestionnaireContent
+export default ProfileContent

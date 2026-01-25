@@ -54,7 +54,7 @@ export const GET = async (req) => {
     )
   }
 
-  const redirect = decodedState.redirect || '/cabinet/questionnaire'
+  const redirect = decodedState.redirect || '/cabinet/profile'
 
   const { tokens } = await oauth.getToken(code)
   await dbConnect()
