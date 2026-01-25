@@ -15,6 +15,31 @@ import ClientErrorLogger from '@components/ClientErrorLogger'
 export const metadata = {
   title: 'Иллюзионист Алексей Белинский',
   description: 'Уникальное шоу на любое мероприятие',
+  applicationName: 'ArtistCRM',
+  manifest: '/manifest.json',
+  themeColor: '#111111',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'ArtistCRM',
+  },
+  icons: {
+    icon: [
+      {
+        url: '/icons/AppImages/android/android-launchericon-192-192.png',
+        sizes: '192x192',
+        type: 'image/png',
+      },
+      {
+        url: '/icons/AppImages/android/android-launchericon-512-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+      },
+    ],
+    apple: [
+      { url: '/icons/AppImages/ios/180.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 }
 
 export default function RootLayout({ children }) {
