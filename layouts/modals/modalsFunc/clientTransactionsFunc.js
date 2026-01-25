@@ -1,6 +1,5 @@
 import { useMemo, useState, useCallback } from 'react'
-import AutoSizer from 'react-virtualized-auto-sizer'
-import { FixedSizeList as List } from 'react-window'
+import { List } from 'react-window'
 import TransactionTypeToggleButtons from '@components/IconToggleButtons/TransactionTypeToggleButtons'
 import TransactionCard from '@layouts/cards/TransactionCard'
 import transactionsAtom from '@state/atoms/transactionsAtom'
@@ -70,7 +69,7 @@ const clientTransactionsFunc = (clientId) => {
       return clientTransactions
     }, [clientTransactions, typeFilter])
 
-    const renderRow = useCallback(
+    const RowComponent = useCallback(
       ({ index, style }) => {
         const transaction = filteredTransactions[index]
         const client = clientsMap[transaction.clientId]
@@ -107,21 +106,14 @@ const clientTransactionsFunc = (clientId) => {
         </div>
         <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           {filteredTransactions.length > 0 ? (
-            <AutoSizer>
-              {({ height, width }) => (
-                <List
-                  height={height}
-                  width={width}
-                  itemCount={filteredTransactions.length}
-                  itemSize={ITEM_HEIGHT}
-                  itemKey={(index) =>
-                    filteredTransactions[index]._id ?? index
-                  }
-                >
-                  {renderRow}
-                </List>
-              )}
-            </AutoSizer>
+            <List
+              rowCount={filteredTransactions.length}
+              rowHeight={ITEM_HEIGHT}
+              rowComponent={RowComponent}
+              defaultHeight={320}
+              defaultWidth={700}
+              style={{ height: '100%', width: '100%' }}
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-gray-500">
               Транзакций не найдено

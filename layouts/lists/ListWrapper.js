@@ -1,22 +1,20 @@
 import cn from 'classnames'
-import AutoSizer from 'react-virtualized-auto-sizer'
-import { FixedSizeList } from 'react-window'
+import { List } from 'react-window'
 
 const ListWrapper = ({ itemCount, itemSize, children, className }) => {
+  const RowComponent = ({ index, style, ...rowProps }) =>
+    children({ index, style, ...rowProps })
+
   return (
     <div className={cn('flex-1 w-full h-full', className)}>
-      <AutoSizer>
-        {({ height, width }) => (
-          <FixedSizeList
-            height={height}
-            itemCount={itemCount}
-            itemSize={itemSize}
-            width={width}
-          >
-            {children}
-          </FixedSizeList>
-        )}
-      </AutoSizer>
+      <List
+        rowCount={itemCount}
+        rowHeight={itemSize}
+        rowComponent={RowComponent}
+        defaultHeight={400}
+        defaultWidth={800}
+        style={{ height: '100%', width: '100%' }}
+      />
     </div>
   )
 }

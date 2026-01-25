@@ -1,8 +1,7 @@
 'use client'
 
 import { useMemo, useCallback, useState, useEffect } from 'react'
-import AutoSizer from 'react-virtualized-auto-sizer'
-import { FixedSizeList as List } from 'react-window'
+import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
 import ComboBox from '@components/ComboBox'
@@ -77,7 +76,7 @@ const EventsContent = ({ filter = 'all' }) => {
       ? 'Прошедшие'
       : 'Все'
 
-  const renderRow = useCallback(
+  const RowComponent = useCallback(
     ({ index, style }) => {
       const event = sortedEvents[index]
 
@@ -123,19 +122,14 @@ const EventsContent = ({ filter = 'all' }) => {
       </ContentHeader>
       <div className="min-h-0 flex-1 overflow-hidden">
         {sortedEvents.length > 0 ? (
-          <AutoSizer>
-            {({ height, width }) => (
-              <List
-                height={height}
-                width={width}
-                itemCount={sortedEvents.length}
-                itemSize={ITEM_HEIGHT}
-                itemKey={(index) => sortedEvents[index]._id ?? index}
-              >
-                {renderRow}
-              </List>
-            )}
-          </AutoSizer>
+          <List
+            rowCount={sortedEvents.length}
+            rowHeight={ITEM_HEIGHT}
+            rowComponent={RowComponent}
+            defaultHeight={400}
+            defaultWidth={800}
+            style={{ height: '100%', width: '100%' }}
+          />
         ) : (
           <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
             Мероприятий пока нет для выбранного периода

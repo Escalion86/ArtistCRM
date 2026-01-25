@@ -1,8 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
-import AutoSizer from 'react-virtualized-auto-sizer'
-import { FixedSizeList as List } from 'react-window'
+import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
 import TariffCard from '@layouts/cards/TariffCard'
@@ -26,7 +25,7 @@ const TariffsContent = () => {
     return (a.title || '').localeCompare(b.title || '', 'ru')
   })
 
-  const renderRow = useCallback(
+  const RowComponent = useCallback(
     ({ index, style }) => {
       const tariff = sortedTariffs[index]
       return (
@@ -71,19 +70,14 @@ const TariffsContent = () => {
       </ContentHeader>
       <div className="flex-1 min-h-0 overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
         {sortedTariffs.length > 0 ? (
-          <AutoSizer>
-            {({ height, width }) => (
-              <List
-                height={height}
-                width={width}
-                itemCount={sortedTariffs.length}
-                itemSize={ITEM_HEIGHT}
-                itemKey={(index) => sortedTariffs[index]._id ?? index}
-              >
-                {renderRow}
-              </List>
-            )}
-          </AutoSizer>
+          <List
+            rowCount={sortedTariffs.length}
+            rowHeight={ITEM_HEIGHT}
+            rowComponent={RowComponent}
+            defaultHeight={400}
+            defaultWidth={800}
+            style={{ height: '100%', width: '100%' }}
+          />
         ) : (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
             Тарифы не настроены

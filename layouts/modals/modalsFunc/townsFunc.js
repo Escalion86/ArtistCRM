@@ -1,5 +1,4 @@
-import { FixedSizeList as List } from 'react-window'
-import AutoSizer from 'react-virtualized-auto-sizer'
+import { List } from 'react-window'
 import { useMemo, useEffect, useState, useCallback } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import FormWrapper from '@components/FormWrapper'
@@ -156,19 +155,14 @@ const townsFunc = () => {
               Городов пока нет
             </div>
           ) : (
-            <AutoSizer>
-              {({ height, width }) => (
-                <List
-                  height={height}
-                  width={width}
-                  itemCount={normalizedTowns.length}
-                  itemSize={ITEM_HEIGHT}
-                  itemKey={(index) => normalizedTowns[index]}
-                >
-                  {Row}
-                </List>
-              )}
-            </AutoSizer>
+            <List
+              rowCount={normalizedTowns.length}
+              rowHeight={ITEM_HEIGHT}
+              rowComponent={Row}
+              defaultHeight={320}
+              defaultWidth={700}
+              style={{ height: '100%', width: '100%' }}
+            />
           )}
         </div>
       </FormWrapper>
