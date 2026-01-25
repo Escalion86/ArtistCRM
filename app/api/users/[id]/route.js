@@ -32,7 +32,15 @@ export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
   const { user, tenantId } = await getTenantContext()
+  console.log('[users][PUT] start', {
+    id,
+    userId: user?._id,
+    role: user?.role,
+    tenantId,
+    bodyKeys: Object.keys(body ?? {}),
+  })
   if (!user) {
+    console.log('[users][PUT] unauthorized')
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
       { status: 401 }
@@ -41,6 +49,7 @@ export const PUT = async (req, { params }) => {
   const isAdmin = ['dev', 'admin'].includes(user?.role)
   const isSelf = String(user?._id) === String(id)
   if (!isAdmin && !isSelf) {
+    console.log('[users][PUT] forbidden', { isAdmin, isSelf })
     return NextResponse.json(
       { success: false, error: 'Нет доступа' },
       { status: 403 }
@@ -52,6 +61,7 @@ export const PUT = async (req, { params }) => {
   const query = canManageAllUsers || isSelf ? { _id: id } : { _id: id, tenantId }
   const existing = await Users.findOne(query)
   if (!existing) {
+    console.log('[users][PUT] not found', { query })
     return NextResponse.json(
       { success: false, error: 'Пользователь не найден' },
       { status: 404 }
@@ -198,6 +208,7 @@ export const PUT = async (req, { params }) => {
       allowedSelfKeys.includes(key)
     )
     if (!hasOnlyAllowedKeys) {
+      console.log('[users][PUT] forbidden keys', { bodyKeys })
       return NextResponse.json(
         { success: false, error: 'Нет доступа' },
         { status: 403 }
@@ -221,6 +232,7 @@ export const PUT = async (req, { params }) => {
             _id: { $ne: existing._id },
           }).lean()
           if (duplicate) {
+            console.log('[users][PUT] phone duplicate', { normalizedPhone })
             return NextResponse.json(
               { success: false, error: 'Телефон уже используется' },
               { status: 409 }
@@ -254,6 +266,7 @@ export const PUT = async (req, { params }) => {
         _id: { $ne: existing._id },
       }).lean()
       if (duplicate) {
+        console.log('[users][PUT] phone duplicate (admin)', { normalizedPhone })
         return NextResponse.json(
           { success: false, error: 'Телефон уже используется' },
           { status: 409 }
@@ -273,7 +286,11 @@ export const PUT = async (req, { params }) => {
     }
   }
 
+  console.log('[users][PUT] update', { query, updateKeys: Object.keys(update) })
   const updated = await Users.findOneAndUpdate(query, update, { new: true })
+  if (!updated) {
+    console.log('[users][PUT] update failed', { query })
+  }
   return NextResponse.json(
     { success: true, data: sanitizeUser(updated) },
     { status: 200 }
