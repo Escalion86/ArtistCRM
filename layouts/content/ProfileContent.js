@@ -363,90 +363,82 @@ const ProfileContent = () => {
           />
         </FormWrapper>
         <ErrorsList errors={errors} />
-        <div className="mt-6 rounded border border-gray-200 bg-white p-4">
-          <div className="text-sm font-semibold text-gray-800">
-            Google Calendar
-          </div>
-          {!calendarStatus.allowCalendarSync ? (
-            <div className="mt-2 text-sm text-gray-600">
-              Синхронизация доступна только на тарифах с поддержкой календаря.
+        {calendarStatus.allowCalendarSync ? (
+          <div className="mt-6 rounded border border-gray-200 bg-white p-4">
+            <div className="text-sm font-semibold text-gray-800">
+              Google Calendar
             </div>
-          ) : (
-            <>
-              <div className="mt-2 text-sm text-gray-600">
-                {calendarStatus.connected ? 'Подключен' : 'Не подключен'}
+            <div className="mt-2 text-sm text-gray-600">
+              {calendarStatus.connected ? 'Подключен' : 'Не подключен'}
+            </div>
+            {calendarStatus.connected && calendarStatus.calendarId ? (
+              <div className="mt-1 text-xs text-gray-500">
+                Календарь: {calendarStatus.calendarId}
               </div>
-              {calendarStatus.connected && calendarStatus.calendarId ? (
-                <div className="mt-1 text-xs text-gray-500">
-                  Календарь: {calendarStatus.calendarId}
-                </div>
-              ) : null}
-              {calendarError ? (
-                <div className="mt-2 text-xs text-red-600">
-                  {calendarError}
-                </div>
-              ) : null}
-              <div className="mt-3 flex flex-wrap gap-2">
-                {!calendarStatus.connected ? (
+            ) : null}
+            {calendarError ? (
+              <div className="mt-2 text-xs text-red-600">{calendarError}</div>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {!calendarStatus.connected ? (
+                <button
+                  type="button"
+                  className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                  onClick={handleConnectCalendar}
+                  disabled={calendarLoading || calendarStatus.loading}
+                >
+                  {calendarLoading
+                    ? 'Подключение...'
+                    : 'Подключить Google Calendar'}
+                </button>
+              ) : (
+                <>
                   <button
                     type="button"
                     className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-                    onClick={handleConnectCalendar}
-                    disabled={calendarLoading || calendarStatus.loading}
+                    onClick={handleLoadCalendars}
+                    disabled={calendarLoading}
                   >
-                    {calendarLoading
-                      ? 'Подключение...'
-                      : 'Подключить Google Calendar'}
+                    Выбрать календарь
                   </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-                      onClick={handleLoadCalendars}
-                      disabled={calendarLoading}
-                    >
-                      Выбрать календарь
-                    </button>
-                    <button
-                      type="button"
-                      className="modal-action-button bg-danger px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-                      onClick={handleDisconnectCalendar}
-                      disabled={calendarLoading}
-                    >
-                      Отключить
-                    </button>
-                  </>
-                )}
-              </div>
-              {calendarItems.length > 0 ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <select
-                    className="h-9 rounded border border-gray-300 px-2 text-sm"
-                    value={selectedCalendarId}
-                    onChange={(event) =>
-                      setSelectedCalendarId(event.target.value)
-                    }
-                  >
-                    {calendarItems.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.primary ? 'Основной' : item.summary || item.id}
-                      </option>
-                    ))}
-                  </select>
                   <button
                     type="button"
-                    className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-                    onClick={handleSelectCalendar}
-                    disabled={!selectedCalendarId || calendarLoading}
+                    className="modal-action-button bg-danger px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                    onClick={handleDisconnectCalendar}
+                    disabled={calendarLoading}
                   >
-                    Сохранить
+                    Отключить
                   </button>
-                </div>
-              ) : null}
-            </>
-          )}
-        </div>
+                </>
+              )}
+            </div>
+            {calendarItems.length > 0 ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <select
+                  className="h-9 rounded border border-gray-300 px-2 text-sm"
+                  value={selectedCalendarId}
+                  onChange={(event) =>
+                    setSelectedCalendarId(event.target.value)
+                  }
+                >
+                  {calendarItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.primary ? 'Основной' : item.summary || item.id}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                  onClick={handleSelectCalendar}
+                  disabled={!selectedCalendarId || calendarLoading}
+                >
+                  Сохранить
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div className="mt-4 flex items-center justify-between">
           <button
             type="button"
