@@ -183,7 +183,8 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     const googleCalendarResponse = event?.googleCalendarResponse ?? null
     const googleCalendarResponseText = useMemo(() => {
       if (!googleCalendarResponse) return ''
-      if (typeof googleCalendarResponse === 'string') return googleCalendarResponse
+      if (typeof googleCalendarResponse === 'string')
+        return googleCalendarResponse
       try {
         return JSON.stringify(googleCalendarResponse, null, 2)
       } catch (error) {
@@ -690,7 +691,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               fullWidth
             />
             <InputWrapper label="Прочие контакты" fullWidth>
-              <div className="flex flex-col w-full gap-2">
+              <div className="flex w-full flex-col gap-2">
                 {otherContacts.map((contact, index) => {
                   const contactClient = clients.find(
                     (client) => client._id === contact.clientId
@@ -706,7 +707,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                     >
                       <button
                         type="button"
-                        className="flex items-center justify-between w-full gap-2 px-3 py-2 text-sm text-left transition bg-white border border-gray-300 rounded shadow-sm cursor-pointer hover:shadow-card"
+                        className="hover:shadow-card flex w-full cursor-pointer items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition"
                         onClick={() => handleOtherContactSelect(index)}
                       >
                         <span className="font-semibold text-gray-900">
@@ -729,13 +730,13 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                       />
                       <button
                         type="button"
-                        className="flex items-center justify-center text-red-600 transition border border-red-200 rounded cursor-pointer h-9 w-9 hover:bg-red-50"
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
                         onClick={() => handleOtherContactRemove(index)}
                         title="Удалить"
                       >
                         <FontAwesomeIcon
                           icon={faTrashAlt}
-                          className="w-4 h-4"
+                          className="h-4 w-4"
                         />
                       </button>
                     </div>
@@ -743,13 +744,14 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                 })}
                 <button
                   type="button"
-                  className="px-3 text-sm font-semibold text-gray-700 transition bg-white border border-gray-300 rounded shadow-sm cursor-pointer h-9 w-fit hover:bg-gray-50"
+                  className="h-9 w-fit cursor-pointer rounded border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
                   onClick={handleOtherContactAdd}
                 >
                   Добавить контакт
                 </button>
               </div>
             </InputWrapper>
+
             <div className="flex flex-wrap items-center gap-x-1">
               <DateTimePicker
                 value={eventDate}
@@ -869,7 +871,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         className="flex items-center gap-2"
                       >
                         <input
-                          className="w-full h-8 px-2 text-sm text-gray-900 border border-gray-200 rounded focus:border-general focus:outline-none"
+                          className="focus:border-general h-8 w-full rounded border border-gray-200 px-2 text-sm text-gray-900 focus:outline-none"
                           type="text"
                           value={link}
                           placeholder="Введите ссылку"
@@ -884,7 +886,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         />
                         <button
                           type="button"
-                          className="h-8 px-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded hover:bg-gray-100"
+                          className="h-8 rounded border border-gray-200 px-2 text-xs font-semibold text-gray-600 hover:bg-gray-100"
                           onClick={() =>
                             setInvoiceLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
@@ -897,7 +899,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                     ))}
                     <button
                       type="button"
-                      className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded w-fit hover:bg-gray-50"
+                      className="h-8 w-fit rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                       onClick={() => setInvoiceLinks((prev) => [...prev, ''])}
                     >
                       Добавить ссылку
@@ -917,7 +919,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         className="flex items-center gap-2"
                       >
                         <input
-                          className="w-full h-8 px-2 text-sm text-gray-900 border border-gray-200 rounded focus:border-general focus:outline-none"
+                          className="focus:border-general h-8 w-full rounded border border-gray-200 px-2 text-sm text-gray-900 focus:outline-none"
                           type="text"
                           value={link}
                           placeholder="Введите ссылку"
@@ -932,7 +934,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         />
                         <button
                           type="button"
-                          className="h-8 px-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded hover:bg-gray-100"
+                          className="h-8 rounded border border-gray-200 px-2 text-xs font-semibold text-gray-600 hover:bg-gray-100"
                           onClick={() =>
                             setReceiptLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
@@ -945,7 +947,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                     ))}
                     <button
                       type="button"
-                      className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded w-fit hover:bg-gray-50"
+                      className="h-8 w-fit rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                       onClick={() => setReceiptLinks((prev) => [...prev, ''])}
                     >
                       Добавить ссылку
@@ -961,7 +963,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               </div>
               <button
                 type="button"
-                className="px-4 py-2 text-sm font-semibold text-white transition rounded shadow bg-emerald-600 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => openTransactionModal()}
                 disabled={financeLoading || !event?._id || !event?.clientId}
               >
@@ -970,12 +972,12 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
             </div>
 
             {financeError && (
-              <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {financeError}
               </div>
             )}
 
-            <div className="bg-white border border-gray-200 rounded shadow-sm">
+            <div className="rounded border border-gray-200 bg-white shadow-sm">
               {eventTransactions.length === 0 ? (
                 <div className="px-3 py-4 text-sm text-gray-500">
                   Транзакции не найдены
@@ -993,9 +995,9 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                     incomeTransactions.map((transaction) => (
                       <div
                         key={transaction._id}
-                        className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
+                        className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
                       >
-                        <div className="flex flex-wrap flex-1 gap-3 text-sm">
+                        <div className="flex flex-1 flex-wrap gap-3 text-sm">
                           <span className="font-semibold text-gray-900">
                             {transaction.amount.toLocaleString()} руб.
                           </span>
@@ -1029,7 +1031,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            className="px-3 py-1 text-sm font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+                            className="rounded border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                             onClick={() =>
                               openTransactionModal(transaction._id)
                             }
@@ -1039,7 +1041,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                           </button>
                           <button
                             type="button"
-                            className="px-3 py-1 text-sm font-semibold text-red-700 border border-red-300 rounded hover:bg-red-50"
+                            className="rounded border border-red-300 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50"
                             onClick={() =>
                               handleDeleteTransaction(transaction._id)
                             }
@@ -1062,9 +1064,9 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                     expenseTransactions.map((transaction) => (
                       <div
                         key={transaction._id}
-                        className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
+                        className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
                       >
-                        <div className="flex flex-wrap flex-1 gap-3 text-sm">
+                        <div className="flex flex-1 flex-wrap gap-3 text-sm">
                           <span className="font-semibold text-gray-900">
                             {transaction.amount.toLocaleString()} руб.
                           </span>
@@ -1098,7 +1100,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            className="px-3 py-1 text-sm font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+                            className="rounded border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                             onClick={() =>
                               openTransactionModal(transaction._id)
                             }
@@ -1108,7 +1110,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                           </button>
                           <button
                             type="button"
-                            className="px-3 py-1 text-sm font-semibold text-red-700 border border-red-300 rounded hover:bg-red-50"
+                            className="rounded border border-red-300 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50"
                             onClick={() =>
                               handleDeleteTransaction(transaction._id)
                             }
@@ -1133,7 +1135,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               </div>
               <button
                 type="button"
-                className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+                className="h-8 rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                 onClick={() => {
                   if (!navigator?.clipboard) return
                   navigator.clipboard.writeText(googleCalendarResponseText)
@@ -1142,7 +1144,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                 Скопировать
               </button>
             </div>
-            <pre className="max-h-72 w-full overflow-auto whitespace-pre-wrap rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-800">
+            <pre className="max-h-72 w-full overflow-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs whitespace-pre-wrap text-gray-800">
               {googleCalendarResponseText}
             </pre>
           </TabPanel>
