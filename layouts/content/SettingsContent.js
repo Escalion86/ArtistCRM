@@ -79,6 +79,23 @@ const SettingsContent = () => {
           uncheckedIconColor={checkBoxColors.unchecked}
           noMargin
         />
+        <IconCheckBox
+          label="Сохранять ответ Google Calendar в комментарии"
+          checked={Boolean(siteSettings?.storeCalendarResponse)}
+          onClick={() =>
+            postData(
+              '/api/site',
+              { storeCalendarResponse: !siteSettings?.storeCalendarResponse },
+              (data) => setSiteSettings(data),
+              null,
+              false,
+              null
+            )
+          }
+          checkedIconColor={checkBoxColors.checked}
+          uncheckedIconColor={checkBoxColors.unchecked}
+          noMargin
+        />
         <ComboBox
           label="Часовой пояс"
           items={TIME_ZONE_OPTIONS}

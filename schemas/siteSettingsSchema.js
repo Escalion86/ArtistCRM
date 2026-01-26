@@ -55,6 +55,10 @@ const siteSettingsSchema = {
     type: String,
     default: 'Asia/Krasnoyarsk',
   },
+  storeCalendarResponse: {
+    type: Boolean,
+    default: false,
+  },
   custom: {
     type: Map,
     of: Schema.Types.Mixed,

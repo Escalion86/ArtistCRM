@@ -61,6 +61,8 @@ export const POST = async (req) => {
   if (body.vk !== undefined) update.vk = body.vk ?? null
   if (body.timeZone !== undefined)
     update.timeZone = body.timeZone ?? 'Asia/Krasnoyarsk'
+  if (body.storeCalendarResponse !== undefined)
+    update.storeCalendarResponse = Boolean(body.storeCalendarResponse)
 
   const siteSettings = await SiteSettings.findOneAndUpdate(
     { tenantId },

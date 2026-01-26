@@ -96,6 +96,15 @@ const getSiteTimeZone = async (tenantId) => {
   return settings?.timeZone || DEFAULT_TIME_ZONE
 }
 
+const shouldStoreCalendarResponse = async (tenantId) => {
+  if (!tenantId) return false
+  await dbConnect()
+  const settings = await SiteSettings.findOne({ tenantId })
+    .select('storeCalendarResponse')
+    .lean()
+  return Boolean(settings?.storeCalendarResponse)
+}
+
 const getCalendarContext = async (user) => {
   if (!user) return null
   const settings = normalizeCalendarSettings(user)
@@ -369,10 +378,12 @@ const updateEventInCalendar = async (event, req, user) => {
       }
     ).lean()
 
-    await updateEventDescriptionWithCalendarResponse(
-      event._id,
-      createdCalendarEvent.data
-    )
+    if (await shouldStoreCalendarResponse(event?.tenantId)) {
+      await updateEventDescriptionWithCalendarResponse(
+        event._id,
+        createdCalendarEvent.data
+      )
+    }
 
     return createdCalendarEvent
   }
@@ -405,10 +416,12 @@ const updateEventInCalendar = async (event, req, user) => {
     )
   })
 
-  await updateEventDescriptionWithCalendarResponse(
-    event._id,
-    updatedCalendarEvent.data
-  )
+  if (await shouldStoreCalendarResponse(event?.tenantId)) {
+    await updateEventDescriptionWithCalendarResponse(
+      event._id,
+      updatedCalendarEvent.data
+    )
+  }
 
   if (!event.googleCalendarCalendarId) {
     await Events.findByIdAndUpdate(event._id, {

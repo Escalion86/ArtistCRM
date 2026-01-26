@@ -11,6 +11,7 @@ const siteSettingsAtom = atom({
   towns: [],
   defaultTown: '',
   timeZone: 'Asia/Krasnoyarsk',
+  storeCalendarResponse: false,
 })
 
 export default siteSettingsAtom
