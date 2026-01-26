@@ -55,7 +55,6 @@ const ClientsContent = () => {
           client.firstName,
           client.secondName,
           client.phone ? `+${client.phone}` : '',
-          client.priorityContact ?? '',
         ]
           .join(' ')
           .toLowerCase()
@@ -107,7 +106,7 @@ const ClientsContent = () => {
           label="Поиск клиента"
           value={search}
           onChange={setSearch}
-          placeholder="Введите имя, телефон или контакт"
+          placeholder="Введите имя или телефон"
           noMargin
         />
       </div>

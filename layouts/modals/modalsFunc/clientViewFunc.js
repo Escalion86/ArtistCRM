@@ -108,9 +108,6 @@ const clientViewFunc = (clientId) => {
           <div className="mt-1 text-gray-600">
             {client.phone ? `+${client.phone}` : 'Телефон не указан'}
           </div>
-          <div className="mt-1 text-gray-600">
-            {client.priorityContact || 'Контакт не указан'}
-          </div>
         </div>
 
         <div className="p-4 bg-white border border-gray-200 rounded-lg">

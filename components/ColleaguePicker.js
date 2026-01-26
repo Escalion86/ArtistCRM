@@ -49,9 +49,6 @@ const ColleaguePicker = ({
                     ? `+${selectedColleague.phone}`
                     : 'Телефон не указан'}
                 </div>
-                <div className="text-sm text-gray-600">
-                  {selectedColleague?.priorityContact || 'Контакты не указаны'}
-                </div>
               </>
             )}
           </div>
@@ -76,7 +73,6 @@ ColleaguePicker.propTypes = {
     firstName: PropTypes.string,
     secondName: PropTypes.string,
     phone: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    priorityContact: PropTypes.string,
   }),
   selectedColleagueId: PropTypes.oneOfType([
     PropTypes.string,

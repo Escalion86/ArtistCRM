@@ -430,7 +430,6 @@ export const DEFAULT_EVENT = Object.freeze({
 export const DEFAULT_CLIENT = Object.freeze({
   firstName: '',
   secondName: '',
-  priorityContact: '',
   phone: null,
   whatsapp: null,
   telegram: '',

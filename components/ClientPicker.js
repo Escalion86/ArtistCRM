@@ -52,9 +52,6 @@ const ClientPicker = ({
           {selectedClient && (
             <>
               <div className="text-sm text-gray-600">
-                {selectedClient?.priorityContact || 'Контакт не указан'}
-              </div>
-              <div className="text-sm text-gray-600">
                 {selectedClient?.phone
                   ? `+${selectedClient.phone}`
                   : 'Телефон не указан'}
@@ -91,7 +88,6 @@ ClientPicker.propTypes = {
   selectedClient: PropTypes.shape({
     firstName: PropTypes.string,
     secondName: PropTypes.string,
-    priorityContact: PropTypes.string,
     phone: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   }),
   selectedClientId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

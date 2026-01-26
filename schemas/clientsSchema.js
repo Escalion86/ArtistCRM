@@ -31,10 +31,6 @@ const clientsSchema = {
     ],
     default: '',
   },
-  priorityContact: {
-    type: String,
-    default: null,
-  },
   email: {
     type: String,
     lowercase: true,

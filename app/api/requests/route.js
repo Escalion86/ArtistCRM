@@ -277,7 +277,7 @@ export const POST = async (req) => {
   const clientName = (body.clientName ?? body.name ?? '').trim() || 'Не указан'
   const rawPhone = body.clientPhone ?? body.phone ?? ''
   const contactChannels =
-    body.contactChannels ?? body.contact ?? body.priorityContact ?? ''
+    body.contactChannels ?? body.contact ?? ''
   const eventDate = body.eventDate ?? body.date ?? null
   const legacyLocation =
     body.location ??
@@ -421,13 +421,10 @@ export const POST = async (req) => {
       tenantId,
       firstName: clientName,
       phone: phoneAsNumber,
-      priorityContact: contacts[0] ?? null,
     })
   } else {
     const updates = {}
     if (!client.firstName && clientName) updates.firstName = clientName
-    if (!client.priorityContact && contacts[0])
-      updates.priorityContact = contacts[0]
     if (Object.keys(updates).length > 0) {
       client = await Clients.findByIdAndUpdate(client._id, updates, {
         new: true,

@@ -433,7 +433,6 @@ export const PUT = async (req, { params }) => {
       await Clients.findOneAndUpdate(
         { _id: request.clientId, tenantId },
         {
-          $set: { priorityContact: contacts[0] ?? null },
         }
       )
   }

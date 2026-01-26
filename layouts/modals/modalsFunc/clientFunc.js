@@ -3,7 +3,6 @@ import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
 import PhoneInput from '@components/PhoneInput'
-import Textarea from '@components/Textarea'
 import { CLIENT_TYPES, DEFAULT_CLIENT } from '@helpers/constants'
 import useErrors from '@helpers/useErrors'
 import clientSelector from '@state/selectors/clientSelector'
@@ -30,9 +29,6 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     )
     const [secondName, setSecondName] = useState(
       client?.secondName ?? DEFAULT_CLIENT.secondName
-    )
-    const [priorityContact, setPriorityContact] = useState(
-      client?.priorityContact ?? DEFAULT_CLIENT.priorityContact
     )
     const [phone, setPhone] = useState(client?.phone ?? DEFAULT_CLIENT.phone)
     const [whatsapp, setWhatsapp] = useState(
@@ -64,8 +60,6 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       () =>
         (client?.firstName ?? DEFAULT_CLIENT.firstName) !== firstName ||
         (client?.secondName ?? DEFAULT_CLIENT.secondName) !== secondName ||
-        (client?.priorityContact ?? DEFAULT_CLIENT.priorityContact) !==
-          priorityContact ||
         (client?.phone ?? DEFAULT_CLIENT.phone) !== phone ||
         (client?.whatsapp ?? DEFAULT_CLIENT.whatsapp) !== whatsapp ||
         (client?.telegram ?? DEFAULT_CLIENT.telegram) !== telegram ||
@@ -75,7 +69,6 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       [
         firstName,
         phone,
-        priorityContact,
         secondName,
         whatsapp,
         telegram,
@@ -98,7 +91,6 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
               _id: client?._id,
               firstName: firstName.trim(),
               secondName: secondName.trim(),
-              priorityContact: priorityContact.trim(),
               phone: phone ?? null,
               whatsapp: whatsapp ?? null,
               telegram: telegram.trim(),
@@ -119,7 +111,6 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
         closeModal,
         firstName,
         phone,
-        priorityContact,
         secondName,
         whatsapp,
         telegram,
@@ -216,6 +207,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             error={errors.phone}
             className="w-full"
             noMargin
+            copyPasteButtons
           />
           <button
             type="button"
@@ -225,12 +217,6 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             Проверить
           </button>
         </div>
-        <Textarea
-          label="Контакт (whatsapp/telegram и др.)"
-          value={priorityContact}
-          onChange={setPriorityContact}
-          rows={2}
-        />
         <div className="grid gap-0 sm:grid-cols-2">
           <PhoneInput
             label="Whatsapp"
@@ -242,6 +228,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             error={errors.whatsapp}
             className="w-full"
             smallMargin
+            copyPasteButtons
           />
           <Input
             label="Telegram"

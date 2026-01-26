@@ -44,26 +44,14 @@ const normalizePhoneNumber = (phone) => {
   return Number.isNaN(numeric) ? null : numeric
 }
 
-const pickPriorityContact = (contactChannels = [], clientPhone = null) => {
-  const firstNonPhone = contactChannels.find((item) => item && !/^\+\d+$/.test(item))
-  if (firstNonPhone) return firstNonPhone
-  if (clientPhone) return `+${clientPhone}`
-  return contactChannels.find(Boolean) ?? null
-}
-
 const findExistingClient = async (
   tenantId,
   numericPhone,
-  priorityContact,
   email,
   name
 ) => {
   const conditions = []
   if (numericPhone) conditions.push({ phone: numericPhone })
-  if (priorityContact)
-    conditions.push({
-      priorityContact: new RegExp(`^${escapeRegExp(priorityContact)}$`, 'i'),
-    })
   if (email)
     conditions.push({
       email: new RegExp(`^${escapeRegExp(email)}$`, 'i'),
@@ -95,7 +83,6 @@ const ensureClientFromCalendar = async (
   { allowNameOnly = false } = {}
 ) => {
   const numericPhone = normalizePhoneNumber(clientPhone)
-  const priorityContact = pickPriorityContact(contactChannels, clientPhone)
   const primaryEmail = contactChannels.find((item) => EMAIL_REGEX.test(item ?? ''))
   const normalizedName = clientName?.trim() ?? ''
   const canUseName = allowNameOnly && normalizedName && normalizedName !== EMPTY_CLIENT_NAME
@@ -103,15 +90,12 @@ const ensureClientFromCalendar = async (
   const existingClient = await findExistingClient(
     tenantId,
     numericPhone,
-    priorityContact,
     primaryEmail,
     canUseName ? normalizedName : null
   )
   if (existingClient) {
     const update = {}
     if (numericPhone && !existingClient.phone) update.phone = numericPhone
-    if (priorityContact && !existingClient.priorityContact)
-      update.priorityContact = priorityContact
     if (primaryEmail && !existingClient.email) update.email = primaryEmail
     if (
       clientName &&
@@ -128,13 +112,12 @@ const ensureClientFromCalendar = async (
     return existingClient
   }
 
-  if (!numericPhone && !priorityContact && !primaryEmail && !canUseName) return null
+  if (!numericPhone && !primaryEmail && !canUseName) return null
 
   const createPayload = {
     firstName: normalizedName || EMPTY_CLIENT_NAME,
   }
   if (numericPhone) createPayload.phone = numericPhone
-  if (priorityContact) createPayload.priorityContact = priorityContact
   if (primaryEmail) createPayload.email = primaryEmail
 
   return Clients.create({ ...createPayload, tenantId })

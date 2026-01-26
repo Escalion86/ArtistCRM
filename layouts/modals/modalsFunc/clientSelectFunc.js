@@ -21,7 +21,6 @@ const clientSelectFunc = (onSelect, title = 'Выбор клиента', options
         return [
           client.firstName,
           client.secondName,
-          client.priorityContact,
           client.phone ? `+${client.phone}` : '',
         ]
           .filter(Boolean)
@@ -42,7 +41,7 @@ const clientSelectFunc = (onSelect, title = 'Выбор клиента', options
           label="Поиск клиента"
           value={search}
           onChange={setSearch}
-          placeholder="Имя, телефон или контакт"
+          placeholder="Имя или телефон"
         />
         <button
           type="button"
@@ -81,11 +80,6 @@ const clientSelectFunc = (onSelect, title = 'Выбор клиента', options
                       {client.phone ? `+${client.phone}` : 'Телефон не указан'}
                     </span>
                   </div>
-                  {client.priorityContact && (
-                    <span className="text-xs text-gray-500">
-                      {client.priorityContact}
-                    </span>
-                  )}
                 </button>
               ))}
             </div>

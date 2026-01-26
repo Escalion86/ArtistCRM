@@ -56,16 +56,9 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
                 Последняя заявка: {lastRequestLabel}
               </div>
             </div>
-            <div className="grid gap-2 text-sm text-gray-700 tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <div className="truncate">
-                <div className="truncate font-medium text-gray-800">
-                  {client.phone ? `+${client.phone}` : 'Телефон не указан'}
-                </div>
-              </div>
-              <div className="truncate">
-                <div className="truncate font-medium text-gray-800">
-                  {client.priorityContact || 'Контакт не указан'}
-                </div>
+            <div className="grid gap-2 text-sm text-gray-700">
+              <div className="truncate font-medium text-gray-800">
+                {client.phone ? `+${client.phone}` : 'Телефон не указан'}
               </div>
             </div>
           </div>
@@ -86,7 +79,6 @@ ClientCard.propTypes = {
     firstName: PropTypes.string,
     secondName: PropTypes.string,
     phone: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    priorityContact: PropTypes.string,
     requestsCount: PropTypes.number,
     eventsCount: PropTypes.number,
     canceledEventsCount: PropTypes.number,
