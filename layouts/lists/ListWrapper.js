@@ -11,9 +11,8 @@ const ListWrapper = ({ itemCount, itemSize, children, className }) => {
         rowCount={itemCount}
         rowHeight={itemSize}
         rowComponent={RowComponent}
-        defaultHeight={400}
-        defaultWidth={800}
-        style={{ height: '100%', width: '100%' }}
+        rowProps={{}}
+                        style={{ height: '100%', width: '100%' }}
       />
     </div>
   )

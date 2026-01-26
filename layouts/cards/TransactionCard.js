@@ -1,10 +1,14 @@
 'use client'
 
+import loadingAtom from '@state/atoms/loadingAtom'
+import errorAtom from '@state/atoms/errorAtom'
 import PropTypes from 'prop-types'
 import CardButtons from '@components/CardButtons'
+import LoadingSpinner from '@components/LoadingSpinner'
 import { TRANSACTION_CATEGORIES } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
+import { useAtomValue } from 'jotai'
 
 const typeClassNames = {
   income: 'bg-green-500',
@@ -31,6 +35,8 @@ const TransactionCard = ({
   onEdit,
   onDelete,
 }) => {
+  const loading = useAtomValue(loadingAtom('transaction' + transaction._id))
+  const error = useAtomValue(errorAtom('transaction' + transaction._id))
   const clientName = client
     ? `${client.firstName || ''} ${client.secondName || ''}`.trim()
     : '-'
@@ -64,9 +70,19 @@ const TransactionCard = ({
       <div
         role="button"
         tabIndex={0}
-        onClick={onEdit}
-        className="relative flex w-full h-full p-3 pr-4 overflow-visible text-left transition bg-white border border-gray-200 shadow-sm cursor-pointer group rounded-xl hover:border-gray-300 hover:shadow"
+        onClick={() => !loading && onEdit?.()}
+        className="relative flex w-full h-full p-3 pr-4 overflow-visible text-left transition bg-white border border-gray-200 shadow-sm cursor-pointer group rounded-xl hover:border-gray-300 hover:shadow-card"
       >
+        {error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-800 bg-opacity-80 text-2xl text-white">
+            ОШИБКА
+          </div>
+        )}
+        {loading && !error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80">
+            <LoadingSpinner />
+          </div>
+        )}
         <div
           className="absolute z-10 right-2 top-2"
           onClick={(event) => event.stopPropagation()}

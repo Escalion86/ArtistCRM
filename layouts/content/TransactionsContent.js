@@ -13,6 +13,9 @@ import { useAtomValue, useSetAtom } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
 import { TRANSACTION_TYPES } from '@helpers/constants'
 import { deleteData } from '@helpers/CRUD'
+import loadingAtom from '@state/atoms/loadingAtom'
+import errorAtom from '@state/atoms/errorAtom'
+import { setAtomValue } from '@state/storeHelpers'
 
 const ITEM_HEIGHT = 120
 
@@ -79,6 +82,8 @@ const TransactionsContent = () => {
         title: 'Удаление транзакции',
         text: 'Вы уверены, что хотите удалить транзакцию?',
         onConfirm: async () => {
+          setAtomValue(loadingAtom('transaction' + transactionId), true)
+          setAtomValue(errorAtom('transaction' + transactionId), false)
           const result = await deleteData(
             `/api/transactions/${transactionId}`,
             null,
@@ -90,6 +95,11 @@ const TransactionsContent = () => {
             setTransactions((prev) =>
               prev.filter((item) => item._id !== transactionId)
             )
+            setAtomValue(loadingAtom('transaction' + transactionId), false)
+          }
+          if (!result?.success) {
+            setAtomValue(loadingAtom('transaction' + transactionId), false)
+            setAtomValue(errorAtom('transaction' + transactionId), true)
           }
         },
       })
@@ -158,9 +168,8 @@ const TransactionsContent = () => {
             rowCount={filteredTransactions.length}
             rowHeight={ITEM_HEIGHT}
             rowComponent={RowComponent}
-            defaultHeight={400}
-            defaultWidth={800}
-            style={{ height: '100%', width: '100%' }}
+            rowProps={{}}
+                                    style={{ height: '100%', width: '100%' }}
           />
         ) : (
           <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">

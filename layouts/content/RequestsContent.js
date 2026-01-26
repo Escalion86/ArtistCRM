@@ -64,8 +64,7 @@ const RequestsContent = () => {
             rowCount={sortedRequests.length}
             rowHeight={ITEM_HEIGHT}
             rowComponent={RowComponent}
-            defaultHeight={400}
-            defaultWidth={800}
+            rowProps={{}}
             style={{ height: '100%', width: '100%' }}
           />
         ) : (

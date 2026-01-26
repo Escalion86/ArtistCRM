@@ -47,7 +47,7 @@ const EventPicker = ({
     >
       <div className="flex w-full flex-wrap items-center gap-2">
         <div
-          className="flex flex-1 cursor-pointer justify-between rounded border border-gray-300 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow"
+          className="flex flex-1 cursor-pointer justify-between rounded border border-gray-300 bg-white p-3 shadow-sm transition hover:shadow-card"
           onClick={disabled ? undefined : onSelectClick}
         >
           <div className="flex flex-col gap-0.5">

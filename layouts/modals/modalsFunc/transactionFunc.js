@@ -13,6 +13,9 @@ import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
+import loadingAtom from '@state/atoms/loadingAtom'
+import errorAtom from '@state/atoms/errorAtom'
+import { setAtomValue } from '@state/storeHelpers'
 
 const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
   const TransactionModal = ({
@@ -194,6 +197,8 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       }
 
       if (transactionId) {
+        setAtomValue(loadingAtom('transaction' + transactionId), true)
+        setAtomValue(errorAtom('transaction' + transactionId), false)
         const updated = await putData(
           `/api/transactions/${transactionId}`,
           {
@@ -210,8 +215,12 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
               item._id === transactionId ? updated.data : item
             )
           )
+          setAtomValue(loadingAtom('transaction' + transactionId), false)
+          setAtomValue(errorAtom('transaction' + transactionId), false)
           closeModal()
         } else {
+          setAtomValue(loadingAtom('transaction' + transactionId), false)
+          setAtomValue(errorAtom('transaction' + transactionId), true)
           setError('Не удалось обновить транзакцию')
         }
       } else {

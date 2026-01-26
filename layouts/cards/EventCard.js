@@ -12,6 +12,9 @@ import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventSelector from '@state/selectors/eventSelector'
 import clientSelector from '@state/selectors/clientSelector'
 import servicesAtom from '@state/atoms/servicesAtom'
+import loadingAtom from '@state/atoms/loadingAtom'
+import errorAtom from '@state/atoms/errorAtom'
+import LoadingSpinner from '@components/LoadingSpinner'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faClock,
@@ -19,6 +22,7 @@ import {
   faEquals,
   faHandHoldingDollar,
   faShare,
+  faTriangleExclamation,
   faTimeline,
   faUserSlash,
 } from '@fortawesome/free-solid-svg-icons'
@@ -41,6 +45,8 @@ const EventCard = ({ eventId, style }) => {
   const transactions = useAtomValue(transactionsAtom)
   const services = useAtomValue(servicesAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const loading = useAtomValue(loadingAtom('event' + eventId))
+  const error = useAtomValue(errorAtom('event' + eventId))
 
   const calendarLink = useMemo(() => {
     if (!event?.description) return null
@@ -111,6 +117,8 @@ const EventCard = ({ eventId, style }) => {
     rawStatus === 'in_progress' ||
     rawStatus === 'completed'
 
+  const needsCheck = event?.calendarImportChecked === false
+
   const statusLabel = isActiveLike
     ? eventEnd && eventEnd.getTime() < now.getTime()
       ? 'Завершено'
@@ -138,9 +146,19 @@ const EventCard = ({ eventId, style }) => {
   return (
     <div style={style} className="px-2 py-1">
       <div
-        className="laptop:flex-row laptop:items-start laptop:gap-4 relative flex cursor-pointer flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        onClick={() => modalsFunc.event?.view(event._id)}
+        className="laptop:flex-row laptop:items-start laptop:gap-4 relative flex cursor-pointer flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition hover:shadow-card"
+        onClick={() => !loading && modalsFunc.event?.view(event._id)}
       >
+        {error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-800 bg-opacity-80 text-2xl text-white">
+            ОШИБКА
+          </div>
+        )}
+        {loading && !error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80">
+            <LoadingSpinner />
+          </div>
+        )}
         <div
           className="absolute top-2 right-2 z-10"
           onClick={(event) => event.stopPropagation()}
@@ -161,6 +179,13 @@ const EventCard = ({ eventId, style }) => {
                 icon={faShare}
                 className="h-4 w-4 text-amber-500"
                 title="Передано коллеге"
+              />
+            )}
+            {needsCheck && (
+              <FontAwesomeIcon
+                icon={faTriangleExclamation}
+                className="h-4 w-4 text-amber-500"
+                title="Проверка мероприятия не завершена"
               />
             )}
             <div className="truncate text-lg font-semibold text-gray-900">

@@ -195,6 +195,7 @@ module.exports = {
         'zoom-in': 'zoom-in',
       },
       boxShadow: {
+        card: '0 10px 28px rgba(27, 24, 18, 0.22)',
         light: '1px 5px 4px 0 rgba(0, 0, 0, 0.20)',
         medium: '1px 4px 5px 0 rgba(0, 0, 0, 0.30)',
         large: '1px 3px 6px 0 rgba(0, 0, 0, 0.40)',

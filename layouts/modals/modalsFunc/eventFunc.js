@@ -151,8 +151,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     )
     const [calendarImportChecked, setCalendarImportChecked] = useState(
       event?.calendarImportChecked ??
-        DEFAULT_EVENT.calendarImportChecked ??
-        false
+        (eventId ? DEFAULT_EVENT.calendarImportChecked ?? false : true)
     )
     const [servicesIds, setServicesIds] = useState(
       event?.servicesIds ??
@@ -210,7 +209,8 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         invoiceLinks: event?.invoiceLinks ?? DEFAULT_EVENT.invoiceLinks ?? [],
         receiptLinks: event?.receiptLinks ?? DEFAULT_EVENT.receiptLinks ?? [],
         calendarImportChecked:
-          event?.calendarImportChecked ?? DEFAULT_EVENT.calendarImportChecked,
+          event?.calendarImportChecked ??
+          (eventId ? DEFAULT_EVENT.calendarImportChecked : true),
         servicesIds:
           event?.servicesIds ??
           request?.servicesIds ??
@@ -657,17 +657,19 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                 fullWidth
               />
             )}
-            <IconCheckBox
-              checked={calendarImportChecked}
-              onClick={() => setCalendarImportChecked((checked) => !checked)}
-              label={
-                importedFromCalendar
-                  ? 'Импорт из календаря проверен'
-                  : 'Проверка мероприятия завершена'
-              }
-              checkedIcon={faCircleCheck}
-              checkedIconColor="#10B981"
-            />
+            {!calendarImportChecked && (
+              <IconCheckBox
+                checked={calendarImportChecked}
+                onClick={() => setCalendarImportChecked(true)}
+                label={
+                  importedFromCalendar
+                    ? 'Импорт из календаря проверен'
+                    : 'Проверка мероприятия завершена'
+                }
+                checkedIcon={faCircleCheck}
+                checkedIconColor="#10B981"
+              />
+            )}
             <ErrorsList errors={errors} />
           </FormWrapper>
         </TabPanel>

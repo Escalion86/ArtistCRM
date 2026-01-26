@@ -1,8 +1,12 @@
 'use client'
 
+import loadingAtom from '@state/atoms/loadingAtom'
+import errorAtom from '@state/atoms/errorAtom'
 import PropTypes from 'prop-types'
 import CardButtons from '@components/CardButtons'
+import LoadingSpinner from '@components/LoadingSpinner'
 import IconCheckBox from '@components/IconCheckBox'
+import { useAtomValue } from 'jotai'
 
 const formatPrice = (price) => {
   if (!price || Number(price) === 0) return 'Бесплатно'
@@ -17,6 +21,8 @@ const formatEventsLimit = (limit) => {
 }
 
 const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
+  const loading = useAtomValue(loadingAtom('tariff' + tariff?._id))
+  const error = useAtomValue(errorAtom('tariff' + tariff?._id))
   if (!tariff) return null
 
   return (
@@ -24,9 +30,19 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
       <div
         role="button"
         tabIndex={0}
-        onClick={onEdit}
-        className="group relative flex h-full w-full cursor-pointer overflow-visible rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-gray-300 hover:shadow"
+        onClick={() => !loading && onEdit?.()}
+        className="group relative flex h-full w-full cursor-pointer overflow-visible rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-gray-300 hover:shadow-card"
       >
+        {error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-800 bg-opacity-80 text-2xl text-white">
+            ОШИБКА
+          </div>
+        )}
+        {loading && !error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80">
+            <LoadingSpinner />
+          </div>
+        )}
         <div
           className="absolute right-2 top-2 z-10"
           onClick={(event) => event.stopPropagation()}

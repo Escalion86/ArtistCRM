@@ -159,8 +159,7 @@ const townsFunc = () => {
               rowCount={normalizedTowns.length}
               rowHeight={ITEM_HEIGHT}
               rowComponent={Row}
-              defaultHeight={320}
-              defaultWidth={700}
+              rowProps={{}}
               style={{ height: '100%', width: '100%' }}
             />
           )}

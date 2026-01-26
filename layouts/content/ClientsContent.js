@@ -117,9 +117,8 @@ const ClientsContent = () => {
             rowCount={clientsWithStats.length}
             rowHeight={ITEM_HEIGHT}
             rowComponent={RowComponent}
-            defaultHeight={400}
-            defaultWidth={800}
-            style={{ height: '100%', width: '100%' }}
+            rowProps={{}}
+                                    style={{ height: '100%', width: '100%' }}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-gray-500">

@@ -7,6 +7,7 @@ import UserName from '@components/UserName'
 import getUserAvatarSrc from '@helpers/getUserAvatarSrc'
 import modalsFuncAtom from '@state/atoms/modalsFuncAtom'
 import loadingAtom from '@state/atoms/loadingAtom'
+import errorAtom from '@state/atoms/errorAtom'
 import userSelector from '@state/selectors/userSelector'
 import { useAtomValue } from 'jotai'
 import tariffsAtom from '@state/atoms/tariffsAtom'
@@ -15,6 +16,7 @@ const UserCard = ({ userId, hidden = false, style }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const user = useAtomValue(userSelector(userId))
   const loading = useAtomValue(loadingAtom('user' + userId))
+  const error = useAtomValue(errorAtom('user' + userId))
   const tariffs = useAtomValue(tariffsAtom)
   // const widthNum = useWindowDimensionsTailwindNum()
   // const itemFunc = useAtomValue(itemsFuncAtom)
@@ -54,11 +56,16 @@ const UserCard = ({ userId, hidden = false, style }) => {
       <div
         role="button"
         tabIndex={0}
-        onClick={() => modalsFunc.user.view(user._id)}
-        className="relative flex w-full h-full p-4 overflow-visible text-left transition bg-white border border-gray-200 shadow-sm cursor-pointer group rounded-xl hover:border-gray-300 hover:shadow"
+        onClick={() => !loading && modalsFunc.user.view(user._id)}
+        className="relative flex w-full h-full p-4 overflow-visible text-left transition bg-white border border-gray-200 shadow-sm cursor-pointer group rounded-xl hover:border-gray-300 hover:shadow-card"
       >
-        {loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-general bg-opacity-80 rounded-xl">
+        {error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-800 bg-opacity-80 text-2xl text-white rounded-xl">
+            ОШИБКА
+          </div>
+        )}
+        {loading && !error && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80 rounded-xl">
             <LoadingSpinner />
           </div>
         )}

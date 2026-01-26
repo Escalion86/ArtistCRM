@@ -110,8 +110,7 @@ const clientTransactionsFunc = (clientId) => {
               rowCount={filteredTransactions.length}
               rowHeight={ITEM_HEIGHT}
               rowComponent={RowComponent}
-              defaultHeight={320}
-              defaultWidth={700}
+              rowProps={{}}
               style={{ height: '100%', width: '100%' }}
             />
           ) : (

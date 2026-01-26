@@ -5,6 +5,7 @@ import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
 import ComboBox from '@components/ComboBox'
+import EventCheckToggleButtons from '@components/IconToggleButtons/EventCheckToggleButtons'
 import eventsAtom from '@state/atoms/eventsAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useAtomValue } from 'jotai'
@@ -18,6 +19,10 @@ const EventsContent = ({ filter = 'all' }) => {
   const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const [selectedTown, setSelectedTown] = useState('')
+  const [checkFilter, setCheckFilter] = useState({
+    checked: true,
+    unchecked: true,
+  })
 
   const baseEvents = useMemo(() => {
     if (filter === 'all') return events
@@ -47,12 +52,6 @@ const EventsContent = ({ filter = 'all' }) => {
     return Array.from(townsSet).sort((a, b) => a.localeCompare(b, 'ru'))
   }, [baseEvents])
 
-  useEffect(() => {
-    if (!selectedTown) return
-    if (townsOptions.includes(selectedTown)) return
-    setSelectedTown('')
-  }, [selectedTown, townsOptions])
-
   const filteredEvents = useMemo(() => {
     if (!selectedTown) return baseEvents
     return baseEvents.filter(
@@ -60,14 +59,34 @@ const EventsContent = ({ filter = 'all' }) => {
     )
   }, [baseEvents, selectedTown])
 
+  const hasUncheckedEvents = useMemo(
+    () => filteredEvents.some((event) => !event?.calendarImportChecked),
+    [filteredEvents]
+  )
+
+  useEffect(() => {
+    if (!selectedTown) return
+    if (townsOptions.includes(selectedTown)) return
+    setSelectedTown('')
+  }, [selectedTown, townsOptions])
+
+  const filteredByCheck = useMemo(() => {
+    if (checkFilter.checked && checkFilter.unchecked) return filteredEvents
+    if (checkFilter.checked)
+      return filteredEvents.filter((event) => event?.calendarImportChecked)
+    if (checkFilter.unchecked)
+      return filteredEvents.filter((event) => !event?.calendarImportChecked)
+    return filteredEvents
+  }, [checkFilter, filteredEvents])
+
   const sortedEvents = useMemo(() => {
     const sorter = (a, b) => {
       const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0
       const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0
       return filter === 'upcoming' ? dateA - dateB : dateB - dateA
     }
-    return [...filteredEvents].sort(sorter)
-  }, [filteredEvents, filter])
+    return [...filteredByCheck].sort(sorter)
+  }, [filteredByCheck, filter])
 
   const filterName =
     filter === 'upcoming'
@@ -94,16 +113,24 @@ const EventsContent = ({ filter = 'all' }) => {
     <div className="flex h-full flex-col gap-4">
       <ContentHeader>
         <div className="flex flex-1 items-center justify-between">
-          <div className="w-52">
-            <ComboBox
-              label="Город"
-              items={townsOptions}
-              value={selectedTown}
-              onChange={(value) => setSelectedTown(value ?? '')}
-              placeholder="Все города"
-              fullWidth
-              smallMargin
-            />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="w-52">
+              <ComboBox
+                label="Город"
+                items={townsOptions}
+                value={selectedTown}
+                onChange={(value) => setSelectedTown(value ?? '')}
+                placeholder="Все города"
+                fullWidth
+                smallMargin
+              />
+            </div>
+            {filter !== 'all' && hasUncheckedEvents && (
+              <EventCheckToggleButtons
+                value={checkFilter}
+                onChange={setCheckFilter}
+              />
+            )}
           </div>
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <span>
@@ -126,8 +153,7 @@ const EventsContent = ({ filter = 'all' }) => {
             rowCount={sortedEvents.length}
             rowHeight={ITEM_HEIGHT}
             rowComponent={RowComponent}
-            defaultHeight={400}
-            defaultWidth={800}
+            rowProps={{}}
             style={{ height: '100%', width: '100%' }}
           />
         ) : (
