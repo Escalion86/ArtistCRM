@@ -180,6 +180,16 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         DEFAULT_EVENT.otherContacts ??
         []
     )
+    const googleCalendarResponse = event?.googleCalendarResponse ?? null
+    const googleCalendarResponseText = useMemo(() => {
+      if (!googleCalendarResponse) return ''
+      if (typeof googleCalendarResponse === 'string') return googleCalendarResponse
+      try {
+        return JSON.stringify(googleCalendarResponse, null, 2)
+      } catch (error) {
+        return String(googleCalendarResponse)
+      }
+    }, [googleCalendarResponse])
 
     const importedFromCalendar =
       event?.importedFromCalendar ?? DEFAULT_EVENT.importedFromCalendar
@@ -1115,6 +1125,28 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
             </div>
           </div>
         </TabPanel>
+        {googleCalendarResponseText ? (
+          <TabPanel tabName="Ответ Google Calendar">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-gray-800">
+                Ответ Google Calendar
+              </div>
+              <button
+                type="button"
+                className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+                onClick={() => {
+                  if (!navigator?.clipboard) return
+                  navigator.clipboard.writeText(googleCalendarResponseText)
+                }}
+              >
+                Скопировать
+              </button>
+            </div>
+            <pre className="max-h-72 w-full overflow-auto whitespace-pre-wrap rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-800">
+              {googleCalendarResponseText}
+            </pre>
+          </TabPanel>
+        ) : null}
       </TabContext>
     )
   }
