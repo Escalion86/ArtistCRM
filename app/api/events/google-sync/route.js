@@ -167,52 +167,8 @@ const detectTownFromText = (text) => {
   )
 }
 
-const buildDescriptionFromCalendar = (parsedEvent, calendarEvent) => {
-  const details = []
-  const addLine = (label, value) => {
-    if (!value) return
-    details.push(`${label}: ${value}`)
-  }
-
-  addLine('Тема', calendarEvent?.summary)
-  addLine('Описание календаря', calendarEvent?.description)
-  addLine('Локация', calendarEvent?.location)
-  addLine(
-    'Начало',
-    formatCalendarDate(
-      calendarEvent?.start?.dateTime ?? calendarEvent?.start?.date ?? null
-    )
-  )
-  addLine(
-    'Окончание',
-    formatCalendarDate(calendarEvent?.end?.dateTime ?? calendarEvent?.end?.date ?? null)
-  )
-  addLine('Статус', calendarEvent?.status)
-  if (Array.isArray(calendarEvent?.attendees)) {
-    const attendees = calendarEvent.attendees
-      .map((attendee) =>
-        [attendee?.displayName, attendee?.email].filter(Boolean).join(' / ')
-      )
-      .filter(Boolean)
-    if (attendees.length) addLine('Участники', attendees.join('; '))
-  }
-  addLine('Организатор', calendarEvent?.organizer?.email)
-  addLine(
-    'Контакты',
-    parsedEvent?.contactChannels?.length
-      ? parsedEvent.contactChannels.join(', ')
-      : null
-  )
-  addLine('Google ID', calendarEvent?.id)
-  addLine('iCal UID', calendarEvent?.iCalUID)
-  addLine('Ссылка', calendarEvent?.htmlLink)
-
-  const descriptionHeader =
-    details.length > 0 ? ['--- Данные из Google Calendar ---', ...details].join('\n') : ''
-  const baseDescription = parsedEvent?.description?.trim() ?? ''
-
-  return [baseDescription, descriptionHeader].filter(Boolean).join('\n\n')
-}
+const buildDescriptionFromCalendar = (parsedEvent) =>
+  parsedEvent?.description?.trim() ?? ''
 
 const hasAddressValues = (address) =>
   address &&

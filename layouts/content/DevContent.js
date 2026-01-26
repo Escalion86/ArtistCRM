@@ -138,6 +138,9 @@ const DevContent = () => {
             Удалить все мероприятия, импортированные из Google Calendar, которые еще не
             отмечены как проверенные.
           </div>
+          <div className="text-xs text-amber-700">
+            Удаление касается только данных в CRM и не затрагивает Google Calendar.
+          </div>
           <Button
             name="Удалить непроверенные импорты"
             onClick={handleCleanup}
