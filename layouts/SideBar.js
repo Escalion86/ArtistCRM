@@ -73,7 +73,7 @@ const MenuItem = ({ item, active = false, badge }) => {
       onClick={() => setMenuOpen(false)}
       className={cn(
         'mb-1 flex cursor-pointer flex-nowrap items-center justify-between rounded-lg ',
-        active ? 'bg-general text-white' : '',
+        active ? 'bg-general text-white menu-item-active' : '',
         'hover:bg-general hover:text-white'
       )}
     >
