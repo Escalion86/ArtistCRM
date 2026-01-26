@@ -4,9 +4,10 @@ import FormWrapper from '@components/FormWrapper'
 import IconCheckBox from '@components/IconCheckBox'
 import Textarea from '@components/Textarea'
 import EventStatusPicker from '@components/ValuePicker/EventStatusPicker'
-import { faCircleCheck } from '@fortawesome/free-solid-svg-icons'
+import { faCircleCheck, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import ClientPicker from '@components/ClientPicker'
 import ColleaguePicker from '@components/ColleaguePicker'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   DEFAULT_ADDRESS,
   DEFAULT_EVENT,
@@ -686,11 +687,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
             />
             <InputWrapper label="Прочие контакты" fullWidth>
               <div className="flex w-full flex-col gap-2">
-                {otherContacts.length === 0 && (
-                  <div className="text-sm text-gray-500">
-                    Контакты не добавлены
-                  </div>
-                )}
                 {otherContacts.map((contact, index) => {
                   const contactClient = clients.find(
                     (client) => client._id === contact.clientId
@@ -702,11 +698,11 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                   return (
                     <div
                       key={`other-contact-${index}`}
-                      className="flex flex-col gap-2 rounded border border-gray-200 bg-gray-50 p-2 tablet:flex-row tablet:items-start"
+                      className="grid gap-2 rounded border border-gray-200 bg-gray-50 p-2 tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] tablet:items-start"
                     >
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:shadow-card cursor-pointer tablet:flex-1"
+                        className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:shadow-card cursor-pointer"
                         onClick={() => handleOtherContactSelect(index)}
                       >
                         <span className="font-semibold text-gray-900">
@@ -718,23 +714,22 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                             : 'Телефон не указан'}
                         </span>
                       </button>
-                      <div className="w-full tablet:flex-1">
-                        <Input
-                          label="Кем является"
-                          value={contact.comment}
-                          onChange={(value) =>
-                            handleOtherContactCommentChange(index, value)
-                          }
-                          noMargin
-                          fullWidth
-                        />
-                      </div>
+                      <Input
+                        label="Кем является"
+                        value={contact.comment}
+                        onChange={(value) =>
+                          handleOtherContactCommentChange(index, value)
+                        }
+                        noMargin
+                        fullWidth
+                      />
                       <button
                         type="button"
-                        className="self-end text-xs font-semibold text-red-600 transition hover:text-red-700 cursor-pointer tablet:self-center"
+                        className="flex h-9 w-9 items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50 cursor-pointer"
                         onClick={() => handleOtherContactRemove(index)}
+                        title="Удалить"
                       >
-                        Удалить
+                        <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
                       </button>
                     </div>
                   )

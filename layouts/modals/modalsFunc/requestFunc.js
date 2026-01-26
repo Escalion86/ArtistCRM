@@ -19,6 +19,8 @@ import { postData } from '@helpers/CRUD'
 import ServiceMultiSelect from '@components/ServiceMultiSelect'
 import serviceFunc from './serviceFunc'
 import InputWrapper from '@components/InputWrapper'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 
 const requestFunc = (requestId, clone = false) => {
   const RequestModal = ({
@@ -471,11 +473,6 @@ const requestFunc = (requestId, clone = false) => {
         />
         <InputWrapper label="Прочие контакты" fullWidth>
           <div className="flex w-full flex-col gap-2">
-            {otherContacts.length === 0 && (
-              <div className="text-sm text-gray-500">
-                Контакты не добавлены
-              </div>
-            )}
             {otherContacts.map((contact, index) => {
               const contactClient = clients.find(
                 (client) => client._id === contact.clientId
@@ -485,45 +482,44 @@ const requestFunc = (requestId, clone = false) => {
                   .filter(Boolean)
                   .join(' ') || 'Выберите клиента'
               return (
-                <div
-                  key={`other-contact-${index}`}
-                  className="flex flex-col gap-2 rounded border border-gray-200 bg-gray-50 p-2 tablet:flex-row tablet:items-start"
+              <div
+                key={`other-contact-${index}`}
+                className="grid gap-2 rounded border border-gray-200 bg-gray-50 p-2 tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] tablet:items-start"
+              >
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:shadow-card cursor-pointer"
+                  onClick={() => handleOtherContactSelect(index)}
                 >
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:shadow-card cursor-pointer tablet:flex-1"
-                    onClick={() => handleOtherContactSelect(index)}
-                  >
-                    <span className="font-semibold text-gray-900">
-                      {contactName}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {contactClient?.phone
-                        ? `+${contactClient.phone}`
-                        : 'Телефон не указан'}
-                    </span>
-                  </button>
-                  <div className="w-full tablet:flex-1">
-                    <Input
-                      label="Кем является"
-                      value={contact.comment}
-                      onChange={(value) =>
-                        handleOtherContactCommentChange(index, value)
-                      }
-                      noMargin
-                      fullWidth
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className="self-end text-xs font-semibold text-red-600 transition hover:text-red-700 cursor-pointer tablet:self-center"
-                    onClick={() => handleOtherContactRemove(index)}
-                  >
-                    Удалить
-                  </button>
-                </div>
-              )
-            })}
+                  <span className="font-semibold text-gray-900">
+                    {contactName}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {contactClient?.phone
+                      ? `+${contactClient.phone}`
+                      : 'Телефон не указан'}
+                  </span>
+                </button>
+                <Input
+                  label="Кем является"
+                  value={contact.comment}
+                  onChange={(value) =>
+                    handleOtherContactCommentChange(index, value)
+                  }
+                  noMargin
+                  fullWidth
+                />
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50 cursor-pointer"
+                  onClick={() => handleOtherContactRemove(index)}
+                  title="Удалить"
+                >
+                  <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
+                </button>
+              </div>
+            )
+          })}
             <button
               type="button"
               className="h-9 w-fit rounded border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 cursor-pointer"
