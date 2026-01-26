@@ -3,8 +3,13 @@
 import { useState } from 'react'
 import Button from '@components/Button'
 import ContentHeader from '@components/ContentHeader'
+import IconCheckBox from '@components/IconCheckBox'
+import { useAtom } from 'jotai'
+import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
+import { postData } from '@helpers/CRUD'
 
 const DevContent = () => {
+  const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
   const forceFullSync = true
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -25,7 +30,10 @@ const DevContent = () => {
       const response = await fetch('/api/events/google-sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ forceFullSync }),
+        body: JSON.stringify({
+          forceFullSync,
+          storeCalendarResponse: Boolean(siteSettings?.storeCalendarResponse),
+        }),
       })
       const rawText = await response.text()
       const data = rawText ? JSON.parse(rawText) : null
@@ -102,6 +110,21 @@ const DevContent = () => {
         </div>
       </ContentHeader>
       <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <IconCheckBox
+          label="Сохранять ответ Google Calendar в поле мероприятия"
+          checked={Boolean(siteSettings?.storeCalendarResponse)}
+          onClick={() =>
+            postData(
+              '/api/site',
+              { storeCalendarResponse: !siteSettings?.storeCalendarResponse },
+              (data) => setSiteSettings(data),
+              null,
+              false,
+              null
+            )
+          }
+          noMargin
+        />
         <div className="flex flex-col gap-3">
           <Button
             name="Синхронизировать календарь"

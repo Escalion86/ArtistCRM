@@ -144,6 +144,10 @@ const eventsSchema = {
     type: {},
     default: {},
   },
+  googleCalendarResponse: {
+    type: Schema.Types.Mixed,
+    default: null,
+  },
 }
 
 export default eventsSchema

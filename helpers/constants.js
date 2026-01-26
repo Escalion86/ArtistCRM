@@ -603,6 +603,7 @@ export const DEFAULT_SITE_SETTINGS = Object.freeze({
   vk: '',
   codeSendService: 'telefonip',
   timeZone: 'Asia/Krasnoyarsk',
+  storeCalendarResponse: false,
 })
 
 export const EVENT_RELATIONSHIP_ACCESS = [

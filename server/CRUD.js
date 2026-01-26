@@ -96,15 +96,6 @@ const getSiteTimeZone = async (tenantId) => {
   return settings?.timeZone || DEFAULT_TIME_ZONE
 }
 
-const shouldStoreCalendarResponse = async (tenantId) => {
-  if (!tenantId) return false
-  await dbConnect()
-  const settings = await SiteSettings.findOne({ tenantId })
-    .select('storeCalendarResponse')
-    .lean()
-  return Boolean(settings?.storeCalendarResponse)
-}
-
 const getCalendarContext = async (user) => {
   if (!user) return null
   const settings = normalizeCalendarSettings(user)
@@ -309,33 +300,6 @@ const updateEventInCalendar = async (event, req, user) => {
     // visibility: event.showOnSite ? 'default' : 'private',
   }
 
-  const stripCalendarResponseFromDescription = (description = '') => {
-    const markerIndex = description.indexOf(`\n\n${CALENDAR_RESPONSE_MARKER}\n`)
-    if (markerIndex === -1) return description.trim()
-    return description.slice(0, markerIndex).trim()
-  }
-  const buildCalendarResponseBlock = (responseData) =>
-    `\n\n${CALENDAR_RESPONSE_MARKER}\n${JSON.stringify(responseData, null, 2)}`
-  const updateEventDescriptionWithCalendarResponse = async (
-    eventId,
-    responseData
-  ) => {
-    if (!eventId || !responseData) return
-    await dbConnect()
-    const current = await Events.findById(eventId).select('description').lean()
-    if (!current) return
-    const baseDescription = stripCalendarResponseFromDescription(
-      current.description ?? ''
-    )
-    const newDescription = `${baseDescription}${buildCalendarResponseBlock(
-      responseData
-    )}`
-    await Events.findByIdAndUpdate(
-      eventId,
-      { description: newDescription },
-      { new: true, runValidators: true }
-    )
-  }
 
   if (!event.googleCalendarId) {
     console.log('Создаем новое событие в календаре')
@@ -378,13 +342,6 @@ const updateEventInCalendar = async (event, req, user) => {
       }
     ).lean()
 
-    if (await shouldStoreCalendarResponse(event?.tenantId)) {
-      await updateEventDescriptionWithCalendarResponse(
-        event._id,
-        createdCalendarEvent.data
-      )
-    }
-
     return createdCalendarEvent
   }
 
@@ -415,13 +372,6 @@ const updateEventInCalendar = async (event, req, user) => {
       }
     )
   })
-
-  if (await shouldStoreCalendarResponse(event?.tenantId)) {
-    await updateEventDescriptionWithCalendarResponse(
-      event._id,
-      updatedCalendarEvent.data
-    )
-  }
 
   if (!event.googleCalendarCalendarId) {
     await Events.findByIdAndUpdate(event._id, {

@@ -226,7 +226,8 @@ const buildEventUpdate = (
   clientId,
   calendarEvent,
   tenantId,
-  calendarId
+  calendarId,
+  storeCalendarResponse
 ) => {
   const setPayload = {
     tenantId,
@@ -237,6 +238,7 @@ const buildEventUpdate = (
     importedFromCalendar: true,
     calendarImportChecked: false,
   }
+  if (storeCalendarResponse) setPayload.googleCalendarResponse = calendarEvent
 
   if (hasAddressValues(parsedEvent.address))
     setPayload.address = parsedEvent.address
@@ -276,6 +278,7 @@ export const POST = async (req) => {
     )
   }
   const forceFullSync = Boolean(body.forceFullSync)
+  const storeCalendarResponse = Boolean(body.storeCalendarResponse)
 
   await dbConnect()
   const settings = normalizeCalendarSettings(user)
@@ -433,7 +436,8 @@ export const POST = async (req) => {
       client?._id,
       item,
       tenantId,
-      calendarId
+      calendarId,
+      storeCalendarResponse
     )
 
     const dbResult = await Events.findOneAndUpdate(
