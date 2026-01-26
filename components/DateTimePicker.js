@@ -38,8 +38,8 @@ const DateTimePicker = ({
         fullWidth
           ? ''
           : widthNum <= 2
-          ? 'w-[14rem] max-w-[14rem]'
-          : 'w-70 max-w-70',
+            ? 'w-[12rem] max-w-[12rem]'
+            : 'w-70 max-w-70',
         className
       )}
       required={required}
@@ -68,8 +68,8 @@ const DateTimePicker = ({
       >
         <MUIDateTimePicker
           className={cn(
-            'outline-hidden border-0 ring-0',
-            widthNum <= 2 ? 'w-[14rem]' : 'w-[14rem]'
+            'border-0 ring-0 outline-hidden',
+            widthNum <= 2 ? 'w-[12rem]' : 'w-[12rem]'
           )}
           sx={{
             '.MuiPickersOutlinedInput-notchedOutline': {
@@ -87,7 +87,7 @@ const DateTimePicker = ({
             },
             '.MuiInputAdornment-root': {
               marginLeft: -2,
-              marginRight: 2,
+              marginRight: 1,
             },
           }}
           inputFormat={widthNum <= 2 ? 'dd.MM.yyyy HH:mm' : 'dd.MM.yyyy'}
@@ -123,7 +123,7 @@ const DateTimePicker = ({
         />
         {widthNum > 2 && (
           <MUIDateTimePicker
-            className="outline-hidden w-[10rem] border-0 ring-0"
+            className="w-[10rem] border-0 ring-0 outline-hidden"
             sx={{
               '.MuiOutlinedInput-notchedOutline': {
                 borderStyle: 'none',

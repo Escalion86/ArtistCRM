@@ -107,7 +107,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
 
     const initialIsTransferred =
       event?.isTransferred ??
-      (event?.colleagueId ? true : DEFAULT_EVENT.isTransferred ?? false)
+      (event?.colleagueId ? true : (DEFAULT_EVENT.isTransferred ?? false))
 
     const [clientId, setClientId] = useState(
       event?.clientId ?? request?.clientId ?? DEFAULT_EVENT.clientId
@@ -166,7 +166,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     )
     const [calendarImportChecked, setCalendarImportChecked] = useState(
       event?.calendarImportChecked ??
-        (eventId ? DEFAULT_EVENT.calendarImportChecked ?? false : true)
+        (eventId ? (DEFAULT_EVENT.calendarImportChecked ?? false) : true)
     )
     const [servicesIds, setServicesIds] = useState(
       event?.servicesIds ??
@@ -374,10 +374,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       if (!eventDate || !dateEnd) return ''
       const startDate = new Date(eventDate)
       const endDate = new Date(dateEnd)
-      if (
-        Number.isNaN(startDate.getTime()) ||
-        Number.isNaN(endDate.getTime())
-      )
+      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()))
         return ''
       return startDate.getTime() > endDate.getTime()
         ? 'Дата начала не может быть позже даты завершения'
@@ -643,10 +640,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     }
 
     const handleOtherContactAdd = () => {
-      setOtherContacts((prev) => [
-        ...prev,
-        { clientId: null, comment: '' },
-      ])
+      setOtherContacts((prev) => [...prev, { clientId: null, comment: '' }])
     }
 
     const openTransactionModal = (transactionId) => {
@@ -686,7 +680,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               fullWidth
             />
             <InputWrapper label="Прочие контакты" fullWidth>
-              <div className="flex w-full flex-col gap-2">
+              <div className="flex flex-col w-full gap-2">
                 {otherContacts.map((contact, index) => {
                   const contactClient = clients.find(
                     (client) => client._id === contact.clientId
@@ -698,11 +692,11 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                   return (
                     <div
                       key={`other-contact-${index}`}
-                      className="grid gap-2 rounded border border-gray-200 bg-gray-50 p-2 tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] tablet:items-start"
+                      className="tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] tablet:items-start grid gap-2 rounded border border-gray-200 bg-gray-50 p-2"
                     >
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:shadow-card cursor-pointer"
+                        className="flex items-center justify-between w-full gap-2 px-3 py-2 text-sm text-left transition bg-white border border-gray-300 rounded shadow-sm cursor-pointer hover:shadow-card"
                         onClick={() => handleOtherContactSelect(index)}
                       >
                         <span className="font-semibold text-gray-900">
@@ -725,56 +719,46 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                       />
                       <button
                         type="button"
-                        className="flex h-9 w-9 items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50 cursor-pointer"
+                        className="flex items-center justify-center text-red-600 transition border border-red-200 rounded cursor-pointer h-9 w-9 hover:bg-red-50"
                         onClick={() => handleOtherContactRemove(index)}
                         title="Удалить"
                       >
-                        <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
+                        <FontAwesomeIcon
+                          icon={faTrashAlt}
+                          className="w-4 h-4"
+                        />
                       </button>
                     </div>
                   )
                 })}
                 <button
                   type="button"
-                  className="h-9 w-fit rounded border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 cursor-pointer"
+                  className="px-3 text-sm font-semibold text-gray-700 transition bg-white border border-gray-300 rounded shadow-sm cursor-pointer h-9 w-fit hover:bg-gray-50"
                   onClick={handleOtherContactAdd}
                 >
                   Добавить контакт
                 </button>
               </div>
             </InputWrapper>
-            <EventStatusPicker
-              status={status}
-              onChange={setStatus}
-              required
-              disabledValues={statusDisabledValues}
-              error={errors.status}
-            />
-            {!canClose && (
-              <div className="text-xs text-gray-500">
-                {isByContract && !hasTaxes
-                  ? 'Закрытие недоступно: добавьте транзакцию Налоги.'
-                  : 'Закрытие недоступно, пока сумма поступлений меньше договорной.'}
-              </div>
-            )}
-
-            <DateTimePicker
-              value={eventDate}
-              onChange={(value) => {
-                removeError('eventDate')
-                setEventDate(value ?? null)
-              }}
-              label="Дата начала"
-              error={errors.eventDate}
-            />
-            <DateTimePicker
-              value={dateEnd}
-              onChange={(value) => {
-                setDateEndTouched(true)
-                setDateEnd(value ?? null)
-              }}
-              label="Дата окончания"
-            />
+            <div className="flex flex-wrap items-center gap-x-1">
+              <DateTimePicker
+                value={eventDate}
+                onChange={(value) => {
+                  removeError('eventDate')
+                  setEventDate(value ?? null)
+                }}
+                label="Дата начала"
+                error={errors.eventDate}
+              />
+              <DateTimePicker
+                value={dateEnd}
+                onChange={(value) => {
+                  setDateEndTouched(true)
+                  setDateEnd(value ?? null)
+                }}
+                label="Дата окончания"
+              />
+            </div>
             <AddressPicker
               address={address}
               onChange={setAddress}
@@ -824,6 +808,20 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                 checkedIcon={faCircleCheck}
                 checkedIconColor="#10B981"
               />
+            )}
+            <EventStatusPicker
+              status={status}
+              onChange={setStatus}
+              required
+              disabledValues={statusDisabledValues}
+              error={errors.status}
+            />
+            {!canClose && (
+              <div className="text-xs text-gray-500">
+                {isByContract && !hasTaxes
+                  ? 'Закрытие недоступно: добавьте транзакцию Налоги.'
+                  : 'Закрытие недоступно, пока сумма поступлений меньше договорной.'}
+              </div>
             )}
             <ErrorsList errors={errors} />
           </FormWrapper>
