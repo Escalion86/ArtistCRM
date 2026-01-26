@@ -4,8 +4,9 @@ import requestSelector from '@state/selectors/requestSelector'
 import DOMPurify from 'isomorphic-dompurify'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
+import clientsAtom from '@state/atoms/clientsAtom'
 import CardButtons from '@components/CardButtons'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 
 const CardButtonsComponent = ({ request }) => (
   <CardButtons
@@ -14,6 +15,7 @@ const CardButtonsComponent = ({ request }) => (
     showEditButton={false}
     showDeleteButton={!request?.eventId}
     calendarLink={request?.calendarLink}
+    dropDownPlacement="left"
   />
 )
 
@@ -29,6 +31,7 @@ const requestViewFunc = (requestId) => {
   }) => {
     const request = useAtomValue(requestSelector(requestId))
     const services = useAtomValue(servicesAtom)
+    const clients = useAtomValue(clientsAtom)
 
     if (!requestId || !request)
       return (
@@ -46,6 +49,25 @@ const requestViewFunc = (requestId) => {
       .map((serviceId) => services.find((item) => item._id === serviceId))
       .filter(Boolean)
       .map((service) => service.title)
+    const otherContacts = useMemo(() => {
+      const contacts = Array.isArray(request?.otherContacts)
+        ? request.otherContacts
+        : []
+      return contacts
+        .map((contact) => {
+          const client = clients.find(
+            (item) => item._id === contact?.clientId
+          )
+          const name = [client?.firstName, client?.secondName]
+            .filter(Boolean)
+            .join(' ')
+          if (!name && !contact?.clientId) return null
+          return `${name || contact.clientId}${
+            contact?.comment ? ` (${contact.comment})` : ''
+          }`
+        })
+        .filter(Boolean)
+    }, [clients, request?.otherContacts])
 
     useEffect(() => {
       if (setTopLeftComponent)
@@ -100,6 +122,12 @@ const requestViewFunc = (requestId) => {
             <div className="flex gap-x-1">
               <div className="font-bold">Комментарий:</div>
               <div>{request.comment}</div>
+            </div>
+          )}
+          {otherContacts.length > 0 && (
+            <div className="flex gap-x-1">
+              <div className="font-bold">Прочие контакты:</div>
+              <div>{otherContacts.join(', ')}</div>
             </div>
           )}
           <div className="flex gap-x-1">

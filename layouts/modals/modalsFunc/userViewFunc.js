@@ -18,6 +18,7 @@ const CardButtonsComponent = ({ user }) => (
     typeOfItem="user"
     minimalActions
     alwaysCompact
+    dropDownPlacement="left"
   />
 )
 

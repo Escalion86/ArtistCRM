@@ -13,6 +13,7 @@ const CardButtonsComponent = ({ client, onEdit }) => (
     minimalActions
     alwaysCompact
     onEdit={onEdit}
+    dropDownPlacement="left"
   />
 )
 

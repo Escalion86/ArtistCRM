@@ -141,6 +141,27 @@ const sanitizeContacts = (contacts) => {
   return undefined
 }
 
+const normalizeOtherContacts = (contacts) => {
+  if (!Array.isArray(contacts)) return []
+  return contacts
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const clientId = item.clientId ?? null
+      if (!clientId) return null
+      return {
+        clientId,
+        comment: typeof item.comment === 'string' ? item.comment.trim() : '',
+      }
+    })
+    .filter(Boolean)
+}
+
+const parseDateValue = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 const DEFAULT_ADDRESS = {
   town: '',
   street: '',
@@ -247,6 +268,7 @@ export const PUT = async (req, { params }) => {
         : []
     const clientId = eventData.clientId ?? request.clientId ?? null
     const eventDate = eventData.eventDate ?? request.eventDate ?? null
+    const dateEnd = eventData.dateEnd ?? null
 
     if (!clientId) {
       return NextResponse.json(
@@ -257,15 +279,30 @@ export const PUT = async (req, { params }) => {
     if (!eventDate) {
       return NextResponse.json(
         { success: false, error: 'Укажите дату мероприятия' },
-        { status: 400 }
-      )
-    }
-    if (!servicesIds || servicesIds.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Укажите услугу для мероприятия' },
-        { status: 400 }
-      )
-    }
+      { status: 400 }
+    )
+  }
+  if (!servicesIds || servicesIds.length === 0) {
+    return NextResponse.json(
+      { success: false, error: 'Укажите услугу для мероприятия' },
+      { status: 400 }
+    )
+  }
+  const startDate = parseDateValue(eventDate)
+  const endDateValue = parseDateValue(dateEnd)
+  if (
+    startDate &&
+    endDateValue &&
+    startDate.getTime() > endDateValue.getTime()
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Дата начала не может быть позже даты завершения',
+      },
+      { status: 400 }
+    )
+  }
 
     const normalizedContractSum =
       typeof eventData.contractSum === 'number' &&
@@ -287,6 +324,9 @@ export const PUT = async (req, { params }) => {
       typeof rawAddress === 'string' ? null : rawAddress,
       legacyLocation
     )
+    const normalizedOtherContacts = normalizeOtherContacts(
+      eventData.otherContacts ?? request.otherContacts ?? []
+    )
 
     const event = await Events.create({
       tenantId,
@@ -294,7 +334,7 @@ export const PUT = async (req, { params }) => {
       clientId,
       eventDate,
       requestDate: request.createdAt,
-      dateEnd: eventData.dateEnd ?? null,
+      dateEnd,
       googleCalendarId: request.googleCalendarId ?? null,
       googleCalendarCalendarId: request.googleCalendarCalendarId ?? '',
       address: normalizedAddress,
@@ -306,6 +346,7 @@ export const PUT = async (req, { params }) => {
       calendarImportChecked: Boolean(eventData.calendarImportChecked),
       servicesIds,
       description: eventData.description ?? request.comment ?? '',
+      otherContacts: normalizedOtherContacts,
     })
 
     let updatedEvent = event
@@ -367,6 +408,24 @@ export const PUT = async (req, { params }) => {
     }
   }
 
+  const startDate =
+    body.createdAt !== undefined
+      ? parseDateValue(body.createdAt)
+      : request.createdAt
+  const endDate =
+    body.eventDate !== undefined
+      ? parseDateValue(body.eventDate)
+      : request.eventDate
+  if (startDate && endDate && startDate.getTime() > endDate.getTime()) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Дата начала не может быть позже даты завершения',
+      },
+      { status: 400 }
+    )
+  }
+
   const contacts = sanitizeContacts(body.contactChannels)
   if (contacts !== undefined) {
     update.contactChannels = contacts
@@ -381,6 +440,8 @@ export const PUT = async (req, { params }) => {
 
   if (body.eventDate !== undefined)
     update.eventDate = body.eventDate ? new Date(body.eventDate) : null
+  if (body.createdAt !== undefined)
+    update.createdAt = body.createdAt ? new Date(body.createdAt) : null
   if (body.servicesIds !== undefined)
     update.servicesIds = Array.isArray(body.servicesIds)
       ? body.servicesIds
@@ -396,6 +457,9 @@ export const PUT = async (req, { params }) => {
     update.contractSum = Number(body.contractSum) || 0
   if (body.comment !== undefined) update.comment = body.comment ?? ''
   if (body.yandexAim !== undefined) update.yandexAim = body.yandexAim ?? ''
+  if (body.otherContacts !== undefined) {
+    update.otherContacts = normalizeOtherContacts(body.otherContacts)
+  }
 
   if (body.status && REQUEST_STATUSES.has(body.status)) {
     update.status = body.status

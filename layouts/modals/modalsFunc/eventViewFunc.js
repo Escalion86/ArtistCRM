@@ -15,6 +15,7 @@ import DOMPurify from 'isomorphic-dompurify'
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
+import clientsAtom from '@state/atoms/clientsAtom'
 
 const CardButtonsComponent = ({ event, calendarLink }) => (
   <CardButtons
@@ -23,6 +24,7 @@ const CardButtonsComponent = ({ event, calendarLink }) => (
     minimalActions
     alwaysCompact
     calendarLink={calendarLink}
+    dropDownPlacement="left"
   />
 )
 
@@ -38,6 +40,7 @@ const eventViewFunc = (eventId) => {
   }) => {
     const event = useAtomValue(eventSelector(eventId))
     const services = useAtomValue(servicesAtom)
+    const clients = useAtomValue(clientsAtom)
 
     const organizer = useAtomValue(userSelector(event?.organizerId))
 
@@ -55,6 +58,25 @@ const eventViewFunc = (eventId) => {
       .map((serviceId) => services.find((item) => item._id === serviceId))
       .filter(Boolean)
       .map((service) => service.title)
+    const otherContacts = useMemo(() => {
+      const contacts = Array.isArray(event?.otherContacts)
+        ? event.otherContacts
+        : []
+      return contacts
+        .map((contact) => {
+          const client = clients.find(
+            (item) => item._id === contact?.clientId
+          )
+          const name = [client?.firstName, client?.secondName]
+            .filter(Boolean)
+            .join(' ')
+          if (!name && !contact?.clientId) return null
+          return `${name || contact.clientId}${
+            contact?.comment ? ` (${contact.comment})` : ''
+          }`
+        })
+        .filter(Boolean)
+    }, [clients, event?.otherContacts])
 
     useEffect(() => {
       if (setTopLeftComponent) {
@@ -114,6 +136,11 @@ const eventViewFunc = (eventId) => {
             )}
             {serviceTitles.length > 0 && (
               <TextLine label="Услуги">{serviceTitles.join(', ')}</TextLine>
+            )}
+            {otherContacts.length > 0 && (
+              <TextLine label="Прочие контакты">
+                {otherContacts.join(', ')}
+              </TextLine>
             )}
             {event?.address && event.address?.town && event.address?.street && (
               <TextLine label="Ссылки для навигатора">

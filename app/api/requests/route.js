@@ -33,6 +33,27 @@ const sanitizeContacts = (contacts) => {
   return []
 }
 
+const normalizeOtherContacts = (contacts) => {
+  if (!Array.isArray(contacts)) return []
+  return contacts
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const clientId = item.clientId ?? null
+      if (!clientId) return null
+      return {
+        clientId,
+        comment: typeof item.comment === 'string' ? item.comment.trim() : '',
+      }
+    })
+    .filter(Boolean)
+}
+
+const parseDateValue = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 const DEFAULT_ADDRESS = {
   town: '',
   street: '',
@@ -268,6 +289,9 @@ export const POST = async (req) => {
   const comment = body.comment ?? ''
   const yandexAim = body.yandexAim ?? ''
   const servicesIds = Array.isArray(body.servicesIds) ? body.servicesIds : []
+  const otherContacts = normalizeOtherContacts(body.otherContacts)
+  const createdAt = parseDateValue(body.createdAt)
+  const eventDateValue = parseDateValue(eventDate)
 
   const referer = req.headers.get('referer') ?? ''
   const isCabinetRequest = referer.includes('/cabinet')
@@ -315,6 +339,19 @@ export const POST = async (req) => {
       {
         success: false,
         error: 'Укажите услугу',
+      },
+      { status: 400 }
+    )
+  }
+  if (
+    createdAt &&
+    eventDateValue &&
+    createdAt.getTime() > eventDateValue.getTime()
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Дата начала не может быть позже даты завершения',
       },
       { status: 400 }
     )
@@ -405,11 +442,13 @@ export const POST = async (req) => {
     clientPhone: normalizedPhone,
     contactChannels: contacts,
     eventDate: eventDate ? new Date(eventDate) : null,
+    ...(createdAt ? { createdAt } : {}),
     address,
     contractSum: numericContractSum,
     comment: comment ?? '',
     yandexAim,
     servicesIds,
+    otherContacts,
   })
 
   let googleCalendarId = null

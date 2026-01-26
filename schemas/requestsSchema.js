@@ -28,6 +28,22 @@ const requestsSchema = {
     type: Date,
     default: null,
   },
+  otherContacts: {
+    type: [
+      {
+        clientId: {
+          type: Schema.Types.ObjectId,
+          ref: 'Clients',
+          default: null,
+        },
+        comment: {
+          type: String,
+          default: '',
+        },
+      },
+    ],
+    default: [],
+  },
   servicesIds: {
     type: [Schema.Types.ObjectId],
     ref: 'Services',

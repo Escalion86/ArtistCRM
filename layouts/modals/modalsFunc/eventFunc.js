@@ -64,6 +64,19 @@ const normalizeLinksList = (links) => {
     .filter(Boolean)
 }
 
+const normalizeOtherContacts = (contacts) => {
+  if (!Array.isArray(contacts)) return []
+  return contacts
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      return {
+        clientId: item.clientId ?? null,
+        comment: typeof item.comment === 'string' ? item.comment : '',
+      }
+    })
+    .filter(Boolean)
+}
+
 const eventFunc = (eventId, clone = false, requestId = null) => {
   const EventModal = ({
     closeModal,
@@ -72,6 +85,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     setOnShowOnCloseConfirmDialog,
     setDisableConfirm,
     setDisableDecline,
+    setComponentInFooter,
   }) => {
     const event = useAtomValue(eventSelector(eventId))
     const request = useAtomValue(requestSelector(requestId))
@@ -159,6 +173,12 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         DEFAULT_EVENT.servicesIds ??
         []
     )
+    const [otherContacts, setOtherContacts] = useState(
+      event?.otherContacts ??
+        request?.otherContacts ??
+        DEFAULT_EVENT.otherContacts ??
+        []
+    )
 
     const importedFromCalendar =
       event?.importedFromCalendar ?? DEFAULT_EVENT.importedFromCalendar
@@ -216,6 +236,12 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
           request?.servicesIds ??
           DEFAULT_EVENT.servicesIds ??
           [],
+        otherContacts: normalizeOtherContacts(
+          event?.otherContacts ??
+            request?.otherContacts ??
+            DEFAULT_EVENT.otherContacts ??
+            []
+        ),
         colleagueId: event?.colleagueId ?? DEFAULT_EVENT.colleagueId,
         isTransferred: initialIsTransferred,
       }
@@ -230,6 +256,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       event?.dateEnd,
       event?.calendarImportChecked,
       event?.colleagueId,
+      event?.otherContacts,
       initialIsTransferred,
       requestId,
       request?.clientId,
@@ -238,6 +265,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       request?.address,
       request?.comment,
       request?.contractSum,
+      request?.otherContacts,
       request?.servicesIds,
       siteSettings?.defaultTown,
     ])
@@ -270,7 +298,9 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
           JSON.stringify(receiptLinks) ||
         initialEventValues.calendarImportChecked !== calendarImportChecked ||
         JSON.stringify(initialEventValues.servicesIds ?? []) !==
-          JSON.stringify(servicesIds),
+          JSON.stringify(servicesIds) ||
+        JSON.stringify(initialEventValues.otherContacts ?? []) !==
+          JSON.stringify(otherContacts),
       [
         clientId,
         status,
@@ -287,6 +317,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         receiptLinks,
         calendarImportChecked,
         servicesIds,
+        otherContacts,
         initialEventValues,
       ]
     )
@@ -338,6 +369,20 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       [clientId, eventDate, servicesIds]
     )
 
+    const dateRangeError = useMemo(() => {
+      if (!eventDate || !dateEnd) return ''
+      const startDate = new Date(eventDate)
+      const endDate = new Date(dateEnd)
+      if (
+        Number.isNaN(startDate.getTime()) ||
+        Number.isNaN(endDate.getTime())
+      )
+        return ''
+      return startDate.getTime() > endDate.getTime()
+        ? 'Дата начала не может быть позже даты завершения'
+        : ''
+    }, [eventDate, dateEnd])
+
     const addHourToDate = (value) => {
       if (!value) return null
       const date = new Date(value)
@@ -374,6 +419,9 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         addErrorRef.current({ colleagueId: 'Выберите коллегу' })
         hasError = true
       }
+      if (dateRangeError) {
+        hasError = true
+      }
 
       if (!hasError) {
         if (
@@ -395,6 +443,12 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
             : 0
         const normalizedInvoiceLinks = normalizeLinksList(invoiceLinks)
         const normalizedReceiptLinks = normalizeLinksList(receiptLinks)
+        const normalizedOtherContacts = normalizeOtherContacts(otherContacts)
+          .map((item) => ({
+            clientId: item.clientId ?? null,
+            comment: item.comment?.trim() ?? '',
+          }))
+          .filter((item) => item.clientId)
         const payload = {
           _id: event?._id,
           clientId,
@@ -412,6 +466,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
           receiptLinks: normalizedReceiptLinks,
           calendarImportChecked,
           servicesIds,
+          otherContacts: normalizedOtherContacts,
         }
         if (!event?._id && requestId && convertRequest) {
           convertRequest(requestId, payload)
@@ -442,7 +497,9 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       convertRequest,
       setEvent,
       servicesIds,
+      otherContacts,
       status,
+      dateRangeError,
     ])
 
     const onClickConfirmRef = useRef(onClickConfirm)
@@ -453,15 +510,25 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
 
     useEffect(() => {
       setOnShowOnCloseConfirmDialog(isFormChanged)
-      setDisableConfirm(!isFormChanged || requiredMissing)
+      setDisableConfirm(!isFormChanged || requiredMissing || !!dateRangeError)
       setOnConfirmFunc(() => onClickConfirmRef.current())
     }, [
       isFormChanged,
       requiredMissing,
+      dateRangeError,
       setDisableConfirm,
       setOnConfirmFunc,
       setOnShowOnCloseConfirmDialog,
     ])
+
+    useEffect(() => {
+      if (!setComponentInFooter) return
+      setComponentInFooter(
+        dateRangeError ? (
+          <div className="text-sm text-red-600">{dateRangeError}</div>
+        ) : null
+      )
+    }, [dateRangeError, setComponentInFooter])
 
     const selectedClient = useMemo(
       () =>
@@ -552,6 +619,35 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       )
     }
 
+    const handleOtherContactSelect = (index) => {
+      modalsFunc.client?.select((newClientId) => {
+        setOtherContacts((prev) =>
+          prev.map((item, idx) =>
+            idx === index ? { ...item, clientId: newClientId } : item
+          )
+        )
+      })
+    }
+
+    const handleOtherContactCommentChange = (index, value) => {
+      setOtherContacts((prev) =>
+        prev.map((item, idx) =>
+          idx === index ? { ...item, comment: value } : item
+        )
+      )
+    }
+
+    const handleOtherContactRemove = (index) => {
+      setOtherContacts((prev) => prev.filter((_, idx) => idx !== index))
+    }
+
+    const handleOtherContactAdd = () => {
+      setOtherContacts((prev) => [
+        ...prev,
+        { clientId: null, comment: '' },
+      ])
+    }
+
     const openTransactionModal = (transactionId) => {
       if (!event?._id || !event?.clientId) {
         setFinanceError('Сначала сохраните мероприятие и выберите клиента')
@@ -588,6 +684,70 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               paddingY
               fullWidth
             />
+            <InputWrapper label="Прочие контакты" fullWidth>
+              <div className="flex w-full flex-col gap-2">
+                {otherContacts.length === 0 && (
+                  <div className="text-sm text-gray-500">
+                    Контакты не добавлены
+                  </div>
+                )}
+                {otherContacts.map((contact, index) => {
+                  const contactClient = clients.find(
+                    (client) => client._id === contact.clientId
+                  )
+                  const contactName =
+                    [contactClient?.firstName, contactClient?.secondName]
+                      .filter(Boolean)
+                      .join(' ') || 'Выберите клиента'
+                  return (
+                    <div
+                      key={`other-contact-${index}`}
+                      className="flex flex-col gap-2 rounded border border-gray-200 bg-gray-50 p-2 tablet:flex-row tablet:items-start"
+                    >
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:shadow-card cursor-pointer tablet:flex-1"
+                        onClick={() => handleOtherContactSelect(index)}
+                      >
+                        <span className="font-semibold text-gray-900">
+                          {contactName}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {contactClient?.phone
+                            ? `+${contactClient.phone}`
+                            : 'Телефон не указан'}
+                        </span>
+                      </button>
+                      <div className="w-full tablet:flex-1">
+                        <Input
+                          label="Кем является"
+                          value={contact.comment}
+                          onChange={(value) =>
+                            handleOtherContactCommentChange(index, value)
+                          }
+                          noMargin
+                          fullWidth
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="self-end text-xs font-semibold text-red-600 transition hover:text-red-700 cursor-pointer tablet:self-center"
+                        onClick={() => handleOtherContactRemove(index)}
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  )
+                })}
+                <button
+                  type="button"
+                  className="h-9 w-fit rounded border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 cursor-pointer"
+                  onClick={handleOtherContactAdd}
+                >
+                  Добавить контакт
+                </button>
+              </div>
+            </InputWrapper>
             <EventStatusPicker
               status={status}
               onChange={setStatus}

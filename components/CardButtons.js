@@ -48,6 +48,7 @@ const CardButtons = ({
   forForm,
   alwaysCompact,
   alwaysCompactOnPhone,
+  dropDownPlacement = 'right',
   showEditButton = true,
   showDeleteButton = true,
   onEdit,
@@ -283,7 +284,7 @@ const CardButtons = ({
       className={className}
       menuPadding={false}
       openOnHover
-      placement="right"
+      placement={dropDownPlacement}
     >
       <div className="overflow-hidden rounded-lg">{items}</div>
     </DropDown>

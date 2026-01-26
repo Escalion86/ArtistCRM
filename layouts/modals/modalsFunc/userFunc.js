@@ -245,6 +245,7 @@ const userFunc = (userId, clone = false) => {
             forForm
             noEditButton
             onDelete={closeModal}
+            dropDownPlacement="left"
           />
         ))
     }, [setTopLeftComponent])

@@ -18,6 +18,12 @@ const hasDocuments = (payload) => {
   )
 }
 
+const parseDateValue = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 export const GET = async () => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) {
@@ -53,6 +59,17 @@ export const POST = async (req) => {
     return NextResponse.json(
       { success: false, error: 'Доступ к документам недоступен' },
       { status: 403 }
+    )
+  }
+  const eventDate = parseDateValue(body.eventDate)
+  const dateEnd = parseDateValue(body.dateEnd)
+  if (eventDate && dateEnd && eventDate.getTime() > dateEnd.getTime()) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Дата начала не может быть позже даты завершения',
+      },
+      { status: 400 }
     )
   }
   await dbConnect()

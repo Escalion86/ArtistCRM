@@ -18,6 +18,7 @@ import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { postData } from '@helpers/CRUD'
 import ServiceMultiSelect from '@components/ServiceMultiSelect'
 import serviceFunc from './serviceFunc'
+import InputWrapper from '@components/InputWrapper'
 
 const requestFunc = (requestId, clone = false) => {
   const RequestModal = ({
@@ -28,6 +29,7 @@ const requestFunc = (requestId, clone = false) => {
     setDisableConfirm,
     setDisableDecline,
     setTopLeftComponent,
+    setComponentInFooter,
   }) => {
     const request = useAtomValue(requestSelector(requestId))
     const setRequest = useAtomValue(itemsFuncAtom).request.set
@@ -52,6 +54,9 @@ const requestFunc = (requestId, clone = false) => {
     const [servicesIds, setServicesIds] = useState(
       DEFAULT_REQUEST.servicesIds ?? []
     )
+    const [otherContacts, setOtherContacts] = useState(
+      DEFAULT_REQUEST.otherContacts ?? []
+    )
     const initializedRef = useRef(false)
 
     const normalizeAddress = useCallback((rawAddress, legacyLocation) => {
@@ -71,6 +76,19 @@ const requestFunc = (requestId, clone = false) => {
       }
 
       return normalized
+    }, [])
+
+    const normalizeOtherContacts = useCallback((contacts) => {
+      if (!Array.isArray(contacts)) return []
+      return contacts
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null
+          return {
+            clientId: item.clientId ?? null,
+            comment: typeof item.comment === 'string' ? item.comment : '',
+          }
+        })
+        .filter(Boolean)
     }, [])
 
     const originalValues = useMemo(() => {
@@ -133,8 +151,18 @@ const requestFunc = (requestId, clone = false) => {
         servicesIds: Array.isArray(request?.servicesIds)
           ? request.servicesIds
           : DEFAULT_REQUEST.servicesIds ?? [],
+        otherContacts: normalizeOtherContacts(
+          request?.otherContacts ?? DEFAULT_REQUEST.otherContacts ?? []
+        ),
       }
-    }, [normalizeAddress, request, clone, requestId, siteSettings?.defaultTown])
+    }, [
+      normalizeAddress,
+      normalizeOtherContacts,
+      request,
+      clone,
+      requestId,
+      siteSettings?.defaultTown,
+    ])
 
     useEffect(() => {
       initializedRef.current = false
@@ -151,6 +179,7 @@ const requestFunc = (requestId, clone = false) => {
       setComment(originalValues.comment)
       setYandexAim(originalValues.yandexAim)
       setServicesIds(originalValues.servicesIds)
+      setOtherContacts(originalValues.otherContacts)
       initializedRef.current = true
     }, [clone, originalValues, request, requestId])
 
@@ -176,6 +205,20 @@ const requestFunc = (requestId, clone = false) => {
       return Array.from(townsSet).sort((a, b) => a.localeCompare(b, 'ru'))
     }, [address?.town, siteSettings?.towns])
 
+    const dateRangeError = useMemo(() => {
+      if (!createdAt || !eventDate) return ''
+      const startDate = new Date(createdAt)
+      const endDate = new Date(eventDate)
+      if (
+        Number.isNaN(startDate.getTime()) ||
+        Number.isNaN(endDate.getTime())
+      )
+        return ''
+      return startDate.getTime() > endDate.getTime()
+        ? 'Дата начала не может быть позже даты завершения'
+        : ''
+    }, [createdAt, eventDate])
+
     const handleCreateTown = async (town) => {
       const normalizedTown = typeof town === 'string' ? town.trim() : ''
       if (!normalizedTown) return
@@ -190,6 +233,35 @@ const requestFunc = (requestId, clone = false) => {
         false,
         loggedUser?._id
       )
+    }
+
+    const handleOtherContactSelect = (index) => {
+      modalsFunc.client?.select((newClientId) => {
+        setOtherContacts((prev) =>
+          prev.map((item, idx) =>
+            idx === index ? { ...item, clientId: newClientId } : item
+          )
+        )
+      })
+    }
+
+    const handleOtherContactCommentChange = (index, value) => {
+      setOtherContacts((prev) =>
+        prev.map((item, idx) =>
+          idx === index ? { ...item, comment: value } : item
+        )
+      )
+    }
+
+    const handleOtherContactRemove = (index) => {
+      setOtherContacts((prev) => prev.filter((_, idx) => idx !== index))
+    }
+
+    const handleOtherContactAdd = () => {
+      setOtherContacts((prev) => [
+        ...prev,
+        { clientId: null, comment: '' },
+      ])
     }
 
     const openClientSelectModal = () => {
@@ -234,6 +306,9 @@ const requestFunc = (requestId, clone = false) => {
         addError({ servicesIds: 'Выберите услугу' })
         hasCustomError = true
       }
+      if (dateRangeError) {
+        hasCustomError = true
+      }
 
       if (!hasCustomError) {
         closeModal()
@@ -245,6 +320,12 @@ const requestFunc = (requestId, clone = false) => {
         const normalizedCreatedAt =
           createdAt || (clone || !requestId ? new Date().toISOString() : null)
         const normalizedEventDate = eventDate ?? null
+        const normalizedOtherContacts = normalizeOtherContacts(otherContacts)
+          .map((item) => ({
+            clientId: item.clientId ?? null,
+            comment: item.comment?.trim() ?? '',
+          }))
+          .filter((item) => item.clientId)
 
         const clientNameValue = [
           selectedClient?.firstName,
@@ -266,6 +347,7 @@ const requestFunc = (requestId, clone = false) => {
             comment: comment.trim(),
             yandexAim: yandexAim.trim(),
             servicesIds,
+            otherContacts: normalizedOtherContacts,
           },
           clone
         )
@@ -283,6 +365,9 @@ const requestFunc = (requestId, clone = false) => {
       addError,
       selectedClient,
       normalizeAddress,
+      normalizeOtherContacts,
+      otherContacts,
+      dateRangeError,
     ])
 
     const originalAddressSignature = useMemo(
@@ -305,7 +390,9 @@ const requestFunc = (requestId, clone = false) => {
         originalValues.comment !== comment ||
         originalValues.yandexAim !== yandexAim ||
         JSON.stringify(originalValues.servicesIds) !==
-          JSON.stringify(servicesIds),
+          JSON.stringify(servicesIds) ||
+        JSON.stringify(originalValues.otherContacts) !==
+          JSON.stringify(otherContacts),
       [
         originalValues,
         clientId,
@@ -317,6 +404,7 @@ const requestFunc = (requestId, clone = false) => {
         comment,
         yandexAim,
         servicesIds,
+        otherContacts,
       ]
     )
 
@@ -334,14 +422,25 @@ const requestFunc = (requestId, clone = false) => {
     useEffect(() => {
       setOnConfirmFunc(() => onConfirmRef.current?.())
       setOnShowOnCloseConfirmDialog(isFormChanged)
-      setDisableConfirm(!isFormChanged || requiredMissing)
+      setDisableConfirm(!isFormChanged || requiredMissing || !!dateRangeError)
     }, [
       isFormChanged,
       requiredMissing,
+      dateRangeError,
       setDisableConfirm,
       setOnShowOnCloseConfirmDialog,
       setOnConfirmFunc,
     ])
+
+    useEffect(() => {
+      if (!setComponentInFooter) return
+      setComponentInFooter(
+        dateRangeError ? (
+          <div className="text-sm text-red-600">{dateRangeError}</div>
+        ) : null
+      )
+    }, [dateRangeError, setComponentInFooter])
+
     return (
       <FormWrapper>
         <ServiceMultiSelect
@@ -370,6 +469,70 @@ const requestFunc = (requestId, clone = false) => {
           paddingY
           fullWidth
         />
+        <InputWrapper label="Прочие контакты" fullWidth>
+          <div className="flex w-full flex-col gap-2">
+            {otherContacts.length === 0 && (
+              <div className="text-sm text-gray-500">
+                Контакты не добавлены
+              </div>
+            )}
+            {otherContacts.map((contact, index) => {
+              const contactClient = clients.find(
+                (client) => client._id === contact.clientId
+              )
+              const contactName =
+                [contactClient?.firstName, contactClient?.secondName]
+                  .filter(Boolean)
+                  .join(' ') || 'Выберите клиента'
+              return (
+                <div
+                  key={`other-contact-${index}`}
+                  className="flex flex-col gap-2 rounded border border-gray-200 bg-gray-50 p-2 tablet:flex-row tablet:items-start"
+                >
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:shadow-card cursor-pointer tablet:flex-1"
+                    onClick={() => handleOtherContactSelect(index)}
+                  >
+                    <span className="font-semibold text-gray-900">
+                      {contactName}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {contactClient?.phone
+                        ? `+${contactClient.phone}`
+                        : 'Телефон не указан'}
+                    </span>
+                  </button>
+                  <div className="w-full tablet:flex-1">
+                    <Input
+                      label="Кем является"
+                      value={contact.comment}
+                      onChange={(value) =>
+                        handleOtherContactCommentChange(index, value)
+                      }
+                      noMargin
+                      fullWidth
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="self-end text-xs font-semibold text-red-600 transition hover:text-red-700 cursor-pointer tablet:self-center"
+                    onClick={() => handleOtherContactRemove(index)}
+                  >
+                    Удалить
+                  </button>
+                </div>
+              )
+            })}
+            <button
+              type="button"
+              className="h-9 w-fit rounded border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 cursor-pointer"
+              onClick={handleOtherContactAdd}
+            >
+              Добавить контакт
+            </button>
+          </div>
+        </InputWrapper>
         <DateTimePicker
           value={createdAt}
           onChange={(value) => {
