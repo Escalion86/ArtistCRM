@@ -4,7 +4,6 @@ import cn from 'classnames'
 import { useAtomValue } from 'jotai'
 import { useMemo } from 'react'
 import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
-import { getEventStatusBadgeClasses } from '@helpers/eventStatusStyles'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
 import { modalsFuncAtom } from '@state/atoms'
@@ -18,12 +17,11 @@ import LoadingSpinner from '@components/LoadingSpinner'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faClock,
-  faE,
-  faEquals,
   faHandHoldingDollar,
   faShare,
   faTriangleExclamation,
-  faTimeline,
+  faCircleCheck,
+  faBan,
   faUserSlash,
 } from '@fortawesome/free-solid-svg-icons'
 import SvgSigma from 'svg/SvgSigma'
@@ -111,19 +109,14 @@ const EventCard = ({ eventId, style }) => {
     : '-'
 
   const rawStatus = status?.value ?? event.status
-  const isActiveLike =
-    rawStatus === 'active' ||
-    rawStatus === 'planned' ||
-    rawStatus === 'in_progress' ||
-    rawStatus === 'completed'
-
   const needsCheck = event?.calendarImportChecked === false
-
-  const statusLabel = isActiveLike
-    ? eventEnd && eventEnd.getTime() < now.getTime()
-      ? 'Завершено'
-      : 'Запланировано'
-    : status?.name ?? 'Не указан'
+  const isCanceled = rawStatus === 'canceled'
+  const isClosed = rawStatus === 'closed'
+  const isFinished =
+    !isCanceled &&
+    !isClosed &&
+    eventEnd &&
+    eventEnd.getTime() < now.getTime()
 
   const coordsLink =
     event?.address?.latitude && event?.address?.longitude
@@ -188,6 +181,27 @@ const EventCard = ({ eventId, style }) => {
                 title="Проверка мероприятия не завершена"
               />
             )}
+            {isClosed && (
+              <FontAwesomeIcon
+                icon={faCircleCheck}
+                className="h-4 w-4 text-green-600"
+                title="Мероприятие закрыто"
+              />
+            )}
+            {isCanceled && (
+              <FontAwesomeIcon
+                icon={faBan}
+                className="h-4 w-4 text-red-500"
+                title="Мероприятие отменено"
+              />
+            )}
+            {isFinished && (
+              <FontAwesomeIcon
+                icon={faCircleCheck}
+                className="h-4 w-4 text-gray-400"
+                title="Мероприятие завершено"
+              />
+            )}
             <div className="truncate text-lg font-semibold text-gray-900">
               {servicesTitle}
             </div>
@@ -200,14 +214,6 @@ const EventCard = ({ eventId, style }) => {
                 title="Клиент не указан"
               />
             )}
-            <div
-              className={cn(
-                'mr-10 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm',
-                getEventStatusBadgeClasses(status?.value ?? event.status)
-              )}
-            >
-              {statusLabel}
-            </div>
           </div>
         </div>
         <div className="flex gap-x-1">

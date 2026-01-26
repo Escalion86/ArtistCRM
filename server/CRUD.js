@@ -2,6 +2,7 @@ import formatAddress from '@helpers/formatAddress'
 import Events from '@models/Events'
 import Histories from '@models/Histories'
 import SiteSettings from '@models/SiteSettings'
+import Services from '@models/Services'
 import dbConnect from './dbConnect'
 import DOMPurify from 'isomorphic-dompurify'
 // import { DEFAULT_ROLES } from '@helpers/constants'
@@ -94,6 +95,15 @@ const getSiteTimeZone = async (tenantId) => {
     .select('timeZone')
     .lean()
   return settings?.timeZone || DEFAULT_TIME_ZONE
+}
+
+const getSiteDefaultTown = async (tenantId) => {
+  if (!tenantId) return ''
+  await dbConnect()
+  const settings = await SiteSettings.findOne({ tenantId })
+    .select('defaultTown')
+    .lean()
+  return settings?.defaultTown || ''
 }
 
 const getCalendarContext = async (user) => {
@@ -252,8 +262,42 @@ const updateEventInCalendar = async (event, req, user) => {
       ? new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000)
       : null)
   const calendarLocation = formatAddress(event.address, event.location)
+  const defaultTown = await getSiteDefaultTown(event?.tenantId)
+  const addressTown =
+    typeof event?.address?.town === 'string' ? event.address.town.trim() : ''
+  const showTown = addressTown && addressTown !== defaultTown
+  const addressParts = [
+    event?.address?.street,
+    event?.address?.house ? `дом ${event.address.house}` : '',
+    event?.address?.flat ? `кв. ${event.address.flat}` : '',
+    event?.address?.entrance ? `${event.address.entrance} подъезд` : '',
+    event?.address?.floor ? `${event.address.floor} этаж` : '',
+  ]
+    .filter(Boolean)
+    .join(', ')
+  const addressLine =
+    addressParts || event?.address?.comment || (event.location ?? '')
+
+  let servicesTitle = ''
+  if (Array.isArray(event?.servicesIds) && event.servicesIds.length > 0) {
+    const services = await Services.find({
+      _id: { $in: event.servicesIds },
+      tenantId: event?.tenantId,
+    })
+      .select('title')
+      .lean()
+    servicesTitle = services
+      .map((item) => item?.title)
+      .filter(Boolean)
+      .join(', ')
+  }
+
+  const titleParts = []
+  if (servicesTitle) titleParts.push(servicesTitle)
+  if (showTown) titleParts.push(addressTown)
+  if (addressLine) titleParts.push(addressLine)
   const calendarTitle =
-    formatAddress(event.address, event.location) || 'Адрес не указан'
+    titleParts.length > 0 ? titleParts.join(' • ') : 'Адрес не указан'
 
   const calendarEvent = {
     summary: `${

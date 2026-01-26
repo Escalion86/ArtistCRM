@@ -76,18 +76,17 @@ const AddressPicker = ({
               </button>
             )}
           </div>
-          <div className="flex-1">
-            <Input
-              label="Улица"
-              type="text"
-              value={address.street}
-              onChange={(street) => onChange({ ...address, street })}
-              error={errors?.address?.street}
-              noMargin
-            />
-          </div>
         </FormWrapper>
         <FormWrapper className="mt-3 mb-1 flex flex-wrap gap-x-2 gap-y-3">
+          <Input
+            label="Улица"
+            type="text"
+            value={address.street}
+            onChange={(street) => onChange({ ...address, street })}
+            error={errors?.address?.street}
+            noMargin
+            className="min-w-48 flex-1"
+          />
           <Input
             label="Дом"
             type="text"
@@ -97,6 +96,8 @@ const AddressPicker = ({
             noMargin
             className="min-w-48 flex-1"
           />
+        </FormWrapper>
+        <FormWrapper className="mt-3 mb-1 flex flex-wrap gap-x-2 gap-y-3">
           <Input
             label="Подъезд"
             type="text"
@@ -104,10 +105,8 @@ const AddressPicker = ({
             onChange={(entrance) => onChange({ ...address, entrance })}
             error={errors?.address?.entrance}
             noMargin
-            className="min-w-48 flex-1"
+            className="min-w-32 flex-1"
           />
-        </FormWrapper>
-        <FormWrapper className="mt-3 mb-1 flex flex-wrap gap-x-2 gap-y-3">
           <Input
             label="Этаж"
             type="text"
@@ -115,7 +114,7 @@ const AddressPicker = ({
             onChange={(floor) => onChange({ ...address, floor })}
             error={errors?.address?.floor}
             noMargin
-            className="min-w-48 flex-1"
+            className="min-w-32 flex-1"
           />
           <Input
             label="Кв. / Офис"
@@ -124,7 +123,7 @@ const AddressPicker = ({
             onChange={(flat) => onChange({ ...address, flat })}
             error={errors?.address?.flat}
             noMargin
-            className="min-w-48 flex-1"
+            className="min-w-32 flex-1"
           />
         </FormWrapper>
         <FormWrapper className="mt-3 mb-1 flex flex-wrap gap-x-2 gap-y-3">
