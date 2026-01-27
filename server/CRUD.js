@@ -335,13 +335,33 @@ const updateEventInCalendar = async (event, req, user) => {
       preparedText = preparedText.replaceAll(aTags[i], linkAReformer(aTags[i]))
   }
 
-  const startDateTime =
+  const rawStart =
     event.dateStart ?? event.eventDate ?? event.dateEnd ?? null
-  const endDateTime =
+  const rawEnd =
     event.dateEnd ??
-    (startDateTime
-      ? new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000)
-      : null)
+    (rawStart ? new Date(new Date(rawStart).getTime() + 60 * 60 * 1000) : null)
+  const startDate = rawStart ? new Date(rawStart) : null
+  const endDate = rawEnd ? new Date(rawEnd) : null
+  let startDateTime = startDate && !Number.isNaN(startDate.getTime())
+    ? startDate.toISOString()
+    : null
+  let endDateTime = endDate && !Number.isNaN(endDate.getTime())
+    ? endDate.toISOString()
+    : null
+  if (startDateTime) {
+    const startMs = new Date(startDateTime).getTime()
+    const endMs = endDateTime ? new Date(endDateTime).getTime() : NaN
+    if (!Number.isFinite(endMs) || endMs <= startMs) {
+      endDateTime = new Date(startMs + 60 * 60 * 1000).toISOString()
+    }
+  }
+  console.log('Google Calendar event time', {
+    eventId: event?._id,
+    rawStart,
+    rawEnd,
+    startDateTime,
+    endDateTime,
+  })
   const calendarLocation = formatAddress(event.address, event.location)
   const defaultTown = await getSiteDefaultTown(event?.tenantId)
   const addressTown =
