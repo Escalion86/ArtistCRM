@@ -8,6 +8,7 @@ import useErrors from '@helpers/useErrors'
 import clientSelector from '@state/selectors/clientSelector'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import clientsAtom from '@state/atoms/clientsAtom'
+import { modalsFuncAtom } from '@state/atoms'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
 
@@ -23,6 +24,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     const client = useAtomValue(clientSelector(clientId))
     const setClient = useAtomValue(itemsFuncAtom).client.set
     const clients = useAtomValue(clientsAtom)
+    const modalsFunc = useAtomValue(modalsFuncAtom)
 
     const [firstName, setFirstName] = useState(
       client?.firstName ?? DEFAULT_CLIENT.firstName
@@ -86,39 +88,75 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
           customError = true
         }
         if (!hasPhoneError && !customError) {
+          const normalizedPhone = normalizePhoneValue(phone)
+          if (normalizedPhone) {
+            const existedClient = clients.find(
+              (item) =>
+                item?.phone &&
+                normalizePhoneValue(item.phone) === normalizedPhone &&
+                item._id !== client?._id
+            )
+            if (existedClient) {
+              const existingName =
+                [existedClient.firstName, existedClient.secondName]
+                  .filter(Boolean)
+                  .join(' ') || 'Без имени'
+              if (typeof onSuccess === 'function') {
+                modalsFunc.add({
+                  title: 'Клиент уже существует',
+                  text: `Клиент с таким номером телефона уже существует: ${existingName}.\n\nВы можете выбрать существующего клиента.`,
+                  confirmButtonName: 'Выбрать клиента',
+                  declineButtonName: 'Закрыть',
+                  onConfirm: () => {
+                    onSuccess(existedClient)
+                    closeModal()
+                  },
+                })
+              } else {
+                modalsFunc.add({
+                  title: 'Клиент уже существует',
+                  text: `Клиент с таким номером телефона уже существует: ${existingName}.\n\nСоздать клиента с этим номером нельзя.`,
+                  confirmButtonName: 'Понятно',
+                  onConfirm: true,
+                  showDecline: false,
+                })
+              }
+              return
+            }
+          }
           const result = await setClient(
             {
-              _id: client?._id,
-              firstName: firstName.trim(),
-              secondName: secondName.trim(),
-              phone: phone ?? null,
-              whatsapp: whatsapp ?? null,
-              telegram: telegram.trim(),
-              instagram: instagram.trim(),
-              vk: vk.trim(),
-              clientType,
-            },
-            clone
-          )
-          if (result && typeof onSuccess === 'function') onSuccess(result)
-          closeModal()
-        }
-      }, [
-        addError,
-        checkErrors,
-        client?._id,
-        clone,
-        closeModal,
-        firstName,
-        phone,
-        secondName,
-        whatsapp,
-        telegram,
-        instagram,
-        vk,
-        setClient,
-        onSuccess,
-      ])
+            _id: client?._id,
+            firstName: firstName.trim(),
+            secondName: secondName.trim(),
+            phone: phone ?? null,
+            whatsapp: whatsapp ?? null,
+            telegram: telegram.trim(),
+            instagram: instagram.trim(),
+            vk: vk.trim(),
+            clientType,
+          },
+          clone
+        )
+        if (result && typeof onSuccess === 'function') onSuccess(result)
+        closeModal()
+      }
+    }, [
+      addError,
+      checkErrors,
+      client?._id,
+      clone,
+      closeModal,
+      firstName,
+      phone,
+      secondName,
+      whatsapp,
+      telegram,
+      instagram,
+      vk,
+      setClient,
+      onSuccess,
+    ])
 
     const onClickConfirmRef = useRef(onClickConfirm)
 
@@ -195,7 +233,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
           error={errors.firstName}
         />
         <Input label="Фамилия" value={secondName} onChange={setSecondName} />
-        <div className="flex items-end gap-2">
+        <div className="mt-3 flex items-end gap-2">
           <PhoneInput
             label="Телефон"
             value={phone}
@@ -211,7 +249,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
           />
           <button
             type="button"
-            className="mb-1 whitespace-nowrap rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 cursor-pointer"
+            className="mb-1 cursor-pointer rounded border border-gray-300 px-3 py-2 text-sm font-semibold whitespace-nowrap text-gray-700 transition hover:bg-gray-50"
             onClick={handleCheckPhone}
           >
             Проверить

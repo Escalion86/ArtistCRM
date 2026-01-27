@@ -25,6 +25,14 @@ const ClientPicker = ({
   const handleEdit = () => {
     if (selectedClientId && !disabled) modalsFunc.client?.edit(selectedClientId)
   }
+  const handleCreate = () => {
+    if (disabled) return
+    if (onCreateClick) {
+      onCreateClick()
+      return
+    }
+    modalsFunc.client?.add()
+  }
 
   return (
     <InputWrapper
@@ -89,7 +97,7 @@ const ClientPicker = ({
               'action-icon-button flex cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700',
               compact ? 'h-9 w-9' : 'h-12 w-12'
             )}
-            onClick={onCreateClick}
+            onClick={handleCreate}
             title="Создать нового клиента"
           >
             <FontAwesomeIcon className="h-5 w-5" icon={faPlus} />

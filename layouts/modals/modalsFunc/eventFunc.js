@@ -693,6 +693,13 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               selectedClientId={clientId}
               onSelectClick={openClientSelectModal}
               onViewClick={() => modalsFunc.client?.view(clientId)}
+              onCreateClick={() =>
+                modalsFunc.client?.add((newClient) => {
+                  if (!newClient?._id) return
+                  setClientId(newClient._id)
+                  removeError('clientId')
+                })
+              }
               label="Клиент"
               required
               error={errors.clientId}

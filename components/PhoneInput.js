@@ -34,7 +34,7 @@ const PhoneInput = ({
     }
   >
     <div className="flex w-full items-center gap-2">
-      <div>+7</div>
+      <div className="text-gray-500">+7</div>
       <MaskedInput
         disabled={disabled}
         placeholder={' '}
