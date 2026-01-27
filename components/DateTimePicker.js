@@ -87,7 +87,7 @@ const DateTimePicker = ({
             },
             '.MuiInputAdornment-root': {
               marginLeft: -2,
-              marginRight: 1,
+              marginRight: 0,
             },
           }}
           inputFormat={widthNum <= 2 ? 'dd.MM.yyyy HH:mm' : 'dd.MM.yyyy'}
