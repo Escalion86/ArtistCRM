@@ -166,10 +166,50 @@ const buildCalendarReminders = (settings) => {
     : { useDefault: false, overrides: reminders.overrides ?? [] }
 }
 
+const normalizePhoneDigits = (value) => {
+  if (value === null || value === undefined) return ''
+  const digits = String(value).replace(/[^\d]/g, '')
+  if (!digits) return ''
+  if (digits.length >= 11 && (digits.startsWith('7') || digits.startsWith('8')))
+    return `7${digits.slice(1, 11)}`
+  if (digits.length === 10) return `7${digits}`
+  return digits
+}
+
+const normalizeSocialHandle = (value) => {
+  if (!value) return ''
+  const trimmed = String(value).trim()
+  if (!trimmed) return ''
+  return trimmed.startsWith('@') ? trimmed.slice(1) : trimmed
+}
+
+const buildClientContactsLines = (client) => {
+  if (!client || typeof client !== 'object') return []
+  const lines = []
+  const phoneDigits = normalizePhoneDigits(client.phone)
+  const whatsappDigits = normalizePhoneDigits(client.whatsapp)
+  const viberDigits = normalizePhoneDigits(client.viber)
+  const telegram = normalizeSocialHandle(client.telegram)
+  const instagram = normalizeSocialHandle(client.instagram)
+  const vk = normalizeSocialHandle(client.vk)
+  const email = client.email ? String(client.email).trim() : ''
+
+  if (phoneDigits) lines.push(`Телефон: +${phoneDigits}`)
+  if (whatsappDigits) lines.push(`WhatsApp: wa.me/${whatsappDigits}`)
+  if (viberDigits) lines.push(`Viber: viber://chat?number=+${viberDigits}`)
+  if (telegram) lines.push(`Telegram: t.me/${telegram}`)
+  if (instagram) lines.push(`Instagram: instagram.com/${instagram}`)
+  if (vk) lines.push(`VK: vk.com/${vk}`)
+  if (email) lines.push(`Email: ${email}`)
+
+  return lines
+}
+
 const buildRequestCalendarPayload = (
   request,
   timeZone = DEFAULT_TIME_ZONE,
-  settings
+  settings,
+  client
 ) => {
   const hasEventDate = Boolean(request.eventDate)
   const fallbackDate = request.createdAt ? new Date(request.createdAt) : new Date()
@@ -185,10 +225,12 @@ const buildRequestCalendarPayload = (
     request.contactChannels?.length > 0
       ? request.contactChannels.join(', ')
       : ''
+  const clientContacts = buildClientContactsLines(client)
   const descriptionParts = [
     request.clientName ? `Клиент: ${request.clientName}` : null,
     phone ? `Телефон: ${phone}` : null,
     contacts ? `Контакты: ${contacts}` : null,
+    ...(clientContacts.length > 0 ? clientContacts : []),
     request.comment ? `Комментарий: ${request.comment}` : null,
     request.contractSum
       ? `Договорная сумма: ${Number(request.contractSum).toLocaleString('ru-RU')}`
@@ -230,7 +272,12 @@ const createRequestCalendarEvent = async (request, timeZone, user) => {
   if (!calendar) return null
   const calendarId = getUserCalendarId(user)
 
-  const resource = buildRequestCalendarPayload(request, timeZone, settings)
+  const resource = buildRequestCalendarPayload(
+    request,
+    timeZone,
+    settings,
+    request?.clientId ? await Clients.findById(request.clientId).lean() : null
+  )
   try {
     const response = await calendar.events.insert({
       calendarId,

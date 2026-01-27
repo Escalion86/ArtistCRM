@@ -89,6 +89,45 @@ const linkAReformer = (link) => {
     : `${textLink} (${text})`
 }
 
+const normalizePhoneDigits = (value) => {
+  if (value === null || value === undefined) return ''
+  const digits = String(value).replace(/[^\d]/g, '')
+  if (!digits) return ''
+  if (digits.length >= 11 && (digits.startsWith('7') || digits.startsWith('8')))
+    return `7${digits.slice(1, 11)}`
+  if (digits.length === 10) return `7${digits}`
+  return digits
+}
+
+const normalizeSocialHandle = (value) => {
+  if (!value) return ''
+  const trimmed = String(value).trim()
+  if (!trimmed) return ''
+  return trimmed.startsWith('@') ? trimmed.slice(1) : trimmed
+}
+
+const buildClientContactsLines = (client) => {
+  if (!client || typeof client !== 'object') return []
+  const lines = []
+  const phoneDigits = normalizePhoneDigits(client.phone)
+  const whatsappDigits = normalizePhoneDigits(client.whatsapp)
+  const viberDigits = normalizePhoneDigits(client.viber)
+  const telegram = normalizeSocialHandle(client.telegram)
+  const instagram = normalizeSocialHandle(client.instagram)
+  const vk = normalizeSocialHandle(client.vk)
+  const email = client.email ? String(client.email).trim() : ''
+
+  if (phoneDigits) lines.push(`Телефон: +${phoneDigits}`)
+  if (whatsappDigits) lines.push(`WhatsApp: wa.me/${whatsappDigits}`)
+  if (viberDigits) lines.push(`Viber: viber://chat?number=+${viberDigits}`)
+  if (telegram) lines.push(`Telegram: t.me/${telegram}`)
+  if (instagram) lines.push(`Instagram: instagram.com/${instagram}`)
+  if (vk) lines.push(`VK: vk.com/${vk}`)
+  if (email) lines.push(`Email: ${email}`)
+
+  return lines
+}
+
 const DEFAULT_TIME_ZONE = 'Asia/Krasnoyarsk'
 
 const getSiteTimeZone = async (tenantId) => {
@@ -253,12 +292,16 @@ const updateEventInCalendar = async (event, req, user) => {
   if (event?.clientId) {
     await dbConnect()
     const client = await Clients.findById(event.clientId)
-      .select('firstName secondName')
+      .select('firstName secondName phone whatsapp viber telegram instagram vk email')
       .lean()
     const clientName = [client?.firstName, client?.secondName]
       .filter(Boolean)
       .join(' ')
     if (clientName) extraDescriptionLines.push(`Клиент: ${clientName}`)
+    const contactLines = buildClientContactsLines(client)
+    if (contactLines.length) {
+      extraDescriptionLines.push(contactLines.join('\n'))
+    }
   }
   if (Array.isArray(event?.otherContacts) && event.otherContacts.length) {
     await dbConnect()
