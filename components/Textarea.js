@@ -12,6 +12,9 @@ const Textarea = ({
   rows = 3,
   required,
   defaultValue,
+  noMargin = false,
+  smallMargin = false,
+  fullWidth = false,
 }) => {
   return (
     <InputWrapper
@@ -21,6 +24,9 @@ const Textarea = ({
       className={wrapperClassName}
       required={required}
       error={error}
+      noMargin={noMargin}
+      smallMargin={smallMargin}
+      fullWidth={fullWidth}
     >
       <textarea
         className={cn('flex-1 px-1 text-black outline-none', inputClassName)}

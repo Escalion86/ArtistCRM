@@ -81,6 +81,15 @@ const DateTimePicker = ({
               borderStyle: 'none',
               padding: 0,
             },
+            '.MuiInputBase-root': {
+              minHeight: 28,
+              fontSize: '0.875rem',
+              padding: 0,
+            },
+            '.MuiInputBase-input': {
+              padding: 0,
+              height: '1.5rem',
+            },
             '.MuiPickersSectionList-root': {
               padding: 1,
               borderStyle: 'none',
@@ -135,34 +144,36 @@ const DateTimePicker = ({
                 outline: 'none',
                 boxShadow: 'none',
               },
-              '.MuiPickersOutlinedInput-root': {
-                borderStyle: 'none',
-                marginLeft: 2,
+            '.MuiPickersOutlinedInput-root': {
+              borderStyle: 'none',
+              marginLeft: 2,
+              padding: 0,
+              boxShadow: 'none',
+            },
+            '.MuiPickersSectionList-root': {
+              padding: 1,
+              boxShadow: 'none',
+              borderStyle: 'none',
+            },
+            '.MuiInputAdornment-root': {
+              marginLeft: -2,
+              marginRight: 2,
+            },
+            '& .MuiInputBase-root': {
+              minHeight: 28,
+              padding: 0,
+              '& .MuiButtonBase-root': {
                 padding: 0,
-                boxShadow: 'none',
+                // paddingRight: 3,
+                // paddingLeft: 10
               },
-              '.MuiPickersSectionList-root': {
-                padding: 1,
-                boxShadow: 'none',
-                borderStyle: 'none',
-              },
-              '.MuiInputAdornment-root': {
-                marginLeft: -2,
-                marginRight: 2,
-              },
-              '& .MuiInputBase-root': {
+              '& .MuiInputBase-input': {
+                height: '1.5rem',
                 padding: 0,
-                '& .MuiButtonBase-root': {
-                  padding: 0,
-                  // paddingRight: 3,
-                  // paddingLeft: 10
-                },
-                '& .MuiInputBase-input': {
-                  padding: 0,
-                  // paddingLeft: 1,
-                },
-                '& .MuiPickersInputBase-root': {
-                  padding: 0,
+                // paddingLeft: 1,
+              },
+              '& .MuiPickersInputBase-root': {
+                padding: 0,
                   border: 'none',
                   boxShadow: 'none',
                   '& .MuiPickersSectionList-root': {

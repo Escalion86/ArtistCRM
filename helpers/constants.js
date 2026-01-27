@@ -351,6 +351,14 @@ export const DEFAULT_USERS_NOTIFICATIONS = Object.freeze({
   telegram: { active: false, userName: null, id: null },
 })
 
+export const DEFAULT_GOOGLE_CALENDAR_REMINDERS = Object.freeze({
+  useDefault: false,
+  overrides: [
+    { method: 'popup', minutes: 60 },
+    { method: 'popup', minutes: 24 * 60 },
+  ],
+})
+
 export const DEFAULT_USER = Object.freeze({
   firstName: '',
   secondName: '',

@@ -1,4 +1,5 @@
 import {
+  DEFAULT_GOOGLE_CALENDAR_REMINDERS,
   DEFAULT_USERS_NOTIFICATIONS,
   DEFAULT_USERS_SECURITY,
 } from '@helpers/constants'
@@ -142,6 +143,19 @@ const usersSchema = {
       syncToken: { type: String, default: '' },
       connectedAt: { type: Date, default: null },
       email: { type: String, default: '' },
+      reminders: {
+        useDefault: {
+          type: Boolean,
+          default: DEFAULT_GOOGLE_CALENDAR_REMINDERS.useDefault,
+        },
+        overrides: {
+          type: Array,
+          default: () =>
+            DEFAULT_GOOGLE_CALENDAR_REMINDERS.overrides.map((item) => ({
+              ...item,
+            })),
+        },
+      },
     },
     default: () => ({}),
   },

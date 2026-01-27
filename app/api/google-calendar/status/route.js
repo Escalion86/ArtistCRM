@@ -28,6 +28,7 @@ export const GET = async () => {
         enabled: settings.enabled,
         calendarId: settings.calendarId,
         connectedAt: settings.connectedAt,
+        reminders: settings.reminders,
       },
     },
     { status: 200 }

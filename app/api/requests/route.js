@@ -159,7 +159,18 @@ const buildCalendarLink = (googleEventId, calendarId) => {
   return `https://www.google.com/calendar/event?eid=${base64Url(payload)}`
 }
 
-const buildRequestCalendarPayload = (request, timeZone = DEFAULT_TIME_ZONE) => {
+const buildCalendarReminders = (settings) => {
+  const reminders = settings?.reminders ?? {}
+  return reminders.useDefault
+    ? { useDefault: true }
+    : { useDefault: false, overrides: reminders.overrides ?? [] }
+}
+
+const buildRequestCalendarPayload = (
+  request,
+  timeZone = DEFAULT_TIME_ZONE,
+  settings
+) => {
   const hasEventDate = Boolean(request.eventDate)
   const fallbackDate = request.createdAt ? new Date(request.createdAt) : new Date()
   const startDate = hasEventDate ? new Date(request.eventDate) : fallbackDate
@@ -189,13 +200,7 @@ const buildRequestCalendarPayload = (request, timeZone = DEFAULT_TIME_ZONE) => {
     summary: `(Заявка) ${addressTitle}`,
     description: descriptionParts.join('\n'),
     location,
-    reminders: {
-      useDefault: false,
-      overrides: [
-        { method: 'email', minutes: 24 * 60 },
-        { method: 'popup', minutes: 10 },
-      ],
-    },
+    reminders: buildCalendarReminders(settings),
   }
 
   if (hasEventDate) {
@@ -225,7 +230,7 @@ const createRequestCalendarEvent = async (request, timeZone, user) => {
   if (!calendar) return null
   const calendarId = getUserCalendarId(user)
 
-  const resource = buildRequestCalendarPayload(request, timeZone)
+  const resource = buildRequestCalendarPayload(request, timeZone, settings)
   try {
     const response = await calendar.events.insert({
       calendarId,

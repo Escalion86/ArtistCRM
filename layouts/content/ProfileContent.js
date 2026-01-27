@@ -3,6 +3,7 @@ import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
 import InputImages from '@components/InputImages'
 import PhoneInput from '@components/PhoneInput'
+import IconCheckBox from '@components/IconCheckBox'
 import compareArrays from '@helpers/compareArrays'
 import { DEFAULT_USER } from '@helpers/constants'
 import useErrors from '@helpers/useErrors'
@@ -12,9 +13,44 @@ import usersAtom from '@state/atoms/usersAtom'
 import { useAtom, useAtomValue } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import { modalsFuncAtom } from '@state/atoms'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
+import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 
 const normalizePhone = (value) =>
   value ? String(value).replace(/[^\d]/g, '') : ''
+
+const DEFAULT_CALENDAR_REMINDERS = Object.freeze({
+  useDefault: false,
+  overrides: [
+    { method: 'popup', minutes: 60 },
+    { method: 'popup', minutes: 24 * 60 },
+  ],
+})
+
+const normalizeReminders = (value) => {
+  if (!value || typeof value !== 'object') return DEFAULT_CALENDAR_REMINDERS
+  const useDefault = Boolean(value.useDefault)
+  const overrides = Array.isArray(value.overrides)
+    ? value.overrides
+        .filter(
+          (item) =>
+            item &&
+            typeof item === 'object' &&
+            (item.method === 'email' || item.method === 'popup') &&
+            Number.isFinite(Number(item.minutes)) &&
+            Number(item.minutes) > 0
+        )
+        .map((item) => ({
+          method: item.method,
+          minutes: Number(item.minutes),
+        }))
+    : []
+  return {
+    useDefault,
+    overrides: overrides.length > 0 ? overrides : DEFAULT_CALENDAR_REMINDERS.overrides,
+  }
+}
 
 const ProfileContent = () => {
   const [loggedUser, setLoggedUser] = useAtom(loggedUserAtom)
@@ -46,6 +82,9 @@ const ProfileContent = () => {
   const [selectedCalendarId, setSelectedCalendarId] = useState('')
   const [calendarError, setCalendarError] = useState('')
   const [calendarLoading, setCalendarLoading] = useState(false)
+  const [calendarReminders, setCalendarReminders] = useState(
+    DEFAULT_CALENDAR_REMINDERS
+  )
 
   const [errors, checkErrors, addError, removeError, clearErrors] = useErrors()
 
@@ -77,6 +116,7 @@ const ProfileContent = () => {
         return
       }
       setCalendarStatus({ loading: false, ...result.data })
+      setCalendarReminders(normalizeReminders(result?.data?.reminders))
     } catch (error) {
       setCalendarError('Не удалось загрузить статус')
       setCalendarStatus((prev) => ({ ...prev, loading: false }))
@@ -171,9 +211,33 @@ const ProfileContent = () => {
       }
       setCalendarItems([])
       setSelectedCalendarId('')
+      setCalendarReminders(DEFAULT_CALENDAR_REMINDERS)
       await loadCalendarStatus()
     } catch (error) {
       setCalendarError('Не удалось отключить календарь')
+    }
+    setCalendarLoading(false)
+  }
+
+  const handleSaveReminders = async () => {
+    if (calendarLoading || calendarStatus.loading) return
+    setCalendarLoading(true)
+    setCalendarError('')
+    try {
+      const response = await fetch('/api/google-calendar/reminders', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reminders: calendarReminders }),
+      })
+      const result = await response.json()
+      if (!result?.success) {
+        setCalendarError(result?.error || 'Не удалось сохранить уведомления')
+        setCalendarLoading(false)
+        return
+      }
+      await loadCalendarStatus()
+    } catch (error) {
+      setCalendarError('Не удалось сохранить уведомления')
     }
     setCalendarLoading(false)
   }
@@ -437,6 +501,122 @@ const ProfileContent = () => {
                 </button>
               </div>
             ) : null}
+            <div className="mt-4 rounded border border-gray-200 bg-white p-3">
+              <div className="text-sm font-semibold text-gray-800">
+                Уведомления Google Calendar
+              </div>
+              <div className="mt-2">
+                <IconCheckBox
+                  checked={calendarReminders.useDefault}
+                  onClick={() =>
+                    setCalendarReminders((prev) => ({
+                      ...prev,
+                      useDefault: !prev.useDefault,
+                    }))
+                  }
+                  label="Использовать стандартные уведомления Google"
+                  small
+                  noMargin
+                  disabled={!calendarStatus.connected}
+                />
+              </div>
+              {!calendarReminders.useDefault && (
+                <div className="mt-2 flex flex-col gap-2">
+                  {calendarReminders.overrides.map((item, index) => (
+                    <div
+                      key={`calendar-reminder-${index}`}
+                      className="flex flex-wrap items-center gap-2"
+                    >
+                      <select
+                        className="h-9 rounded border border-gray-300 px-2 text-sm"
+                        value={item.method}
+                        onChange={(event) => {
+                          const method = event.target.value
+                          setCalendarReminders((prev) => ({
+                            ...prev,
+                            overrides: prev.overrides.map((row, idx) =>
+                              idx === index ? { ...row, method } : row
+                            ),
+                          }))
+                        }}
+                        disabled={!calendarStatus.connected}
+                      >
+                        <option value="popup">Уведомление</option>
+                        <option value="email">Email</option>
+                      </select>
+                      <input
+                        type="number"
+                        min={1}
+                        className="h-9 w-24 rounded border border-gray-300 px-2 text-sm"
+                        value={item.minutes}
+                        onChange={(event) => {
+                          const minutes = Number(event.target.value)
+                          setCalendarReminders((prev) => ({
+                            ...prev,
+                            overrides: prev.overrides.map((row, idx) =>
+                              idx === index
+                                ? { ...row, minutes: Number.isNaN(minutes) ? 0 : minutes }
+                                : row
+                            ),
+                          }))
+                        }}
+                        disabled={!calendarStatus.connected}
+                      />
+                      <span className="text-xs text-gray-500">минут до</span>
+                      <button
+                        type="button"
+                        className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
+                        onClick={() =>
+                          setCalendarReminders((prev) => ({
+                            ...prev,
+                            overrides: prev.overrides.filter(
+                              (_, idx) => idx !== index
+                            ),
+                          }))
+                        }
+                        disabled={!calendarStatus.connected}
+                        title="Удалить уведомление"
+                      >
+                        <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700"
+                    onClick={() =>
+                      setCalendarReminders((prev) => ({
+                        ...prev,
+                        overrides: [
+                          ...prev.overrides,
+                          { method: 'popup', minutes: 60 },
+                        ],
+                      }))
+                    }
+                    disabled={!calendarStatus.connected}
+                    title="Добавить уведомление"
+                  >
+                    <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
+                  </button>
+                </div>
+              )}
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                  onClick={handleSaveReminders}
+                  disabled={
+                    calendarLoading ||
+                    calendarStatus.loading ||
+                    !calendarStatus.connected ||
+                    (!calendarReminders.useDefault &&
+                      calendarReminders.overrides.length === 0)
+                  }
+                >
+                  Сохранить уведомления
+                </button>
+              </div>
+            </div>
           </div>
         ) : null}
         <div className="mt-4 flex items-center justify-between">

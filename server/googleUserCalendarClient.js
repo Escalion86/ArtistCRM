@@ -1,4 +1,5 @@
 import { google } from 'googleapis'
+import { DEFAULT_GOOGLE_CALENDAR_REMINDERS } from '@helpers/constants'
 
 const READ_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'
 const WRITE_SCOPE = 'https://www.googleapis.com/auth/calendar'
@@ -9,6 +10,32 @@ const getOAuthClient = () => {
   const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI
   if (!clientId || !clientSecret || !redirectUri) return null
   return new google.auth.OAuth2(clientId, clientSecret, redirectUri)
+}
+
+const normalizeCalendarReminders = (value) => {
+  if (!value || typeof value !== 'object') return DEFAULT_GOOGLE_CALENDAR_REMINDERS
+  const useDefault = Boolean(value.useDefault)
+  const overrides = Array.isArray(value.overrides)
+    ? value.overrides
+        .filter(
+          (item) =>
+            item &&
+            typeof item === 'object' &&
+            (item.method === 'email' || item.method === 'popup') &&
+            Number.isFinite(Number(item.minutes)) &&
+            Number(item.minutes) > 0
+        )
+        .map((item) => ({
+          method: item.method,
+          minutes: Number(item.minutes),
+        }))
+    : []
+
+  if (!useDefault && overrides.length === 0) return DEFAULT_GOOGLE_CALENDAR_REMINDERS
+  return {
+    useDefault,
+    overrides,
+  }
 }
 
 const normalizeCalendarSettings = (user) => {
@@ -23,6 +50,7 @@ const normalizeCalendarSettings = (user) => {
     syncToken: settings.syncToken || '',
     connectedAt: settings.connectedAt || null,
     email: settings.email || '',
+    reminders: normalizeCalendarReminders(settings.reminders),
   }
 }
 
@@ -73,6 +101,7 @@ export {
   getUserOAuthClient,
   getUserCalendarClient,
   listUserCalendars,
+  normalizeCalendarReminders,
   normalizeCalendarSettings,
   getUserCalendarId,
 }

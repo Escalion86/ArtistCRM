@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import { normalizeCalendarSettings } from '@server/googleUserCalendarClient'
 
 export const runtime = 'nodejs'
 
@@ -24,7 +25,9 @@ export const POST = async () => {
     )
   }
 
+  const settings = normalizeCalendarSettings(dbUser)
   dbUser.googleCalendar = {
+    ...settings,
     enabled: false,
     calendarId: '',
     refreshToken: '',

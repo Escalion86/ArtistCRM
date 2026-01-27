@@ -3,7 +3,10 @@ import { NextResponse } from 'next/server'
 import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
-import { getOAuthClient } from '@server/googleUserCalendarClient'
+import {
+  getOAuthClient,
+  normalizeCalendarReminders,
+} from '@server/googleUserCalendarClient'
 
 export const runtime = 'nodejs'
 
@@ -82,6 +85,7 @@ export const GET = async (req) => {
   const accessToken = tokens.access_token || prev.accessToken || ''
   const tokenExpiry =
     tokens.expiry_date ? new Date(tokens.expiry_date) : prev.tokenExpiry || null
+  const reminders = normalizeCalendarReminders(prev.reminders)
 
   existing.googleCalendar = {
     enabled: true,
@@ -93,6 +97,7 @@ export const GET = async (req) => {
     syncToken: '',
     connectedAt: new Date(),
     email: prev.email || '',
+    reminders,
   }
 
   await existing.save()

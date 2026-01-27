@@ -11,6 +11,7 @@ import DOMPurify from 'isomorphic-dompurify'
 // import Roles from '@models/Roles'
 import mongoose from 'mongoose'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
+import { TRANSACTION_CATEGORIES } from '@helpers/constants'
 import { NextResponse } from 'next/server'
 import {
   getUserCalendarClient,
@@ -122,6 +123,11 @@ const addBlankEventToCalendar = async (tenantId, user) => {
   if (!context) return null
   const { calendar, calendarId } = context
   const timeZone = await getSiteTimeZone(tenantId)
+  const settings = normalizeCalendarSettings(user)
+  const reminders = settings?.reminders ?? {}
+  const calendarReminders = reminders.useDefault
+    ? { useDefault: true }
+    : { useDefault: false, overrides: reminders.overrides ?? [] }
 
   const calendarEvent = {
     summary: '[blank]',
@@ -135,13 +141,7 @@ const addBlankEventToCalendar = async (tenantId, user) => {
       timeZone,
     },
     attendees: [],
-    reminders: {
-      useDefault: false,
-      overrides: [
-        { method: 'email', minutes: 24 * 60 },
-        { method: 'popup', minutes: 10 },
-      ],
-    },
+    reminders: calendarReminders,
   }
 
   const calendarEventData = await new Promise((resolve, reject) => {
@@ -296,6 +296,9 @@ const updateEventInCalendar = async (event, req, user) => {
   }
 
   const financeLines = []
+  const transactionCategoryMap = new Map(
+    TRANSACTION_CATEGORIES.map((item) => [item.value, item.name])
+  )
   if (typeof event?.contractSum === 'number' && event.contractSum > 0) {
     financeLines.push(`Договорная сумма: ${event.contractSum.toLocaleString()}`)
   }
@@ -315,9 +318,11 @@ const updateEventInCalendar = async (event, req, user) => {
           : 'без даты'
         const sign = transaction.type === 'expense' ? '-' : '+'
         const amountLabel = Number(transaction.amount ?? 0).toLocaleString()
-        const categoryLabel = transaction.category
-          ? `, ${transaction.category}`
+        const categoryName = transaction.category
+          ? transactionCategoryMap.get(transaction.category) ??
+            transaction.category
           : ''
+        const categoryLabel = categoryName ? `, ${categoryName}` : ''
         const commentLabel = transaction.comment
           ? ` — ${transaction.comment}`
           : ''
@@ -420,6 +425,12 @@ const updateEventInCalendar = async (event, req, user) => {
   const calendarTitle =
     titleParts.length > 0 ? titleParts.join(' • ') : 'Адрес не указан'
 
+  const settings = normalizeCalendarSettings(user)
+  const reminders = settings?.reminders ?? {}
+  const calendarReminders = reminders.useDefault
+    ? { useDefault: true }
+    : { useDefault: false, overrides: reminders.overrides ?? [] }
+
   const calendarEvent = {
     summary: `${
       event.status === 'canceled' ? '[ОТМЕНЕНО] ' : ''
@@ -455,13 +466,7 @@ const updateEventInCalendar = async (event, req, user) => {
     },
     location: calendarLocation,
     attendees: [],
-    reminders: {
-      useDefault: false,
-      overrides: [
-        { method: 'email', minutes: 24 * 60 },
-        { method: 'popup', minutes: 10 },
-      ],
-    },
+    reminders: calendarReminders,
     // visibility: event.showOnSite ? 'default' : 'private',
   }
 

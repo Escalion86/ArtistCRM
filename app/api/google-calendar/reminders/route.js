@@ -5,7 +5,7 @@ import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import {
-  listUserCalendars,
+  normalizeCalendarReminders,
   normalizeCalendarSettings,
 } from '@server/googleUserCalendarClient'
 
@@ -29,13 +29,12 @@ export const POST = async (req) => {
   }
 
   const body = await req.json()
-  const calendarId = String(body?.calendarId ?? '').trim()
-  if (!calendarId) {
-    return NextResponse.json(
-      { success: false, error: 'Не указан календарь' },
-      { status: 400 }
-    )
-  }
+  const reminders = normalizeCalendarReminders(
+    body?.reminders ?? {
+      useDefault: body?.useDefault,
+      overrides: body?.overrides,
+    }
+  )
 
   await dbConnect()
   const dbUser = await Users.findById(user._id)
@@ -47,32 +46,14 @@ export const POST = async (req) => {
   }
 
   const settings = normalizeCalendarSettings(dbUser)
-  if (!settings.refreshToken) {
-    return NextResponse.json(
-      { success: false, error: 'Google Calendar не подключен' },
-      { status: 400 }
-    )
-  }
-
-  const calendars = await listUserCalendars(dbUser)
-  const exists = calendars.some((item) => item.id === calendarId)
-  if (!exists) {
-    return NextResponse.json(
-      { success: false, error: 'Календарь не найден' },
-      { status: 404 }
-    )
-  }
-
   dbUser.googleCalendar = {
     ...settings,
-    enabled: true,
-    calendarId,
-    syncToken: '',
+    reminders,
   }
   await dbUser.save()
 
   return NextResponse.json(
-    { success: true, data: { calendarId } },
+    { success: true, data: { reminders } },
     { status: 200 }
   )
 }

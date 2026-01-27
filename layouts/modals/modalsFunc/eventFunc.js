@@ -5,6 +5,8 @@ import IconCheckBox from '@components/IconCheckBox'
 import Textarea from '@components/Textarea'
 import EventStatusPicker from '@components/ValuePicker/EventStatusPicker'
 import { faCircleCheck, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
+import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
+import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import ClientPicker from '@components/ClientPicker'
 import ColleaguePicker from '@components/ColleaguePicker'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -804,7 +806,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         </TabPanel>
 
         <TabPanel tabName="Финансы и Документы">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
             <Input
               label="Договорная сумма"
               type="number"
@@ -812,12 +814,14 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               onChange={setContractSum}
               min={0}
               step={1000}
+              noMargin
             />
             <Textarea
               label="Комментарий по финансам"
               value={financeComment}
               onChange={setFinanceComment}
               rows={2}
+              noMargin
             />
             <IconCheckBox
               checked={isByContract}
@@ -825,10 +829,11 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               label="По договору"
               checkedIcon={faCircleCheck}
               checkedIconColor="#2563EB"
+              noMargin
             />
             {isByContract && (
-              <div className="flex flex-col gap-3">
-                <InputWrapper label="Ссылки на счета">
+              <div className="flex flex-col gap-2">
+                <InputWrapper label="Ссылки на счета" noMargin>
                   <div className="flex flex-col gap-2">
                     {invoiceLinks.length === 0 && (
                       <div className="text-sm text-gray-500">
@@ -856,27 +861,29 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         />
                         <button
                           type="button"
-                          className="h-8 rounded border border-gray-200 px-2 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                          className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
                           onClick={() =>
                             setInvoiceLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
                             )
                           }
+                          title="Удалить ссылку"
                         >
-                          Удалить
+                          <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
                         </button>
                       </div>
                     ))}
                     <button
                       type="button"
-                      className="h-8 w-fit rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                      className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700"
                       onClick={() => setInvoiceLinks((prev) => [...prev, ''])}
+                      title="Добавить ссылку"
                     >
-                      Добавить ссылку
+                      <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
                     </button>
                   </div>
                 </InputWrapper>
-                <InputWrapper label="Ссылки на чеки">
+                <InputWrapper label="Ссылки на чеки" noMargin>
                   <div className="flex flex-col gap-2">
                     {receiptLinks.length === 0 && (
                       <div className="text-sm text-gray-500">
@@ -904,23 +911,25 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         />
                         <button
                           type="button"
-                          className="h-8 rounded border border-gray-200 px-2 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                          className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
                           onClick={() =>
                             setReceiptLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
                             )
                           }
+                          title="Удалить ссылку"
                         >
-                          Удалить
+                          <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
                         </button>
                       </div>
                     ))}
                     <button
                       type="button"
-                      className="h-8 w-fit rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                      className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700"
                       onClick={() => setReceiptLinks((prev) => [...prev, ''])}
+                      title="Добавить ссылку"
                     >
-                      Добавить ссылку
+                      <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
                     </button>
                   </div>
                 </InputWrapper>
@@ -933,11 +942,12 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               </div>
               <button
                 type="button"
-                className="rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => openTransactionModal()}
                 disabled={financeLoading || !event?._id || !event?.clientId}
+                title="Добавить транзакцию"
               >
-                Добавить транзакцию
+                <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
               </button>
             </div>
 
@@ -1001,23 +1011,25 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            className="rounded border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600"
                             onClick={() =>
                               openTransactionModal(transaction._id)
                             }
                             disabled={financeLoading}
+                            title="Редактировать транзакцию"
                           >
-                            Редактировать
+                            <FontAwesomeIcon className="h-4 w-4" icon={faPencilAlt} />
                           </button>
                           <button
                             type="button"
-                            className="rounded border border-red-300 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50"
+                            className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
                             onClick={() =>
                               handleDeleteTransaction(transaction._id)
                             }
                             disabled={financeLoading}
+                            title="Удалить транзакцию"
                           >
-                            Удалить
+                            <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
@@ -1070,23 +1082,25 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            className="rounded border border-gray-300 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600"
                             onClick={() =>
                               openTransactionModal(transaction._id)
                             }
                             disabled={financeLoading}
+                            title="Редактировать транзакцию"
                           >
-                            Редактировать
+                            <FontAwesomeIcon className="h-4 w-4" icon={faPencilAlt} />
                           </button>
                           <button
                             type="button"
-                            className="rounded border border-red-300 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50"
+                            className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
                             onClick={() =>
                               handleDeleteTransaction(transaction._id)
                             }
                             disabled={financeLoading}
+                            title="Удалить транзакцию"
                           >
-                            Удалить
+                            <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
