@@ -13,6 +13,7 @@ const ClientPicker = ({
   onSelectClick,
   onCreateClick,
   onViewClick,
+  onEditClick,
   disabled,
   label,
   required,
@@ -23,7 +24,16 @@ const ClientPicker = ({
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const handleEdit = () => {
-    if (selectedClientId && !disabled) modalsFunc.client?.edit(selectedClientId)
+    if (!selectedClientId || disabled) return
+    if (onEditClick) {
+      onEditClick()
+      return
+    }
+    if (onSelectClick) {
+      onSelectClick()
+      return
+    }
+    modalsFunc.client?.edit(selectedClientId)
   }
   const handleCreate = () => {
     if (disabled) return
@@ -85,7 +95,7 @@ const ClientPicker = ({
               compact ? 'h-9 w-9' : 'h-12 w-12'
             )}
             onClick={handleEdit}
-            title="Редактировать клиента"
+            title="Сменить клиента"
           >
             <FontAwesomeIcon className="h-5 w-5" icon={faPencilAlt} />
           </button>
@@ -118,6 +128,7 @@ ClientPicker.propTypes = {
   onSelectClick: PropTypes.func.isRequired,
   onCreateClick: PropTypes.func,
   onViewClick: PropTypes.func,
+  onEditClick: PropTypes.func,
   disabled: PropTypes.bool,
   label: PropTypes.string,
   required: PropTypes.bool,
@@ -139,6 +150,7 @@ ClientPicker.defaultProps = {
   compact: false,
   onCreateClick: null,
   onViewClick: null,
+  onEditClick: null,
 }
 
 export default ClientPicker
