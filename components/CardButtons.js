@@ -286,6 +286,7 @@ const CardButtons = ({
       menuPadding={false}
       openOnHover={!isTouchDevice}
       placement={dropDownPlacement}
+      renderInPortal
     >
       <div className="overflow-hidden rounded-lg">{items}</div>
     </DropDown>

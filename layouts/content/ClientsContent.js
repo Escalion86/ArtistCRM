@@ -110,7 +110,7 @@ const ClientsContent = () => {
           noMargin
         />
       </div>
-      <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="min-h-0 flex-1 overflow-visible rounded-lg border border-gray-200 bg-white shadow-sm">
         {clientsWithStats.length > 0 ? (
           <List
             rowCount={clientsWithStats.length}
