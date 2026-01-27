@@ -4,6 +4,7 @@ import Tariffs from '@models/Tariffs'
 import { getServerSession } from 'next-auth'
 import authOptions from './api/auth/[...nextauth]/_options'
 import { redirect } from 'next/navigation'
+import ThemeToggleButton from '@components/ThemeToggleButton'
 
 export const metadata = {
   title: 'ArtistCRM - CRM для артистов',
@@ -42,8 +43,8 @@ export default async function HomePage() {
 
   const publicTariffs = tariffs ?? []
   return (
-    <main className="relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
+    <main className="home-page relative overflow-hidden">
+      <div className="home-hero-bg absolute inset-0 pointer-events-none">
         <div className="absolute right-0 rounded-full from-general/40 -top-24 h-72 w-72 bg-gradient-to-br via-white/10 to-transparent blur-3xl" />
         <div className="via-general/20 absolute bottom-0 left-0 h-80 w-80 rounded-full bg-gradient-to-tr from-[#c9a86a]/30 to-transparent blur-3xl" />
         <div className="absolute inset-x-0 top-40 mx-auto h-64 w-[80%] bg-[radial-gradient(circle_at_center,rgba(201,168,106,0.22),transparent_60%)]" />
@@ -66,6 +67,15 @@ export default async function HomePage() {
             CRM — это система, где артист хранит клиентов, заявки, оплаты и
             историю выступлений в одном месте.
           </p>
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600 landing-reveal">
+            <span className="home-chip rounded-full bg-white/80 px-4 py-2 shadow-sm">
+              Все данные сохраняются в облаке и доступны с любого устройства
+            </span>
+            <div className="home-chip flex items-center gap-3 rounded-full bg-white/80 px-4 py-2 shadow-sm">
+              <span>Светлая / тёмная тема</span>
+              <ThemeToggleButton />
+            </div>
+          </div>
           <div className="flex flex-wrap items-center gap-4 mt-8 landing-reveal">
             <Link
               href="/login"
@@ -81,20 +91,20 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="flex flex-wrap gap-4 mt-10 text-sm text-gray-600 landing-reveal">
-            <span className="px-4 py-2 rounded-full shadow-sm bg-white/80">
+            <span className="home-chip px-4 py-2 rounded-full shadow-sm bg-white/80">
               Учет заявок и статусов
             </span>
-            <span className="px-4 py-2 rounded-full shadow-sm bg-white/80">
+            <span className="home-chip px-4 py-2 rounded-full shadow-sm bg-white/80">
               Финансовая картина по месяцам
             </span>
-            <span className="px-4 py-2 rounded-full shadow-sm bg-white/80">
+            <span className="home-chip px-4 py-2 rounded-full shadow-sm bg-white/80">
               Храните документы и чеки
             </span>
           </div>
         </div>
 
         <div className="relative flex-1">
-          <div className="p-6 border shadow-xl landing-reveal rounded-3xl border-white/70 bg-white/70 backdrop-blur">
+          <div className="home-panel p-6 border shadow-xl landing-reveal rounded-3xl border-white/70 bg-white/70 backdrop-blur">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold tracking-[0.24em] text-gray-500 uppercase">
@@ -117,20 +127,20 @@ export default async function HomePage() {
               ].map((item, index) => (
                 <div
                   key={item.title}
-                  className="flex items-center justify-between px-4 py-3 text-sm text-gray-700 bg-white border shadow-sm landing-stagger rounded-2xl border-gray-200/60"
+                  className="home-mini-card flex items-center justify-between px-4 py-3 text-sm text-gray-700 bg-white border shadow-sm landing-stagger rounded-2xl border-gray-200/60"
                   style={{ '--delay': `${index * 120 + 120}ms` }}
                 >
                   <span className="font-medium text-gray-900">
                     {item.title}
                   </span>
-                  <span className="px-3 py-1 text-xs font-semibold rounded-full bg-general/15 text-general">
+                  <span className="home-badge px-3 py-1 text-xs font-semibold rounded-full bg-general/15 text-general">
                     {item.status}
                   </span>
                 </div>
               ))}
             </div>
             <div className="grid gap-4 mt-6 sm:grid-cols-2">
-              <div className="p-4 rounded-2xl bg-gray-50">
+              <div className="home-mini-card p-4 rounded-2xl bg-gray-50">
                 <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
                   Доходы
                 </p>
@@ -141,7 +151,7 @@ export default async function HomePage() {
                   +18% к прошлому месяцу
                 </p>
               </div>
-              <div className="p-4 rounded-2xl bg-gray-50">
+              <div className="home-mini-card p-4 rounded-2xl bg-gray-50">
                 <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
                   Активные клиенты
                 </p>
@@ -152,7 +162,7 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-          <div className="hidden p-5 border shadow-lg landing-reveal w-60 rounded-3xl border-white/70 bg-white/80 backdrop-blur lg:static lg:mt-6 lg:block xl:absolute xl:-right-6 xl:-bottom-6">
+          <div className="home-panel hidden p-5 border shadow-lg landing-reveal w-60 rounded-3xl border-white/70 bg-white/80 backdrop-blur lg:static lg:mt-6 lg:block xl:absolute xl:-right-6 xl:-bottom-6">
             <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
               Синхронизация
             </p>
@@ -167,7 +177,7 @@ export default async function HomePage() {
       </section>
 
       <section className="relative max-w-6xl px-6 pb-16 mx-auto">
-        <div className="p-8 shadow-lg landing-reveal rounded-3xl bg-white/70 backdrop-blur sm:p-10">
+        <div className="home-panel p-8 shadow-lg landing-reveal rounded-3xl bg-white/70 backdrop-blur sm:p-10">
           <div className="grid gap-8 lg:grid-cols-3">
             <div>
               <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
@@ -193,7 +203,7 @@ export default async function HomePage() {
               ].map((item, index) => (
                 <div
                   key={item}
-                  className="px-4 py-4 text-sm text-gray-700 bg-white border shadow-sm landing-stagger rounded-2xl border-gray-200/60"
+                  className="home-mini-card px-4 py-4 text-sm text-gray-700 bg-white border shadow-sm landing-stagger rounded-2xl border-gray-200/60"
                   style={{ '--delay': `${index * 120 + 120}ms` }}
                 >
                   <div className="flex items-start gap-3">
@@ -209,7 +219,7 @@ export default async function HomePage() {
 
       <section className="relative max-w-6xl px-6 pb-16 mx-auto">
         <div className="grid gap-8 lg:grid-cols-2">
-          <div className="p-8 border shadow-lg landing-reveal border-general/20 to-general/10 rounded-3xl bg-gradient-to-br from-white via-white">
+          <div className="home-panel home-panel--light p-8 border shadow-lg landing-reveal border-general/20 to-general/10 rounded-3xl bg-gradient-to-br from-white via-white">
             <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
               Как это работает
             </p>
@@ -233,7 +243,7 @@ export default async function HomePage() {
             </ol>
           </div>
 
-          <div className="p-8 border shadow-lg landing-reveal rounded-3xl border-white/70 bg-white/70 backdrop-blur">
+          <div className="home-panel p-8 border shadow-lg landing-reveal rounded-3xl border-white/70 bg-white/70 backdrop-blur">
             <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
               Работа с клиентами
             </p>
@@ -244,7 +254,7 @@ export default async function HomePage() {
               Вы видите, кто и когда обращался, какое мероприятие обсуждалось, и
               на каком этапе сейчас находится сделка.
             </p>
-            <div className="px-4 py-4 mt-6 text-sm text-gray-700 bg-white border rounded-2xl border-gray-200/60">
+            <div className="home-mini-card px-4 py-4 mt-6 text-sm text-gray-700 bg-white border rounded-2xl border-gray-200/60">
               <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
                 В планах
               </p>
@@ -303,8 +313,8 @@ export default async function HomePage() {
                 key={tariff._id}
                 className={`landing-reveal rounded-3xl border ${
                   index % 2 === 0
-                    ? 'border-gray-200/70 bg-white'
-                    : 'border-general/30 bg-gradient-to-br from-general/10 via-white to-white'
+                    ? 'home-panel border-gray-200/70 bg-white'
+                    : 'home-panel border-general/30 bg-gradient-to-br from-general/10 via-white to-white'
                 } p-8 shadow-lg`}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -330,7 +340,7 @@ export default async function HomePage() {
             )
             })
           ) : (
-            <div className="p-8 text-sm text-gray-500 bg-white border shadow-lg rounded-3xl border-gray-200/70">
+            <div className="home-panel p-8 text-sm text-gray-500 bg-white border shadow-lg rounded-3xl border-gray-200/70">
               Тарифы пока не настроены. Скоро здесь появятся варианты
               подписки.
             </div>
@@ -338,7 +348,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-gray-200/70 bg-white/70">
+      <footer className="home-footer border-t border-gray-200/70 bg-white/70">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-8 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} ArtistCRM</span>
           <div className="flex flex-wrap gap-4">
