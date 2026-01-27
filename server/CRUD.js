@@ -339,23 +339,40 @@ const updateEventInCalendar = async (event, req, user) => {
       preparedText = preparedText.replaceAll(aTags[i], linkAReformer(aTags[i]))
   }
 
-  const rawStart = event.dateStart ?? event.eventDate ?? event.dateEnd ?? null
+  const rawStart = event.eventDate ?? event.dateStart ?? event.dateEnd ?? null
   const rawEnd =
     event.dateEnd ??
     (rawStart ? new Date(new Date(rawStart).getTime() + 60 * 60 * 1000) : null)
   const startDate = rawStart ? new Date(rawStart) : null
   const endDate = rawEnd ? new Date(rawEnd) : null
-  let startDateTime =
-    startDate && !Number.isNaN(startDate.getTime())
-      ? startDate.toISOString()
-      : null
-  let endDateTime =
-    endDate && !Number.isNaN(endDate.getTime()) ? endDate.toISOString() : null
-  if (startDateTime) {
-    const startMs = new Date(startDateTime).getTime()
-    const endMs = endDateTime ? new Date(endDateTime).getTime() : NaN
+  const isValidDate = (value) =>
+    value instanceof Date && !Number.isNaN(value.getTime())
+  const formatDateTimeInZone = (value, zone) => {
+    if (!isValidDate(value)) return null
+    const parts = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: zone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).formatToParts(value)
+    const map = Object.fromEntries(
+      parts.map((part) => [part.type, part.value])
+    )
+    return `${map.year}-${map.month}-${map.day}T${map.hour}:${map.minute}:${map.second}`
+  }
+  let startDateTime = formatDateTimeInZone(startDate, timeZone)
+  let endDateTime = formatDateTimeInZone(endDate, timeZone)
+  if (startDateTime && isValidDate(startDate)) {
+    const startMs = startDate.getTime()
+    const endMs = isValidDate(endDate) ? endDate.getTime() : NaN
     if (!Number.isFinite(endMs) || endMs <= startMs) {
-      endDateTime = new Date(startMs + 60 * 60 * 1000).toISOString()
+      endDateTime = formatDateTimeInZone(
+        new Date(startMs + 60 * 60 * 1000),
+        timeZone
+      )
     }
   }
   console.log('Google Calendar event time', {
