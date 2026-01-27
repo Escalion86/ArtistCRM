@@ -315,8 +315,12 @@ const updateEventInCalendar = async (event, req, user) => {
           : 'без даты'
         const sign = transaction.type === 'expense' ? '-' : '+'
         const amountLabel = Number(transaction.amount ?? 0).toLocaleString()
-        const categoryLabel = transaction.category ? `, ${transaction.category}` : ''
-        const commentLabel = transaction.comment ? ` — ${transaction.comment}` : ''
+        const categoryLabel = transaction.category
+          ? `, ${transaction.category}`
+          : ''
+        const commentLabel = transaction.comment
+          ? ` — ${transaction.comment}`
+          : ''
         return `- ${dateLabel}: ${sign}${amountLabel}${categoryLabel}${commentLabel}`
       })
       financeLines.push('Транзакции:')
@@ -335,19 +339,18 @@ const updateEventInCalendar = async (event, req, user) => {
       preparedText = preparedText.replaceAll(aTags[i], linkAReformer(aTags[i]))
   }
 
-  const rawStart =
-    event.dateStart ?? event.eventDate ?? event.dateEnd ?? null
+  const rawStart = event.dateStart ?? event.eventDate ?? event.dateEnd ?? null
   const rawEnd =
     event.dateEnd ??
     (rawStart ? new Date(new Date(rawStart).getTime() + 60 * 60 * 1000) : null)
   const startDate = rawStart ? new Date(rawStart) : null
   const endDate = rawEnd ? new Date(rawEnd) : null
-  let startDateTime = startDate && !Number.isNaN(startDate.getTime())
-    ? startDate.toISOString()
-    : null
-  let endDateTime = endDate && !Number.isNaN(endDate.getTime())
-    ? endDate.toISOString()
-    : null
+  let startDateTime =
+    startDate && !Number.isNaN(startDate.getTime())
+      ? startDate.toISOString()
+      : null
+  let endDateTime =
+    endDate && !Number.isNaN(endDate.getTime()) ? endDate.toISOString() : null
   if (startDateTime) {
     const startMs = new Date(startDateTime).getTime()
     const endMs = endDateTime ? new Date(endDateTime).getTime() : NaN
@@ -445,15 +448,14 @@ const updateEventInCalendar = async (event, req, user) => {
     // visibility: event.showOnSite ? 'default' : 'private',
   }
 
-
   if (!event.googleCalendarId) {
     console.log('Создаем новое событие в календаре')
     const createdCalendarEvent = await new Promise((resolve, reject) => {
       calendar.events.insert(
         {
-        calendarId: effectiveCalendarId,
-        resource: calendarEvent,
-      },
+          calendarId: effectiveCalendarId,
+          resource: calendarEvent,
+        },
         (error, result) => {
           if (error) {
             console.log({ error })
@@ -505,7 +507,7 @@ const updateEventInCalendar = async (event, req, user) => {
           // res.send(JSON.stringify({ error: error }))
         } else {
           if (result) {
-            console.log(result)
+            // console.log(result)
             resolve(result)
             // res.send(JSON.stringify({ events: result.data.items }))
           } else {
