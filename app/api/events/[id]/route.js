@@ -6,11 +6,7 @@ import { deleteEventFromCalendar, updateEventInCalendar } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 
-const EVENT_STATUSES = new Set([
-  'canceled',
-  'active',
-  'closed',
-])
+const EVENT_STATUSES = new Set(['canceled', 'active', 'closed'])
 
 const DEFAULT_ADDRESS = {
   town: '',
@@ -33,10 +29,7 @@ const normalizeAddress = (rawAddress, legacyLocation) => {
   }
 
   const hasMainFields =
-    normalized.town ||
-    normalized.street ||
-    normalized.house ||
-    normalized.flat
+    normalized.town || normalized.street || normalized.house || normalized.flat
 
   if (legacyLocation && !normalized.comment && !hasMainFields) {
     normalized.comment = legacyLocation
@@ -155,7 +148,8 @@ export const PUT = async (req, { params }) => {
   }
   if (body.contractSum !== undefined)
     update.contractSum = Number(body.contractSum) || 0
-  if (body.description !== undefined) update.description = body.description ?? ''
+  if (body.description !== undefined)
+    update.description = body.description ?? ''
   if (body.invoiceLinks !== undefined)
     update.invoiceLinks = Array.isArray(body.invoiceLinks)
       ? body.invoiceLinks
@@ -165,9 +159,7 @@ export const PUT = async (req, { params }) => {
       ? body.receiptLinks
       : []
   if (body.servicesIds !== undefined)
-    update.servicesIds = Array.isArray(body.servicesIds)
-      ? body.servicesIds
-      : []
+    update.servicesIds = Array.isArray(body.servicesIds) ? body.servicesIds : []
   if (body.otherContacts !== undefined)
     update.otherContacts = normalizeOtherContacts(body.otherContacts)
   if (body.calendarImportChecked !== undefined)
@@ -177,13 +169,12 @@ export const PUT = async (req, { params }) => {
     update.isTransferred = Boolean(body.isTransferred)
     if (!update.isTransferred) update.colleagueId = null
   }
-  if (body.status && EVENT_STATUSES.has(body.status)) update.status = body.status
+  if (body.status && EVENT_STATUSES.has(body.status))
+    update.status = body.status
 
-  const event = await Events.findOneAndUpdate(
-    { _id: id, tenantId },
-    update,
-    { new: true }
-  )
+  const event = await Events.findOneAndUpdate({ _id: id, tenantId }, update, {
+    new: true,
+  })
   if (!event)
     return NextResponse.json(
       { success: false, error: 'Мероприятие не найдено' },
@@ -221,8 +212,8 @@ export const DELETE = async (req, { params }) => {
     await Requests.findOneAndUpdate(
       { _id: deleted.requestId, tenantId },
       {
-      status: 'canceled',
-      eventId: null,
+        status: 'canceled',
+        eventId: null,
       }
     )
   }

@@ -29,6 +29,7 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import Input from '@components/Input'
 import AddressPicker from '@components/AddressPicker'
 import InputWrapper from '@components/InputWrapper'
+import OtherContactsPicker from '@components/OtherContactsPicker'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import ServiceMultiSelect from '@components/ServiceMultiSelect'
@@ -113,7 +114,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       event?.clientId ?? request?.clientId ?? DEFAULT_EVENT.clientId
     )
     const [status, setStatus] = useState(
-      event?.status ?? (requestId ? 'planned' : DEFAULT_EVENT.status)
+      event?.status ?? DEFAULT_EVENT.status
     )
     const [eventDate, setEventDate] = useState(
       event?.eventDate ?? request?.eventDate ?? DEFAULT_EVENT.eventDate
@@ -209,7 +210,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       return {
         clientId:
           event?.clientId ?? request?.clientId ?? DEFAULT_EVENT.clientId,
-        status: event?.status ?? (requestId ? 'planned' : DEFAULT_EVENT.status),
+        status: event?.status ?? DEFAULT_EVENT.status,
         eventDate:
           event?.eventDate ?? request?.eventDate ?? DEFAULT_EVENT.eventDate,
         address: (() => {
@@ -689,70 +690,16 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               error={errors.clientId}
               paddingY
               fullWidth
+              compact
             />
-            <InputWrapper label="Прочие контакты" fullWidth>
-              <div className="flex w-full flex-col gap-2">
-                {otherContacts.map((contact, index) => {
-                  const contactClient = clients.find(
-                    (client) => client._id === contact.clientId
-                  )
-                  const contactName =
-                    [contactClient?.firstName, contactClient?.secondName]
-                      .filter(Boolean)
-                      .join(' ') || 'Выберите клиента'
-                    return (
-                      <div
-                        key={`other-contact-${index}`}
-                        className="flex flex-col gap-2 rounded border border-gray-200 bg-gray-50 p-2 tablet:flex-row tablet:items-start"
-                      >
-                        <div className="flex w-full flex-1 flex-col gap-2 tablet:grid tablet:grid-cols-2">
-                          <button
-                            type="button"
-                            className="hover:shadow-card flex w-full cursor-pointer items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition"
-                            onClick={() => handleOtherContactSelect(index)}
-                          >
-                            <span className="font-semibold text-gray-900">
-                              {contactName}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {contactClient?.phone
-                                ? `+${contactClient.phone}`
-                                : 'Телефон не указан'}
-                            </span>
-                          </button>
-                          <Input
-                            label="Кем является"
-                            value={contact.comment}
-                            onChange={(value) =>
-                              handleOtherContactCommentChange(index, value)
-                            }
-                            noMargin
-                            fullWidth
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
-                          onClick={() => handleOtherContactRemove(index)}
-                          title="Удалить"
-                        >
-                          <FontAwesomeIcon
-                            icon={faTrashAlt}
-                            className="h-4 w-4"
-                          />
-                        </button>
-                      </div>
-                    )
-                })}
-                <button
-                  type="button"
-                  className="h-9 w-fit cursor-pointer rounded border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
-                  onClick={handleOtherContactAdd}
-                >
-                  Добавить контакт
-                </button>
-              </div>
-            </InputWrapper>
+            <OtherContactsPicker
+              contacts={otherContacts}
+              clients={clients}
+              onSelectContact={handleOtherContactSelect}
+              onChangeComment={handleOtherContactCommentChange}
+              onRemoveContact={handleOtherContactRemove}
+              onAddContact={handleOtherContactAdd}
+            />
 
             <div className="flex flex-wrap items-center gap-x-1">
               <DateTimePicker

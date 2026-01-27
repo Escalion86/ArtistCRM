@@ -50,8 +50,9 @@ const AddressPicker = ({
       required={required}
       paddingY={false}
       paddingX="small"
+      centerLabel={true}
     >
-      <div className="mt-0.5 flex-1">
+      <div className="mt-0.5 mb-1 flex-1">
         <FormWrapper className="mt-3 mb-1 flex flex-wrap gap-x-2 gap-y-3">
           <div className="flex flex-1 items-center gap-x-1">
             <ComboBox
@@ -77,7 +78,7 @@ const AddressPicker = ({
             )}
           </div>
         </FormWrapper>
-        <FormWrapper className="mt-3 mb-1 flex flex-wrap gap-x-2 gap-y-3">
+        <FormWrapper className="mt-1 mb-1 flex flex-wrap gap-x-2 gap-y-3">
           <Input
             label="Улица"
             type="text"
@@ -85,7 +86,7 @@ const AddressPicker = ({
             onChange={(street) => onChange({ ...address, street })}
             error={errors?.address?.street}
             noMargin
-            className="min-w-48 flex-1"
+            className="min-w-24 flex-1"
           />
           <Input
             label="Дом"
@@ -94,10 +95,10 @@ const AddressPicker = ({
             onChange={(house) => onChange({ ...address, house })}
             error={errors?.address?.house}
             noMargin
-            className="min-w-48 flex-1"
+            className="min-w-24 flex-1"
           />
         </FormWrapper>
-        <FormWrapper className="mt-3 mb-1 flex flex-wrap gap-x-2 gap-y-3">
+        <FormWrapper className="mt-1 mb-1 flex flex-wrap gap-x-2 gap-y-3">
           <Input
             label="Подъезд"
             type="text"
@@ -105,7 +106,7 @@ const AddressPicker = ({
             onChange={(entrance) => onChange({ ...address, entrance })}
             error={errors?.address?.entrance}
             noMargin
-            className="min-w-32 flex-1"
+            className="min-w-12 flex-1"
           />
           <Input
             label="Этаж"
@@ -114,7 +115,7 @@ const AddressPicker = ({
             onChange={(floor) => onChange({ ...address, floor })}
             error={errors?.address?.floor}
             noMargin
-            className="min-w-32 flex-1"
+            className="min-w-12 flex-1"
           />
           <Input
             label="Кв. / Офис"
@@ -123,10 +124,18 @@ const AddressPicker = ({
             onChange={(flat) => onChange({ ...address, flat })}
             error={errors?.address?.flat}
             noMargin
-            className="min-w-32 flex-1"
+            className="min-w-12 flex-1"
           />
         </FormWrapper>
-        <FormWrapper className="mt-3 mb-1 flex flex-wrap gap-x-2 gap-y-3">
+        <Input
+          label="Уточнения по адресу"
+          type="text"
+          value={address.comment}
+          onChange={(comment) => onChange({ ...address, comment })}
+          noMargin
+          error={errors?.address?.comment}
+        />
+        <FormWrapper className="mt-1 mb-1 flex flex-wrap gap-x-2 gap-y-3">
           <Input
             label="Широта"
             type="text"
@@ -134,7 +143,7 @@ const AddressPicker = ({
             onChange={(latitude) => onChange({ ...address, latitude })}
             error={errors?.address?.latitude}
             noMargin
-            className="min-w-48 flex-1"
+            className="min-w-24 flex-1"
           />
           <Input
             label="Долгота"
@@ -143,18 +152,11 @@ const AddressPicker = ({
             onChange={(longitude) => onChange({ ...address, longitude })}
             error={errors?.address?.longitude}
             noMargin
-            className="min-w-48 flex-1"
+            className="min-w-24 flex-1"
           />
         </FormWrapper>
-        <Input
-          label="Уточнения по адресу"
-          type="text"
-          value={address.comment}
-          onChange={(comment) => onChange({ ...address, comment })}
-          error={errors?.address?.comment}
-        />
         <div className="flex flex-wrap items-end justify-between gap-x-2">
-          <ImageCheckBox
+          {/* <ImageCheckBox
             checked={address.link2GisShow}
             onClick={() =>
               onChange({ ...address, link2GisShow: !address.link2GisShow })
@@ -163,7 +165,7 @@ const AddressPicker = ({
             src="/img/navigators/2gis.png"
             big
             alt="2gis"
-          />
+          /> */}
           {address.link2GisShow &&
             (address.link2Gis || (address?.town && address?.street)) && (
               <div className="flex flex-1 justify-end">
@@ -194,8 +196,8 @@ const AddressPicker = ({
             className="mt-0.5"
           />
         )}
-        <div className="flex flex-wrap items-end justify-between gap-x-2">
-          <ImageCheckBox
+        <div className="mt-1 flex flex-wrap items-end justify-between gap-x-2">
+          {/* <ImageCheckBox
             checked={address.linkYandexShow}
             onClick={() =>
               onChange({ ...address, linkYandexShow: !address.linkYandexShow })
@@ -204,7 +206,7 @@ const AddressPicker = ({
             src="/img/navigators/yandex.png"
             big
             alt="yandex_nav"
-          />
+          /> */}
           {address.linkYandexShow &&
             (address.linkYandexNavigator ||
               (address?.town && address?.street)) && (
@@ -238,12 +240,12 @@ const AddressPicker = ({
             className="mt-0.5"
           />
         )}
-        {(address.linkYandexShow || address.link2GisShow) && (
+        {/* {(address.linkYandexShow || address.link2GisShow) && (
           <Note>
             Если ссылка не указана, то будет сгенерирована автоматически исходя
             из данных адреса
           </Note>
-        )}
+        )} */}
       </div>
     </InputWrapper>
   )

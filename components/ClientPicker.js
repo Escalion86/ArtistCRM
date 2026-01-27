@@ -5,6 +5,7 @@ import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
 import InputWrapper from '@components/InputWrapper'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
+import cn from 'classnames'
 
 const ClientPicker = ({
   selectedClient,
@@ -18,6 +19,7 @@ const ClientPicker = ({
   error,
   paddingY,
   fullWidth,
+  compact,
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const handleEdit = () => {
@@ -35,16 +37,24 @@ const ClientPicker = ({
     >
       <div className="flex w-full flex-wrap items-center gap-2">
         <div
-          className="flex flex-1 cursor-pointer justify-between rounded border border-gray-300 bg-white p-3 shadow-sm transition hover:shadow-card"
+          className={cn(
+            'hover:shadow-card flex flex-1 cursor-pointer justify-between rounded border border-gray-300 bg-white shadow-sm transition',
+            compact ? 'px-3 py-2 text-sm' : 'p-3'
+          )}
           onClick={
             disabled
               ? undefined
               : selectedClientId && onViewClick
-              ? onViewClick
-              : onSelectClick
+                ? onViewClick
+                : onSelectClick
           }
         >
-          <div className="text-base font-semibold text-gray-900">
+          <div
+            className={cn(
+              'font-semibold text-gray-900',
+              compact ? 'text-sm' : 'text-base'
+            )}
+          >
             {[selectedClient?.firstName, selectedClient?.secondName]
               .filter(Boolean)
               .join(' ') || 'Не выбрано'}
@@ -62,7 +72,10 @@ const ClientPicker = ({
         {selectedClientId && !disabled && (
           <button
             type="button"
-            className="action-icon-button flex h-[50px] w-[50px] cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600"
+            className={cn(
+              'action-icon-button flex cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600',
+              compact ? 'h-9 w-9' : 'h-12 w-12'
+            )}
             onClick={handleEdit}
             title="Редактировать клиента"
           >
@@ -72,7 +85,10 @@ const ClientPicker = ({
         {!disabled && (
           <button
             type="button"
-            className="action-icon-button flex h-[50px] w-[50px] cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700"
+            className={cn(
+              'action-icon-button flex cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700',
+              compact ? 'h-9 w-9' : 'h-12 w-12'
+            )}
             onClick={onCreateClick}
             title="Создать нового клиента"
           >
@@ -100,6 +116,7 @@ ClientPicker.propTypes = {
   error: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
   paddingY: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
   fullWidth: PropTypes.bool,
+  compact: PropTypes.bool,
 }
 
 ClientPicker.defaultProps = {
@@ -111,6 +128,7 @@ ClientPicker.defaultProps = {
   error: null,
   paddingY: true,
   fullWidth: false,
+  compact: false,
   onCreateClick: null,
   onViewClick: null,
 }

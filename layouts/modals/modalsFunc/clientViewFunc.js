@@ -5,6 +5,7 @@ import eventsAtom from '@state/atoms/eventsAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import CardButtons from '@components/CardButtons'
+import ContactsIconsButtons from '@components/ContactsIconsButtons'
 
 const CardButtonsComponent = ({ client, onEdit }) => (
   <CardButtons
@@ -107,6 +108,9 @@ const clientViewFunc = (clientId) => {
           )}
           <div className="mt-1 text-gray-600">
             {client.phone ? `+${client.phone}` : 'Телефон не указан'}
+          </div>
+          <div className="mt-2">
+            <ContactsIconsButtons user={client} />
           </div>
         </div>
 

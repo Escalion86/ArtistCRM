@@ -19,6 +19,7 @@ import { postData } from '@helpers/CRUD'
 import ServiceMultiSelect from '@components/ServiceMultiSelect'
 import serviceFunc from './serviceFunc'
 import InputWrapper from '@components/InputWrapper'
+import OtherContactsPicker from '@components/OtherContactsPicker'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 
@@ -453,84 +454,33 @@ const requestFunc = (requestId, clone = false) => {
           required
           onClearError={() => removeError('servicesIds')}
         />
-        <ClientPicker
-          selectedClient={selectedClient}
-          selectedClientId={clientId}
-          onSelectClick={openClientSelectModal}
-          onViewClick={() => modalsFunc.client?.view(clientId)}
-          onCreateClick={() =>
-            modalsFunc.client?.add((newClient) => {
-              if (!newClient?._id) return
-              setClientId(newClient._id)
-              removeError('clientId')
-            })
-          }
-          label="Клиент"
-          required
-          error={errors.clientId}
-          paddingY
-          fullWidth
+          <ClientPicker
+            selectedClient={selectedClient}
+            selectedClientId={clientId}
+            onSelectClick={openClientSelectModal}
+            onViewClick={() => modalsFunc.client?.view(clientId)}
+            onCreateClick={() =>
+              modalsFunc.client?.add((newClient) => {
+                if (!newClient?._id) return
+                setClientId(newClient._id)
+                removeError('clientId')
+              })
+            }
+            label="Клиент"
+            required
+            error={errors.clientId}
+            paddingY
+            fullWidth
+            compact
+          />
+        <OtherContactsPicker
+          contacts={otherContacts}
+          clients={clients}
+          onSelectContact={handleOtherContactSelect}
+          onChangeComment={handleOtherContactCommentChange}
+          onRemoveContact={handleOtherContactRemove}
+          onAddContact={handleOtherContactAdd}
         />
-        <InputWrapper label="Прочие контакты" fullWidth>
-          <div className="flex w-full flex-col gap-2">
-            {otherContacts.map((contact, index) => {
-              const contactClient = clients.find(
-                (client) => client._id === contact.clientId
-              )
-              const contactName =
-                [contactClient?.firstName, contactClient?.secondName]
-                  .filter(Boolean)
-                  .join(' ') || 'Выберите клиента'
-              return (
-                <div
-                  key={`other-contact-${index}`}
-                  className="flex flex-col gap-2 rounded border border-gray-200 bg-gray-50 p-2 tablet:flex-row tablet:items-start"
-                >
-                  <div className="flex w-full flex-1 flex-col gap-2 tablet:grid tablet:grid-cols-2">
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:shadow-card cursor-pointer"
-                      onClick={() => handleOtherContactSelect(index)}
-                    >
-                      <span className="font-semibold text-gray-900">
-                        {contactName}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {contactClient?.phone
-                          ? `+${contactClient.phone}`
-                          : 'Телефон не указан'}
-                      </span>
-                    </button>
-                    <Input
-                      label="Кем является"
-                      value={contact.comment}
-                      onChange={(value) =>
-                        handleOtherContactCommentChange(index, value)
-                      }
-                      noMargin
-                      fullWidth
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className="flex h-9 w-9 items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50 cursor-pointer"
-                    onClick={() => handleOtherContactRemove(index)}
-                    title="Удалить"
-                  >
-                    <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
-                  </button>
-                </div>
-              )
-          })}
-            <button
-              type="button"
-              className="h-9 w-fit rounded border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 cursor-pointer"
-              onClick={handleOtherContactAdd}
-            >
-              Добавить контакт
-            </button>
-          </div>
-        </InputWrapper>
         <DateTimePicker
           value={createdAt}
           onChange={(value) => {

@@ -16,15 +16,12 @@ import errorAtom from '@state/atoms/errorAtom'
 import LoadingSpinner from '@components/LoadingSpinner'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faClock,
-  faHandHoldingDollar,
   faShare,
   faTriangleExclamation,
   faCircleCheck,
   faBan,
   faUserSlash,
 } from '@fortawesome/free-solid-svg-icons'
-import SvgSigma from 'svg/SvgSigma'
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 
@@ -65,36 +62,54 @@ const EventCard = ({ eventId, style }) => {
     return titles.length > 0 ? titles.join(', ') : 'Услуга не указана'
   }, [event?.servicesIds, services])
 
-  const { contractSum, paid, leftToPay, status } = useMemo(() => {
-    if (!event) return { contractSum: 0, paid: 0, leftToPay: 0, status: null }
+  const { contractSum, paid, leftToPay, status, expense, net, canClose } =
+    useMemo(() => {
+      if (!event)
+        return {
+          contractSum: 0,
+          paid: 0,
+          leftToPay: 0,
+          expense: 0,
+          net: 0,
+          status: null,
+          canClose: false,
+        }
 
-    const eventTransactions = transactions
-      .filter((transaction) => transaction.eventId === event._id)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      const eventTransactions = transactions
+        .filter((transaction) => transaction.eventId === event._id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-    const totals = eventTransactions.reduce(
-      (acc, transaction) => {
-        if (transaction.type === 'income') acc.income += transaction.amount
-        else acc.expense += transaction.amount
-        return acc
-      },
-      { income: 0, expense: 0 }
-    )
+      const totals = eventTransactions.reduce(
+        (acc, transaction) => {
+          if (transaction.type === 'income') acc.income += transaction.amount
+          else acc.expense += transaction.amount
+          return acc
+        },
+        { income: 0, expense: 0 }
+      )
 
-    const contractSumValue = Number(event.contractSum ?? 0)
-    const paidValue = totals.income
-    const leftToPayValue = Math.max(contractSumValue - paidValue, 0)
-    const statusValue =
-      EVENT_STATUSES_SIMPLE.find((item) => item.value === event.status) ??
-      EVENT_STATUSES.find((item) => item.value === event.status)
+      const contractSumValue = Number(event.contractSum ?? 0)
+      const paidValue = totals.income
+      const leftToPayValue = Math.max(contractSumValue - paidValue, 0)
+      const statusValue =
+        EVENT_STATUSES_SIMPLE.find((item) => item.value === event.status) ??
+        EVENT_STATUSES.find((item) => item.value === event.status)
+      const hasTaxes = eventTransactions.some(
+        (transaction) => transaction.category === 'taxes'
+      )
+      const canCloseValue =
+        contractSumValue <= paidValue && (!event?.isByContract || hasTaxes)
 
-    return {
-      contractSum: contractSumValue,
-      paid: paidValue,
-      leftToPay: leftToPayValue,
-      status: statusValue,
-    }
-  }, [event, transactions])
+      return {
+        contractSum: contractSumValue,
+        paid: paidValue,
+        leftToPay: leftToPayValue,
+        expense: totals.expense,
+        net: totals.income - totals.expense,
+        status: statusValue,
+        canClose: canCloseValue,
+      }
+    }, [event, transactions])
 
   const eventStart = event.eventDate ? new Date(event.eventDate) : null
   const eventEnd = event.dateEnd ? new Date(event.dateEnd) : eventStart
@@ -257,37 +272,36 @@ const EventCard = ({ eventId, style }) => {
             {client && <ContactsIconsButtons user={client} />}
           </div>
 
-          <div className="laptop:min-w-[240px] laptop:self-start flex shrink-0">
-            <div className="flex flex-col gap-2 rounded-md border border-gray-100 bg-gray-50 p-3 text-sm text-gray-700">
-              <div className="flex items-center justify-between gap-3">
-                <FontAwesomeIcon
-                  icon={faHandHoldingDollar}
-                  className="h-6 w-6"
-                />
-                <span className="font-semibold text-green-700">
-                  {paid.toLocaleString()} руб.
+          <div className="laptop:min-w-[240px] laptop:self-start flex shrink-0 items-end">
+            {isClosed ? (
+              <div className="event-profit-card flex min-w-[160px] items-center justify-end rounded-tl-xl px-3 py-2 text-sm font-semibold">
+                <span className="event-profit-text">
+                  {net.toLocaleString()}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <FontAwesomeIcon icon={faClock} className="h-6 w-6" />
-                <span
-                  className={cn(
-                    'font-semibold',
-                    leftToPay > 0 ? 'text-amber-700' : 'text-green-700'
-                  )}
-                >
-                  {leftToPay.toLocaleString()} руб.
-                </span>
+            ) : (
+              <div className="flex items-end justify-end gap-3 text-sm font-semibold">
+                {leftToPay === 0 && canClose && paid > 0 ? (
+                  <span className="text-green-700">
+                    {paid.toLocaleString()}
+                  </span>
+                ) : (
+                  <span>
+                    {paid > 0 ? (
+                      <span className="text-green-700">
+                        {paid.toLocaleString()}
+                      </span>
+                    ) : null}
+                    {paid > 0 && contractSum > 0 ? ' / ' : null}
+                    {contractSum > 0 ? (
+                      <span className="text-blue-700">
+                        {contractSum.toLocaleString()}
+                      </span>
+                    ) : null}
+                  </span>
+                )}
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <div className="h-5 min-h-5 w-5 min-w-5">
-                  <SvgSigma className="fill-current" />
-                </div>
-                <span className="font-semibold">
-                  {contractSum.toLocaleString()} руб.
-                </span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
