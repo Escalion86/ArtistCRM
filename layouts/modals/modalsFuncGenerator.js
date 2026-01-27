@@ -301,6 +301,12 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
       view: (clientId) => addModal(clientViewFunc(clientId)),
       transactions: (clientId) => addModal(clientTransactionsFunc(clientId)),
       events: (clientId) => addModal(clientEventsFunc(clientId)),
+      delete: (clientId) =>
+        addModal({
+          title: 'Удаление клиента',
+          text: 'Вы уверены, что хотите удалить клиента?',
+          onConfirm: async () => itemsFunc.client.delete(clientId),
+        }),
     },
     // serviceUser: {
     //   add: (serviceId) => addModal(serviceUserFunc(serviceId, true)),

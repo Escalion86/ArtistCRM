@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import Clients from '@models/Clients'
+import Events from '@models/Events'
+import Transactions from '@models/Transactions'
+import Requests from '@models/Requests'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 
@@ -39,6 +42,39 @@ export const DELETE = async (req, { params }) => {
     )
   }
   await dbConnect()
+  const eventsCount = await Events.countDocuments({ tenantId, clientId: id })
+  if (eventsCount > 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Нельзя удалить клиента: есть связанные мероприятия (${eventsCount})`,
+      },
+      { status: 409 }
+    )
+  }
+  const transactionsCount = await Transactions.countDocuments({
+    tenantId,
+    clientId: id,
+  })
+  if (transactionsCount > 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Нельзя удалить клиента: есть связанные транзакции (${transactionsCount})`,
+      },
+      { status: 409 }
+    )
+  }
+  const requestsCount = await Requests.countDocuments({ tenantId, clientId: id })
+  if (requestsCount > 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Нельзя удалить клиента: есть связанные заявки (${requestsCount})`,
+      },
+      { status: 409 }
+    )
+  }
   const deleted = await Clients.findOneAndDelete({ _id: id, tenantId })
   if (!deleted)
     return NextResponse.json(
