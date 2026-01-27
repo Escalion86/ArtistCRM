@@ -604,15 +604,22 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     const [financeLoading, setFinanceLoading] = useState(false)
 
     const handleDeleteTransaction = async (id) => {
-      setFinanceError('')
-      setFinanceLoading(true)
-      const response = await deleteData(`/api/transactions/${id}`)
-      if (response !== null) {
-        setTransactions((prev) => prev.filter((item) => item._id !== id))
-      } else {
-        setFinanceError('Не удалось удалить транзакцию')
-      }
-      setFinanceLoading(false)
+      if (!id) return
+      modalsFunc.confirm({
+        title: 'Удаление транзакции',
+        text: 'Вы уверены, что хотите удалить транзакцию?',
+        onConfirm: async () => {
+          setFinanceError('')
+          setFinanceLoading(true)
+          const response = await deleteData(`/api/transactions/${id}`)
+          if (response !== null) {
+            setTransactions((prev) => prev.filter((item) => item._id !== id))
+          } else {
+            setFinanceError('Не удалось удалить транзакцию')
+          }
+          setFinanceLoading(false)
+        },
+      })
     }
 
     const openClientSelectModal = () => {
