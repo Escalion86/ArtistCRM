@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import Transactions from '@models/Transactions'
+import Events from '@models/Events'
+import Clients from '@models/Clients'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 
@@ -22,6 +24,27 @@ export const PUT = async (req, { params }) => {
   if (body.date !== undefined) update.date = body.date ? new Date(body.date) : new Date()
   if (body.comment !== undefined) update.comment = body.comment ?? ''
   if (body.type && TRANSACTION_TYPES.has(body.type)) update.type = body.type
+  if (body.category !== undefined) update.category = body.category ?? ''
+
+  if (body.eventId) {
+    const event = await Events.findOne({ _id: body.eventId, tenantId }).lean()
+    if (!event)
+      return NextResponse.json(
+        { success: false, error: 'Мероприятие не найдено' },
+        { status: 404 }
+      )
+    update.eventId = body.eventId
+  }
+
+  if (body.clientId) {
+    const client = await Clients.findOne({ _id: body.clientId, tenantId }).lean()
+    if (!client)
+      return NextResponse.json(
+        { success: false, error: 'Клиент не найден' },
+        { status: 404 }
+      )
+    update.clientId = body.clientId
+  }
 
   const transaction = await Transactions.findOneAndUpdate(
     { _id: id, tenantId },

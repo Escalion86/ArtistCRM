@@ -56,6 +56,7 @@ export const POST = async (req) => {
     requestId: body.requestId ?? null,
     amount: Number(body.amount) || 0,
     type: body.type ?? 'expense',
+    category: body.category ?? 'other',
     date: body.date ? new Date(body.date) : new Date(),
     comment: body.comment ?? '',
   })
