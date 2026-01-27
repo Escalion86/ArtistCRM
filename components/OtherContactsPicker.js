@@ -61,13 +61,22 @@ const OtherContactsPicker = ({
           </div>
         )
       })}
-      <button
+      {/* <button
         type="button"
-        className="h-9 w-fit cursor-pointer rounded border border-gray-300 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+        className="px-3 text-sm font-semibold text-gray-700 transition bg-white border border-gray-300 rounded shadow-sm cursor-pointer h-9 w-fit hover:bg-gray-50"
         onClick={onAddContact}
       >
         Добавить контакт
-      </button>
+      </button> */}
+      <div className="flex w-full justify-end">
+        <button
+          type="button"
+          className="bg-general flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-lg font-semibold text-white shadow transition hover:scale-105"
+          onClick={onAddContact}
+        >
+          +
+        </button>
+      </div>
     </div>
   </InputWrapper>
 )

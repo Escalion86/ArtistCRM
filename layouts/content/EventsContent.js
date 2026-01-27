@@ -7,7 +7,7 @@ import Button from '@components/Button'
 import ComboBox from '@components/ComboBox'
 import EventCheckToggleButtons from '@components/IconToggleButtons/EventCheckToggleButtons'
 import eventsAtom from '@state/atoms/eventsAtom'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
+// import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
 import EventCard from '@layouts/cards/EventCard'
@@ -16,7 +16,7 @@ const ITEM_HEIGHT = 190
 
 const EventsContent = ({ filter = 'all' }) => {
   const events = useAtomValue(eventsAtom)
-  const siteSettings = useAtomValue(siteSettingsAtom)
+  // const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const [selectedTown, setSelectedTown] = useState('')
   const [checkFilter, setCheckFilter] = useState({
@@ -92,8 +92,8 @@ const EventsContent = ({ filter = 'all' }) => {
     filter === 'upcoming'
       ? 'Предстоящие'
       : filter === 'past'
-      ? 'Прошедшие'
-      : 'Все'
+        ? 'Прошедшие'
+        : 'Все'
 
   const RowComponent = useCallback(
     ({ index, style }) => {

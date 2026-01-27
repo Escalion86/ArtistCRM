@@ -1,6 +1,6 @@
 'use client'
 
-import cn from 'classnames'
+// import cn from 'classnames'
 import { useAtomValue } from 'jotai'
 import { useMemo } from 'react'
 import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
@@ -27,12 +27,12 @@ import ContactsIconsButtons from '@components/ContactsIconsButtons'
 
 const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
 
-const stripCalendarResponse = (text = '') => {
-  const marker = `\n\n${CALENDAR_RESPONSE_MARKER}\n`
-  const markerIndex = text.indexOf(marker)
-  if (markerIndex === -1) return text.trim()
-  return text.slice(0, markerIndex).trim()
-}
+// const stripCalendarResponse = (text = '') => {
+//   const marker = `\n\n${CALENDAR_RESPONSE_MARKER}\n`
+//   const markerIndex = text.indexOf(marker)
+//   if (markerIndex === -1) return text.trim()
+//   return text.slice(0, markerIndex).trim()
+// }
 
 const EventCard = ({ eventId, style }) => {
   const event = useAtomValue(eventSelector(eventId))
@@ -128,10 +128,7 @@ const EventCard = ({ eventId, style }) => {
   const isCanceled = rawStatus === 'canceled'
   const isClosed = rawStatus === 'closed'
   const isFinished =
-    !isCanceled &&
-    !isClosed &&
-    eventEnd &&
-    eventEnd.getTime() < now.getTime()
+    !isCanceled && !isClosed && eventEnd && eventEnd.getTime() < now.getTime()
 
   const coordsLink =
     event?.address?.latitude && event?.address?.longitude
@@ -154,34 +151,21 @@ const EventCard = ({ eventId, style }) => {
   return (
     <div style={style} className="px-2 py-1">
       <div
-        className="laptop:flex-row laptop:items-start laptop:gap-4 relative flex cursor-pointer flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition hover:shadow-card"
+        className="laptop:flex-row laptop:items-start laptop:gap-4 hover:shadow-card relative flex cursor-pointer flex-col gap-x-3 gap-y-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition"
         onClick={() => !loading && modalsFunc.event?.view(event._id)}
       >
         {error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-800 bg-opacity-80 text-2xl text-white">
+          <div className="bg-opacity-80 absolute inset-0 z-20 flex items-center justify-center bg-red-800 text-2xl text-white">
             ОШИБКА
           </div>
         )}
         {loading && !error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80">
+          <div className="bg-general bg-opacity-80 absolute inset-0 z-20 flex items-center justify-center">
             <LoadingSpinner />
           </div>
         )}
-        <div
-          className="absolute top-2 right-2 z-10"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <CardButtons
-            item={event}
-            typeOfItem="event"
-            minimalActions
-            alwaysCompact
-            calendarLink={calendarLink}
-            onEdit={() => modalsFunc.event?.edit(event._id)}
-          />
-        </div>
-        <div className="flex items-center justify-between gap-x-1">
-          <div className="flex min-w-0 items-center gap-2">
+        <div className="flex w-full items-center justify-between gap-x-1">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             {event.isTransferred && (
               <FontAwesomeIcon
                 icon={faShare}
@@ -217,8 +201,21 @@ const EventCard = ({ eventId, style }) => {
                 title="Мероприятие завершено"
               />
             )}
-            <div className="truncate text-lg font-semibold text-gray-900">
+            <div className="flex-1 truncate text-lg font-semibold text-gray-900">
               {servicesTitle}
+            </div>
+            <div
+              className="z-10 -mt-1 -mr-3"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <CardButtons
+                item={event}
+                typeOfItem="event"
+                minimalActions
+                alwaysCompact
+                calendarLink={calendarLink}
+                onEdit={() => modalsFunc.event?.edit(event._id)}
+              />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -233,7 +230,9 @@ const EventCard = ({ eventId, style }) => {
         </div>
         <div className="flex gap-x-1">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm text-gray-700">
-            <div className="font-medium text-gray-800">{eventDateLabel}</div>
+            <div className="text-general font-semibold text-gray-800">
+              {eventDateLabel}
+            </div>
             <div className="flex flex-nowrap items-center gap-x-3">
               <span className="font-medium">Место:</span>
               <span className="flex min-w-0 items-center gap-2 truncate">
