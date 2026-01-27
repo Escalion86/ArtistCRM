@@ -3,7 +3,13 @@ import Tab from '@mui/material/Tab'
 import { useState } from 'react'
 import TabList from './TabList'
 
-const TabContext = ({ value, children }) => {
+const TabContext = ({
+  value,
+  children,
+  variant = 'scrollable',
+  scrollButtons = 'auto',
+  allowScrollButtonsMobile = true,
+}) => {
   const [tab, setTab] = useState(value)
   const tabs = []
   children.forEach((child, index) => {
@@ -31,9 +37,9 @@ const TabContext = ({ value, children }) => {
     <MuiTabContext value={tab}>
       <TabList
         onChange={setTab}
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
+        variant={variant}
+        scrollButtons={scrollButtons}
+        allowScrollButtonsMobile={allowScrollButtonsMobile}
         className="w-full max-w-[100%]"
       >
         {tabs}

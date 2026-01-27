@@ -165,6 +165,9 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         DEFAULT_EVENT.description ??
         ''
     )
+    const [financeComment, setFinanceComment] = useState(
+      event?.financeComment ?? DEFAULT_EVENT.financeComment ?? ''
+    )
     const [calendarImportChecked, setCalendarImportChecked] = useState(
       event?.calendarImportChecked ??
         (eventId ? (DEFAULT_EVENT.calendarImportChecked ?? false) : true)
@@ -238,6 +241,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
           event?.comment ??
           request?.comment ??
           DEFAULT_EVENT.description,
+        financeComment: event?.financeComment ?? DEFAULT_EVENT.financeComment,
         dateEnd: event?.dateEnd ?? DEFAULT_EVENT.dateEnd,
         invoiceLinks: event?.invoiceLinks ?? DEFAULT_EVENT.invoiceLinks ?? [],
         receiptLinks: event?.receiptLinks ?? DEFAULT_EVENT.receiptLinks ?? [],
@@ -265,6 +269,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       event?.address,
       event?.contractSum,
       event?.description,
+      event?.financeComment,
       event?.comment,
       event?.dateEnd,
       event?.calendarImportChecked,
@@ -305,6 +310,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         initialEventValues.isTransferred !== isTransferred ||
         initialEventValues.colleagueId !== colleagueId ||
         initialEventValues.description !== description ||
+        initialEventValues.financeComment !== financeComment ||
         JSON.stringify(initialEventValues.invoiceLinks ?? []) !==
           JSON.stringify(invoiceLinks) ||
         JSON.stringify(initialEventValues.receiptLinks ?? []) !==
@@ -326,6 +332,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         isTransferred,
         colleagueId,
         description,
+        financeComment,
         invoiceLinks,
         receiptLinks,
         calendarImportChecked,
@@ -472,6 +479,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
           contractSum: normalizedContractSum,
           isByContract,
           description: description?.trim() ?? '',
+          financeComment: financeComment?.trim() ?? '',
           invoiceLinks: normalizedInvoiceLinks,
           receiptLinks: normalizedReceiptLinks,
           calendarImportChecked,
@@ -669,7 +677,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     }
 
     return (
-      <TabContext value="Общие">
+      <TabContext value="Общие" variant="fullWidth" scrollButtons={false} allowScrollButtonsMobile={false}>
         <TabPanel tabName="Общие">
           <FormWrapper>
             <ServiceMultiSelect
@@ -797,6 +805,12 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               onChange={setContractSum}
               min={0}
               step={1000}
+            />
+            <Textarea
+              label="Комментарий по финансам"
+              value={financeComment}
+              onChange={setFinanceComment}
+              rows={2}
             />
             <IconCheckBox
               checked={isByContract}

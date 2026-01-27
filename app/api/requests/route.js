@@ -178,10 +178,11 @@ const buildRequestCalendarPayload = (request, timeZone = DEFAULT_TIME_ZONE) => {
     request.clientName ? `Клиент: ${request.clientName}` : null,
     phone ? `Телефон: ${phone}` : null,
     contacts ? `Контакты: ${contacts}` : null,
-    request.contractSum
-      ? `Сумма: ${Number(request.contractSum).toLocaleString('ru-RU')}`
-      : null,
     request.comment ? `Комментарий: ${request.comment}` : null,
+    request.contractSum
+      ? `Договорная сумма: ${Number(request.contractSum).toLocaleString('ru-RU')}`
+      : null,
+    'Транзакции: нет',
   ].filter(Boolean)
 
   const payload = {

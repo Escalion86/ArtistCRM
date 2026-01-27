@@ -144,6 +144,10 @@ const eventsSchema = {
     type: {},
     default: {},
   },
+  financeComment: {
+    type: String,
+    default: '',
+  },
   googleCalendarResponse: {
     type: Schema.Types.Mixed,
     default: null,

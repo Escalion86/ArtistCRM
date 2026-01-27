@@ -150,6 +150,8 @@ export const PUT = async (req, { params }) => {
     update.contractSum = Number(body.contractSum) || 0
   if (body.description !== undefined)
     update.description = body.description ?? ''
+  if (body.financeComment !== undefined)
+    update.financeComment = body.financeComment ?? ''
   if (body.invoiceLinks !== undefined)
     update.invoiceLinks = Array.isArray(body.invoiceLinks)
       ? body.invoiceLinks

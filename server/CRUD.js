@@ -3,6 +3,8 @@ import Events from '@models/Events'
 import Histories from '@models/Histories'
 import SiteSettings from '@models/SiteSettings'
 import Services from '@models/Services'
+import Clients from '@models/Clients'
+import Transactions from '@models/Transactions'
 import dbConnect from './dbConnect'
 import DOMPurify from 'isomorphic-dompurify'
 // import { DEFAULT_ROLES } from '@helpers/constants'
@@ -247,6 +249,85 @@ const updateEventInCalendar = async (event, req, user) => {
   }
 
   var preparedText = stripCalendarResponse(event.description ?? '')
+  const extraDescriptionLines = []
+  if (event?.clientId) {
+    await dbConnect()
+    const client = await Clients.findById(event.clientId)
+      .select('firstName secondName')
+      .lean()
+    const clientName = [client?.firstName, client?.secondName]
+      .filter(Boolean)
+      .join(' ')
+    if (clientName) extraDescriptionLines.push(`Клиент: ${clientName}`)
+  }
+  if (Array.isArray(event?.otherContacts) && event.otherContacts.length) {
+    await dbConnect()
+    const contactIds = event.otherContacts
+      .map((item) => item?.clientId)
+      .filter(Boolean)
+    const contacts =
+      contactIds.length > 0
+        ? await Clients.find({ _id: { $in: contactIds } })
+            .select('firstName secondName')
+            .lean()
+        : []
+    const contactsMap = new Map(
+      contacts.map((item) => [String(item._id), item])
+    )
+    const otherContactsText = event.otherContacts
+      .map((item) => {
+        const contact = contactsMap.get(String(item.clientId))
+        const contactName = [contact?.firstName, contact?.secondName]
+          .filter(Boolean)
+          .join(' ')
+        const base = contactName || item?.clientId || 'Контакт'
+        const suffix = item?.comment ? ` — ${item.comment}` : ''
+        return `${base}${suffix}`
+      })
+      .filter(Boolean)
+      .join('; ')
+    if (otherContactsText)
+      extraDescriptionLines.push(`Прочие контакты: ${otherContactsText}`)
+  }
+  if (extraDescriptionLines.length) {
+    preparedText = [preparedText, extraDescriptionLines.join('\n')]
+      .filter(Boolean)
+      .join('\n\n')
+  }
+
+  const financeLines = []
+  if (typeof event?.contractSum === 'number' && event.contractSum > 0) {
+    financeLines.push(`Договорная сумма: ${event.contractSum.toLocaleString()}`)
+  }
+  if (event?.financeComment) {
+    financeLines.push(`Комментарий по финансам: ${event.financeComment}`)
+  }
+  if (event?._id) {
+    await dbConnect()
+    const transactions = await Transactions.find({ eventId: event._id })
+      .select('amount type category date comment')
+      .sort({ date: -1 })
+      .lean()
+    if (transactions.length > 0) {
+      const items = transactions.map((transaction) => {
+        const dateLabel = transaction.date
+          ? new Date(transaction.date).toLocaleDateString('ru-RU')
+          : 'без даты'
+        const sign = transaction.type === 'expense' ? '-' : '+'
+        const amountLabel = Number(transaction.amount ?? 0).toLocaleString()
+        const categoryLabel = transaction.category ? `, ${transaction.category}` : ''
+        const commentLabel = transaction.comment ? ` — ${transaction.comment}` : ''
+        return `- ${dateLabel}: ${sign}${amountLabel}${categoryLabel}${commentLabel}`
+      })
+      financeLines.push('Транзакции:')
+      financeLines.push(...items)
+    }
+  }
+  if (financeLines.length) {
+    preparedText = [preparedText, financeLines.join('\n')]
+      .filter(Boolean)
+      .join('\n\n')
+  }
   const aTags = event.description.match(/<a[^>]*>([^<]+)<\/a>/g)
   // const linksReformated = []
   if (aTags?.length > 0) {
@@ -293,8 +374,8 @@ const updateEventInCalendar = async (event, req, user) => {
   }
 
   const titleParts = []
-  if (servicesTitle) titleParts.push(servicesTitle)
   if (showTown) titleParts.push(addressTown)
+  if (servicesTitle) titleParts.push(servicesTitle)
   if (addressLine) titleParts.push(addressLine)
   const calendarTitle =
     titleParts.length > 0 ? titleParts.join(' • ') : 'Адрес не указан'
