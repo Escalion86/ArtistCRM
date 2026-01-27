@@ -190,12 +190,60 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
       add: (requestId) => addModal(requestFunc(requestId, true)),
       edit: (requestId) => addModal(requestFunc(requestId)),
       statusEdit: (requestId) => addModal(requestStatusEditFunc(requestId)),
-      delete: (requestId) =>
-        addModal({
-          title: 'Удаление заявки',
-          text: 'Вы уверены, что хотите удалить заявку?',
-          onConfirm: async () => itemsFunc.request.delete(requestId),
-        }),
+      delete: async (requestId) => {
+        try {
+          const response = await fetch(
+            `/api/requests/${requestId}/delete-check`
+          )
+          const result = await response.json()
+          const reasons = Array.isArray(result?.data?.reasons)
+            ? result.data.reasons
+            : []
+          if (!result?.success) {
+            addModal({
+              title: 'Удаление заявки недоступно',
+              text: result?.error || 'Не удалось проверить заявку',
+              confirmButtonName: 'Понятно',
+              onConfirm: true,
+              showDecline: false,
+            })
+            return
+          }
+          if (reasons.length > 0) {
+            const reasonLines = reasons
+              .map((item) => {
+                if (item.type === 'event')
+                  return 'Заявка уже связана с мероприятием'
+                if (item.type === 'converted')
+                  return 'Заявка уже преобразована в мероприятие'
+                return null
+              })
+              .filter(Boolean)
+              .join('\n')
+            addModal({
+              title: 'Удаление заявки недоступно',
+              text: `Удалить заявку нельзя:\n${reasonLines}`,
+              confirmButtonName: 'Понятно',
+              onConfirm: true,
+              showDecline: false,
+            })
+            return
+          }
+          addModal({
+            title: 'Удаление заявки',
+            text: 'Вы уверены, что хотите удалить заявку?',
+            onConfirm: async () => itemsFunc.request.delete(requestId),
+          })
+        } catch (error) {
+          addModal({
+            title: 'Удаление заявки недоступно',
+            text: 'Не удалось проверить заявку',
+            confirmButtonName: 'Понятно',
+            onConfirm: true,
+            showDecline: false,
+          })
+        }
+      },
       view: (requestId) => addModal(requestViewFunc(requestId)),
     },
     event: {
@@ -222,12 +270,56 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
           text: 'Вы уверены, что хотите возобновить мероприятие?',
           onConfirm: async () => itemsFunc.event.uncancel(eventId),
         }),
-      delete: (eventId) =>
-        addModal({
-          title: 'Удаление события',
-          text: 'Вы уверены, что хотите удалить мероприятие?',
-          onConfirm: async () => itemsFunc.event.delete(eventId),
-        }),
+      delete: async (eventId) => {
+        try {
+          const response = await fetch(`/api/events/${eventId}/delete-check`)
+          const result = await response.json()
+          const reasons = Array.isArray(result?.data?.reasons)
+            ? result.data.reasons
+            : []
+          if (!result?.success) {
+            addModal({
+              title: 'Удаление мероприятия недоступно',
+              text: result?.error || 'Не удалось проверить мероприятие',
+              confirmButtonName: 'Понятно',
+              onConfirm: true,
+              showDecline: false,
+            })
+            return
+          }
+          if (reasons.length > 0) {
+            const reasonLines = reasons
+              .map((item) => {
+                if (item.type === 'transactions')
+                  return `Транзакции: ${item.count}`
+                return null
+              })
+              .filter(Boolean)
+              .join('\n')
+            addModal({
+              title: 'Удаление мероприятия недоступно',
+              text: `Удалить мероприятие нельзя, есть связанные данные:\n${reasonLines}`,
+              confirmButtonName: 'Понятно',
+              onConfirm: true,
+              showDecline: false,
+            })
+            return
+          }
+          addModal({
+            title: 'Удаление события',
+            text: 'Вы уверены, что хотите удалить мероприятие?',
+            onConfirm: async () => itemsFunc.event.delete(eventId),
+          })
+        } catch (error) {
+          addModal({
+            title: 'Удаление мероприятия недоступно',
+            text: 'Не удалось проверить мероприятие',
+            confirmButtonName: 'Понятно',
+            onConfirm: true,
+            showDecline: false,
+          })
+        }
+      },
       view: (eventId) => addModal(eventViewFunc(eventId)),
       // editLikes: (eventId) => addModal(likesEditFunc(eventId)),
       // viewLikes: (eventId) => addModal(likesViewFunc(eventId)),
@@ -273,12 +365,60 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
       add: (serviceId) => addModal(serviceFunc(serviceId, true)),
       edit: (serviceId) => addModal(serviceFunc(serviceId)),
       view: (serviceId) => addModal(serviceViewFunc(serviceId)),
-      delete: (serviceId) =>
-        addModal({
-          title: 'Удаление услуги',
-          text: 'Вы уверены, что хотите удалить услугу?',
-          onConfirm: async () => itemsFunc.service.delete(serviceId),
-        }),
+      delete: async (serviceId) => {
+        try {
+          const response = await fetch(
+            `/api/services/${serviceId}/delete-check`
+          )
+          const result = await response.json()
+          const reasons = Array.isArray(result?.data?.reasons)
+            ? result.data.reasons
+            : []
+          if (!result?.success) {
+            addModal({
+              title: 'Удаление услуги недоступно',
+              text: result?.error || 'Не удалось проверить услугу',
+              confirmButtonName: 'Понятно',
+              onConfirm: true,
+              showDecline: false,
+            })
+            return
+          }
+          if (reasons.length > 0) {
+            const reasonLines = reasons
+              .map((item) => {
+                if (item.type === 'events')
+                  return `Мероприятия: ${item.count}`
+                if (item.type === 'requests')
+                  return `Заявки: ${item.count}`
+                return null
+              })
+              .filter(Boolean)
+              .join('\n')
+            addModal({
+              title: 'Удаление услуги недоступно',
+              text: `Удалить услугу нельзя, есть связанные данные:\n${reasonLines}`,
+              confirmButtonName: 'Понятно',
+              onConfirm: true,
+              showDecline: false,
+            })
+            return
+          }
+          addModal({
+            title: 'Удаление услуги',
+            text: 'Вы уверены, что хотите удалить услугу?',
+            onConfirm: async () => itemsFunc.service.delete(serviceId),
+          })
+        } catch (error) {
+          addModal({
+            title: 'Удаление услуги недоступно',
+            text: 'Не удалось проверить услугу',
+            confirmButtonName: 'Понятно',
+            onConfirm: true,
+            showDecline: false,
+          })
+        }
+      },
       buy: (serviceId, userId) =>
         addModal({
           title: 'Покупка услуги',
@@ -301,12 +441,62 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
       view: (clientId) => addModal(clientViewFunc(clientId)),
       transactions: (clientId) => addModal(clientTransactionsFunc(clientId)),
       events: (clientId) => addModal(clientEventsFunc(clientId)),
-      delete: (clientId) =>
-        addModal({
-          title: 'Удаление клиента',
-          text: 'Вы уверены, что хотите удалить клиента?',
-          onConfirm: async () => itemsFunc.client.delete(clientId),
-        }),
+      delete: async (clientId) => {
+        try {
+          const response = await fetch(
+            `/api/clients/${clientId}/delete-check`
+          )
+          const result = await response.json()
+          const reasons = Array.isArray(result?.data?.reasons)
+            ? result.data.reasons
+            : []
+          if (!result?.success) {
+            addModal({
+              title: 'Удаление клиента недоступно',
+              text: result?.error || 'Не удалось проверить клиента',
+              confirmButtonName: 'Понятно',
+              onConfirm: true,
+              showDecline: false,
+            })
+            return
+          }
+          if (reasons.length > 0) {
+            const reasonLines = reasons
+              .map((item) => {
+                if (item.type === 'events')
+                  return `Мероприятия: ${item.count}`
+                if (item.type === 'transactions')
+                  return `Транзакции: ${item.count}`
+                if (item.type === 'requests')
+                  return `Заявки: ${item.count}`
+                return null
+              })
+              .filter(Boolean)
+              .join('\n')
+            addModal({
+              title: 'Удаление клиента недоступно',
+              text: `Удалить клиента нельзя, есть связанные данные:\n${reasonLines}`,
+              confirmButtonName: 'Понятно',
+              onConfirm: true,
+              showDecline: false,
+            })
+            return
+          }
+          addModal({
+            title: 'Удаление клиента',
+            text: 'Вы уверены, что хотите удалить клиента?',
+            onConfirm: async () => itemsFunc.client.delete(clientId),
+          })
+        } catch (error) {
+          addModal({
+            title: 'Удаление клиента недоступно',
+            text: 'Не удалось проверить клиента',
+            confirmButtonName: 'Понятно',
+            onConfirm: true,
+            showDecline: false,
+          })
+        }
+      },
     },
     // serviceUser: {
     //   add: (serviceId) => addModal(serviceUserFunc(serviceId, true)),

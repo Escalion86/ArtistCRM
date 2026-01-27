@@ -587,6 +587,21 @@ export const DELETE = async (req, { params }) => {
     )
   }
   await dbConnect()
+  const request = await Requests.findOne({ _id: id, tenantId }).lean()
+  if (!request)
+    return NextResponse.json(
+      { success: false, error: 'Заявка не найдена' },
+      { status: 404 }
+    )
+  if (request.eventId || request.status === 'converted') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Нельзя удалить заявку: она связана с мероприятием',
+      },
+      { status: 409 }
+    )
+  }
   const deleted = await Requests.findOneAndDelete({ _id: id, tenantId })
   if (!deleted)
     return NextResponse.json(

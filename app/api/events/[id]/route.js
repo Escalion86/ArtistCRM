@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Events from '@models/Events'
+import Transactions from '@models/Transactions'
 import Requests from '@models/Requests'
 import dbConnect from '@server/dbConnect'
 import { deleteEventFromCalendar, updateEventInCalendar } from '@server/CRUD'
@@ -204,6 +205,19 @@ export const DELETE = async (req, { params }) => {
     )
   }
   await dbConnect()
+  const transactionsCount = await Transactions.countDocuments({
+    tenantId,
+    eventId: id,
+  })
+  if (transactionsCount > 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Нельзя удалить мероприятие: есть транзакции (${transactionsCount})`,
+      },
+      { status: 409 }
+    )
+  }
   const deleted = await Events.findOneAndDelete({ _id: id, tenantId })
   if (!deleted)
     return NextResponse.json(
