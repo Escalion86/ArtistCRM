@@ -185,17 +185,17 @@ const AddressPicker = ({
               </div>
             )}
         </div>
-        {address.link2GisShow && (
-          <Input
-            label="Ссылка 2ГИС"
-            type="link"
-            value={address.link2Gis}
-            onChange={(link2Gis) => onChange({ ...address, link2Gis })}
-            error={errors?.address?.link2Gis}
-            noMargin
-            className="mt-0.5"
-          />
-        )}
+        {/* {address.link2GisShow && ( */}
+        <Input
+          label="Ссылка 2ГИС"
+          type="link"
+          value={address.link2Gis}
+          onChange={(link2Gis) => onChange({ ...address, link2Gis })}
+          error={errors?.address?.link2Gis}
+          noMargin
+          className="mt-0.5"
+        />
+        {/* )} */}
         <div className="mt-1 flex flex-wrap items-end justify-between gap-x-2">
           {/* <ImageCheckBox
             checked={address.linkYandexShow}
@@ -227,19 +227,19 @@ const AddressPicker = ({
               </div>
             )}
         </div>
-        {address.linkYandexShow && (
-          <Input
-            label="Ссылка Yandex Navigator"
-            type="link"
-            value={address.linkYandexNavigator}
-            onChange={(linkYandexNavigator) =>
-              onChange({ ...address, linkYandexNavigator })
-            }
-            error={errors?.address?.linkYandexNavigator}
-            noMargin
-            className="mt-0.5"
-          />
-        )}
+        {/* {address.linkYandexShow && ( */}
+        <Input
+          label="Ссылка Yandex Navigator"
+          type="link"
+          value={address.linkYandexNavigator}
+          onChange={(linkYandexNavigator) =>
+            onChange({ ...address, linkYandexNavigator })
+          }
+          error={errors?.address?.linkYandexNavigator}
+          noMargin
+          className="mt-0.5"
+        />
+        {/* )} */}
         {/* {(address.linkYandexShow || address.link2GisShow) && (
           <Note>
             Если ссылка не указана, то будет сгенерирована автоматически исходя
