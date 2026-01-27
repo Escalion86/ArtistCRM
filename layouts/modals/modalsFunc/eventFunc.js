@@ -386,10 +386,15 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       return []
     }, [canClose, status])
 
-    const requiredMissing = useMemo(
-      () => !clientId || !eventDate || !servicesIds || servicesIds.length === 0,
-      [clientId, eventDate, servicesIds]
-    )
+    const missingFields = useMemo(() => {
+      const fields = []
+      if (!clientId) fields.push('Клиент')
+      if (!eventDate) fields.push('Дата начала')
+      if (!servicesIds || servicesIds.length === 0) fields.push('Услуги')
+      if (isTransferred && !colleagueId) fields.push('Коллега')
+      return fields
+    }, [clientId, eventDate, servicesIds, isTransferred, colleagueId])
+    const requiredMissing = missingFields.length > 0
 
     const dateRangeError = useMemo(() => {
       if (!eventDate || !dateEnd) return ''
@@ -530,12 +535,12 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
 
     useEffect(() => {
       setOnShowOnCloseConfirmDialog(isFormChanged)
-      setDisableConfirm(!isFormChanged || requiredMissing || !!dateRangeError)
-      setOnConfirmFunc(() => onClickConfirmRef.current())
+      setDisableConfirm(false)
+      setOnConfirmFunc(
+        isFormChanged ? () => onClickConfirmRef.current() : null
+      )
     }, [
       isFormChanged,
-      requiredMissing,
-      dateRangeError,
       setDisableConfirm,
       setOnConfirmFunc,
       setOnShowOnCloseConfirmDialog,
@@ -543,12 +548,21 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
 
     useEffect(() => {
       if (!setComponentInFooter) return
+      if (!requiredMissing && !dateRangeError) {
+        setComponentInFooter(null)
+        return
+      }
       setComponentInFooter(
-        dateRangeError ? (
-          <div className="text-sm text-red-600">{dateRangeError}</div>
-        ) : null
+        <div className="flex flex-col gap-1 text-sm text-red-600">
+          {requiredMissing && (
+            <div>
+              Заполните поля: {missingFields.join(', ')}
+            </div>
+          )}
+          {dateRangeError && <div>{dateRangeError}</div>}
+        </div>
       )
-    }, [dateRangeError, setComponentInFooter])
+    }, [dateRangeError, missingFields, requiredMissing, setComponentInFooter])
 
     const selectedClient = useMemo(
       () =>
@@ -715,6 +729,11 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               onSelectContact={handleOtherContactSelect}
               onChangeComment={handleOtherContactCommentChange}
               onRemoveContact={handleOtherContactRemove}
+              onEditContact={(index) => {
+                const contact = otherContacts[index]
+                if (contact?.clientId)
+                  modalsFunc.client?.edit(contact.clientId)
+              }}
               onAddContact={handleOtherContactAdd}
             />
 
@@ -998,7 +1017,14 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                           <span className="text-gray-600">
                             {transaction.date
                               ? new Date(transaction.date).toLocaleString(
-                                  'ru-RU'
+                                  'ru-RU',
+                                  {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  }
                                 )
                               : ''}
                           </span>
@@ -1069,7 +1095,14 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                           <span className="text-gray-600">
                             {transaction.date
                               ? new Date(transaction.date).toLocaleString(
-                                  'ru-RU'
+                                  'ru-RU',
+                                  {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  }
                                 )
                               : ''}
                           </span>

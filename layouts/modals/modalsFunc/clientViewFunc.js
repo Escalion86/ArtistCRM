@@ -115,8 +115,17 @@ const clientViewFunc = (clientId) => {
         </div>
 
         <div className="p-4 bg-white border border-gray-200 rounded-lg">
-          <div className="text-sm font-semibold text-gray-900">
-            Мероприятия
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-semibold text-gray-900">
+              Мероприятия
+            </div>
+            <button
+              type="button"
+              className="px-3 py-1 text-xs font-semibold text-blue-600 transition border border-blue-600 rounded cursor-pointer bg-blue-50 hover:bg-blue-100"
+              onClick={() => modalsFunc.client?.events(clientId)}
+            >
+              Посмотреть мероприятия
+            </button>
           </div>
           <div className="grid gap-2 mt-2 text-sm text-gray-700 tablet:grid-cols-3">
             <div>

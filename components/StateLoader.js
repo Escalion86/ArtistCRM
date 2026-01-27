@@ -119,6 +119,7 @@ const StateLoader = (props) => {
   }, [loggedUser?._id, loggedUser?.tariffId, props.page, router])
 
   const onboardingShownRef = useRef(false)
+  const noRequestsRedirectedRef = useRef(false)
 
   useEffect(() => {
     if (!loggedUser?._id || onboardingShownRef.current) return
@@ -153,6 +154,18 @@ const StateLoader = (props) => {
       router.push('/cabinet/requests')
     }
   }, [loggedUser?._id, loggedUser?.role, props.page, router])
+
+  useEffect(() => {
+    if (!loggedUser?._id || noRequestsRedirectedRef.current) return
+    if (props.page !== 'requests') return
+    const requestsCount = Array.isArray(props.requests)
+      ? props.requests.length
+      : 0
+    if (requestsCount === 0) {
+      noRequestsRedirectedRef.current = true
+      router.replace('/cabinet/eventsUpcoming')
+    }
+  }, [loggedUser?._id, props.page, props.requests, router])
 
   // useEffect(() => {
   //   if (loggedUser) {

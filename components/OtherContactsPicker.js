@@ -2,6 +2,7 @@ import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
+import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
 
 const OtherContactsPicker = ({
@@ -10,6 +11,7 @@ const OtherContactsPicker = ({
   onSelectContact,
   onChangeComment,
   onRemoveContact,
+  onEditContact,
   onAddContact,
   label = 'Прочие контакты',
 }) => (
@@ -51,14 +53,24 @@ const OtherContactsPicker = ({
                 fullWidth
               />
             </div>
-            <button
-              type="button"
-              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
-              onClick={() => onRemoveContact?.(index)}
-              title="Удалить"
-            >
-              <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600"
+                onClick={() => onEditContact?.(index)}
+                title="Редактировать клиента"
+              >
+                <FontAwesomeIcon icon={faPencilAlt} className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
+                onClick={() => onRemoveContact?.(index)}
+                title="Удалить"
+              >
+                <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )
       })}

@@ -411,10 +411,14 @@ const requestFunc = (requestId, clone = false) => {
       ]
     )
 
-    const requiredMissing = useMemo(
-      () => !clientId || !eventDate || !servicesIds || servicesIds.length === 0,
-      [clientId, eventDate, servicesIds]
-    )
+    const missingFields = useMemo(() => {
+      const fields = []
+      if (!clientId) fields.push('Клиент')
+      if (!eventDate) fields.push('Дата начала')
+      if (!servicesIds || servicesIds.length === 0) fields.push('Услуги')
+      return fields
+    }, [clientId, eventDate, servicesIds])
+    const requiredMissing = missingFields.length > 0
 
     const onConfirmRef = useRef(onClickConfirm)
 
@@ -423,13 +427,13 @@ const requestFunc = (requestId, clone = false) => {
     }, [onClickConfirm])
 
     useEffect(() => {
-      setOnConfirmFunc(() => onConfirmRef.current?.())
+      setOnConfirmFunc(
+        isFormChanged ? () => onConfirmRef.current?.() : null
+      )
       setOnShowOnCloseConfirmDialog(isFormChanged)
-      setDisableConfirm(!isFormChanged || requiredMissing || !!dateRangeError)
+      setDisableConfirm(false)
     }, [
       isFormChanged,
-      requiredMissing,
-      dateRangeError,
       setDisableConfirm,
       setOnShowOnCloseConfirmDialog,
       setOnConfirmFunc,
@@ -437,12 +441,21 @@ const requestFunc = (requestId, clone = false) => {
 
     useEffect(() => {
       if (!setComponentInFooter) return
+      if (!requiredMissing && !dateRangeError) {
+        setComponentInFooter(null)
+        return
+      }
       setComponentInFooter(
-        dateRangeError ? (
-          <div className="text-sm text-red-600">{dateRangeError}</div>
-        ) : null
+        <div className="flex flex-col gap-1 text-sm text-red-600">
+          {requiredMissing && (
+            <div>
+              Заполните поля: {missingFields.join(', ')}
+            </div>
+          )}
+          {dateRangeError && <div>{dateRangeError}</div>}
+        </div>
       )
-    }, [dateRangeError, setComponentInFooter])
+    }, [dateRangeError, missingFields, requiredMissing, setComponentInFooter])
 
     return (
       <FormWrapper>
@@ -479,6 +492,11 @@ const requestFunc = (requestId, clone = false) => {
           onSelectContact={handleOtherContactSelect}
           onChangeComment={handleOtherContactCommentChange}
           onRemoveContact={handleOtherContactRemove}
+          onEditContact={(index) => {
+            const contact = otherContacts[index]
+            if (contact?.clientId)
+              modalsFunc.client?.edit(contact.clientId)
+          }}
           onAddContact={handleOtherContactAdd}
         />
         <DateTimePicker

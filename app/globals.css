@@ -182,6 +182,10 @@ body.theme-dark .sidebar-root .hover\:text-general:hover {
   color: #1f1b14;
 }
 
+body:not(.theme-dark) .sidebar-root .hover\:text-white:hover {
+  color: var(--sidebar-bg);
+}
+
 body.theme-dark .sidebar-root .menu-item-active {
   color: #1c1d1f;
 }
