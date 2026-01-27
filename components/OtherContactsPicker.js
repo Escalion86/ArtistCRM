@@ -2,6 +2,7 @@ import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
+import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
 
 const OtherContactsPicker = ({
   contacts = [],
@@ -71,10 +72,11 @@ const OtherContactsPicker = ({
       <div className="flex w-full justify-end">
         <button
           type="button"
-          className="bg-general flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-lg font-semibold text-white shadow transition hover:scale-105"
+          className="action-icon-button flex h-10 w-10 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700"
           onClick={onAddContact}
+          title="Добавить контакт"
         >
-          +
+          <FontAwesomeIcon className="h-5 w-5" icon={faPlus} />
         </button>
       </div>
     </div>
