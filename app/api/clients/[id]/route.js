@@ -81,5 +81,8 @@ export const DELETE = async (req, { params }) => {
       { success: false, error: 'Клиент не найден' },
       { status: 404 }
     )
-  return NextResponse.json({ success: true }, { status: 200 })
+  return NextResponse.json(
+    { success: true, data: { _id: String(id) } },
+    { status: 200 }
+  )
 }

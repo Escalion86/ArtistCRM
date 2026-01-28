@@ -236,6 +236,9 @@ const buildRequestCalendarPayload = (
       ? `Договорная сумма: ${Number(request.contractSum).toLocaleString('ru-RU')}`
       : null,
     'Транзакции: нет',
+    request?._id && process.env.DOMAIN
+      ? `Ссылка на заявку:\n${process.env.DOMAIN + '/request/' + request._id}`
+      : null,
   ].filter(Boolean)
 
   const payload = {

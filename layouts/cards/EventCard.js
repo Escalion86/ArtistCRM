@@ -151,7 +151,7 @@ const EventCard = ({ eventId, style }) => {
   return (
     <div style={style} className="px-2 py-1">
       <div
-        className="laptop:flex-row laptop:items-start laptop:gap-4 hover:shadow-card relative flex cursor-pointer flex-col gap-x-3 gap-y-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition"
+        className="laptop:flex-row laptop:items-start laptop:gap-4 hover:shadow-card relative flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition"
         onClick={() => !loading && modalsFunc.event?.view(event._id)}
       >
         {error && (

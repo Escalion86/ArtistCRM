@@ -1,19 +1,26 @@
 'use client'
 
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useEffect, useRef } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
 import RequestCardCompact from '@layouts/cards/RequestCardCompact'
 import requestsAtom from '@state/atoms/requestsAtom'
 import { useAtomValue } from 'jotai'
-import { modalsFuncAtom } from '@state/atoms'
+import { modalsFuncAtom, modalsAtom } from '@state/atoms'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
 const ITEM_HEIGHT = 160
 
 const RequestsContent = () => {
   const requests = useAtomValue(requestsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const modals = useAtomValue(modalsAtom)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const listRef = useRef(null)
+  const openHandledRef = useRef(false)
 
   const sortedRequests = useMemo(
     () =>
@@ -41,6 +48,27 @@ const RequestsContent = () => {
     [sortedRequests, modalsFunc.request]
   )
 
+  useEffect(() => {
+    if (modals.length === 0) {
+      openHandledRef.current = false
+    }
+  }, [modals.length])
+
+  useEffect(() => {
+    const targetId = searchParams?.get('openRequest')
+    if (!targetId) return
+    if (openHandledRef.current) return
+
+    const index = sortedRequests.findIndex((item) => item._id === targetId)
+    if (index === -1) return
+    openHandledRef.current = true
+    listRef.current?.scrollToItem(index, 'center')
+    setTimeout(() => {
+      modalsFunc.request?.view(targetId)
+      if (pathname) router.replace(pathname, { scroll: false })
+    }, 200)
+  }, [modalsFunc.request, pathname, router, searchParams, sortedRequests])
+
   return (
     <div className="flex h-full flex-col gap-4">
       <ContentHeader>
@@ -61,6 +89,7 @@ const RequestsContent = () => {
       <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         {sortedRequests.length > 0 ? (
           <List
+            ref={listRef}
             rowCount={sortedRequests.length}
             rowHeight={ITEM_HEIGHT}
             rowComponent={RowComponent}

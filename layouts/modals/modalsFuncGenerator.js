@@ -482,11 +482,14 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
             })
             return
           }
-          addModal({
-            title: 'Удаление клиента',
-            text: 'Вы уверены, что хотите удалить клиента?',
-            onConfirm: async () => itemsFunc.client.delete(clientId),
-          })
+            addModal({
+              title: 'Удаление клиента',
+              text: 'Вы уверены, что хотите удалить клиента?',
+              onConfirm: async (refreshPage) => {
+                await itemsFunc.client.delete(clientId)
+                if (typeof refreshPage === 'function') refreshPage()
+              },
+            })
         } catch (error) {
           addModal({
             title: 'Удаление клиента недоступно',

@@ -162,6 +162,9 @@ const DropDown = ({
       }
       aria-hidden={!isOpen}
       role="menu"
+      onClick={() => {
+        if (turnOffAutoClose !== 'inside') setIsOpen(false)
+      }}
       {...menuHoverHandlers}
     >
       {children}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useCallback, useState, useEffect } from 'react'
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
@@ -9,15 +9,22 @@ import EventCheckToggleButtons from '@components/IconToggleButtons/EventCheckTog
 import eventsAtom from '@state/atoms/eventsAtom'
 // import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useAtomValue } from 'jotai'
-import { modalsFuncAtom } from '@state/atoms'
+import { modalsFuncAtom, modalsAtom } from '@state/atoms'
 import EventCard from '@layouts/cards/EventCard'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
-const ITEM_HEIGHT = 190
+const ITEM_HEIGHT = 160
 
 const EventsContent = ({ filter = 'all' }) => {
   const events = useAtomValue(eventsAtom)
   // const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const modals = useAtomValue(modalsAtom)
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const listRef = useRef(null)
+  const openHandledRef = useRef(false)
   const [selectedTown, setSelectedTown] = useState('')
   const [checkFilter, setCheckFilter] = useState({
     checked: true,
@@ -70,6 +77,12 @@ const EventsContent = ({ filter = 'all' }) => {
     setSelectedTown('')
   }, [selectedTown, townsOptions])
 
+  useEffect(() => {
+    if (modals.length === 0) {
+      openHandledRef.current = false
+    }
+  }, [modals.length])
+
   const filteredByCheck = useMemo(() => {
     if (checkFilter.checked && checkFilter.unchecked) return filteredEvents
     if (checkFilter.checked)
@@ -87,6 +100,71 @@ const EventsContent = ({ filter = 'all' }) => {
     }
     return [...filteredByCheck].sort(sorter)
   }, [filteredByCheck, filter])
+
+  useEffect(() => {
+    const targetId = searchParams?.get('openEvent')
+    if (!targetId) return
+    if (openHandledRef.current) return
+
+    const indexInAll = events.findIndex((item) => item._id === targetId)
+    if (indexInAll === -1) return
+    const event = events[indexInAll]
+    const eventDate = event?.eventDate ? new Date(event.eventDate) : null
+    const now = new Date()
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    ).getTime()
+    const shouldBeUpcoming =
+      !eventDate || eventDate.getTime() >= startOfToday
+    const expectedPage = shouldBeUpcoming ? 'eventsUpcoming' : 'eventsPast'
+
+    if (
+      filter !== 'all' &&
+      expectedPage !== (filter === 'upcoming' ? 'eventsUpcoming' : 'eventsPast')
+    ) {
+      router.replace(`/cabinet/${expectedPage}?openEvent=${targetId}`)
+      return
+    }
+
+    const eventTown = event?.address?.town ?? ''
+    if (selectedTown && eventTown !== selectedTown) {
+      setSelectedTown(eventTown)
+      return
+    }
+
+    if (!checkFilter.checked || !checkFilter.unchecked) {
+      const isChecked = !!event?.calendarImportChecked
+      const isVisible =
+        (isChecked && checkFilter.checked) ||
+        (!isChecked && checkFilter.unchecked)
+      if (!isVisible) {
+        setCheckFilter({ checked: true, unchecked: true })
+        return
+      }
+    }
+
+    const index = sortedEvents.findIndex((item) => item._id === targetId)
+    if (index === -1) return
+    openHandledRef.current = true
+    listRef.current?.scrollToItem(index, 'center')
+    setTimeout(() => {
+      modalsFunc.event?.view(targetId)
+      if (pathname) router.replace(pathname, { scroll: false })
+    }, 200)
+  }, [
+    checkFilter.checked,
+    checkFilter.unchecked,
+    events,
+    filter,
+    modalsFunc.event,
+    pathname,
+    router,
+    searchParams,
+    selectedTown,
+    sortedEvents,
+  ])
 
   const filterName =
     filter === 'upcoming'
@@ -150,6 +228,7 @@ const EventsContent = ({ filter = 'all' }) => {
       <div className="min-h-0 flex-1 overflow-hidden">
         {sortedEvents.length > 0 ? (
           <List
+            ref={listRef}
             rowCount={sortedEvents.length}
             rowHeight={ITEM_HEIGHT}
             rowComponent={RowComponent}

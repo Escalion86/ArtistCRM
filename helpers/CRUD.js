@@ -132,7 +132,12 @@ export const deleteData = async (
     if (!res.ok) {
       throw new Error(res.status)
     }
-    const json = await res.json()
+    let json = null
+    try {
+      json = await res.json()
+    } catch (error) {
+      json = { success: true }
+    }
     const result = resJson ? json : json.data
     // mutate(url, data, false)
     if (callbackOnSuccess) callbackOnSuccess(result)

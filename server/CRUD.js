@@ -311,7 +311,9 @@ const updateEventInCalendar = async (event, req, user) => {
     const contacts =
       contactIds.length > 0
         ? await Clients.find({ _id: { $in: contactIds } })
-            .select('firstName secondName')
+            .select(
+              'firstName secondName phone whatsapp viber telegram instagram vk email'
+            )
             .lean()
         : []
     const contactsMap = new Map(
@@ -325,12 +327,18 @@ const updateEventInCalendar = async (event, req, user) => {
           .join(' ')
         const base = contactName || item?.clientId || 'Контакт'
         const suffix = item?.comment ? ` — ${item.comment}` : ''
+        const contactLines = buildClientContactsLines(contact)
+        if (contactLines.length > 0) {
+          return `${base}${suffix}\n${contactLines
+            .map((line) => `• ${line}`)
+            .join('\n')}`
+        }
         return `${base}${suffix}`
       })
       .filter(Boolean)
-      .join('; ')
+      .join('\n')
     if (otherContactsText)
-      extraDescriptionLines.push(`Прочие контакты: ${otherContactsText}`)
+      extraDescriptionLines.push(`Прочие контакты:\n${otherContactsText}`)
   }
   if (extraDescriptionLines.length) {
     preparedText = [preparedText, extraDescriptionLines.join('\n')]
