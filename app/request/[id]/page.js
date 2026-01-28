@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Requests from '@models/Requests'
 import dbConnect from '@server/dbConnect'
+import RequestRedirectClient from './RequestRedirectClient'
 
 export const runtime = 'nodejs'
 
@@ -10,5 +11,5 @@ export default async function RequestRedirectPage({ params }) {
   await dbConnect()
   const request = await Requests.findById(id).select('_id').lean()
   if (!request) return redirect('/cabinet/requests')
-  return redirect(`/cabinet/requests?openRequest=${id}`)
+  return <RequestRedirectClient id={id} />
 }

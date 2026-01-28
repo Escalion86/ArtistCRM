@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Events from '@models/Events'
 import dbConnect from '@server/dbConnect'
+import EventRedirectClient from './EventRedirectClient'
 
 export const runtime = 'nodejs'
 
@@ -23,5 +24,5 @@ export default async function EventRedirectPage({ params }) {
   const event = await Events.findById(id).select('eventDate').lean()
   if (!event) return redirect('/cabinet/eventsUpcoming')
   const targetPage = getTargetPage(event.eventDate)
-  return redirect(`/cabinet/${targetPage}?openEvent=${id}`)
+  return <EventRedirectClient id={id} targetPage={targetPage} />
 }

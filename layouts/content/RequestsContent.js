@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useCallback, useEffect, useRef } from 'react'
+import { useMemo, useCallback, useEffect, useRef, useState } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
@@ -21,6 +21,7 @@ const RequestsContent = () => {
   const pathname = usePathname()
   const listRef = useRef(null)
   const openHandledRef = useRef(false)
+  const [pendingOpenId, setPendingOpenId] = useState(null)
 
   const sortedRequests = useMemo(
     () =>
@@ -55,8 +56,22 @@ const RequestsContent = () => {
   }, [modals.length])
 
   useEffect(() => {
-    const targetId = searchParams?.get('openRequest')
-    console.log('[openRequest] query', { targetId, pathname })
+    const urlTargetId = searchParams?.get('openRequest')
+    if (!urlTargetId && !pendingOpenId && typeof window !== 'undefined') {
+      const storedId = window.sessionStorage.getItem('openRequest')
+      if (storedId) {
+        const storedAt = Number(
+          window.sessionStorage.getItem('openRequestAt') || 0
+        )
+        if (!storedAt || Date.now() - storedAt < 2 * 60 * 1000) {
+          setPendingOpenId(storedId)
+        }
+        window.sessionStorage.removeItem('openRequest')
+        window.sessionStorage.removeItem('openRequestAt')
+      }
+    }
+
+    const targetId = urlTargetId || pendingOpenId
     if (!targetId) return
     let isActive = true
     let attempts = 0
@@ -65,36 +80,26 @@ const RequestsContent = () => {
       if (!isActive) return
       if (attempts >= 10) return
       attempts += 1
-      console.log('[openRequest] retry scheduled', { attempts })
       setTimeout(tryOpen, 250)
     }
 
     const tryOpen = () => {
       if (!isActive) return
       if (openHandledRef.current) return
-      if (!modalsFunc.request?.view) {
-        console.log('[openRequest] modalsFunc not ready')
-        return scheduleRetry()
-      }
-      if (!sortedRequests || sortedRequests.length === 0) {
-        console.log('[openRequest] requests not ready')
-        return scheduleRetry()
-      }
+      if (!modalsFunc.request?.view) return scheduleRetry()
+      if (!sortedRequests || sortedRequests.length === 0) return scheduleRetry()
 
       const index = sortedRequests.findIndex(
         (item) => String(item?._id) === String(targetId)
       )
-      if (index === -1) {
-        console.log('[openRequest] request not found in list')
-        return scheduleRetry()
-      }
+      if (index === -1) return scheduleRetry()
 
-      console.log('[openRequest] opening modal', { index })
       listRef.current?.scrollToItem(index, 'center')
       setTimeout(() => {
         if (!isActive) return
         modalsFunc.request?.view(targetId)
         openHandledRef.current = true
+        if (pendingOpenId) setPendingOpenId(null)
         if (pathname) router.replace(pathname, { scroll: false })
       }, 200)
     }
@@ -103,7 +108,14 @@ const RequestsContent = () => {
     return () => {
       isActive = false
     }
-  }, [modalsFunc.request, pathname, router, searchParams, sortedRequests])
+  }, [
+    modalsFunc.request,
+    pathname,
+    router,
+    searchParams,
+    sortedRequests,
+    pendingOpenId,
+  ])
 
   return (
     <div className="flex h-full flex-col gap-4">
