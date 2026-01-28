@@ -85,16 +85,16 @@ const ClientsContent = () => {
   )
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex flex-col h-full">
       <ContentHeader>
-        <div className="flex flex-1 items-center justify-between">
+        <div className="flex items-center justify-between flex-1">
           <div />
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <span>Всего: {clients.length}</span>
             <Button
               name="+"
               collapsing
-              className="action-icon-button h-9 w-9 rounded-full text-lg"
+              className="text-lg rounded-full action-icon-button h-9 w-9"
               onClick={() => modalsFunc.client?.add()}
               disabled={!modalsFunc.client?.add}
             />
@@ -110,17 +110,17 @@ const ClientsContent = () => {
           noMargin
         />
       </div>
-      <div className="min-h-0 flex-1 overflow-visible rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="flex-1 min-h-0 overflow-visible bg-white border border-gray-200 rounded-lg shadow-sm">
         {clientsWithStats.length > 0 ? (
           <List
             rowCount={clientsWithStats.length}
             rowHeight={ITEM_HEIGHT}
             rowComponent={RowComponent}
             rowProps={{}}
-                                    style={{ height: '100%', width: '100%' }}
+            style={{ height: '100%', width: '100%' }}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-gray-500">
+          <div className="flex items-center justify-center h-full text-sm text-gray-500">
             Клиенты не найдены
           </div>
         )}

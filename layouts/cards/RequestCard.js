@@ -22,7 +22,7 @@ import errorAtom from '@state/atoms/errorAtom'
 import loadingAtom from '@state/atoms/loadingAtom'
 import requestSelector from '@state/selectors/requestSelector'
 import clientSelector from '@state/selectors/clientSelector'
-import windowDimensionsNumSelector from '@state/selectors/windowDimensionsNumSelector'
+// import windowDimensionsNumSelector from '@state/selectors/windowDimensionsNumSelector'
 import cn from 'classnames'
 import { useAtomValue } from 'jotai'
 
@@ -34,7 +34,7 @@ const RequestCard = ({
   changeStyle = 'laptop',
 }) => {
   // const widthNum = useWindowDimensionsTailwindNum()
-  const widthNum = useAtomValue(windowDimensionsNumSelector)
+  // const widthNum = useAtomValue(windowDimensionsNumSelector)
 
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const request = useAtomValue(requestSelector(requestId))
@@ -84,12 +84,12 @@ const RequestCard = ({
         )}
       >
         {requestStatus === 'canceled' && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-15 border-2 border-danger bg-white bg-opacity-50 text-2xl font-bold text-danger shadow-white2">
+          <div className="border-danger bg-opacity-50 text-danger shadow-white2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-15 border-2 bg-white text-2xl font-bold">
             Отменено
           </div>
         )}
         {['finished', 'closed'].includes(requestStatus) && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-15 border-2 border-success bg-white bg-opacity-50 text-2xl font-bold text-success shadow-white2">
+          <div className="border-success bg-opacity-50 text-success shadow-white2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-15 border-2 bg-white text-2xl font-bold">
             Завершено
           </div>
         )}
@@ -98,7 +98,7 @@ const RequestCard = ({
         <div className="flex flex-1 flex-col">
           <div className="flex pl-2">
             <div className="flex h-[36px] flex-1 items-center gap-x-1">
-              <div className="flex-1 font-bold text-general">
+              <div className="text-general flex-1 font-bold">
                 {requestTitle}
               </div>
               {!noButtons && (
@@ -148,7 +148,9 @@ const RequestCard = ({
               {(request?.address || request?.location) && (
                 <div className="flex gap-x-1">
                   <div className="font-bold">Адрес:</div>
-                  <div>{formatAddress(request?.address, request?.location)}</div>
+                  <div>
+                    {formatAddress(request?.address, request?.location)}
+                  </div>
                 </div>
               )}
               {request?.contactChannels?.length > 0 && (

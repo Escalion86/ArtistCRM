@@ -13,7 +13,7 @@ import { modalsFuncAtom, modalsAtom } from '@state/atoms'
 import EventCard from '@layouts/cards/EventCard'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
-const ITEM_HEIGHT = 160
+const ITEM_HEIGHT = 170
 
 const EventsContent = ({ filter = 'all' }) => {
   const events = useAtomValue(eventsAtom)
@@ -150,8 +150,7 @@ const EventsContent = ({ filter = 'all' }) => {
         now.getMonth(),
         now.getDate()
       ).getTime()
-      const shouldBeUpcoming =
-        !eventDate || eventDate.getTime() >= startOfToday
+      const shouldBeUpcoming = !eventDate || eventDate.getTime() >= startOfToday
       const expectedPage = shouldBeUpcoming ? 'eventsUpcoming' : 'eventsPast'
 
       if (
@@ -246,9 +245,9 @@ const EventsContent = ({ filter = 'all' }) => {
   )
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex flex-col h-full gap-4">
       <ContentHeader>
-        <div className="flex flex-1 items-center justify-between">
+        <div className="flex items-center justify-between flex-1">
           <div className="flex flex-wrap items-center gap-3">
             <div className="w-52">
               <ComboBox
@@ -272,20 +271,20 @@ const EventsContent = ({ filter = 'all' }) => {
             <span>
               {filterName}: {sortedEvents.length}
             </span>
-            <span className="tablet:inline hidden">Всего: {events.length}</span>
+            <span className="hidden tablet:inline">Всего: {events.length}</span>
             <Button
               name="+"
               collapsing
-              className="action-icon-button h-9 w-9 rounded-full text-lg"
+              className="text-lg rounded-full action-icon-button h-9 w-9"
               onClick={() => modalsFunc.event?.add()}
               disabled={!modalsFunc.event?.add}
             />
           </div>
         </div>
       </ContentHeader>
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {sortedEvents.length > 0 ? (
-      <List
+          <List
             listRef={listRef}
             rowCount={sortedEvents.length}
             rowHeight={ITEM_HEIGHT}
@@ -294,7 +293,7 @@ const EventsContent = ({ filter = 'all' }) => {
             style={{ height: '100%', width: '100%' }}
           />
         ) : (
-          <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
+          <div className="flex items-center justify-center h-full p-6 text-sm text-gray-500 bg-white border border-gray-300 border-dashed rounded-lg">
             Мероприятий пока нет для выбранного периода
           </div>
         )}

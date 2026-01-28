@@ -28,7 +28,13 @@ const statusClassNames = {
 
 const statusMap = createStatusMap(REQUEST_STATUSES)
 
-const RequestCardCompact = ({ request, style, onEdit, onView, onStatusEdit }) => {
+const RequestCardCompact = ({
+  request,
+  style,
+  onEdit,
+  onView,
+  onStatusEdit,
+}) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loading = useAtomValue(loadingAtom('request' + request._id))
   const error = useAtomValue(errorAtom('request' + request._id))
@@ -65,10 +71,10 @@ const RequestCardCompact = ({ request, style, onEdit, onView, onStatusEdit }) =>
         role="button"
         tabIndex={0}
         onClick={() => !loading && onView?.()}
-        className="group relative flex h-full w-full cursor-pointer overflow-visible rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-gray-300 hover:shadow-card"
+        className="relative flex w-full h-full p-4 overflow-hidden text-left transition bg-white border border-gray-200 shadow-sm cursor-pointer group hover:shadow-card rounded-xl hover:border-gray-300"
       >
         {error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-800 bg-opacity-80 text-2xl text-white">
+          <div className="absolute inset-0 z-20 flex items-center justify-center text-2xl text-white bg-red-800 bg-opacity-80">
             ОШИБКА
           </div>
         )}
@@ -78,7 +84,7 @@ const RequestCardCompact = ({ request, style, onEdit, onView, onStatusEdit }) =>
           </div>
         )}
         <div
-          className="absolute top-2 right-2 z-10 flex items-center gap-2"
+          className="absolute z-10 flex items-center gap-2 top-2 right-2"
           onClick={(event) => event.stopPropagation()}
         >
           <button
@@ -119,7 +125,7 @@ const RequestCardCompact = ({ request, style, onEdit, onView, onStatusEdit }) =>
                   )}`
                 : '-'}
             </div> */}
-            <div className="truncate font-medium text-gray-800">
+            <div className="font-medium text-gray-800 truncate">
               Дата мероприятия:{' '}
               {request.eventDate
                 ? `${formatDate(request.eventDate, false, true)} ${formatTime(
@@ -128,7 +134,7 @@ const RequestCardCompact = ({ request, style, onEdit, onView, onStatusEdit }) =>
                 : '-'}
             </div>
             <div className="truncate">
-              <div className="truncate font-medium text-gray-800">
+              <div className="font-medium text-gray-800 truncate">
                 {formatAddress(
                   request.address,
                   request.location || 'Место не указано'
@@ -143,7 +149,7 @@ const RequestCardCompact = ({ request, style, onEdit, onView, onStatusEdit }) =>
             </div>
             <div className="truncate">
               {contactChannels && (
-                <div className="truncate text-xs text-gray-500">
+                <div className="text-xs text-gray-500 truncate">
                   {contactChannels}
                 </div>
               )}
@@ -174,7 +180,7 @@ const RequestCardCompact = ({ request, style, onEdit, onView, onStatusEdit }) =>
         >
           {hasEvent ? 'Открыть мероприятие' : 'Создать мероприятие'}
         </button>
-        <div className="mt-auto mb-6 self-end text-right text-lg font-semibold whitespace-nowrap text-gray-900">
+        <div className="self-end mt-auto mb-6 text-lg font-semibold text-right text-gray-900 whitespace-nowrap">
           {request.contractSum
             ? `${request.contractSum.toLocaleString()} ₽`
             : '-'}

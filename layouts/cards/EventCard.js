@@ -151,57 +151,57 @@ const EventCard = ({ eventId, style }) => {
   return (
     <div style={style} className="px-2 py-1">
       <div
-        className="laptop:flex-row laptop:items-start laptop:gap-4 hover:shadow-card relative flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition"
+        className="laptop:flex-row laptop:items-start laptop:gap-4 hover:shadow-card relative flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-2 overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition"
         onClick={() => !loading && modalsFunc.event?.view(event._id)}
       >
         {error && (
-          <div className="bg-opacity-80 absolute inset-0 z-20 flex items-center justify-center bg-red-800 text-2xl text-white">
+          <div className="absolute inset-0 z-20 flex items-center justify-center text-2xl text-white bg-red-800 bg-opacity-80">
             ОШИБКА
           </div>
         )}
         {loading && !error && (
-          <div className="bg-general bg-opacity-80 absolute inset-0 z-20 flex items-center justify-center">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80">
             <LoadingSpinner />
           </div>
         )}
-        <div className="flex w-full items-center justify-between gap-x-1">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex items-center justify-between w-full gap-x-1">
+          <div className="flex items-center flex-1 min-w-0 gap-2">
             {event.isTransferred && (
               <FontAwesomeIcon
                 icon={faShare}
-                className="h-4 w-4 text-amber-500"
+                className="w-4 h-4 text-amber-500"
                 title="Передано коллеге"
               />
             )}
             {needsCheck && (
               <FontAwesomeIcon
                 icon={faTriangleExclamation}
-                className="h-4 w-4 text-amber-500"
+                className="w-4 h-4 text-amber-500"
                 title="Проверка мероприятия не завершена"
               />
             )}
             {isClosed && (
               <FontAwesomeIcon
                 icon={faCircleCheck}
-                className="h-4 w-4 text-green-600"
+                className="w-4 h-4 text-green-600"
                 title="Мероприятие закрыто"
               />
             )}
             {isCanceled && (
               <FontAwesomeIcon
                 icon={faBan}
-                className="h-4 w-4 text-red-500"
+                className="w-4 h-4 text-red-500"
                 title="Мероприятие отменено"
               />
             )}
             {isFinished && (
               <FontAwesomeIcon
                 icon={faCircleCheck}
-                className="h-4 w-4 text-gray-400"
+                className="w-4 h-4 text-gray-400"
                 title="Мероприятие завершено"
               />
             )}
-            <div className="flex-1 truncate text-lg font-semibold text-gray-900">
+            <div className="flex-1 text-lg font-semibold text-gray-900 truncate">
               {servicesTitle}
             </div>
             <div
@@ -223,7 +223,7 @@ const EventCard = ({ eventId, style }) => {
             {!client && (
               <FontAwesomeIcon
                 icon={faUserSlash}
-                className="h-4 w-4 text-red-500"
+                className="w-4 h-4 text-red-500"
                 title="Клиент не указан"
               />
             )}
@@ -231,12 +231,12 @@ const EventCard = ({ eventId, style }) => {
         </div>
         <div className="flex gap-x-1">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm text-gray-700">
-            <div className="text-general font-semibold text-gray-800">
+            <div className="font-semibold text-gray-800 text-general">
               {eventDateLabel}
             </div>
-            <div className="flex flex-nowrap items-center gap-x-3">
+            <div className="flex items-center flex-nowrap gap-x-3">
               <span className="font-medium">Место:</span>
-              <span className="flex min-w-0 items-center gap-2 truncate">
+              <span className="flex items-center min-w-0 gap-2 truncate">
                 <span className="truncate">
                   {formatAddress(event.address, '-')}
                 </span>
@@ -247,18 +247,18 @@ const EventCard = ({ eventId, style }) => {
                     rel="noreferrer"
                     title="Открыть в 2ГИС"
                     onClick={(event) => event.stopPropagation()}
-                    className="flex h-7 w-7 items-center justify-center transition-transform hover:scale-110"
+                    className="flex items-center justify-center transition-transform h-7 w-7 hover:scale-110"
                   >
                     <img
                       src="/img/navigators/2gis.png"
                       alt="2gis"
-                      className="h-4 w-4"
+                      className="w-4 h-4"
                     />
                   </a>
                 )}
               </span>
             </div>
-            <div className="flex flex-nowrap items-center gap-x-3">
+            <div className="flex items-center flex-nowrap gap-x-3">
               <span className="font-medium">Клиент:</span>
               <span className="truncate">
                 {client
@@ -272,7 +272,7 @@ const EventCard = ({ eventId, style }) => {
           </div>
 
           {isClosed ? (
-            <div className="event-profit-card absolute -bottom-3 -right-3 flex min-w-[160px] items-center justify-end rounded-tl-xl px-3 py-2 text-sm font-semibold">
+            <div className="absolute right-0 bottom-0 flex min-w-[160px] items-center justify-end rounded-tl-xl bg-black px-3 py-2 text-sm font-semibold">
               <span className="event-profit-text">{net.toLocaleString()}</span>
             </div>
           ) : (
