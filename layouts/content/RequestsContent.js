@@ -56,6 +56,7 @@ const RequestsContent = () => {
 
   useEffect(() => {
     const targetId = searchParams?.get('openRequest')
+    console.log('[openRequest] query', { targetId, pathname })
     if (!targetId) return
     let isActive = true
     let attempts = 0
@@ -64,20 +65,31 @@ const RequestsContent = () => {
       if (!isActive) return
       if (attempts >= 10) return
       attempts += 1
+      console.log('[openRequest] retry scheduled', { attempts })
       setTimeout(tryOpen, 250)
     }
 
     const tryOpen = () => {
       if (!isActive) return
       if (openHandledRef.current) return
-      if (!modalsFunc.request?.view) return scheduleRetry()
-      if (!sortedRequests || sortedRequests.length === 0) return scheduleRetry()
+      if (!modalsFunc.request?.view) {
+        console.log('[openRequest] modalsFunc not ready')
+        return scheduleRetry()
+      }
+      if (!sortedRequests || sortedRequests.length === 0) {
+        console.log('[openRequest] requests not ready')
+        return scheduleRetry()
+      }
 
       const index = sortedRequests.findIndex(
         (item) => String(item?._id) === String(targetId)
       )
-      if (index === -1) return scheduleRetry()
+      if (index === -1) {
+        console.log('[openRequest] request not found in list')
+        return scheduleRetry()
+      }
 
+      console.log('[openRequest] opening modal', { index })
       listRef.current?.scrollToItem(index, 'center')
       setTimeout(() => {
         if (!isActive) return

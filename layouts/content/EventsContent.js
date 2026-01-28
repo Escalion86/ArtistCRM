@@ -103,6 +103,7 @@ const EventsContent = ({ filter = 'all' }) => {
 
   useEffect(() => {
     const targetId = searchParams?.get('openEvent')
+    console.log('[openEvent] query', { targetId, pathname, filter })
     if (!targetId) return
     let isActive = true
     let attempts = 0
@@ -111,19 +112,29 @@ const EventsContent = ({ filter = 'all' }) => {
       if (!isActive) return
       if (attempts >= 10) return
       attempts += 1
+      console.log('[openEvent] retry scheduled', { attempts })
       setTimeout(tryOpen, 250)
     }
 
     const tryOpen = () => {
       if (!isActive) return
       if (openHandledRef.current) return
-      if (!modalsFunc.event?.view) return scheduleRetry()
-      if (!events || events.length === 0) return scheduleRetry()
+      if (!modalsFunc.event?.view) {
+        console.log('[openEvent] modalsFunc not ready')
+        return scheduleRetry()
+      }
+      if (!events || events.length === 0) {
+        console.log('[openEvent] events not ready')
+        return scheduleRetry()
+      }
 
       const indexInAll = events.findIndex(
         (item) => String(item?._id) === String(targetId)
       )
-      if (indexInAll === -1) return scheduleRetry()
+      if (indexInAll === -1) {
+        console.log('[openEvent] event not found in events list')
+        return scheduleRetry()
+      }
 
       const event = events[indexInAll]
       const eventDate = event?.eventDate ? new Date(event.eventDate) : null
@@ -142,12 +153,17 @@ const EventsContent = ({ filter = 'all' }) => {
         expectedPage !==
           (filter === 'upcoming' ? 'eventsUpcoming' : 'eventsPast')
       ) {
+        console.log('[openEvent] redirecting to expected page', { expectedPage })
         router.replace(`/cabinet/${expectedPage}?openEvent=${targetId}`)
         return
       }
 
       const eventTown = event?.address?.town ?? ''
       if (selectedTown && eventTown !== selectedTown) {
+        console.log('[openEvent] town mismatch, updating filter', {
+          selectedTown,
+          eventTown,
+        })
         setSelectedTown(eventTown)
         return
       }
@@ -158,6 +174,7 @@ const EventsContent = ({ filter = 'all' }) => {
           (isChecked && checkFilter.checked) ||
           (!isChecked && checkFilter.unchecked)
         if (!isVisible) {
+          console.log('[openEvent] check filter mismatch, resetting')
           setCheckFilter({ checked: true, unchecked: true })
           return
         }
@@ -166,8 +183,12 @@ const EventsContent = ({ filter = 'all' }) => {
       const index = sortedEvents.findIndex(
         (item) => String(item?._id) === String(targetId)
       )
-      if (index === -1) return scheduleRetry()
+      if (index === -1) {
+        console.log('[openEvent] event not found in sorted list')
+        return scheduleRetry()
+      }
 
+      console.log('[openEvent] opening modal', { index })
       listRef.current?.scrollToItem(index, 'center')
       setTimeout(() => {
         if (!isActive) return
