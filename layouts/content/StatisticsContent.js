@@ -6,6 +6,9 @@ import { useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
 import ComboBox from '@components/ComboBox'
 import Button from '@components/Button'
+import EmptyState from '@components/EmptyState'
+import HeaderActions from '@components/HeaderActions'
+import SectionCard from '@components/SectionCard'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
@@ -31,15 +34,19 @@ const StatisticsContent = () => {
     return (
       <div className="flex h-full flex-col gap-4">
         <ContentHeader />
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 rounded-lg border border-gray-200 bg-white px-4 text-gray-500">
-          <div className="text-center text-lg font-semibold text-gray-700">
-            Статистика доступна только на расширенном тарифе
-          </div>
-          <Button
-            name="Сменить тариф"
-            onClick={() => router.push('/cabinet/tariff-select')}
-          />
-        </div>
+        <SectionCard className="flex min-h-0 flex-1 items-center justify-center px-4">
+          <EmptyState bordered={false}>
+            <div className="flex flex-col items-center gap-4 text-center text-gray-500">
+              <div className="text-lg font-semibold text-gray-700">
+                Статистика доступна только на расширенном тарифе
+              </div>
+              <Button
+                name="Сменить тариф"
+                onClick={() => router.push('/cabinet/tariff-select')}
+              />
+            </div>
+          </EmptyState>
+        </SectionCard>
       </div>
     )
   }
@@ -153,25 +160,27 @@ const StatisticsContent = () => {
   return (
     <div className="flex h-full flex-col gap-4">
       <ContentHeader>
-        <div className="flex flex-1 items-center justify-between">
-          <div className="w-52">
-            <ComboBox
-              label="Год"
-              items={availableYears}
-              value={selectedYear}
-              onChange={(value) =>
-                setSelectedYear(value !== null ? Number(value) : null)
-              }
-              placeholder="Выберите год"
-              fullWidth
-              noMargin
-            />
-          </div>
-          <div />
-        </div>
+        <HeaderActions
+          left={
+            <div className="w-52">
+              <ComboBox
+                label="Год"
+                items={availableYears}
+                value={selectedYear}
+                onChange={(value) =>
+                  setSelectedYear(value !== null ? Number(value) : null)
+                }
+                placeholder="Выберите год"
+                fullWidth
+                noMargin
+              />
+            </div>
+          }
+          right={<div />}
+        />
       </ContentHeader>
 
-      <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <SectionCard className="min-h-0 flex-1 overflow-hidden p-4">
         <div className="mb-3 flex flex-wrap items-center gap-4 text-sm text-gray-700">
           <div className="flex items-center gap-2">
             <span className="h-3 w-3 rounded bg-blue-600" />
@@ -179,11 +188,14 @@ const StatisticsContent = () => {
           </div>
         </div>
         {stats.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-gray-500">
-            {selectedYear
-              ? 'Нет данных для статистики'
-              : 'Нет данных для выбранного года'}
-          </div>
+          <EmptyState
+            bordered={false}
+            text={
+              selectedYear
+                ? 'Нет данных для статистики'
+                : 'Нет данных для выбранного года'
+            }
+          />
         ) : (
           <div className="h-full min-h-[320px]">
             <ResponsiveBar
@@ -249,7 +261,7 @@ const StatisticsContent = () => {
             />
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   )
 }

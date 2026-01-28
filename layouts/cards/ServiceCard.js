@@ -4,11 +4,13 @@ import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
 import PropTypes from 'prop-types'
 import CardButtons from '@components/CardButtons'
-import LoadingSpinner from '@components/LoadingSpinner'
+import CardOverlay from '@components/CardOverlay'
+import CardActions from '@components/CardActions'
 import TextLinesLimiter from '@components/TextLinesLimiter'
 import formatMinutes from '@helpers/formatMinutes'
 import { modalsFuncAtom } from '@state/atoms'
 import { useAtomValue } from 'jotai'
+import CardWrapper from '@components/CardWrapper'
 
 const ServiceCard = ({ service, style }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -27,35 +29,21 @@ const ServiceCard = ({ service, style }) => {
       : null
 
   return (
-    <div style={style} className="px-2 py-2">
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => !loading && modalsFunc.service?.view(service._id)}
-        className="group relative flex h-full w-full cursor-pointer overflow-visible rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-gray-300 hover:shadow-card"
-      >
-        {error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-800 bg-opacity-80 text-2xl text-white">
-            ОШИБКА
-          </div>
-        )}
-        {loading && !error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80">
-            <LoadingSpinner />
-          </div>
-        )}
-        <div
-          className="absolute right-2 top-2 z-10"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <CardButtons
-            item={service}
-            typeOfItem="service"
-            minimalActions
-            alwaysCompact
-            onEdit={() => modalsFunc.service?.edit(service._id)}
-          />
-        </div>
+    <CardWrapper
+      style={style}
+      onClick={() => !loading && modalsFunc.service?.view(service._id)}
+      className="group flex h-full w-full cursor-pointer overflow-visible p-4 text-left hover:border-gray-300"
+    >
+      <CardOverlay loading={loading} error={error} />
+      <CardActions>
+        <CardButtons
+          item={service}
+          typeOfItem="service"
+          minimalActions
+          alwaysCompact
+          onEdit={() => modalsFunc.service?.edit(service._id)}
+        />
+      </CardActions>
 
         <div className="flex h-full w-full gap-3">
           {previewImage && (
@@ -82,8 +70,7 @@ const ServiceCard = ({ service, style }) => {
           </TextLinesLimiter>
           </div>
         </div>
-      </div>
-    </div>
+    </CardWrapper>
   )
 }
 

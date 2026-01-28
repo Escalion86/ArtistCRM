@@ -4,6 +4,10 @@ import { useMemo, useCallback } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
+import EmptyState from '@components/EmptyState'
+import HeaderActions from '@components/HeaderActions'
+import MutedText from '@components/MutedText'
+import SectionCard from '@components/SectionCard'
 import ServiceCard from '@layouts/cards/ServiceCard'
 import servicesAtom from '@state/atoms/servicesAtom'
 import { modalsFuncAtom } from '@state/atoms'
@@ -34,21 +38,23 @@ const ServicesContent = () => {
   return (
     <div className="flex h-full flex-col gap-4">
       <ContentHeader>
-        <div className="flex flex-1 items-center justify-between">
-          <div />
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <span>Всего: {services.length}</span>
-            <Button
-              name="+"
-              collapsing
-              className="action-icon-button h-9 w-9 rounded-full text-lg"
-              onClick={() => modalsFunc.service?.add()}
-              disabled={!modalsFunc.service?.add}
-            />
-          </div>
-        </div>
+        <HeaderActions
+          left={<div />}
+          right={
+            <>
+              <MutedText>Всего: {services.length}</MutedText>
+              <Button
+                name="+"
+                collapsing
+                className="action-icon-button h-9 w-9 rounded-full text-lg"
+                onClick={() => modalsFunc.service?.add()}
+                disabled={!modalsFunc.service?.add}
+              />
+            </>
+          }
+        />
       </ContentHeader>
-      <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <SectionCard className="min-h-0 flex-1 overflow-hidden">
         {sortedServices.length > 0 ? (
           <List
             rowCount={sortedServices.length}
@@ -58,11 +64,9 @@ const ServicesContent = () => {
                                     style={{ height: '100%', width: '100%' }}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-gray-500">
-            Услуги не найдены
-          </div>
+          <EmptyState text="Услуги не найдены" bordered={false} />
         )}
-      </div>
+      </SectionCard>
     </div>
   )
 }

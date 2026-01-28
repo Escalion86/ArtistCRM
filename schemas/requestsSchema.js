@@ -97,6 +97,10 @@ const requestsSchema = {
     type: String,
     default: '',
   },
+  calendarSyncError: {
+    type: String,
+    default: '',
+  },
 }
 
 export default requestsSchema

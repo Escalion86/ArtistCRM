@@ -29,7 +29,7 @@ const normalizeTowns = (towns = []) =>
       towns
         .map((town) => (typeof town === 'string' ? town.trim() : ''))
         .filter(Boolean)
-    )
+      )
   )
 
 const userOnboardingFunc = () => {
@@ -42,6 +42,22 @@ const userOnboardingFunc = () => {
     const [loggedUser, setLoggedUser] = useAtom(loggedUserAtom)
     const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
     const itemsFunc = useAtomValue(itemsFuncAtom)
+    const detectedTimeZone = useMemo(() => {
+      if (typeof Intl === 'undefined') return ''
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+      } catch (error) {
+        return ''
+      }
+    }, [])
+    const timeZoneOptions = useMemo(() => {
+      if (!detectedTimeZone) return TIME_ZONE_OPTIONS
+      const exists = TIME_ZONE_OPTIONS.some(
+        (item) => item.value === detectedTimeZone
+      )
+      if (exists) return TIME_ZONE_OPTIONS
+      return [{ value: detectedTimeZone, name: detectedTimeZone }, ...TIME_ZONE_OPTIONS]
+    }, [detectedTimeZone])
 
     const [firstName, setFirstName] = useState(loggedUser?.firstName ?? '')
     const [secondName, setSecondName] = useState(
@@ -50,9 +66,12 @@ const userOnboardingFunc = () => {
     const [town, setTown] = useState(
       loggedUser?.town ?? siteSettings?.defaultTown ?? ''
     )
-    const [timeZone, setTimeZone] = useState(
-      siteSettings?.timeZone ?? 'Asia/Krasnoyarsk'
-    )
+    const [timeZone, setTimeZone] = useState(() => {
+      const current = siteSettings?.timeZone ?? 'Asia/Krasnoyarsk'
+      const confirmed = siteSettings?.custom?.timeZoneConfirmed === true
+      if (!confirmed && detectedTimeZone) return detectedTimeZone
+      return current
+    })
     const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
@@ -111,6 +130,10 @@ const userOnboardingFunc = () => {
           timeZone,
           defaultTown: trimmedTown,
           towns: nextTowns,
+          custom: {
+            ...(siteSettings?.custom ?? {}),
+            timeZoneConfirmed: true,
+          },
         },
         (data) => setSiteSettings(data),
         null,
@@ -172,7 +195,7 @@ const userOnboardingFunc = () => {
         />
         <ComboBox
           label="Часовой пояс"
-          items={TIME_ZONE_OPTIONS}
+          items={timeZoneOptions}
           value={timeZone}
           onChange={setTimeZone}
           error={errors.timeZone}

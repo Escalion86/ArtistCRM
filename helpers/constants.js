@@ -426,6 +426,7 @@ export const DEFAULT_EVENT = Object.freeze({
   isByContract: false,
   importedFromCalendar: false,
   calendarImportChecked: false,
+  calendarSyncError: '',
   colleagueId: null,
   images: [],
   showOnSite: true,
@@ -468,6 +469,7 @@ export const DEFAULT_REQUEST = Object.freeze({
   comment: '',
   status: 'new',
   eventId: null,
+  calendarSyncError: '',
 })
 
 export const DEFAULT_TRANSACTION = Object.freeze({

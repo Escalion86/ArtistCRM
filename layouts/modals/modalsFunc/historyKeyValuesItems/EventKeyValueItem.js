@@ -1,4 +1,4 @@
-import EventTagsChipsLine from '@components/Chips/EventTagsChipsLine'
+import Chip from '@components/Chips/Chip'
 import InputImages from '@components/InputImages'
 import UserNameById from '@components/UserNameById'
 import { EVENT_STATUSES } from '@helpers/constants'
@@ -18,7 +18,15 @@ const EventKeyValueItem = ({ objKey, value }) =>
       }}
     />
   ) : objKey === 'tags' ? (
-    <EventTagsChipsLine tags={value} className="flex-1" />
+    Array.isArray(value) && value.length > 0 ? (
+      <div className="flex flex-wrap gap-2">
+        {value.map((tag) => (
+          <Chip key={String(tag)} text={String(tag)} color="#f3f4f6" />
+        ))}
+      </div>
+    ) : (
+      '[не указано]'
+    )
   ) : objKey === 'organizerId' ? (
     <UserNameById userId={value} thin trunc={1} />
   ) : objKey === 'dateStart' || objKey === 'dateEnd' ? (

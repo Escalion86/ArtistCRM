@@ -4,14 +4,19 @@ import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
 import PropTypes from 'prop-types'
 import CardButtons from '@components/CardButtons'
-import LoadingSpinner from '@components/LoadingSpinner'
+import CardOverlay from '@components/CardOverlay'
+import CardActions from '@components/CardActions'
+import CardStatusBar from '@components/CardStatusBar'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCalendarXmark } from '@fortawesome/free-solid-svg-icons'
 import { REQUEST_STATUSES } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
 import { modalsFuncAtom } from '@state/atoms'
 import clientSelector from '@state/selectors/clientSelector'
 import { useAtomValue } from 'jotai'
+import CardWrapper from '@components/CardWrapper'
 
 const createStatusMap = (statuses) =>
   statuses.reduce((acc, item) => {
@@ -42,6 +47,7 @@ const RequestCardCompact = ({
   const statusColor = statusClassNames[status?.value] || 'bg-blue-500'
   const hasEvent = Boolean(request.eventId)
   const calendarLink = request.calendarLink || null
+  const hasCalendarError = Boolean(request?.calendarSyncError)
   const client = useAtomValue(clientSelector(request.clientId))
   const contactUser =
     client || (request.clientPhone ? { phone: request.clientPhone } : null)
@@ -66,127 +72,106 @@ const RequestCardCompact = ({
     : 'Дата заявки не указана'
 
   return (
-    <div style={style} className="px-2 py-2">
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => !loading && onView?.()}
-        className="relative flex w-full h-full p-4 overflow-hidden text-left transition bg-white border border-gray-200 shadow-sm cursor-pointer group hover:shadow-card rounded-xl hover:border-gray-300"
-      >
-        {error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center text-2xl text-white bg-red-800 bg-opacity-80">
-            ОШИБКА
-          </div>
-        )}
-        {loading && !error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80">
-            <LoadingSpinner />
-          </div>
-        )}
-        <div
-          className="absolute z-10 flex items-center gap-2 top-2 right-2"
-          onClick={(event) => event.stopPropagation()}
+    <CardWrapper
+      style={style}
+      onClick={() => !loading && onView?.()}
+      className="relative flex h-full w-full cursor-pointer overflow-hidden p-4 text-left hover:border-gray-300"
+    >
+      <CardOverlay loading={loading} error={error} />
+      <CardActions className="flex items-center gap-2">
+        <button
+          type="button"
+          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold text-white ${statusColor}`}
+          onClick={(event) => {
+            event.stopPropagation()
+            onStatusEdit?.(request._id)
+          }}
         >
-          <button
-            type="button"
-            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold text-white ${statusColor}`}
-            onClick={(event) => {
-              event.stopPropagation()
-              onStatusEdit?.(request._id)
-            }}
-          >
-            {status?.name || 'Новая'}
-          </button>
-          <CardButtons
-            item={request}
-            typeOfItem="request"
-            minimalActions
-            alwaysCompact
-            showEditButton={!hasEvent}
-            showDeleteButton={!hasEvent}
-            onEdit={onEdit}
-            calendarLink={calendarLink}
+          {status?.name || 'Новая'}
+        </button>
+        {hasCalendarError && (
+          <FontAwesomeIcon
+            icon={faCalendarXmark}
+            className="h-4 w-4 text-red-500"
+            title="Синхронизация с календарем не выполнена"
           />
-        </div>
-        <div className={`absolute top-0 left-0 h-full w-1.5 ${statusColor}`} />
+        )}
+        <CardButtons
+          item={request}
+          typeOfItem="request"
+          minimalActions
+          alwaysCompact
+          showEditButton={!hasEvent}
+          showDeleteButton={!hasEvent}
+          onEdit={onEdit}
+          calendarLink={calendarLink}
+        />
+      </CardActions>
+      <CardStatusBar className={statusColor} />
 
-        <div className="flex h-full w-full flex-col gap-0.5 pr-4 pl-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="text-base font-semibold text-gray-900">
-              {requestCreatedLabel}
-            </div>
+      <div className="flex h-full w-full flex-col gap-0.5 pr-4 pl-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="text-base font-semibold text-gray-900">
+            {requestCreatedLabel}
           </div>
-          <div className="grid gap-0.5 text-sm text-gray-700">
-            {/* <div className="font-medium text-gray-800 truncate">
-              Дата заявки:{' '}
-              {request.createdAt
-                ? `${formatDate(request.createdAt, false, true)} ${formatTime(
-                    request.createdAt
-                  )}`
-                : '-'}
-            </div> */}
+        </div>
+        <div className="grid gap-0.5 text-sm text-gray-700">
+          <div className="font-medium text-gray-800 truncate">
+            Дата мероприятия:{' '}
+            {request.eventDate
+              ? `${formatDate(request.eventDate, false, true)} ${formatTime(
+                  request.eventDate
+                )}`
+              : '-'}
+          </div>
+          <div className="truncate">
             <div className="font-medium text-gray-800 truncate">
-              Дата мероприятия:{' '}
-              {request.eventDate
-                ? `${formatDate(request.eventDate, false, true)} ${formatTime(
-                    request.eventDate
-                  )}`
-                : '-'}
-            </div>
-            <div className="truncate">
-              <div className="font-medium text-gray-800 truncate">
-                {formatAddress(
-                  request.address,
-                  request.location || 'Место не указано'
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] grid gap-0.5 text-sm text-gray-700">
-            <div className="text-sm text-gray-700">
-              <span className="font-medium text-gray-800">Клиент:</span>{' '}
-              {request.clientName || 'Не указан'}
-            </div>
-            <div className="truncate">
-              {contactChannels && (
-                <div className="text-xs text-gray-500 truncate">
-                  {contactChannels}
-                </div>
+              {formatAddress(
+                request.address,
+                request.location || 'Место не указано'
               )}
             </div>
           </div>
-          {contactUser && (
-            <ContactsIconsButtons user={contactUser} className="text-sm" />
-          )}
-          {/* {request.comment && (
-            <div className="text-sm text-gray-600">{request.comment}</div>
-          )} */}
         </div>
-        <button
-          type="button"
-          className={`absolute right-0 bottom-0 cursor-pointer rounded-tl-lg rounded-br-xl px-3 py-1.5 text-xs font-semibold text-white shadow ${
-            hasEvent
-              ? 'bg-blue-600 hover:bg-blue-700'
-              : 'bg-emerald-600 hover:bg-emerald-700'
-          }`}
-          onClick={(event) => {
-            event.stopPropagation()
-            if (hasEvent) {
-              modalsFunc.event?.view(request.eventId)
-            } else {
-              modalsFunc.event?.fromRequest(request._id)
-            }
-          }}
-        >
-          {hasEvent ? 'Открыть мероприятие' : 'Создать мероприятие'}
-        </button>
-        <div className="self-end mt-auto mb-6 text-lg font-semibold text-right text-gray-900 whitespace-nowrap">
-          {request.contractSum
-            ? `${request.contractSum.toLocaleString()} ₽`
-            : '-'}
+        <div className="tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] grid gap-0.5 text-sm text-gray-700">
+          <div className="text-sm text-gray-700">
+            <span className="font-medium text-gray-800">Клиент:</span>{' '}
+            {request.clientName || 'Не указан'}
+          </div>
+          <div className="truncate">
+            {contactChannels && (
+              <div className="text-xs text-gray-500 truncate">
+                {contactChannels}
+              </div>
+            )}
+          </div>
         </div>
+        {contactUser && (
+          <ContactsIconsButtons user={contactUser} className="text-sm" />
+        )}
       </div>
-    </div>
+      <button
+        type="button"
+        className={`absolute right-0 bottom-0 cursor-pointer rounded-tl-lg rounded-br-xl px-3 py-1.5 text-xs font-semibold text-white shadow ${
+          hasEvent
+            ? 'bg-blue-600 hover:bg-blue-700'
+            : 'bg-emerald-600 hover:bg-emerald-700'
+        }`}
+        onClick={(event) => {
+          event.stopPropagation()
+          if (hasEvent) {
+            modalsFunc.event?.view(request.eventId)
+          } else {
+            modalsFunc.event?.fromRequest(request._id)
+          }
+        }}
+      >
+        {hasEvent ? 'Открыть мероприятие' : 'Создать мероприятие'}
+      </button>
+      <div className="self-end mt-auto mb-6 text-lg font-semibold text-right text-gray-900 whitespace-nowrap">
+        {request.contractSum ? `${request.contractSum.toLocaleString()} ₽` : '-'}
+      </div>
+    </CardWrapper>
   )
 }
 

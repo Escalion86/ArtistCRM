@@ -152,6 +152,10 @@ const eventsSchema = {
     type: Schema.Types.Mixed,
     default: null,
   },
+  calendarSyncError: {
+    type: String,
+    default: '',
+  },
 }
 
 export default eventsSchema

@@ -1,5 +1,6 @@
 import CardButtons from '@components/CardButtons'
-import EventTagsChipsLine from '@components/Chips/EventTagsChipsLine'
+import Chip from '@components/Chips/Chip'
+import cn from 'classnames'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import Divider from '@components/Divider'
 import ImageGallery from '@components/ImageGallery'
@@ -16,6 +17,7 @@ import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
 import clientsAtom from '@state/atoms/clientsAtom'
+import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 
 const CardButtonsComponent = ({ event, calendarLink }) => (
   <CardButtons
@@ -42,6 +44,7 @@ const eventViewFunc = (eventId) => {
     const event = useAtomValue(eventSelector(eventId))
     const services = useAtomValue(servicesAtom)
     const clients = useAtomValue(clientsAtom)
+    const siteSettings = useAtomValue(siteSettingsAtom)
 
     const organizer = useAtomValue(userSelector(event?.organizerId))
 
@@ -79,6 +82,23 @@ const eventViewFunc = (eventId) => {
         .filter(Boolean)
     }, [clients, event?.otherContacts])
 
+    const tagItems = useMemo(() => {
+      const list = Array.isArray(event?.tags) ? event.tags : []
+      const eventsTags = siteSettings?.eventsTags ?? []
+      const map = new Map(
+        eventsTags
+          .filter((item) => item?.text)
+          .map((item) => [String(item.text).toLowerCase(), item.color])
+      )
+      return list
+        .map((value) => String(value).trim())
+        .filter(Boolean)
+        .map((value) => ({
+          value,
+          color: map.get(value.toLowerCase()) || '#f3f4f6',
+        }))
+    }, [event?.tags, siteSettings?.eventsTags])
+
     useEffect(() => {
       if (setTopLeftComponent) {
         setTopLeftComponent(() => (
@@ -100,8 +120,12 @@ const eventViewFunc = (eventId) => {
         <div className="flex flex-1 flex-col">
           <div className="flex w-full max-w-full flex-1 flex-col gap-y-1 px-2 py-2">
             <div className="flex w-full items-center gap-x-1">
-              {event?.tags.length > 0 && (
-                <EventTagsChipsLine tags={event?.tags} className="flex-1" />
+              {tagItems.length > 0 && (
+                <div className={cn('flex flex-wrap gap-2', 'flex-1')}>
+                  {tagItems.map((tag) => (
+                    <Chip key={tag.value} text={tag.value} color={tag.color} />
+                  ))}
+                </div>
               )}
               {!setTopLeftComponent && (
                 <div className="flex flex-1 justify-end">

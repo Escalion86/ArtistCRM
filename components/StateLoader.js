@@ -127,8 +127,10 @@ const StateLoader = (props) => {
     const town =
       loggedUser?.town?.trim() ?? siteSettingsState?.defaultTown?.trim() ?? ''
     const timeZone = siteSettingsState?.timeZone ?? ''
+    const timeZoneConfirmed =
+      siteSettingsState?.custom?.timeZoneConfirmed === true
     const needsOnboarding =
-      !firstName || !secondName || !town || !timeZone
+      !firstName || !secondName || !town || !timeZone || !timeZoneConfirmed
 
     if (needsOnboarding && modalFunc?.user?.onboarding) {
       onboardingShownRef.current = true
@@ -141,6 +143,7 @@ const StateLoader = (props) => {
     loggedUser?.town,
     siteSettingsState?.defaultTown,
     siteSettingsState?.timeZone,
+    siteSettingsState?.custom?.timeZoneConfirmed,
     modalFunc,
   ])
 

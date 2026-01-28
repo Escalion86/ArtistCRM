@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import Button from '@components/Button'
 import ContentHeader from '@components/ContentHeader'
+import HeaderActions from '@components/HeaderActions'
 import IconCheckBox from '@components/IconCheckBox'
+import SectionCard from '@components/SectionCard'
 import { useAtom } from 'jotai'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { postData } from '@helpers/CRUD'
@@ -105,11 +107,9 @@ const DevContent = () => {
   return (
     <div className="flex h-full flex-col gap-4 p-4">
       <ContentHeader>
-        <div className="flex flex-1 items-center justify-between">
-          <h2 className="text-xl font-semibold">Разработчик</h2>
-        </div>
+        <HeaderActions left={<h2 className="text-xl font-semibold">Разработчик</h2>} right={<div />} />
       </ContentHeader>
-      <div className="flex flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <SectionCard className="flex flex-col gap-4 p-4">
         <IconCheckBox
           label="Сохранять ответ Google Calendar в поле мероприятия"
           checked={Boolean(siteSettings?.storeCalendarResponse)}

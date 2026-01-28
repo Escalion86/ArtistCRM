@@ -88,7 +88,11 @@ export const POST = async (req) => {
       )
     }
   }
-  const event = await Events.create({ ...body, tenantId })
+  const event = await Events.create({
+    ...body,
+    tenantId,
+    calendarSyncError: access?.allowCalendarSync ? '' : 'calendar_sync_unavailable',
+  })
   let responseEvent = event
   if (!event?.importedFromCalendar && access?.allowCalendarSync) {
     try {
@@ -97,7 +101,13 @@ export const POST = async (req) => {
       if (refreshed) responseEvent = refreshed
     } catch (error) {
       console.log('Google Calendar create error', error)
+      await Events.findByIdAndUpdate(event._id, {
+        calendarSyncError: 'calendar_sync_failed',
+      })
+      responseEvent = await Events.findById(event._id).lean()
     }
+  } else if (!event?.importedFromCalendar && !access?.allowCalendarSync) {
+    responseEvent = await Events.findById(event._id).lean()
   }
   return NextResponse.json({ success: true, data: responseEvent }, { status: 201 })
 }

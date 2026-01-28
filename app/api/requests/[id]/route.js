@@ -410,6 +410,9 @@ export const PUT = async (req, { params }) => {
       servicesIds,
       description: eventData.description ?? request.comment ?? '',
       otherContacts: normalizedOtherContacts,
+      calendarSyncError: access?.allowCalendarSync
+        ? ''
+        : 'calendar_sync_unavailable',
     })
 
     let updatedEvent = event
@@ -420,6 +423,11 @@ export const PUT = async (req, { params }) => {
         if (refreshedEvent) updatedEvent = refreshedEvent
       } catch (error) {
         console.log('Google Calendar convert error', error)
+        updatedEvent = await Events.findByIdAndUpdate(
+          event._id,
+          { calendarSyncError: 'calendar_sync_failed' },
+          { new: true }
+        )
       }
     }
 
@@ -535,21 +543,32 @@ export const PUT = async (req, { params }) => {
     }
   )
 
-  if (updatedRequest?.googleCalendarId) {
+  const access = await getUserTariffAccess(user._id)
+  if (!access?.allowCalendarSync) {
+    await Requests.findByIdAndUpdate(updatedRequest._id, {
+      calendarSyncError: 'calendar_sync_unavailable',
+    })
+    updatedRequest.calendarSyncError = 'calendar_sync_unavailable'
+  } else if (updatedRequest?.googleCalendarId) {
     try {
-      const access = await getUserTariffAccess(user._id)
-      if (access?.allowCalendarSync) {
-        if (!updatedRequest.googleCalendarCalendarId) {
-          const calendarId = getUserCalendarId(user)
-          await Requests.findByIdAndUpdate(updatedRequest._id, {
-            googleCalendarCalendarId: calendarId,
-          })
-          updatedRequest.googleCalendarCalendarId = calendarId
-        }
-        await updateRequestCalendarEvent(updatedRequest, timeZone, user)
+      if (!updatedRequest.googleCalendarCalendarId) {
+        const calendarId = getUserCalendarId(user)
+        await Requests.findByIdAndUpdate(updatedRequest._id, {
+          googleCalendarCalendarId: calendarId,
+        })
+        updatedRequest.googleCalendarCalendarId = calendarId
       }
+      await updateRequestCalendarEvent(updatedRequest, timeZone, user)
+      await Requests.findByIdAndUpdate(updatedRequest._id, {
+        calendarSyncError: '',
+      })
+      updatedRequest.calendarSyncError = ''
     } catch (error) {
       console.log('Google Calendar request update error', error)
+      await Requests.findByIdAndUpdate(updatedRequest._id, {
+        calendarSyncError: 'calendar_sync_failed',
+      })
+      updatedRequest.calendarSyncError = 'calendar_sync_failed'
     }
   }
 

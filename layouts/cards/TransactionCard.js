@@ -4,11 +4,14 @@ import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
 import PropTypes from 'prop-types'
 import CardButtons from '@components/CardButtons'
-import LoadingSpinner from '@components/LoadingSpinner'
+import CardOverlay from '@components/CardOverlay'
+import CardActions from '@components/CardActions'
+import CardStatusBar from '@components/CardStatusBar'
 import { TRANSACTION_CATEGORIES } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
 import { useAtomValue } from 'jotai'
+import CardWrapper from '@components/CardWrapper'
 
 const typeClassNames = {
   income: 'bg-green-500',
@@ -66,41 +69,27 @@ const TransactionCard = ({
     )?.name ?? null
 
   return (
-    <div style={style} className="px-2 py-2">
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => !loading && onEdit?.()}
-        className="relative flex w-full h-full p-3 pr-4 overflow-visible text-left transition bg-white border border-gray-200 shadow-sm cursor-pointer group rounded-xl hover:border-gray-300 hover:shadow-card"
-      >
-        {error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-800 bg-opacity-80 text-2xl text-white">
-            ОШИБКА
-          </div>
-        )}
-        {loading && !error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80">
-            <LoadingSpinner />
-          </div>
-        )}
-        <div
-          className="absolute z-10 right-2 top-2"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <CardButtons
-            item={transaction}
-            typeOfItem="transaction"
-            minimalActions
-            alwaysCompact
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        </div>
-        <div
-          className={`absolute left-0 top-0 h-full w-1.5 ${
-            typeClassNames[type?.value ?? transaction.type] || 'bg-gray-300'
-          }`}
+    <CardWrapper
+      style={style}
+      onClick={() => !loading && onEdit?.()}
+      className="flex h-full w-full cursor-pointer overflow-visible p-3 pr-4 text-left hover:border-gray-300"
+    >
+      <CardOverlay loading={loading} error={error} />
+      <CardActions>
+        <CardButtons
+          item={transaction}
+          typeOfItem="transaction"
+          minimalActions
+          alwaysCompact
+          onEdit={onEdit}
+          onDelete={onDelete}
         />
+      </CardActions>
+      <CardStatusBar
+        className={
+          typeClassNames[type?.value ?? transaction.type] || 'bg-gray-300'
+        }
+      />
 
         <div className="flex flex-col w-full h-full pl-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -136,8 +125,7 @@ const TransactionCard = ({
             ? `${transaction.amount.toLocaleString()} ₽`
             : '0 ₽'}
         </div>
-      </div>
-    </div>
+    </CardWrapper>
   )
 }
 

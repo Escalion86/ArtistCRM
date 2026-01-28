@@ -10,6 +10,8 @@ import { useAtom, useAtomValue } from 'jotai'
 import requestSelector from '@state/selectors/requestSelector'
 import DateTimePicker from '@components/DateTimePicker'
 import clientsAtom from '@state/atoms/clientsAtom'
+import eventsAtom from '@state/atoms/eventsAtom'
+import requestsAtom from '@state/atoms/requestsAtom'
 import ClientPicker from '@components/ClientPicker'
 import { modalsFuncAtom } from '@state/atoms'
 import AddressPicker from '@components/AddressPicker'
@@ -37,6 +39,8 @@ const requestFunc = (requestId, clone = false) => {
     const request = useAtomValue(requestSelector(requestId))
     const setRequest = useAtomValue(itemsFuncAtom).request.set
     const clients = useAtomValue(clientsAtom)
+    const events = useAtomValue(eventsAtom)
+    const requests = useAtomValue(requestsAtom)
     const loggedUser = useAtomValue(loggedUserAtom)
     const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -222,6 +226,56 @@ const requestFunc = (requestId, clone = false) => {
         : ''
     }, [createdAt, eventDate])
 
+    const defaultDurationMinutes = useMemo(() => {
+      const minutes = Number(
+        siteSettings?.custom?.defaultEventDurationMinutes ?? 60
+      )
+      return Number.isFinite(minutes) && minutes > 0 ? minutes : 60
+    }, [siteSettings?.custom?.defaultEventDurationMinutes])
+
+    const buildRange = useCallback(
+      (startValue, endValue) => {
+        if (!startValue) return null
+        const start = new Date(startValue)
+        if (Number.isNaN(start.getTime())) return null
+        let end = endValue ? new Date(endValue) : null
+        if (!end || Number.isNaN(end.getTime()) || end <= start) {
+          end = new Date(start.getTime() + defaultDurationMinutes * 60 * 1000)
+        }
+        return { start, end }
+      },
+      [defaultDurationMinutes]
+    )
+
+    const getConflictsCount = useCallback(() => {
+      const targetRange = buildRange(eventDate, null)
+      if (!targetRange) return 0
+      let count = 0
+
+      ;(events ?? []).forEach((item) => {
+        if (!item) return
+        if (item.status === 'canceled') return
+        const range = buildRange(item.eventDate, item.dateEnd)
+        if (!range) return
+        const overlaps =
+          targetRange.start < range.end && range.start < targetRange.end
+        if (overlaps) count += 1
+      })
+
+      ;(requests ?? []).forEach((item) => {
+        if (!item) return
+        if (requestId && String(item._id) === String(requestId)) return
+        if (item.status === 'canceled') return
+        const range = buildRange(item.eventDate, null)
+        if (!range) return
+        const overlaps =
+          targetRange.start < range.end && range.start < targetRange.end
+        if (overlaps) count += 1
+      })
+
+      return count
+    }, [buildRange, eventDate, events, requestId, requests])
+
     const handleCreateTown = async (town) => {
       const normalizedTown = typeof town === 'string' ? town.trim() : ''
       if (!normalizedTown) return
@@ -313,7 +367,7 @@ const requestFunc = (requestId, clone = false) => {
         hasCustomError = true
       }
 
-      if (!hasCustomError) {
+      const proceedSave = () => {
         closeModal()
         const normalizedAddress = normalizeAddress(address)
         const normalizedContractSum =
@@ -355,6 +409,22 @@ const requestFunc = (requestId, clone = false) => {
           clone
         )
       }
+
+      if (!hasCustomError) {
+        const conflictsCount = getConflictsCount()
+        if (conflictsCount > 0) {
+          modalsFunc.add({
+            title: 'Пересечение по времени',
+            text: `Внимание! Есть мероприятия/заявки в выбранном периоде (${conflictsCount}). Все равно сохранить?`,
+            confirmButtonName: 'Все равно сохранить',
+            declineButtonName: 'Вернуться',
+            showDecline: true,
+            onConfirm: proceedSave,
+          })
+          return
+        }
+        proceedSave()
+      }
     }, [
       request,
       clientId,
@@ -371,6 +441,8 @@ const requestFunc = (requestId, clone = false) => {
       normalizeOtherContacts,
       otherContacts,
       dateRangeError,
+      getConflictsCount,
+      modalsFunc,
     ])
 
     const originalAddressSignature = useMemo(

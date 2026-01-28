@@ -18,6 +18,8 @@ import {
 import TabContext from '@components/Tabs/TabContext'
 import TabPanel from '@components/Tabs/TabPanel'
 import transactionsAtom from '@state/atoms/transactionsAtom'
+import eventsAtom from '@state/atoms/eventsAtom'
+import requestsAtom from '@state/atoms/requestsAtom'
 import { deleteData, postData } from '@helpers/CRUD'
 import useErrors from '@helpers/useErrors'
 import clientsAtom from '@state/atoms/clientsAtom'
@@ -104,6 +106,8 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     )
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const transactions = useAtomValue(transactionsAtom)
+    const events = useAtomValue(eventsAtom)
+    const requests = useAtomValue(requestsAtom)
     const setTransactions = useSetAtom(transactionsAtom)
     const closeModalRef = useRef(closeModal)
 
@@ -394,11 +398,18 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         : ''
     }, [eventDate, dateEnd])
 
-    const addHourToDate = (value) => {
+    const defaultDurationMinutes = useMemo(() => {
+      const minutes = Number(
+        siteSettings?.custom?.defaultEventDurationMinutes ?? 60
+      )
+      return Number.isFinite(minutes) && minutes > 0 ? minutes : 60
+    }, [siteSettings?.custom?.defaultEventDurationMinutes])
+
+    const addMinutesToDate = (value, minutes) => {
       if (!value) return null
       const date = new Date(value)
       if (Number.isNaN(date.getTime())) return null
-      date.setHours(date.getHours() + 1)
+      date.setMinutes(date.getMinutes() + minutes)
       return date.toISOString()
     }
 
@@ -406,9 +417,53 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       if (dateEndTouched) return
       if (!eventDate) return
       if (!dateEnd) {
-        setDateEnd(addHourToDate(eventDate))
+        setDateEnd(addMinutesToDate(eventDate, defaultDurationMinutes))
       }
-    }, [dateEnd, dateEndTouched, eventDate])
+    }, [dateEnd, dateEndTouched, defaultDurationMinutes, eventDate])
+
+    const buildRange = useCallback(
+      (startValue, endValue) => {
+        if (!startValue) return null
+        const start = new Date(startValue)
+        if (Number.isNaN(start.getTime())) return null
+        let end = endValue ? new Date(endValue) : null
+        if (!end || Number.isNaN(end.getTime()) || end <= start) {
+          end = new Date(start.getTime() + defaultDurationMinutes * 60 * 1000)
+        }
+        return { start, end }
+      },
+      [defaultDurationMinutes]
+    )
+
+    const getConflictsCount = useCallback(() => {
+      const targetRange = buildRange(eventDate, dateEnd)
+      if (!targetRange) return 0
+      let count = 0
+
+      ;(events ?? []).forEach((item) => {
+        if (!item) return
+        if (eventId && String(item._id) === String(eventId)) return
+        if (item.status === 'canceled') return
+        const range = buildRange(item.eventDate, item.dateEnd)
+        if (!range) return
+        const overlaps =
+          targetRange.start < range.end && range.start < targetRange.end
+        if (overlaps) count += 1
+      })
+
+      ;(requests ?? []).forEach((item) => {
+        if (!item) return
+        if (requestId && String(item._id) === String(requestId)) return
+        if (item.status === 'canceled') return
+        const range = buildRange(item.eventDate, null)
+        if (!range) return
+        const overlaps =
+          targetRange.start < range.end && range.start < targetRange.end
+        if (overlaps) count += 1
+      })
+
+      return count
+    }, [buildRange, dateEnd, eventDate, eventId, events, requestId, requests])
 
     const onClickConfirm = useCallback(() => {
       clearErrorsRef.current()
@@ -434,7 +489,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         hasError = true
       }
 
-      if (!hasError) {
+      const proceedSave = () => {
         closeModalRef.current()
         const normalizedContractSum =
           typeof contractSum === 'number' && !Number.isNaN(contractSum)
@@ -474,6 +529,22 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         }
         setEvent(payload, clone)
       }
+
+      if (!hasError) {
+        const conflictsCount = getConflictsCount()
+        if (conflictsCount > 0) {
+          modalsFunc.add({
+            title: 'Пересечение по времени',
+            text: `Внимание! Есть мероприятия/заявки в выбранном периоде (${conflictsCount}). Все равно сохранить?`,
+            confirmButtonName: 'Все равно сохранить',
+            declineButtonName: 'Вернуться',
+            showDecline: true,
+            onConfirm: proceedSave,
+          })
+          return
+        }
+        proceedSave()
+      }
     }, [
       addErrorRef,
       calendarImportChecked,
@@ -489,8 +560,10 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       event?._id,
       event?.requestId,
       eventDate,
+      getConflictsCount,
       isTransferred,
       address,
+      modalsFunc,
       requestId,
       convertRequest,
       setEvent,

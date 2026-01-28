@@ -13,7 +13,6 @@ import clientSelector from '@state/selectors/clientSelector'
 import servicesAtom from '@state/atoms/servicesAtom'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
-import LoadingSpinner from '@components/LoadingSpinner'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faShare,
@@ -21,9 +20,13 @@ import {
   faCircleCheck,
   faBan,
   faUserSlash,
+  faCalendarXmark,
 } from '@fortawesome/free-solid-svg-icons'
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
+import CardOverlay from '@components/CardOverlay'
+import CardActions from '@components/CardActions'
+import CardWrapper from '@components/CardWrapper'
 
 const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
 
@@ -125,6 +128,7 @@ const EventCard = ({ eventId, style }) => {
 
   const rawStatus = status?.value ?? event.status
   const needsCheck = event?.calendarImportChecked === false
+  const hasCalendarError = Boolean(event?.calendarSyncError)
   const isCanceled = rawStatus === 'canceled'
   const isClosed = rawStatus === 'closed'
   const isFinished =
@@ -149,160 +153,153 @@ const EventCard = ({ eventId, style }) => {
   if (!event) return null
 
   return (
-    <div style={style} className="px-2 py-1">
-      <div
-        className="laptop:flex-row laptop:items-start laptop:gap-4 hover:shadow-card relative flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-2 overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition"
-        onClick={() => !loading && modalsFunc.event?.view(event._id)}
-      >
-        {error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center text-2xl text-white bg-red-800 bg-opacity-80">
-            ОШИБКА
+    <CardWrapper
+      style={style}
+      outerClassName="px-2 py-1"
+      onClick={() => !loading && modalsFunc.event?.view(event._id)}
+      className="laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-2 overflow-hidden rounded-lg p-3"
+    >
+      <CardOverlay loading={loading} error={error} />
+      <div className="flex items-center justify-between w-full gap-x-1">
+        <div className="flex items-center flex-1 min-w-0 gap-2">
+          {event.isTransferred && (
+            <FontAwesomeIcon
+              icon={faShare}
+              className="w-4 h-4 text-amber-500"
+              title="Передано коллеге"
+            />
+          )}
+          {needsCheck && (
+            <FontAwesomeIcon
+              icon={faTriangleExclamation}
+              className="w-4 h-4 text-amber-500"
+              title="Проверка мероприятия не завершена"
+            />
+          )}
+          {hasCalendarError && (
+            <FontAwesomeIcon
+              icon={faCalendarXmark}
+              className="w-4 h-4 text-red-500"
+              title="Синхронизация с календарем не выполнена"
+            />
+          )}
+          {isClosed && (
+            <FontAwesomeIcon
+              icon={faCircleCheck}
+              className="w-4 h-4 text-green-600"
+              title="Мероприятие закрыто"
+            />
+          )}
+          {isCanceled && (
+            <FontAwesomeIcon
+              icon={faBan}
+              className="w-4 h-4 text-red-500"
+              title="Мероприятие отменено"
+            />
+          )}
+          {isFinished && (
+            <FontAwesomeIcon
+              icon={faCircleCheck}
+              className="w-4 h-4 text-gray-400"
+              title="Мероприятие завершено"
+            />
+          )}
+          <div className="flex-1 text-lg font-semibold text-gray-900 truncate">
+            {servicesTitle}
           </div>
-        )}
-        {loading && !error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80">
-            <LoadingSpinner />
-          </div>
-        )}
-        <div className="flex items-center justify-between w-full gap-x-1">
-          <div className="flex items-center flex-1 min-w-0 gap-2">
-            {event.isTransferred && (
-              <FontAwesomeIcon
-                icon={faShare}
-                className="w-4 h-4 text-amber-500"
-                title="Передано коллеге"
-              />
-            )}
-            {needsCheck && (
-              <FontAwesomeIcon
-                icon={faTriangleExclamation}
-                className="w-4 h-4 text-amber-500"
-                title="Проверка мероприятия не завершена"
-              />
-            )}
-            {isClosed && (
-              <FontAwesomeIcon
-                icon={faCircleCheck}
-                className="w-4 h-4 text-green-600"
-                title="Мероприятие закрыто"
-              />
-            )}
-            {isCanceled && (
-              <FontAwesomeIcon
-                icon={faBan}
-                className="w-4 h-4 text-red-500"
-                title="Мероприятие отменено"
-              />
-            )}
-            {isFinished && (
-              <FontAwesomeIcon
-                icon={faCircleCheck}
-                className="w-4 h-4 text-gray-400"
-                title="Мероприятие завершено"
-              />
-            )}
-            <div className="flex-1 text-lg font-semibold text-gray-900 truncate">
-              {servicesTitle}
-            </div>
-            <div
-              className="z-10 -mt-1 -mr-3"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <CardButtons
-                item={event}
-                typeOfItem="event"
-                minimalActions
-                alwaysCompact
-                calendarLink={calendarLink}
-                onEdit={() => modalsFunc.event?.edit(event._id)}
-                showEditButton={!isClosed}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {!client && (
-              <FontAwesomeIcon
-                icon={faUserSlash}
-                className="w-4 h-4 text-red-500"
-                title="Клиент не указан"
-              />
-            )}
-          </div>
+          <CardActions className="z-10 -mt-1 -mr-3">
+            <CardButtons
+              item={event}
+              typeOfItem="event"
+              minimalActions
+              alwaysCompact
+              calendarLink={calendarLink}
+              onEdit={() => modalsFunc.event?.edit(event._id)}
+              showEditButton={!isClosed}
+            />
+          </CardActions>
         </div>
-        <div className="flex gap-x-1">
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm text-gray-700">
-            <div className="font-semibold text-gray-800 text-general">
-              {eventDateLabel}
-            </div>
-            <div className="flex items-center flex-nowrap gap-x-3">
-              <span className="font-medium">Место:</span>
-              <span className="flex items-center min-w-0 gap-2 truncate">
-                <span className="truncate">
-                  {formatAddress(event.address, '-')}
-                </span>
-                {mapLink && (
-                  <a
-                    href={mapLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    title="Открыть в 2ГИС"
-                    onClick={(event) => event.stopPropagation()}
-                    className="flex items-center justify-center transition-transform h-7 w-7 hover:scale-110"
-                  >
-                    <img
-                      src="/img/navigators/2gis.png"
-                      alt="2gis"
-                      className="w-4 h-4"
-                    />
-                  </a>
-                )}
-              </span>
-            </div>
-            <div className="flex items-center flex-nowrap gap-x-3">
-              <span className="font-medium">Клиент:</span>
-              <span className="truncate">
-                {client
-                  ? `${client.firstName ?? ''} ${
-                      client.secondName ?? ''
-                    }`.trim() || client._id
-                  : '-'}
-              </span>
-            </div>
-            {client && <ContactsIconsButtons user={client} />}
-          </div>
-
-          {isClosed ? (
-            <div className="absolute right-0 bottom-0 flex min-w-[160px] items-center justify-end rounded-tl-xl bg-black px-3 py-2 text-sm font-semibold">
-              <span className="event-profit-text">{net.toLocaleString()}</span>
-            </div>
-          ) : (
-            <div className="laptop:min-w-[240px] laptop:self-start flex shrink-0 items-end">
-              <div className="flex items-end justify-end gap-3 text-sm font-semibold">
-                {leftToPay === 0 && canClose && paid > 0 ? (
-                  <span className="text-green-700">
-                    {paid.toLocaleString()}
-                  </span>
-                ) : (
-                  <span>
-                    {paid > 0 ? (
-                      <span className="text-green-700">
-                        {paid.toLocaleString()}
-                      </span>
-                    ) : null}
-                    {paid > 0 && contractSum > 0 ? ' / ' : null}
-                    {contractSum > 0 ? (
-                      <span className="text-blue-700">
-                        {contractSum.toLocaleString()}
-                      </span>
-                    ) : null}
-                  </span>
-                )}
-              </div>
-            </div>
+        <div className="flex items-center gap-2">
+          {!client && (
+            <FontAwesomeIcon
+              icon={faUserSlash}
+              className="w-4 h-4 text-red-500"
+              title="Клиент не указан"
+            />
           )}
         </div>
       </div>
-    </div>
+      <div className="flex gap-x-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm text-gray-700">
+          <div className="font-semibold text-gray-800 text-general">
+            {eventDateLabel}
+          </div>
+          <div className="flex items-center flex-nowrap gap-x-3">
+            <span className="font-medium">Место:</span>
+            <span className="flex items-center min-w-0 gap-2 truncate">
+              <span className="truncate">
+                {formatAddress(event.address, '-')}
+              </span>
+              {mapLink && (
+                <a
+                  href={mapLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Открыть в 2ГИС"
+                  onClick={(event) => event.stopPropagation()}
+                  className="flex items-center justify-center transition-transform h-7 w-7 hover:scale-110"
+                >
+                  <img
+                    src="/img/navigators/2gis.png"
+                    alt="2gis"
+                    className="w-4 h-4"
+                  />
+                </a>
+              )}
+            </span>
+          </div>
+          <div className="flex items-center flex-nowrap gap-x-3">
+            <span className="font-medium">Клиент:</span>
+            <span className="truncate">
+              {client
+                ? `${client.firstName ?? ''} ${
+                    client.secondName ?? ''
+                  }`.trim() || client._id
+                : '-'}
+            </span>
+          </div>
+          {client && <ContactsIconsButtons user={client} />}
+        </div>
+
+        {isClosed ? (
+          <div className="event-profit-card absolute right-0 bottom-0 flex min-w-[160px] items-center justify-end rounded-tl-xl px-3 py-2 text-sm font-semibold">
+            <span className="event-profit-text">{net.toLocaleString()}</span>
+          </div>
+        ) : (
+          <div className="laptop:min-w-[240px] laptop:self-start flex shrink-0 items-end">
+            <div className="flex items-end justify-end gap-3 text-sm font-semibold">
+              {leftToPay === 0 && canClose && paid > 0 ? (
+                <span className="text-green-700">{paid.toLocaleString()}</span>
+              ) : (
+                <span>
+                  {paid > 0 ? (
+                    <span className="text-green-700">
+                      {paid.toLocaleString()}
+                    </span>
+                  ) : null}
+                  {paid > 0 && contractSum > 0 ? ' / ' : null}
+                  {contractSum > 0 ? (
+                    <span className="text-blue-700">
+                      {contractSum.toLocaleString()}
+                    </span>
+                  ) : null}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </CardWrapper>
   )
 }
 

@@ -4,6 +4,10 @@ import { useMemo, useCallback, useEffect, useRef, useState } from 'react'
 import { List, useListRef } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
+import EmptyState from '@components/EmptyState'
+import HeaderActions from '@components/HeaderActions'
+import MutedText from '@components/MutedText'
+import SectionCard from '@components/SectionCard'
 import RequestCardCompact from '@layouts/cards/RequestCardCompact'
 import requestsAtom from '@state/atoms/requestsAtom'
 import { useAtomValue } from 'jotai'
@@ -122,21 +126,23 @@ const RequestsContent = () => {
   return (
     <div className="flex h-full flex-col gap-4">
       <ContentHeader>
-        <div className="flex flex-1 items-center justify-between">
-          <div />
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <span>Всего: {requests.length}</span>
-            <Button
-              name="+"
-              collapsing
-              className="action-icon-button h-9 w-9 rounded-full text-lg"
-              onClick={() => modalsFunc.request?.add()}
-              disabled={!modalsFunc.request?.add}
-            />
-          </div>
-        </div>
+        <HeaderActions
+          left={<div />}
+          right={
+            <>
+              <MutedText>Всего: {requests.length}</MutedText>
+              <Button
+                name="+"
+                collapsing
+                className="action-icon-button h-9 w-9 rounded-full text-lg"
+                onClick={() => modalsFunc.request?.add()}
+                disabled={!modalsFunc.request?.add}
+              />
+            </>
+          }
+        />
       </ContentHeader>
-      <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <SectionCard className="min-h-0 flex-1 overflow-hidden">
         {sortedRequests.length > 0 ? (
           <List
             listRef={listRef}
@@ -147,11 +153,9 @@ const RequestsContent = () => {
             style={{ height: '100%', width: '100%' }}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-gray-500">
-            Заявок пока нет
-          </div>
+          <EmptyState text="Заявок пока нет" bordered={false} />
         )}
-      </div>
+      </SectionCard>
     </div>
   )
 }

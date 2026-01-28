@@ -4,7 +4,11 @@ import { useMemo, useCallback, useState } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
+import EmptyState from '@components/EmptyState'
+import HeaderActions from '@components/HeaderActions'
 import TransactionTypeToggleButtons from '@components/IconToggleButtons/TransactionTypeToggleButtons'
+import MutedText from '@components/MutedText'
+import SectionCard from '@components/SectionCard'
 import TransactionCard from '@layouts/cards/TransactionCard'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import clientsAtom from '@state/atoms/clientsAtom'
@@ -141,28 +145,31 @@ const TransactionsContent = () => {
   return (
     <div className="flex h-full flex-col gap-4">
       <ContentHeader>
-        <div className="flex flex-1 items-center justify-between">
-          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+        <HeaderActions
+          left={
             <TransactionTypeToggleButtons
               value={typeFilter}
               onChange={setTypeFilter}
             />
-          </div>
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <span>
-              {filteredTransactions.length} из {transactions.length}
-            </span>
-            <Button
-              name="+"
-              collapsing
-              className="action-icon-button h-9 w-9 rounded-full text-lg"
-              onClick={() => modalsFunc.transaction?.add()}
-              disabled={!modalsFunc.transaction?.add}
-            />
-          </div>
-        </div>
+          }
+          leftClassName="flex-wrap"
+          right={
+            <>
+              <MutedText>
+                {filteredTransactions.length} из {transactions.length}
+              </MutedText>
+              <Button
+                name="+"
+                collapsing
+                className="action-icon-button h-9 w-9 rounded-full text-lg"
+                onClick={() => modalsFunc.transaction?.add()}
+                disabled={!modalsFunc.transaction?.add}
+              />
+            </>
+          }
+        />
       </ContentHeader>
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <SectionCard className="min-h-0 flex-1 overflow-hidden border-0 bg-transparent shadow-none">
         {filteredTransactions.length > 0 ? (
           <List
             rowCount={filteredTransactions.length}
@@ -172,11 +179,9 @@ const TransactionsContent = () => {
                                     style={{ height: '100%', width: '100%' }}
           />
         ) : (
-          <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
-            Транзакций пока нет
-          </div>
+          <EmptyState text="Транзакций пока нет" />
         )}
-      </div>
+      </SectionCard>
     </div>
   )
 }

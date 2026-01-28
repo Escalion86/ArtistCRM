@@ -1,6 +1,6 @@
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
-import { CardWrapper } from '@components/CardWrapper'
+import CardWrapper from '@components/CardWrapper'
 // import EventTagsChipsLine from '@components/Chips/EventTagsChipsLine'
 // import DateTimeEvent from '@components/DateTimeEvent'
 // import EventButtonSignIn from '@components/EventButtonSignIn'
@@ -25,6 +25,8 @@ import clientSelector from '@state/selectors/clientSelector'
 // import windowDimensionsNumSelector from '@state/selectors/windowDimensionsNumSelector'
 import cn from 'classnames'
 import { useAtomValue } from 'jotai'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCalendarXmark } from '@fortawesome/free-solid-svg-icons'
 
 const RequestCard = ({
   requestId,
@@ -52,6 +54,7 @@ const RequestCard = ({
   const requestTitle = request.createdAt
     ? formatDate(request.createdAt, false, true)
     : 'Дата заявки не указана'
+  const hasCalendarError = Boolean(request?.calendarSyncError)
 
   const requestAudience =
     AUDIENCE.find((item) => item.value === request.audience)?.name ?? undefined
@@ -69,12 +72,13 @@ const RequestCard = ({
   // const formatedAddress = formatAddress(event.address)
   return (
     <CardWrapper
-      loading={loading}
-      error={error}
-      onClick={() => !loading && modalsFunc.request.view(request._id)}
-      gap={false}
-      hidden={hidden}
       style={style}
+      outerClassName={hidden ? 'hidden' : ''}
+      onClick={() => !loading && modalsFunc.request.view(request._id)}
+      className={cn(
+        'relative flex h-full w-full cursor-pointer overflow-visible text-left hover:border-gray-300',
+        changeStyle === 'laptop' ? 'laptop:flex' : 'desktop:flex'
+      )}
     >
       <div
         className={cn(
@@ -101,6 +105,13 @@ const RequestCard = ({
               <div className="text-general flex-1 font-bold">
                 {requestTitle}
               </div>
+              {hasCalendarError && (
+                <FontAwesomeIcon
+                  icon={faCalendarXmark}
+                  className="h-4 w-4 text-red-500"
+                  title="Синхронизация с календарем не выполнена"
+                />
+              )}
               {!noButtons && (
                 <CardButtons
                   item={request}

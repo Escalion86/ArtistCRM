@@ -2,7 +2,8 @@
 
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
-import LoadingSpinner from '@components/LoadingSpinner'
+import CardOverlay from '@components/CardOverlay'
+import CardActions from '@components/CardActions'
 import UserName from '@components/UserName'
 import getUserAvatarSrc from '@helpers/getUserAvatarSrc'
 import modalsFuncAtom from '@state/atoms/modalsFuncAtom'
@@ -11,6 +12,7 @@ import errorAtom from '@state/atoms/errorAtom'
 import userSelector from '@state/selectors/userSelector'
 import { useAtomValue } from 'jotai'
 import tariffsAtom from '@state/atoms/tariffsAtom'
+import CardWrapper from '@components/CardWrapper'
 
 const UserCard = ({ userId, hidden = false, style }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -52,34 +54,20 @@ const UserCard = ({ userId, hidden = false, style }) => {
   if (!user) return null
 
   return (
-    <div style={style} className="px-2 py-2">
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => !loading && modalsFunc.user.view(user._id)}
-        className="relative flex w-full h-full p-4 overflow-visible text-left transition bg-white border border-gray-200 shadow-sm cursor-pointer group rounded-xl hover:border-gray-300 hover:shadow-card"
-      >
-        {error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-800 bg-opacity-80 text-2xl text-white rounded-xl">
-            ОШИБКА
-          </div>
-        )}
-        {loading && !error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80 rounded-xl">
-            <LoadingSpinner />
-          </div>
-        )}
-        <div
-          className="absolute z-10 top-2 right-2"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <CardButtons
-            item={user}
-            typeOfItem="user"
-            minimalActions
-            alwaysCompact
-          />
-        </div>
+    <CardWrapper
+      style={style}
+      onClick={() => !loading && modalsFunc.user.view(user._id)}
+      className="flex h-full w-full cursor-pointer overflow-visible p-4 text-left hover:border-gray-300"
+    >
+      <CardOverlay loading={loading} error={error} rounded />
+      <CardActions>
+        <CardButtons
+          item={user}
+          typeOfItem="user"
+          minimalActions
+          alwaysCompact
+        />
+      </CardActions>
         <div className="flex w-full h-full gap-3">
           <img
             className="h-16 w-16 min-w-[64px] rounded-lg object-cover"
@@ -105,8 +93,7 @@ const UserCard = ({ userId, hidden = false, style }) => {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </CardWrapper>
   )
 }
 

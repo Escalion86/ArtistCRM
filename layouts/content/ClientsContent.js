@@ -4,7 +4,11 @@ import { useMemo, useState, useCallback } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
+import EmptyState from '@components/EmptyState'
+import HeaderActions from '@components/HeaderActions'
 import Input from '@components/Input'
+import MutedText from '@components/MutedText'
+import SectionCard from '@components/SectionCard'
 import ClientCard from '@layouts/cards/ClientCard'
 import clientsAtom from '@state/atoms/clientsAtom'
 import requestsAtom from '@state/atoms/requestsAtom'
@@ -87,19 +91,21 @@ const ClientsContent = () => {
   return (
     <div className="flex flex-col h-full">
       <ContentHeader>
-        <div className="flex items-center justify-between flex-1">
-          <div />
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <span>Всего: {clients.length}</span>
-            <Button
-              name="+"
-              collapsing
-              className="text-lg rounded-full action-icon-button h-9 w-9"
-              onClick={() => modalsFunc.client?.add()}
-              disabled={!modalsFunc.client?.add}
-            />
-          </div>
-        </div>
+        <HeaderActions
+          left={<div />}
+          right={
+            <>
+              <MutedText>Всего: {clients.length}</MutedText>
+              <Button
+                name="+"
+                collapsing
+                className="text-lg rounded-full action-icon-button h-9 w-9"
+                onClick={() => modalsFunc.client?.add()}
+                disabled={!modalsFunc.client?.add}
+              />
+            </>
+          }
+        />
       </ContentHeader>
       <div className="p-2">
         <Input
@@ -110,7 +116,7 @@ const ClientsContent = () => {
           noMargin
         />
       </div>
-      <div className="flex-1 min-h-0 overflow-visible bg-white border border-gray-200 rounded-lg shadow-sm">
+      <SectionCard className="flex-1 min-h-0 overflow-visible">
         {clientsWithStats.length > 0 ? (
           <List
             rowCount={clientsWithStats.length}
@@ -120,11 +126,9 @@ const ClientsContent = () => {
             style={{ height: '100%', width: '100%' }}
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-sm text-gray-500">
-            Клиенты не найдены
-          </div>
+          <EmptyState text="Клиенты не найдены" bordered={false} />
         )}
-      </div>
+      </SectionCard>
     </div>
   )
 }

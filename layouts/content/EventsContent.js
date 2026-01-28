@@ -5,7 +5,11 @@ import { List, useListRef } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
 import ComboBox from '@components/ComboBox'
+import EmptyState from '@components/EmptyState'
+import HeaderActions from '@components/HeaderActions'
 import EventCheckToggleButtons from '@components/IconToggleButtons/EventCheckToggleButtons'
+import MutedText from '@components/MutedText'
+import SectionCard from '@components/SectionCard'
 import eventsAtom from '@state/atoms/eventsAtom'
 // import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useAtomValue } from 'jotai'
@@ -247,42 +251,48 @@ const EventsContent = ({ filter = 'all' }) => {
   return (
     <div className="flex flex-col h-full gap-4">
       <ContentHeader>
-        <div className="flex items-center justify-between flex-1">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="w-52">
-              <ComboBox
-                label="Город"
-                items={townsOptions}
-                value={selectedTown}
-                onChange={(value) => setSelectedTown(value ?? '')}
-                placeholder="Все города"
-                fullWidth
-                smallMargin
+        <HeaderActions
+          left={
+            <>
+              <div className="w-52">
+                <ComboBox
+                  label="Город"
+                  items={townsOptions}
+                  value={selectedTown}
+                  onChange={(value) => setSelectedTown(value ?? '')}
+                  placeholder="Все города"
+                  fullWidth
+                  smallMargin
+                />
+              </div>
+              {filter !== 'all' && hasUncheckedEvents && (
+                <EventCheckToggleButtons
+                  value={checkFilter}
+                  onChange={setCheckFilter}
+                />
+              )}
+            </>
+          }
+          right={
+            <>
+              <MutedText>
+                {filterName}: {sortedEvents.length}
+              </MutedText>
+              <MutedText className="hidden tablet:inline">
+                Всего: {events.length}
+              </MutedText>
+              <Button
+                name="+"
+                collapsing
+                className="text-lg rounded-full action-icon-button h-9 w-9"
+                onClick={() => modalsFunc.event?.add()}
+                disabled={!modalsFunc.event?.add}
               />
-            </div>
-            {filter !== 'all' && hasUncheckedEvents && (
-              <EventCheckToggleButtons
-                value={checkFilter}
-                onChange={setCheckFilter}
-              />
-            )}
-          </div>
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <span>
-              {filterName}: {sortedEvents.length}
-            </span>
-            <span className="hidden tablet:inline">Всего: {events.length}</span>
-            <Button
-              name="+"
-              collapsing
-              className="text-lg rounded-full action-icon-button h-9 w-9"
-              onClick={() => modalsFunc.event?.add()}
-              disabled={!modalsFunc.event?.add}
-            />
-          </div>
-        </div>
+            </>
+          }
+        />
       </ContentHeader>
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <SectionCard className="flex-1 min-h-0 overflow-hidden border-0 bg-transparent shadow-none">
         {sortedEvents.length > 0 ? (
           <List
             listRef={listRef}
@@ -293,11 +303,9 @@ const EventsContent = ({ filter = 'all' }) => {
             style={{ height: '100%', width: '100%' }}
           />
         ) : (
-          <div className="flex items-center justify-center h-full p-6 text-sm text-gray-500 bg-white border border-gray-300 border-dashed rounded-lg">
-            Мероприятий пока нет для выбранного периода
-          </div>
+          <EmptyState text="Мероприятий пока нет для выбранного периода" />
         )}
-      </div>
+      </SectionCard>
     </div>
   )
 }

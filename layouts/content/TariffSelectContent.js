@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
+import EmptyState from '@components/EmptyState'
 import IconCheckBox from '@components/IconCheckBox'
+import SectionCard from '@components/SectionCard'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
@@ -185,7 +187,7 @@ const TariffSelectContent = () => {
   return (
     <div className="flex h-full flex-col gap-4">
       <ContentHeader />
-      <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <SectionCard className="min-h-0 flex-1 overflow-auto p-4">
         {publicTariffs.length > 0 ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {publicTariffs.map((tariff) => (
@@ -246,18 +248,20 @@ const TariffSelectContent = () => {
             ))}
           </div>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-gray-500">
-            <div>Нет доступных тарифов.</div>
-            {isAdmin && (
-              <Button
-                name="Настроить тарифы"
-                className="h-9 px-4 text-sm"
-                onClick={() => router.push('/cabinet/tariffs')}
-              />
-            )}
-          </div>
+          <EmptyState bordered={false}>
+            <div className="flex flex-col items-center gap-3">
+              <div>Нет доступных тарифов.</div>
+              {isAdmin && (
+                <Button
+                  name="Настроить тарифы"
+                  className="h-9 px-4 text-sm"
+                  onClick={() => router.push('/cabinet/tariffs')}
+                />
+              )}
+            </div>
+          </EmptyState>
         )}
-      </div>
+      </SectionCard>
     </div>
   )
 }

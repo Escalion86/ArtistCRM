@@ -184,15 +184,35 @@ export const PUT = async (req, { params }) => {
       { status: 404 }
     )
 
-  if (event.calendarImportChecked && access?.allowCalendarSync) {
+  let responseEvent = event
+  if (!event?.importedFromCalendar && !access?.allowCalendarSync) {
+    responseEvent = await Events.findByIdAndUpdate(
+      event._id,
+      { calendarSyncError: 'calendar_sync_unavailable' },
+      { new: true }
+    )
+  } else if (event.calendarImportChecked && access?.allowCalendarSync) {
     try {
       await updateEventInCalendar(event, req, user)
+      responseEvent = await Events.findByIdAndUpdate(
+        event._id,
+        { calendarSyncError: '' },
+        { new: true }
+      )
     } catch (error) {
       console.log('Google Calendar update error', error)
+      responseEvent = await Events.findByIdAndUpdate(
+        event._id,
+        { calendarSyncError: 'calendar_sync_failed' },
+        { new: true }
+      )
     }
   }
 
-  return NextResponse.json({ success: true, data: event }, { status: 200 })
+  return NextResponse.json(
+    { success: true, data: responseEvent ?? event },
+    { status: 200 }
+  )
 }
 
 export const DELETE = async (req, { params }) => {

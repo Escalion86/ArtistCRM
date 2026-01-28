@@ -4,9 +4,11 @@ import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
 import PropTypes from 'prop-types'
 import CardButtons from '@components/CardButtons'
-import LoadingSpinner from '@components/LoadingSpinner'
+import CardOverlay from '@components/CardOverlay'
+import CardActions from '@components/CardActions'
 import IconCheckBox from '@components/IconCheckBox'
 import { useAtomValue } from 'jotai'
+import CardWrapper from '@components/CardWrapper'
 
 const formatPrice = (price) => {
   if (!price || Number(price) === 0) return 'Бесплатно'
@@ -26,36 +28,22 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
   if (!tariff) return null
 
   return (
-    <div style={style} className="px-2 py-2">
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={() => !loading && onEdit?.()}
-        className="group relative flex h-full w-full cursor-pointer overflow-visible rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-gray-300 hover:shadow-card"
-      >
-        {error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-red-800 bg-opacity-80 text-2xl text-white">
-            ОШИБКА
-          </div>
-        )}
-        {loading && !error && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-general bg-opacity-80">
-            <LoadingSpinner />
-          </div>
-        )}
-        <div
-          className="absolute right-2 top-2 z-10"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <CardButtons
-            item={tariff}
-            typeOfItem="tariff"
-            minimalActions
-            alwaysCompact
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        </div>
+    <CardWrapper
+      style={style}
+      onClick={() => !loading && onEdit?.()}
+      className="group flex h-full w-full cursor-pointer overflow-visible p-4 text-left hover:border-gray-300"
+    >
+      <CardOverlay loading={loading} error={error} />
+      <CardActions>
+        <CardButtons
+          item={tariff}
+          typeOfItem="tariff"
+          minimalActions
+          alwaysCompact
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      </CardActions>
         <div className="flex h-full w-full flex-col gap-3 pr-24">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -96,8 +84,7 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
         <div className="absolute bottom-4 right-4 text-lg font-semibold text-gray-900">
           {formatPrice(tariff.price)}
         </div>
-      </div>
-    </div>
+    </CardWrapper>
   )
 }
 

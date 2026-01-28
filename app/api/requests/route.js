@@ -511,10 +511,14 @@ export const POST = async (req) => {
   let googleCalendarId = null
   let googleCalendarCalendarId = null
   let calendarLink = null
+  let calendarSyncError = ''
   try {
     const access = tenantUser?._id
       ? await getUserTariffAccess(tenantUser._id)
       : null
+    if (!access?.allowCalendarSync) {
+      calendarSyncError = 'calendar_sync_unavailable'
+    }
     if (access?.allowCalendarSync && tenantUser) {
       googleCalendarId = await createRequestCalendarEvent(
         request,
@@ -531,6 +535,7 @@ export const POST = async (req) => {
     }
   } catch (error) {
     console.log('Google Calendar request create error', error)
+    calendarSyncError = 'calendar_sync_failed'
   }
 
   if (googleCalendarId) {
@@ -540,6 +545,14 @@ export const POST = async (req) => {
     })
     request.googleCalendarId = googleCalendarId
     request.googleCalendarCalendarId = googleCalendarCalendarId
+  }
+  if (calendarSyncError) {
+    await Requests.findByIdAndUpdate(request._id, {
+      calendarSyncError,
+    })
+    request.calendarSyncError = calendarSyncError
+  } else {
+    request.calendarSyncError = ''
   }
   request.calendarLink = calendarLink
 
