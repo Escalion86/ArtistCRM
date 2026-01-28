@@ -18,7 +18,8 @@ const getTargetPage = (eventDate) => {
 }
 
 export default async function EventRedirectPage({ params }) {
-  const { id } = params ?? {}
+  const resolvedParams = await params
+  const id = typeof resolvedParams?.id === 'string' ? resolvedParams.id : null
   if (!id) return redirect('/cabinet/eventsUpcoming')
   await dbConnect()
   const event = await Events.findById(id).select('eventDate').lean()
