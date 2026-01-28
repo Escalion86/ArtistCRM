@@ -58,15 +58,16 @@ const RequestsContent = () => {
     const targetId = searchParams?.get('openRequest')
     if (!targetId) return
     if (openHandledRef.current) return
+    if (!modalsFunc.request?.view) return
 
     const index = sortedRequests.findIndex(
       (item) => String(item?._id) === String(targetId)
     )
     if (index === -1) return
-    openHandledRef.current = true
     listRef.current?.scrollToItem(index, 'center')
     setTimeout(() => {
       modalsFunc.request?.view(targetId)
+      openHandledRef.current = true
       if (pathname) router.replace(pathname, { scroll: false })
     }, 200)
   }, [modalsFunc.request, pathname, router, searchParams, sortedRequests])

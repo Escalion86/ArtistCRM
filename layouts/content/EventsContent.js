@@ -105,6 +105,7 @@ const EventsContent = ({ filter = 'all' }) => {
     const targetId = searchParams?.get('openEvent')
     if (!targetId) return
     if (openHandledRef.current) return
+    if (!modalsFunc.event?.view) return
 
     const indexInAll = events.findIndex(
       (item) => String(item?._id) === String(targetId)
@@ -151,10 +152,10 @@ const EventsContent = ({ filter = 'all' }) => {
       (item) => String(item?._id) === String(targetId)
     )
     if (index === -1) return
-    openHandledRef.current = true
     listRef.current?.scrollToItem(index, 'center')
     setTimeout(() => {
       modalsFunc.event?.view(targetId)
+      openHandledRef.current = true
       if (pathname) router.replace(pathname, { scroll: false })
     }, 200)
   }, [
