@@ -117,9 +117,13 @@ const buildRequestCalendarPayload = (
       ? request.contactChannels.join(', ')
       : ''
   const clientContacts = buildClientContactsLines(client)
+  const hasClientPhoneLine = clientContacts.some((line) =>
+    line.toLowerCase().startsWith('телефон:')
+  )
+  const phoneLine = phone && !hasClientPhoneLine ? `Телефон: ${phone}` : null
   const descriptionParts = [
     request.clientName ? `Клиент: ${request.clientName}` : null,
-    phone ? `Телефон: ${phone}` : null,
+    phoneLine,
     contacts ? `Контакты: ${contacts}` : null,
     ...(clientContacts.length > 0 ? clientContacts : []),
     request.comment ? `Комментарий: ${request.comment}` : null,
