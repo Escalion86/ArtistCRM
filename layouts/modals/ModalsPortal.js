@@ -10,7 +10,7 @@ function ModalsPortal() {
   const setModals = useSetAtom(modalsAtom)
   const modalsRef = useRef(modals)
   const prevLengthRef = useRef(modals.length)
-  const isPopstateRef = useRef(false)
+  const ignoreNextPopstateRef = useRef(false)
 
   useEffect(() => {
     modalsRef.current = modals
@@ -20,8 +20,11 @@ function ModalsPortal() {
     if (typeof window === 'undefined') return
 
     const onPopState = () => {
+      if (ignoreNextPopstateRef.current) {
+        ignoreNextPopstateRef.current = false
+        return
+      }
       if (modalsRef.current.length === 0) return
-      isPopstateRef.current = true
       setModals((current) => current.slice(0, -1))
     }
 
@@ -37,12 +40,8 @@ function ModalsPortal() {
     if (modals.length > prevLength) {
       window.history.pushState({ modal: true }, '', window.location.href)
     } else if (modals.length < prevLength) {
-      if (isPopstateRef.current) {
-        isPopstateRef.current = false
-      } else {
-        isPopstateRef.current = true
-        window.history.back()
-      }
+      ignoreNextPopstateRef.current = true
+      window.history.back()
     }
 
     prevLengthRef.current = modals.length

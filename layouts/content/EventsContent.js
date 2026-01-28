@@ -185,7 +185,18 @@ const EventsContent = ({ filter = 'all' }) => {
       )
       if (index === -1) return scheduleRetry()
 
-      listRef.current?.scrollToItem(index, 'center')
+      let scrollAttempts = 0
+      const tryScroll = () => {
+        if (!isActive) return
+        if (listRef.current?.scrollToItem) {
+          listRef.current.scrollToItem(index, 'center')
+        } else if (scrollAttempts < 6) {
+          scrollAttempts += 1
+          setTimeout(tryScroll, 100)
+        }
+      }
+      tryScroll()
+
       setTimeout(() => {
         if (!isActive) return
         modalsFunc.event?.view(targetId)
