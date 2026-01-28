@@ -215,6 +215,7 @@ const EventCard = ({ eventId, style }) => {
                 alwaysCompact
                 calendarLink={calendarLink}
                 onEdit={() => modalsFunc.event?.edit(event._id)}
+                showEditButton={!isClosed}
               />
             </div>
           </div>
@@ -265,20 +266,17 @@ const EventCard = ({ eventId, style }) => {
                       client.secondName ?? ''
                     }`.trim() || client._id
                   : '-'}
-                {client?.phone ? ` ( +${client.phone} )` : ''}
               </span>
             </div>
             {client && <ContactsIconsButtons user={client} />}
           </div>
 
-          <div className="laptop:min-w-[240px] laptop:self-start flex shrink-0 items-end">
-            {isClosed ? (
-              <div className="event-profit-card flex min-w-[160px] items-center justify-end rounded-tl-xl px-3 py-2 text-sm font-semibold">
-                <span className="event-profit-text">
-                  {net.toLocaleString()}
-                </span>
-              </div>
-            ) : (
+          {isClosed ? (
+            <div className="event-profit-card absolute -bottom-3 -right-3 flex min-w-[160px] items-center justify-end rounded-tl-xl px-3 py-2 text-sm font-semibold">
+              <span className="event-profit-text">{net.toLocaleString()}</span>
+            </div>
+          ) : (
+            <div className="laptop:min-w-[240px] laptop:self-start flex shrink-0 items-end">
               <div className="flex items-end justify-end gap-3 text-sm font-semibold">
                 {leftToPay === 0 && canClose && paid > 0 ? (
                   <span className="text-green-700">
@@ -300,8 +298,8 @@ const EventCard = ({ eventId, style }) => {
                   </span>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

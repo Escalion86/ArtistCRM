@@ -3,7 +3,6 @@ import ErrorsList from '@components/ErrorsList'
 import FormWrapper from '@components/FormWrapper'
 import IconCheckBox from '@components/IconCheckBox'
 import Textarea from '@components/Textarea'
-import EventStatusPicker from '@components/ValuePicker/EventStatusPicker'
 import { faCircleCheck, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
@@ -115,9 +114,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     const [clientId, setClientId] = useState(
       event?.clientId ?? request?.clientId ?? DEFAULT_EVENT.clientId
     )
-    const [status, setStatus] = useState(
-      event?.status ?? DEFAULT_EVENT.status
-    )
     const [eventDate, setEventDate] = useState(
       event?.eventDate ?? request?.eventDate ?? DEFAULT_EVENT.eventDate
     )
@@ -215,7 +211,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       return {
         clientId:
           event?.clientId ?? request?.clientId ?? DEFAULT_EVENT.clientId,
-        status: event?.status ?? DEFAULT_EVENT.status,
         eventDate:
           event?.eventDate ?? request?.eventDate ?? DEFAULT_EVENT.eventDate,
         address: (() => {
@@ -266,7 +261,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       }
     }, [
       event?.clientId,
-      event?.status,
       event?.eventDate,
       event?.address,
       event?.contractSum,
@@ -303,7 +297,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     const isFormChanged = useMemo(
       () =>
         initialEventValues.clientId !== clientId ||
-        initialEventValues.status !== status ||
         initialEventValues.eventDate !== eventDate ||
         initialEventValues.dateEnd !== dateEnd ||
         initialAddressSignature !== addressSignature ||
@@ -324,7 +317,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
           JSON.stringify(otherContacts),
       [
         clientId,
-        status,
         eventDate,
         dateEnd,
         initialAddressSignature,
@@ -380,11 +372,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       [eventTransactions]
     )
     const canClose = contractSum <= incomeTotal && (!isByContract || hasTaxes)
-    const statusDisabledValues = useMemo(() => {
-      if (status === 'closed') return []
-      if (!canClose) return ['closed']
-      return []
-    }, [canClose, status])
 
     const missingFields = useMemo(() => {
       const fields = []
@@ -448,18 +435,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       }
 
       if (!hasError) {
-        if (
-          status === 'closed' &&
-          !canClose &&
-          initialEventValues.status !== 'closed'
-        ) {
-          addErrorRef.current({
-            status: isByContract
-              ? 'Закрытие недоступно: нет транзакции Налоги или сумма поступлений меньше договорной'
-              : 'Закрытие недоступно: сумма поступлений меньше договорной',
-          })
-          return
-        }
         closeModalRef.current()
         const normalizedContractSum =
           typeof contractSum === 'number' && !Number.isNaN(contractSum)
@@ -477,7 +452,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
           _id: event?._id,
           clientId,
           requestId: event?.requestId ?? requestId ?? null,
-          status,
+          status: event?.status ?? DEFAULT_EVENT.status,
           isTransferred,
           colleagueId: isTransferred ? colleagueId : null,
           eventDate,
@@ -501,7 +476,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       }
     }, [
       addErrorRef,
-      canClose,
       calendarImportChecked,
       clearErrorsRef,
       clientId,
@@ -516,14 +490,12 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       event?.requestId,
       eventDate,
       isTransferred,
-      initialEventValues.status,
       address,
       requestId,
       convertRequest,
       setEvent,
       servicesIds,
       otherContacts,
-      status,
       dateRangeError,
     ])
 
@@ -796,6 +768,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                 label="Коллега"
                 required={isTransferred}
                 error={errors.colleagueId}
+                compact
                 paddingY
                 fullWidth
               />
@@ -813,13 +786,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                 checkedIconColor="#10B981"
               />
             )}
-            <EventStatusPicker
-              status={status}
-              onChange={setStatus}
-              required
-              disabledValues={statusDisabledValues}
-              error={errors.status}
-            />
             {!canClose && (
               <div className="text-xs text-gray-500">
                 {isByContract && !hasTaxes

@@ -55,8 +55,8 @@ export const POST = async (req) => {
   }
 
   const calendars = await listUserCalendars(dbUser)
-  const exists = calendars.some((item) => item.id === calendarId)
-  if (!exists) {
+  const selectedCalendar = calendars.find((item) => item.id === calendarId)
+  if (!selectedCalendar) {
     return NextResponse.json(
       { success: false, error: 'Календарь не найден' },
       { status: 404 }
@@ -67,6 +67,7 @@ export const POST = async (req) => {
     ...settings,
     enabled: true,
     calendarId,
+    calendarName: selectedCalendar.summary || '',
     syncToken: '',
   }
   await dbUser.save()

@@ -77,6 +77,36 @@ const StatisticsContent = () => {
     const currentYear = now.getFullYear()
     const currentMonth = now.getMonth()
 
+    const isFutureMonth = (monthIndex) =>
+      selectedYear > currentYear ||
+      (selectedYear === currentYear && monthIndex > currentMonth)
+
+    events.forEach((event) => {
+      if (event?.status === 'canceled') return
+      if (!event?.eventDate) return
+      const date = new Date(event.eventDate)
+      if (Number.isNaN(date.getTime())) return
+      if (date.getFullYear() !== selectedYear) return
+
+      const key = getMonthKey(date, selectedYear)
+      const label = buildMonthLabel(date)
+      if (!byMonth.has(key)) {
+        byMonth.set(key, {
+          month: label,
+          income: 0,
+          expense: 0,
+          profit: 0,
+          isFuture: isFutureMonth(date.getMonth()),
+          plannedIncome: 0,
+        })
+      }
+      const bucket = byMonth.get(key)
+      if (bucket.isFuture) {
+        const amount = Number(event.contractSum ?? 0)
+        bucket.plannedIncome += Number.isFinite(amount) ? amount : 0
+      }
+    })
+
     transactions.forEach((transaction) => {
       if (!transaction?.eventId) return
       const dateRaw =
@@ -89,18 +119,17 @@ const StatisticsContent = () => {
       const key = getMonthKey(date, selectedYear)
       const label = buildMonthLabel(date)
       if (!byMonth.has(key)) {
-        const isFuture =
-          selectedYear > currentYear ||
-          (selectedYear === currentYear && date.getMonth() > currentMonth)
         byMonth.set(key, {
           month: label,
           income: 0,
           expense: 0,
           profit: 0,
-          isFuture,
+          isFuture: isFutureMonth(date.getMonth()),
+          plannedIncome: 0,
         })
       }
       const bucket = byMonth.get(key)
+      if (bucket.isFuture) return
       const amount = Number(transaction.amount ?? 0)
       if (transaction.type === 'income') bucket.income += amount
       if (transaction.type === 'expense') bucket.expense += amount
@@ -109,8 +138,17 @@ const StatisticsContent = () => {
 
     return Array.from(byMonth.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([, value]) => value)
-  }, [eventsMap, selectedYear, transactions])
+      .map(([, value]) => {
+        if (value.isFuture) {
+          const planned = Number(value.plannedIncome ?? 0)
+          return {
+            ...value,
+            profit: planned,
+          }
+        }
+        return value
+      })
+  }, [events, eventsMap, selectedYear, transactions])
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -136,14 +174,6 @@ const StatisticsContent = () => {
       <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center gap-4 text-sm text-gray-700">
           <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded bg-green-600" />
-            <span>Доходы</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded bg-red-500" />
-            <span>Расходы</span>
-          </div>
-          <div className="flex items-center gap-2">
             <span className="h-3 w-3 rounded bg-blue-600" />
             <span>Прибыль</span>
           </div>
@@ -158,11 +188,11 @@ const StatisticsContent = () => {
           <div className="h-full min-h-[320px]">
             <ResponsiveBar
               data={stats}
-              keys={['income', 'expense', 'profit']}
+              keys={['profit']}
               indexBy="month"
               margin={{ top: 20, right: 20, bottom: 60, left: 70 }}
               padding={0.2}
-              colors={['#16a34a', '#ef4444', '#2563eb']}
+              colors={['#2563eb']}
               defs={[
                 {
                   id: 'futurePattern',
@@ -199,7 +229,8 @@ const StatisticsContent = () => {
                 <div className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 shadow">
                   <div className="font-semibold">{indexValue}</div>
                   <div>
-                    {id}: {Number(value).toLocaleString('ru-RU')} ₽
+                    {id === 'profit' ? 'Прибыль' : id}:{' '}
+                    {Number(value).toLocaleString('ru-RU')} ₽
                   </div>
                 </div>
               )}

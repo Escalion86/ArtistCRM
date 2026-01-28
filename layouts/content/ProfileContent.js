@@ -77,6 +77,7 @@ const ProfileContent = () => {
     connected: false,
     enabled: false,
     calendarId: '',
+    calendarName: '',
   })
   const [calendarItems, setCalendarItems] = useState([])
   const [selectedCalendarId, setSelectedCalendarId] = useState('')
@@ -437,7 +438,12 @@ const ProfileContent = () => {
             </div>
             {calendarStatus.connected && calendarStatus.calendarId ? (
               <div className="mt-1 text-xs text-gray-500">
-                Календарь: {calendarStatus.calendarId}
+                Календарь:{' '}
+                {calendarStatus.calendarName ||
+                  calendarItems.find(
+                    (item) => item.id === calendarStatus.calendarId
+                  )?.summary ||
+                  calendarStatus.calendarId}
               </div>
             ) : null}
             {calendarError ? (

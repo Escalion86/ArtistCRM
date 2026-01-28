@@ -135,7 +135,8 @@ const usersSchema = {
   googleCalendar: {
     type: {
       enabled: { type: Boolean, default: false },
-      calendarId: { type: String, default: '' },
+        calendarId: { type: String, default: '' },
+        calendarName: { type: String, default: '' },
       refreshToken: { type: String, default: '' },
       accessToken: { type: String, default: '' },
       tokenExpiry: { type: Date, default: null },

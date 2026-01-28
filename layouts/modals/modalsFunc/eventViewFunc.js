@@ -25,6 +25,7 @@ const CardButtonsComponent = ({ event, calendarLink }) => (
     alwaysCompact
     calendarLink={calendarLink}
     dropDownPlacement="left"
+    showEditButton={event?.status !== 'closed'}
   />
 )
 

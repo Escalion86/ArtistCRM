@@ -84,6 +84,7 @@ const CardButtons = ({
           (typeOfItem === 'event' || typeOfItem === 'request') &&
           Boolean(calendarLink),
         viewRequest: typeOfItem === 'event' && Boolean(item?.requestId),
+        statusBtn: typeOfItem !== 'client',
         deleteBtn:
           showDeleteButton && canManageItem && item.status !== 'closed',
         userBilling: typeOfItem === 'user' && canManageUsers,

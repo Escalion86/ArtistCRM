@@ -15,6 +15,7 @@ const ColleaguePicker = ({
   error,
   paddingY,
   fullWidth,
+  compact,
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const handleEdit = () => {
@@ -33,30 +34,37 @@ const ColleaguePicker = ({
     >
       <div className="flex w-full flex-wrap items-center gap-2">
         <div
-          className="flex flex-1 cursor-pointer justify-between rounded border border-gray-300 bg-white p-3 shadow-sm transition hover:shadow-card"
+          className={[
+            'hover:shadow-card flex flex-1 cursor-pointer justify-between rounded border border-gray-300 bg-white shadow-sm transition',
+            compact ? 'px-3 py-2 text-sm' : 'p-3',
+          ].join(' ')}
           onClick={disabled ? undefined : onSelectClick}
         >
-          <div className="flex flex-col gap-0.5">
-            <div className="text-base font-semibold text-gray-900">
-              {[selectedColleague?.firstName, selectedColleague?.secondName]
-                .filter(Boolean)
-                .join(' ') || 'Не выбрано'}
-            </div>
-            {selectedColleague && (
-              <>
-                <div className="text-sm text-gray-600">
-                  {selectedColleague?.phone
-                    ? `+${selectedColleague.phone}`
-                    : 'Телефон не указан'}
-                </div>
-              </>
-            )}
+          <div
+            className={[
+              'font-semibold text-gray-900',
+              compact ? 'text-sm' : 'text-base',
+            ].join(' ')}
+          >
+            {[selectedColleague?.firstName, selectedColleague?.secondName]
+              .filter(Boolean)
+              .join(' ') || 'Не выбрано'}
           </div>
+          {selectedColleague && (
+            <div className="text-sm text-gray-600">
+              {selectedColleague?.phone
+                ? `+${selectedColleague.phone}`
+                : 'Телефон не указан'}
+            </div>
+          )}
         </div>
         {selectedColleagueId && !disabled && (
           <button
             type="button"
-            className="action-icon-button flex h-[50px] w-[50px] cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600"
+            className={[
+              'action-icon-button flex cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600',
+              compact ? 'h-9 w-9' : 'h-12 w-12',
+            ].join(' ')}
             onClick={handleEdit}
             title="Редактировать коллегу"
           >
@@ -85,6 +93,7 @@ ColleaguePicker.propTypes = {
   error: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
   paddingY: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
   fullWidth: PropTypes.bool,
+  compact: PropTypes.bool,
 }
 
 ColleaguePicker.defaultProps = {
@@ -96,6 +105,7 @@ ColleaguePicker.defaultProps = {
   error: null,
   paddingY: true,
   fullWidth: false,
+  compact: false,
 }
 
 export default ColleaguePicker

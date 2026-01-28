@@ -43,6 +43,7 @@ const normalizeCalendarSettings = (user) => {
   return {
     enabled: Boolean(settings.enabled),
     calendarId: settings.calendarId || '',
+    calendarName: settings.calendarName || '',
     refreshToken: settings.refreshToken || '',
     accessToken: settings.accessToken || '',
     tokenExpiry: settings.tokenExpiry || null,
