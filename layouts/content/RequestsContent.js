@@ -59,7 +59,9 @@ const RequestsContent = () => {
     if (!targetId) return
     if (openHandledRef.current) return
 
-    const index = sortedRequests.findIndex((item) => item._id === targetId)
+    const index = sortedRequests.findIndex(
+      (item) => String(item?._id) === String(targetId)
+    )
     if (index === -1) return
     openHandledRef.current = true
     listRef.current?.scrollToItem(index, 'center')

@@ -106,7 +106,9 @@ const EventsContent = ({ filter = 'all' }) => {
     if (!targetId) return
     if (openHandledRef.current) return
 
-    const indexInAll = events.findIndex((item) => item._id === targetId)
+    const indexInAll = events.findIndex(
+      (item) => String(item?._id) === String(targetId)
+    )
     if (indexInAll === -1) return
     const event = events[indexInAll]
     const eventDate = event?.eventDate ? new Date(event.eventDate) : null
@@ -145,7 +147,9 @@ const EventsContent = ({ filter = 'all' }) => {
       }
     }
 
-    const index = sortedEvents.findIndex((item) => item._id === targetId)
+    const index = sortedEvents.findIndex(
+      (item) => String(item?._id) === String(targetId)
+    )
     if (index === -1) return
     openHandledRef.current = true
     listRef.current?.scrollToItem(index, 'center')
