@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
-import { List } from 'react-window'
+import { List, useListRef } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
 import ComboBox from '@components/ComboBox'
@@ -23,7 +23,7 @@ const EventsContent = ({ filter = 'all' }) => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const listRef = useRef(null)
+  const listRef = useListRef()
   const openHandledRef = useRef(false)
   const [selectedTown, setSelectedTown] = useState('')
   const [pendingOpenId, setPendingOpenId] = useState(null)
@@ -188,8 +188,8 @@ const EventsContent = ({ filter = 'all' }) => {
       let scrollAttempts = 0
       const tryScroll = () => {
         if (!isActive) return
-        if (listRef.current?.scrollToItem) {
-          listRef.current.scrollToItem(index, 'center')
+        if (listRef.current?.scrollToRow) {
+          listRef.current.scrollToRow({ index, align: 'center' })
         } else if (scrollAttempts < 6) {
           scrollAttempts += 1
           setTimeout(tryScroll, 100)
@@ -285,8 +285,8 @@ const EventsContent = ({ filter = 'all' }) => {
       </ContentHeader>
       <div className="min-h-0 flex-1 overflow-hidden">
         {sortedEvents.length > 0 ? (
-          <List
-            ref={listRef}
+      <List
+            listRef={listRef}
             rowCount={sortedEvents.length}
             rowHeight={ITEM_HEIGHT}
             rowComponent={RowComponent}

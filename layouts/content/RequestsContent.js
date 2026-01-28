@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useCallback, useEffect, useRef, useState } from 'react'
-import { List } from 'react-window'
+import { List, useListRef } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
 import RequestCardCompact from '@layouts/cards/RequestCardCompact'
@@ -19,7 +19,7 @@ const RequestsContent = () => {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
-  const listRef = useRef(null)
+  const listRef = useListRef()
   const openHandledRef = useRef(false)
   const [pendingOpenId, setPendingOpenId] = useState(null)
 
@@ -94,7 +94,9 @@ const RequestsContent = () => {
       )
       if (index === -1) return scheduleRetry()
 
-      listRef.current?.scrollToItem(index, 'center')
+      if (listRef.current?.scrollToRow) {
+        listRef.current.scrollToRow({ index, align: 'center' })
+      }
       setTimeout(() => {
         if (!isActive) return
         modalsFunc.request?.view(targetId)
@@ -137,7 +139,7 @@ const RequestsContent = () => {
       <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         {sortedRequests.length > 0 ? (
           <List
-            ref={listRef}
+            listRef={listRef}
             rowCount={sortedRequests.length}
             rowHeight={ITEM_HEIGHT}
             rowComponent={RowComponent}
