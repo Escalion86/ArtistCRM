@@ -57,19 +57,40 @@ const RequestsContent = () => {
   useEffect(() => {
     const targetId = searchParams?.get('openRequest')
     if (!targetId) return
-    if (openHandledRef.current) return
-    if (!modalsFunc.request?.view) return
+    let isActive = true
+    let attempts = 0
 
-    const index = sortedRequests.findIndex(
-      (item) => String(item?._id) === String(targetId)
-    )
-    if (index === -1) return
-    listRef.current?.scrollToItem(index, 'center')
-    setTimeout(() => {
-      modalsFunc.request?.view(targetId)
-      openHandledRef.current = true
-      if (pathname) router.replace(pathname, { scroll: false })
-    }, 200)
+    const scheduleRetry = () => {
+      if (!isActive) return
+      if (attempts >= 10) return
+      attempts += 1
+      setTimeout(tryOpen, 250)
+    }
+
+    const tryOpen = () => {
+      if (!isActive) return
+      if (openHandledRef.current) return
+      if (!modalsFunc.request?.view) return scheduleRetry()
+      if (!sortedRequests || sortedRequests.length === 0) return scheduleRetry()
+
+      const index = sortedRequests.findIndex(
+        (item) => String(item?._id) === String(targetId)
+      )
+      if (index === -1) return scheduleRetry()
+
+      listRef.current?.scrollToItem(index, 'center')
+      setTimeout(() => {
+        if (!isActive) return
+        modalsFunc.request?.view(targetId)
+        openHandledRef.current = true
+        if (pathname) router.replace(pathname, { scroll: false })
+      }, 200)
+    }
+
+    tryOpen()
+    return () => {
+      isActive = false
+    }
   }, [modalsFunc.request, pathname, router, searchParams, sortedRequests])
 
   return (

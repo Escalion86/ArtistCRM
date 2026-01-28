@@ -104,60 +104,83 @@ const EventsContent = ({ filter = 'all' }) => {
   useEffect(() => {
     const targetId = searchParams?.get('openEvent')
     if (!targetId) return
-    if (openHandledRef.current) return
-    if (!modalsFunc.event?.view) return
+    let isActive = true
+    let attempts = 0
 
-    const indexInAll = events.findIndex(
-      (item) => String(item?._id) === String(targetId)
-    )
-    if (indexInAll === -1) return
-    const event = events[indexInAll]
-    const eventDate = event?.eventDate ? new Date(event.eventDate) : null
-    const now = new Date()
-    const startOfToday = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    ).getTime()
-    const shouldBeUpcoming =
-      !eventDate || eventDate.getTime() >= startOfToday
-    const expectedPage = shouldBeUpcoming ? 'eventsUpcoming' : 'eventsPast'
-
-    if (
-      filter !== 'all' &&
-      expectedPage !== (filter === 'upcoming' ? 'eventsUpcoming' : 'eventsPast')
-    ) {
-      router.replace(`/cabinet/${expectedPage}?openEvent=${targetId}`)
-      return
+    const scheduleRetry = () => {
+      if (!isActive) return
+      if (attempts >= 10) return
+      attempts += 1
+      setTimeout(tryOpen, 250)
     }
 
-    const eventTown = event?.address?.town ?? ''
-    if (selectedTown && eventTown !== selectedTown) {
-      setSelectedTown(eventTown)
-      return
-    }
+    const tryOpen = () => {
+      if (!isActive) return
+      if (openHandledRef.current) return
+      if (!modalsFunc.event?.view) return scheduleRetry()
+      if (!events || events.length === 0) return scheduleRetry()
 
-    if (!checkFilter.checked || !checkFilter.unchecked) {
-      const isChecked = !!event?.calendarImportChecked
-      const isVisible =
-        (isChecked && checkFilter.checked) ||
-        (!isChecked && checkFilter.unchecked)
-      if (!isVisible) {
-        setCheckFilter({ checked: true, unchecked: true })
+      const indexInAll = events.findIndex(
+        (item) => String(item?._id) === String(targetId)
+      )
+      if (indexInAll === -1) return scheduleRetry()
+
+      const event = events[indexInAll]
+      const eventDate = event?.eventDate ? new Date(event.eventDate) : null
+      const now = new Date()
+      const startOfToday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      ).getTime()
+      const shouldBeUpcoming =
+        !eventDate || eventDate.getTime() >= startOfToday
+      const expectedPage = shouldBeUpcoming ? 'eventsUpcoming' : 'eventsPast'
+
+      if (
+        filter !== 'all' &&
+        expectedPage !==
+          (filter === 'upcoming' ? 'eventsUpcoming' : 'eventsPast')
+      ) {
+        router.replace(`/cabinet/${expectedPage}?openEvent=${targetId}`)
         return
       }
+
+      const eventTown = event?.address?.town ?? ''
+      if (selectedTown && eventTown !== selectedTown) {
+        setSelectedTown(eventTown)
+        return
+      }
+
+      if (!checkFilter.checked || !checkFilter.unchecked) {
+        const isChecked = !!event?.calendarImportChecked
+        const isVisible =
+          (isChecked && checkFilter.checked) ||
+          (!isChecked && checkFilter.unchecked)
+        if (!isVisible) {
+          setCheckFilter({ checked: true, unchecked: true })
+          return
+        }
+      }
+
+      const index = sortedEvents.findIndex(
+        (item) => String(item?._id) === String(targetId)
+      )
+      if (index === -1) return scheduleRetry()
+
+      listRef.current?.scrollToItem(index, 'center')
+      setTimeout(() => {
+        if (!isActive) return
+        modalsFunc.event?.view(targetId)
+        openHandledRef.current = true
+        if (pathname) router.replace(pathname, { scroll: false })
+      }, 200)
     }
 
-    const index = sortedEvents.findIndex(
-      (item) => String(item?._id) === String(targetId)
-    )
-    if (index === -1) return
-    listRef.current?.scrollToItem(index, 'center')
-    setTimeout(() => {
-      modalsFunc.event?.view(targetId)
-      openHandledRef.current = true
-      if (pathname) router.replace(pathname, { scroll: false })
-    }, 200)
+    tryOpen()
+    return () => {
+      isActive = false
+    }
   }, [
     checkFilter.checked,
     checkFilter.unchecked,
