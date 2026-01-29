@@ -20,7 +20,6 @@ import { MONTHS_FULL_1 } from '@helpers/constants'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { useRouter } from 'next/navigation'
 import formatAddress from '@helpers/formatAddress'
-import { utils, writeFile } from 'xlsx'
 
 const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
 
@@ -242,6 +241,38 @@ const StatisticsContent = () => {
     return map
   }, [events, transactions])
 
+  const buildCsv = (headers, rows, delimiter = ';') => {
+    const escapeValue = (value) => {
+      if (value === null || value === undefined) return ''
+      const text = String(value).replace(/\r?\n/g, ' ')
+      if (text.includes('"') || text.includes(delimiter)) {
+        return `"${text.replace(/"/g, '""')}"`
+      }
+      return text
+    }
+
+    const headerLine = headers.map(escapeValue).join(delimiter)
+    const dataLines = rows.map((row) =>
+      headers.map((header) => escapeValue(row[header])).join(delimiter)
+    )
+    return [headerLine, ...dataLines].join('\r\n')
+  }
+
+  const downloadCsv = (fileName, headers, rows) => {
+    const csv = buildCsv(headers, rows)
+    const blob = new Blob([`\ufeff${csv}`], {
+      type: 'text/csv;charset=utf-8;',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   const handleExport = useCallback(() => {
     const yearFilter = selectedYear
     const isInYear = (value) => {
@@ -252,6 +283,20 @@ const StatisticsContent = () => {
       return date.getFullYear() === Number(yearFilter)
     }
 
+    const eventsHeaders = [
+      'ID',
+      'Дата начала',
+      'Дата окончания',
+      'Клиент',
+      'Город',
+      'Адрес',
+      'Услуги',
+      'Статус',
+      'Договорная сумма',
+      'Доход',
+      'Расход',
+      'Прибыль',
+    ]
     const eventsRows = events
       .filter((event) => isInYear(event?.eventDate))
       .map((event) => {
@@ -276,6 +321,19 @@ const StatisticsContent = () => {
         }
       })
 
+    const requestsHeaders = [
+      'ID',
+      'Дата заявки',
+      'Дата мероприятия',
+      'Клиент',
+      'Телефон',
+      'Город',
+      'Адрес',
+      'Услуги',
+      'Статус',
+      'Договорная сумма',
+      'Связано с мероприятием',
+    ]
     const requestsRows = requests
       .filter((request) =>
         isInYear(request?.eventDate ?? request?.createdAt)
@@ -294,6 +352,16 @@ const StatisticsContent = () => {
         'Связано с мероприятием': request.eventId ? 'Да' : 'Нет',
       }))
 
+    const transactionsHeaders = [
+      'ID',
+      'Дата',
+      'Тип',
+      'Категория',
+      'Сумма',
+      'Клиент',
+      'Мероприятие',
+      'Комментарий',
+    ]
     const transactionsRows = transactions
       .filter((tx) => isInYear(tx?.date))
       .map((tx) => {
@@ -310,25 +378,22 @@ const StatisticsContent = () => {
         }
       })
 
-    const workbook = utils.book_new()
-    utils.book_append_sheet(
-      workbook,
-      utils.json_to_sheet(eventsRows),
-      'Мероприятия'
-    )
-    utils.book_append_sheet(
-      workbook,
-      utils.json_to_sheet(requestsRows),
-      'Заявки'
-    )
-    utils.book_append_sheet(
-      workbook,
-      utils.json_to_sheet(transactionsRows),
-      'Транзакции'
-    )
-
     const fileSuffix = yearFilter ? String(yearFilter) : 'all'
-    writeFile(workbook, `artistcrm-export-${fileSuffix}.xlsx`)
+    downloadCsv(
+      `artistcrm-events-${fileSuffix}.csv`,
+      eventsHeaders,
+      eventsRows
+    )
+    downloadCsv(
+      `artistcrm-requests-${fileSuffix}.csv`,
+      requestsHeaders,
+      requestsRows
+    )
+    downloadCsv(
+      `artistcrm-transactions-${fileSuffix}.csv`,
+      transactionsHeaders,
+      transactionsRows
+    )
   }, [
     buildEventFinanceMap,
     events,
@@ -361,9 +426,7 @@ const StatisticsContent = () => {
               />
             </div>
           }
-          right={
-            <Button name="Экспорт Excel" onClick={handleExport} />
-          }
+          right={<Button name="Экспорт CSV" onClick={handleExport} />}
         />
       </ContentHeader>
 
