@@ -6,6 +6,7 @@ import ContentHeader from '@components/ContentHeader'
 import HeaderActions from '@components/HeaderActions'
 import IconCheckBox from '@components/IconCheckBox'
 import SectionCard from '@components/SectionCard'
+import Input from '@components/Input'
 import { useAtom } from 'jotai'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { postData } from '@helpers/CRUD'
@@ -23,6 +24,16 @@ const DevContent = () => {
   const [exportError, setExportError] = useState('')
   const [exportResult, setExportResult] = useState(null)
   const [exportCopied, setExportCopied] = useState(false)
+  const [generateLoading, setGenerateLoading] = useState(false)
+  const [generateError, setGenerateError] = useState('')
+  const [generateResult, setGenerateResult] = useState(null)
+  const [generateCounts, setGenerateCounts] = useState({
+    clients: 5,
+    services: 3,
+    requests: 5,
+    events: 5,
+    transactions: 10,
+  })
 
   const handleSync = async () => {
     setLoading(true)
@@ -101,6 +112,29 @@ const DevContent = () => {
       setExportError(exportErr.message || 'Не удалось получить данные календаря')
     } finally {
       setExportLoading(false)
+    }
+  }
+
+  const handleGenerate = async () => {
+    setGenerateLoading(true)
+    setGenerateError('')
+    setGenerateResult(null)
+    try {
+      const response = await fetch('/api/dev/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(generateCounts),
+      })
+      const rawText = await response.text()
+      const data = rawText ? JSON.parse(rawText) : null
+      if (!data) throw new Error('Пустой ответ от сервера')
+      if (!response.ok || !data.success)
+        throw new Error(data.error || 'Не удалось сгенерировать данные')
+      setGenerateResult(data.data)
+    } catch (genError) {
+      setGenerateError(genError.message || 'Не удалось сгенерировать данные')
+    } finally {
+      setGenerateLoading(false)
     }
   }
 
@@ -225,6 +259,88 @@ const DevContent = () => {
             )}
           </div>
         )}
+        <div className="flex flex-col gap-3 rounded border border-slate-200 bg-slate-50 p-3">
+          <div className="text-sm text-slate-800 font-semibold">
+            Генерация тестовых данных
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Input
+              label="Клиенты"
+              type="number"
+              min={0}
+              max={200}
+              value={generateCounts.clients}
+              onChange={(value) =>
+                setGenerateCounts((prev) => ({ ...prev, clients: value }))
+              }
+              noMargin
+            />
+            <Input
+              label="Услуги"
+              type="number"
+              min={0}
+              max={200}
+              value={generateCounts.services}
+              onChange={(value) =>
+                setGenerateCounts((prev) => ({ ...prev, services: value }))
+              }
+              noMargin
+            />
+            <Input
+              label="Заявки"
+              type="number"
+              min={0}
+              max={200}
+              value={generateCounts.requests}
+              onChange={(value) =>
+                setGenerateCounts((prev) => ({ ...prev, requests: value }))
+              }
+              noMargin
+            />
+            <Input
+              label="Мероприятия"
+              type="number"
+              min={0}
+              max={200}
+              value={generateCounts.events}
+              onChange={(value) =>
+                setGenerateCounts((prev) => ({ ...prev, events: value }))
+              }
+              noMargin
+            />
+            <Input
+              label="Транзакции"
+              type="number"
+              min={0}
+              max={500}
+              value={generateCounts.transactions}
+              onChange={(value) =>
+                setGenerateCounts((prev) => ({ ...prev, transactions: value }))
+              }
+              noMargin
+            />
+          </div>
+          <Button
+            name="Сгенерировать"
+            onClick={handleGenerate}
+            loading={generateLoading}
+            className="w-full sm:w-auto"
+          />
+          {generateError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+              {generateError}
+            </div>
+          )}
+          {generateResult && (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              <div>Клиенты: <b>{generateResult.clients ?? 0}</b></div>
+              <div>Услуги: <b>{generateResult.services ?? 0}</b></div>
+              <div>Заявки: <b>{generateResult.requests ?? 0}</b></div>
+              <div>Мероприятия: <b>{generateResult.events ?? 0}</b></div>
+              <div>Транзакции: <b>{generateResult.transactions ?? 0}</b></div>
+            </div>
+          )}
+        </div>
       </SectionCard>
     </div>
   )
