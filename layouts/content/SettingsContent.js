@@ -135,7 +135,10 @@ const SettingsContent = () => {
           }
           fullWidth
         />
-        <InputWrapper label="Стандартная длительность мероприятия, мин" fullWidth>
+        <InputWrapper
+          label="Стандартная длительность мероприятия, мин"
+          fullWidth
+        >
           <Input
             type="number"
             min={15}
@@ -171,7 +174,7 @@ const SettingsContent = () => {
             </button>
           </div>
         </InputWrapper>
-      </div>
+      </SectionCard>
     </div>
   )
 }

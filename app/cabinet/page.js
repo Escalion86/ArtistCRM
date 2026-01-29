@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import fetchProps from '@server/fetchProps'
 import authOptions from '../api/auth/[...nextauth]/_options'
 
+export const dynamic = 'force-dynamic'
+
 export default async function Cabinet() {
   let session = null
   try {

@@ -107,7 +107,10 @@ const DevContent = () => {
   return (
     <div className="flex h-full flex-col gap-4 p-4">
       <ContentHeader>
-        <HeaderActions left={<h2 className="text-xl font-semibold">Разработчик</h2>} right={<div />} />
+        <HeaderActions
+          left={<h2 className="text-xl font-semibold">Разработчик</h2>}
+          right={<div />}
+        />
       </ContentHeader>
       <SectionCard className="flex flex-col gap-4 p-4">
         <IconCheckBox
@@ -222,7 +225,7 @@ const DevContent = () => {
             )}
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   )
 }
