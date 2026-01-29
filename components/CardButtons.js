@@ -3,6 +3,7 @@ import {
   faArrowDown,
   faArrowUp,
   faCalendarAlt,
+  faClockRotateLeft,
   faClipboardList,
   faCode,
   faExchangeAlt,
@@ -84,6 +85,7 @@ const CardButtons = ({
           (typeOfItem === 'event' || typeOfItem === 'request') &&
           Boolean(calendarLink),
         viewRequest: typeOfItem === 'event' && Boolean(item?.requestId),
+        historyBtn: typeOfItem === 'event' || typeOfItem === 'request',
         statusBtn: typeOfItem !== 'client',
         deleteBtn:
           showDeleteButton && canManageItem && item.status !== 'closed',
@@ -102,6 +104,7 @@ const CardButtons = ({
           (typeOfItem === 'event' || typeOfItem === 'request') &&
           Boolean(calendarLink),
         viewRequest: typeOfItem === 'event' && Boolean(item?.requestId),
+        historyBtn: typeOfItem === 'event' || typeOfItem === 'request',
         upBtn: onUpClick && upDownSee,
         downBtn: onDownClick && upDownSee,
         editBtn: showEditButton && canManageItem,
@@ -213,6 +216,14 @@ const CardButtons = ({
           onClick={() => modalsFunc.request?.view(item.requestId)}
           color="blue"
           tooltipText="Посмотреть заявку"
+        />
+      )}
+      {show.historyBtn && (
+        <ItemComponent
+          icon={faClockRotateLeft}
+          onClick={() => modalsFunc[typeOfItem].history(item._id)}
+          color="blue"
+          tooltipText="История изменений"
         />
       )}
       {show.editBtn && (

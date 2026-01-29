@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server'
 import Events from '@models/Events'
 import Transactions from '@models/Transactions'
 import Requests from '@models/Requests'
+import Histories from '@models/Histories'
 import dbConnect from '@server/dbConnect'
 import { deleteEventFromCalendar, updateEventInCalendar } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 
 const EVENT_STATUSES = new Set(['canceled', 'active', 'closed'])
 
@@ -108,23 +110,22 @@ export const PUT = async (req, { params }) => {
   }
   await dbConnect()
 
+  const oldEvent = await Events.findOne({ _id: id, tenantId }).lean()
+  if (!oldEvent)
+    return NextResponse.json(
+      { success: false, error: 'Мероприятие не найдено' },
+      { status: 404 }
+    )
+
   if (body.eventDate !== undefined || body.dateEnd !== undefined) {
-    const currentEvent = await Events.findOne({ _id: id, tenantId })
-      .select('eventDate dateEnd')
-      .lean()
-    if (!currentEvent)
-      return NextResponse.json(
-        { success: false, error: 'Мероприятие не найдено' },
-        { status: 404 }
-      )
     const startDate =
       body.eventDate !== undefined
         ? parseDateValue(body.eventDate)
-        : currentEvent.eventDate
+        : oldEvent.eventDate
     const endDate =
       body.dateEnd !== undefined
         ? parseDateValue(body.dateEnd)
-        : currentEvent.dateEnd
+        : oldEvent.dateEnd
     if (startDate && endDate && startDate.getTime() > endDate.getTime()) {
       return NextResponse.json(
         {
@@ -183,6 +184,17 @@ export const PUT = async (req, { params }) => {
       { success: false, error: 'Мероприятие не найдено' },
       { status: 404 }
     )
+
+  const changes = compareObjectsWithDif(oldEvent, event.toJSON?.() ?? event)
+  if (Object.keys(changes).length > 0) {
+    await Histories.create({
+      schema: Events.collection.collectionName,
+      action: 'update',
+      data: [changes],
+      userId: String(user._id),
+      difference: true,
+    })
+  }
 
   let responseEvent = event
   if (!event?.importedFromCalendar && !access?.allowCalendarSync) {
@@ -244,6 +256,12 @@ export const DELETE = async (req, { params }) => {
       { success: false, error: 'Мероприятие не найдено' },
       { status: 404 }
     )
+  await Histories.create({
+    schema: Events.collection.collectionName,
+    action: 'delete',
+    data: [deleted.toJSON?.() ?? deleted],
+    userId: String(user._id),
+  })
   if (deleted.requestId) {
     await Requests.findOneAndUpdate(
       { _id: deleted.requestId, tenantId },

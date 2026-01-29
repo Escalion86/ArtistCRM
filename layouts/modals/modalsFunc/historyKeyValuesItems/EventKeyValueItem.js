@@ -1,7 +1,7 @@
 import Chip from '@components/Chips/Chip'
 import InputImages from '@components/InputImages'
 import UserNameById from '@components/UserNameById'
-import { EVENT_STATUSES } from '@helpers/constants'
+import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
 import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
 import textAge from '@helpers/textAge'
@@ -29,9 +29,12 @@ const EventKeyValueItem = ({ objKey, value }) =>
     )
   ) : objKey === 'organizerId' ? (
     <UserNameById userId={value} thin trunc={1} />
-  ) : objKey === 'dateStart' || objKey === 'dateEnd' ? (
+  ) : ['eventDate', 'dateStart', 'dateEnd', 'createdAt', 'updatedAt'].includes(
+      objKey
+    ) ? (
     formatDateTime(value)
   ) : objKey === 'status' ? (
+    EVENT_STATUSES_SIMPLE.find((item) => item.value === value)?.name ??
     EVENT_STATUSES.find((item) => item.value === value)?.name
   ) : objKey === 'images' ? (
     <InputImages
@@ -53,6 +56,14 @@ const EventKeyValueItem = ({ objKey, value }) =>
     )
   ) : objKey === 'price' ? (
     value / 100 + ' ₽'
+  ) : objKey === 'contractSum' ? (
+    typeof value === 'number' ? value.toLocaleString('ru-RU') + ' ₽' : value
+  ) : objKey === 'calendarSyncError' ? (
+    value === 'calendar_sync_unavailable'
+      ? 'Синхронизация недоступна по тарифу'
+      : value === 'calendar_sync_failed'
+        ? 'Ошибка синхронизации'
+        : value
   ) : objKey === 'usersStatusAccess' ? (
     <div>
       <div>Не авторизован: {value?.noReg ? 'Да' : 'Нет'}</div>

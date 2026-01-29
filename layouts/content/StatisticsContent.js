@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { ResponsiveBar } from '@nivo/bar'
 import { useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
@@ -9,13 +9,18 @@ import Button from '@components/Button'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import SectionCard from '@components/SectionCard'
+import clientsAtom from '@state/atoms/clientsAtom'
+import servicesAtom from '@state/atoms/servicesAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
+import requestsAtom from '@state/atoms/requestsAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { MONTHS_FULL_1 } from '@helpers/constants'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { useRouter } from 'next/navigation'
+import formatAddress from '@helpers/formatAddress'
+import { utils, writeFile } from 'xlsx'
 
 const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
 
@@ -25,6 +30,9 @@ const getMonthKey = (date, year) =>
 const StatisticsContent = () => {
   const transactions = useAtomValue(transactionsAtom)
   const events = useAtomValue(eventsAtom)
+  const requests = useAtomValue(requestsAtom)
+  const clients = useAtomValue(clientsAtom)
+  const services = useAtomValue(servicesAtom)
   const tariffs = useAtomValue(tariffsAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
   const access = getUserTariffAccess(loggedUser, tariffs)
@@ -58,6 +66,22 @@ const StatisticsContent = () => {
     })
     return map
   }, [events])
+
+  const clientsMap = useMemo(() => {
+    const map = new Map()
+    clients.forEach((client) => {
+      if (client?._id) map.set(client._id, client)
+    })
+    return map
+  }, [clients])
+
+  const servicesMap = useMemo(() => {
+    const map = new Map()
+    services.forEach((service) => {
+      if (service?._id) map.set(service._id, service)
+    })
+    return map
+  }, [services])
 
   const availableYears = useMemo(() => {
     const years = new Set()
@@ -157,6 +181,167 @@ const StatisticsContent = () => {
       })
   }, [events, eventsMap, selectedYear, transactions])
 
+  const formatDateTime = (value) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const resolveServicesTitles = (ids = []) => {
+    if (!Array.isArray(ids) || ids.length === 0) return ''
+    return ids
+      .map((id) => servicesMap.get(id)?.title ?? id)
+      .filter(Boolean)
+      .join(', ')
+  }
+
+  const resolveClientName = (clientId, fallbackName) => {
+    if (!clientId) return fallbackName || ''
+    const client = clientsMap.get(clientId)
+    if (!client) return fallbackName || String(clientId)
+    return (
+      [client.firstName, client.secondName].filter(Boolean).join(' ') ||
+      String(clientId)
+    )
+  }
+
+  const resolveClientPhone = (clientId, fallbackPhone) => {
+    if (fallbackPhone) return fallbackPhone
+    const client = clientId ? clientsMap.get(clientId) : null
+    return client?.phone ? `+${client.phone}` : ''
+  }
+
+  const resolveEventTitle = (event) => {
+    if (!event) return ''
+    const servicesTitle = resolveServicesTitles(event.servicesIds)
+    const addressLine = formatAddress(event.address, '')
+    return [servicesTitle, addressLine].filter(Boolean).join(' • ')
+  }
+
+  const buildEventFinanceMap = useMemo(() => {
+    const map = new Map()
+    events.forEach((event) => {
+      const eventId = event?._id
+      if (!eventId) return
+      map.set(eventId, { income: 0, expense: 0 })
+    })
+    transactions.forEach((tx) => {
+      if (!tx?.eventId) return
+      const existing = map.get(tx.eventId)
+      if (!existing) return
+      if (tx.type === 'income') existing.income += Number(tx.amount ?? 0)
+      if (tx.type === 'expense') existing.expense += Number(tx.amount ?? 0)
+    })
+    return map
+  }, [events, transactions])
+
+  const handleExport = useCallback(() => {
+    const yearFilter = selectedYear
+    const isInYear = (value) => {
+      if (!yearFilter) return true
+      if (!value) return false
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) return false
+      return date.getFullYear() === Number(yearFilter)
+    }
+
+    const eventsRows = events
+      .filter((event) => isInYear(event?.eventDate))
+      .map((event) => {
+        const finance = buildEventFinanceMap.get(event._id) || {
+          income: 0,
+          expense: 0,
+        }
+        const profit = finance.income - finance.expense
+        return {
+          ID: event._id,
+          'Дата начала': formatDateTime(event.eventDate),
+          'Дата окончания': formatDateTime(event.dateEnd),
+          Клиент: resolveClientName(event.clientId),
+          Город: event?.address?.town ?? '',
+          Адрес: formatAddress(event.address, ''),
+          Услуги: resolveServicesTitles(event.servicesIds),
+          Статус: event.status ?? '',
+          'Договорная сумма': Number(event.contractSum ?? 0),
+          Доход: finance.income,
+          Расход: finance.expense,
+          Прибыль: profit,
+        }
+      })
+
+    const requestsRows = requests
+      .filter((request) =>
+        isInYear(request?.eventDate ?? request?.createdAt)
+      )
+      .map((request) => ({
+        ID: request._id,
+        'Дата заявки': formatDateTime(request.createdAt),
+        'Дата мероприятия': formatDateTime(request.eventDate),
+        Клиент: resolveClientName(request.clientId, request.clientName),
+        Телефон: resolveClientPhone(request.clientId, request.clientPhone),
+        Город: request?.address?.town ?? '',
+        Адрес: formatAddress(request.address, ''),
+        Услуги: resolveServicesTitles(request.servicesIds),
+        Статус: request.status ?? '',
+        'Договорная сумма': Number(request.contractSum ?? 0),
+        'Связано с мероприятием': request.eventId ? 'Да' : 'Нет',
+      }))
+
+    const transactionsRows = transactions
+      .filter((tx) => isInYear(tx?.date))
+      .map((tx) => {
+        const event = eventsMap.get(tx.eventId)
+        return {
+          ID: tx._id,
+          Дата: formatDateTime(tx.date),
+          Тип: tx.type ?? '',
+          Категория: tx.category ?? '',
+          Сумма: Number(tx.amount ?? 0),
+          Клиент: resolveClientName(tx.clientId),
+          Мероприятие: resolveEventTitle(event),
+          Комментарий: tx.comment ?? '',
+        }
+      })
+
+    const workbook = utils.book_new()
+    utils.book_append_sheet(
+      workbook,
+      utils.json_to_sheet(eventsRows),
+      'Мероприятия'
+    )
+    utils.book_append_sheet(
+      workbook,
+      utils.json_to_sheet(requestsRows),
+      'Заявки'
+    )
+    utils.book_append_sheet(
+      workbook,
+      utils.json_to_sheet(transactionsRows),
+      'Транзакции'
+    )
+
+    const fileSuffix = yearFilter ? String(yearFilter) : 'all'
+    writeFile(workbook, `artistcrm-export-${fileSuffix}.xlsx`)
+  }, [
+    buildEventFinanceMap,
+    events,
+    eventsMap,
+    requests,
+    transactions,
+    selectedYear,
+    resolveClientName,
+    resolveClientPhone,
+    resolveEventTitle,
+    resolveServicesTitles,
+  ])
+
   return (
     <div className="flex h-full flex-col gap-4">
       <ContentHeader>
@@ -176,7 +361,9 @@ const StatisticsContent = () => {
               />
             </div>
           }
-          right={<div />}
+          right={
+            <Button name="Экспорт Excel" onClick={handleExport} />
+          }
         />
       </ContentHeader>
 

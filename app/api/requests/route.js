@@ -3,6 +3,7 @@ import Requests from '@models/Requests'
 import Clients from '@models/Clients'
 import SiteSettings from '@models/SiteSettings'
 import Users from '@models/Users'
+import Histories from '@models/Histories'
 import dbConnect from '@server/dbConnect'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
@@ -506,6 +507,12 @@ export const POST = async (req) => {
     yandexAim,
     servicesIds,
     otherContacts,
+  })
+  await Histories.create({
+    schema: Requests.collection.collectionName,
+    action: 'add',
+    data: [request.toJSON()],
+    userId: String(sessionUser?._id ?? tenantId),
   })
 
   let googleCalendarId = null

@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import Events from '@models/Events'
+import Histories from '@models/Histories'
 import dbConnect from '@server/dbConnect'
 import { updateEventInCalendar } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 
 const hasDocuments = (payload) => {
   const invoiceLinks = Array.isArray(payload?.invoiceLinks)
@@ -92,6 +94,12 @@ export const POST = async (req) => {
     ...body,
     tenantId,
     calendarSyncError: access?.allowCalendarSync ? '' : 'calendar_sync_unavailable',
+  })
+  await Histories.create({
+    schema: Events.collection.collectionName,
+    action: 'add',
+    data: [event.toJSON()],
+    userId: String(user._id),
   })
   let responseEvent = event
   if (!event?.importedFromCalendar && access?.allowCalendarSync) {

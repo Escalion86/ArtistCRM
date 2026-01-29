@@ -57,6 +57,7 @@ import clientEventsFunc from './modalsFunc/clientEventsFunc'
 import requestViewFunc from './modalsFunc/requestViewFunc'
 import requestFunc from './modalsFunc/requestFunc'
 import requestStatusEditFunc from './modalsFunc/requestStatusEditFunc'
+import requestHistoryFunc from './modalsFunc/requestHistoryFunc'
 
 const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
   const addModal = (value) => setAtomValue(addModalSelector, value)
@@ -189,6 +190,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
     request: {
       add: (requestId) => addModal(requestFunc(requestId, true)),
       edit: (requestId) => addModal(requestFunc(requestId)),
+      history: (requestId) => addModal(requestHistoryFunc(requestId)),
       statusEdit: (requestId) => addModal(requestStatusEditFunc(requestId)),
       delete: async (requestId) => {
         try {

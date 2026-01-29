@@ -3,6 +3,7 @@ import Requests from '@models/Requests'
 import Events from '@models/Events'
 import Clients from '@models/Clients'
 import SiteSettings from '@models/SiteSettings'
+import Histories from '@models/Histories'
 import dbConnect from '@server/dbConnect'
 import { updateEventInCalendar } from '@server/CRUD'
 import {
@@ -13,6 +14,7 @@ import {
 import formatAddress from '@helpers/formatAddress'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 
 const DEFAULT_TIME_ZONE = 'Asia/Krasnoyarsk'
 
@@ -414,6 +416,12 @@ export const PUT = async (req, { params }) => {
         ? ''
         : 'calendar_sync_unavailable',
     })
+    await Histories.create({
+      schema: Events.collection.collectionName,
+      action: 'add',
+      data: [event.toJSON?.() ?? event],
+      userId: String(user._id),
+    })
 
     let updatedEvent = event
     if (access?.allowCalendarSync) {
@@ -439,6 +447,19 @@ export const PUT = async (req, { params }) => {
       },
       { new: true }
     )
+    const convertChanges = compareObjectsWithDif(
+      request.toJSON?.() ?? request,
+      updatedRequest.toJSON?.() ?? updatedRequest
+    )
+    if (Object.keys(convertChanges).length > 0) {
+      await Histories.create({
+        schema: Requests.collection.collectionName,
+        action: 'update',
+        data: [convertChanges],
+        userId: String(user._id),
+        difference: true,
+      })
+    }
 
     const client = request.clientId
       ? await Clients.findOne({ _id: request.clientId, tenantId })
@@ -543,6 +564,20 @@ export const PUT = async (req, { params }) => {
     }
   )
 
+  const changes = compareObjectsWithDif(
+    request.toJSON?.() ?? request,
+    updatedRequest.toJSON?.() ?? updatedRequest
+  )
+  if (Object.keys(changes).length > 0) {
+    await Histories.create({
+      schema: Requests.collection.collectionName,
+      action: 'update',
+      data: [changes],
+      userId: String(user._id),
+      difference: true,
+    })
+  }
+
   const access = await getUserTariffAccess(user._id)
   if (!access?.allowCalendarSync) {
     await Requests.findByIdAndUpdate(updatedRequest._id, {
@@ -634,5 +669,11 @@ export const DELETE = async (req, { params }) => {
       { success: false, error: 'Заявка не найдена' },
       { status: 404 }
     )
+  await Histories.create({
+    schema: Requests.collection.collectionName,
+    action: 'delete',
+    data: [deleted.toJSON?.() ?? deleted],
+    userId: String(user?._id ?? tenantId),
+  })
   return NextResponse.json({ success: true }, { status: 200 })
 }
