@@ -25,10 +25,11 @@ const createStatusMap = (statuses) =>
   }, {})
 
 const statusClassNames = {
-  new: 'bg-blue-500',
-  in_progress: 'bg-amber-500',
+  active: 'bg-blue-500',
   converted: 'bg-green-500',
   canceled: 'bg-red-500',
+  new: 'bg-blue-500',
+  in_progress: 'bg-blue-500',
 }
 
 const statusMap = createStatusMap(REQUEST_STATUSES)
@@ -43,7 +44,7 @@ const RequestCardCompact = ({
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loading = useAtomValue(loadingAtom('request' + request._id))
   const error = useAtomValue(errorAtom('request' + request._id))
-  const status = statusMap[request.status] ?? statusMap.new
+  const status = statusMap[request.status] ?? statusMap.active
   const statusColor = statusClassNames[status?.value] || 'bg-blue-500'
   const hasEvent = Boolean(request.eventId)
   const calendarLink = request.calendarLink || null
@@ -65,6 +66,11 @@ const RequestCardCompact = ({
       minute: '2-digit',
     })
   }
+  const requestEventLabel = request.eventDate
+    ? `${formatDate(request.eventDate, false, true)} ${formatTime(
+        request.eventDate
+      )}`
+    : 'Дата мероприятия не указана'
   const requestCreatedLabel = request.createdAt
     ? `${formatDate(request.createdAt, false, true)} ${formatTime(
         request.createdAt
@@ -112,17 +118,12 @@ const RequestCardCompact = ({
       <div className="flex h-full w-full flex-col gap-0.5 pr-4 pl-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="text-base font-semibold text-gray-900">
-            {requestCreatedLabel}
+            {requestEventLabel}
           </div>
         </div>
         <div className="grid gap-0.5 text-sm text-gray-700">
           <div className="font-medium text-gray-800 truncate">
-            Дата мероприятия:{' '}
-            {request.eventDate
-              ? `${formatDate(request.eventDate, false, true)} ${formatTime(
-                  request.eventDate
-                )}`
-              : '-'}
+            Дата заявки: {requestCreatedLabel || '-'}
           </div>
           <div className="truncate">
             <div className="font-medium text-gray-800 truncate">

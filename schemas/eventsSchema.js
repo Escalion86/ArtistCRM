@@ -87,6 +87,10 @@ const eventsSchema = {
     type: String,
     default: 'active',
   },
+  cancelReason: {
+    type: String,
+    default: '',
+  },
   isTransferred: {
     type: Boolean,
     default: false,

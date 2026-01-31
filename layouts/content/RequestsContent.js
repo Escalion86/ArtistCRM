@@ -16,6 +16,20 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
 const ITEM_HEIGHT = 160
 
+const RequestsRow = ({ index, style, requests, onEdit, onView, onStatusEdit }) => {
+  const request = requests[index]
+  if (!request) return null
+  return (
+    <RequestCardCompact
+      style={style}
+      request={request}
+      onEdit={() => onEdit?.(request._id)}
+      onView={() => onView?.(request._id)}
+      onStatusEdit={(id) => onStatusEdit?.(id)}
+    />
+  )
+}
+
 const RequestsContent = () => {
   const requests = useAtomValue(requestsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -26,6 +40,7 @@ const RequestsContent = () => {
   const listRef = useListRef()
   const openHandledRef = useRef(false)
   const [pendingOpenId, setPendingOpenId] = useState(null)
+  const scrollTopRef = useRef(0)
 
   const sortedRequests = useMemo(
     () =>
@@ -37,20 +52,29 @@ const RequestsContent = () => {
     [requests]
   )
 
-  const RowComponent = useCallback(
-    ({ index, style }) => {
-      const request = sortedRequests[index]
-      return (
-        <RequestCardCompact
-          style={style}
-          request={request}
-          onEdit={() => modalsFunc.request?.edit(request._id)}
-          onView={() => modalsFunc.request?.view(request._id)}
-          onStatusEdit={(id) => modalsFunc.request?.statusEdit(id)}
-        />
-      )
-    },
-    [sortedRequests, modalsFunc.request]
+  const handleEdit = useCallback(
+    (id) => modalsFunc.request?.edit(id),
+    [modalsFunc.request]
+  )
+
+  const handleView = useCallback(
+    (id) => modalsFunc.request?.view(id),
+    [modalsFunc.request]
+  )
+
+  const handleStatusEdit = useCallback(
+    (id) => modalsFunc.request?.statusEdit(id),
+    [modalsFunc.request]
+  )
+
+  const rowProps = useMemo(
+    () => ({
+      requests: sortedRequests,
+      onEdit: handleEdit,
+      onView: handleView,
+      onStatusEdit: handleStatusEdit,
+    }),
+    [sortedRequests, handleEdit, handleView, handleStatusEdit]
   )
 
   useEffect(() => {
@@ -58,6 +82,25 @@ const RequestsContent = () => {
       openHandledRef.current = false
     }
   }, [modals.length])
+
+  useEffect(() => {
+    const element = listRef.current?.element
+    if (!element) return
+    const handleScroll = () => {
+      scrollTopRef.current = element.scrollTop
+    }
+    element.addEventListener('scroll', handleScroll)
+    return () => element.removeEventListener('scroll', handleScroll)
+  }, [listRef])
+
+  useEffect(() => {
+    const element = listRef.current?.element
+    if (!element) return
+    if (openHandledRef.current) return
+    if (scrollTopRef.current > 0 && element.scrollTop === 0) {
+      element.scrollTop = scrollTopRef.current
+    }
+  }, [sortedRequests])
 
   useEffect(() => {
     const urlTargetId = searchParams?.get('openRequest')
@@ -148,8 +191,8 @@ const RequestsContent = () => {
             listRef={listRef}
             rowCount={sortedRequests.length}
             rowHeight={ITEM_HEIGHT}
-            rowComponent={RowComponent}
-            rowProps={{}}
+            rowComponent={RequestsRow}
+            rowProps={rowProps}
             style={{ height: '100%', width: '100%' }}
           />
         ) : (

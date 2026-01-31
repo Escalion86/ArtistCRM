@@ -13,7 +13,11 @@ import {
   faPencilAlt,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { EVENT_STATUSES, SERVICE_USER_STATUSES } from '@helpers/constants'
+import {
+  EVENT_STATUSES,
+  REQUEST_STATUSES,
+  SERVICE_USER_STATUSES,
+} from '@helpers/constants'
 import { modalsFuncAtom } from '@state/atoms'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import windowDimensionsTailwindSelector from '@state/selectors/windowDimensionsTailwindSelector'
@@ -250,11 +254,15 @@ const CardButtons = ({
       {show.statusBtn
         ? (() => {
             const status = item.status ?? 'active'
-            const statusConfig = (
-              typeOfItem === 'serviceUser'
-                ? SERVICE_USER_STATUSES
-                : EVENT_STATUSES
-            ).find(({ value }) => value === status)
+            const statusesList =
+              typeOfItem === 'request'
+                ? REQUEST_STATUSES
+                : typeOfItem === 'serviceUser'
+                  ? SERVICE_USER_STATUSES
+                  : EVENT_STATUSES
+            const statusConfig = statusesList.find(
+              ({ value }) => value === status
+            )
             if (!statusConfig) return null
             const { icon, color, name } = statusConfig
             return (

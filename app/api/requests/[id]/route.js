@@ -221,6 +221,9 @@ const normalizeOtherContacts = (contacts) => {
     .filter(Boolean)
 }
 
+const normalizeCancelReason = (value) =>
+  typeof value === 'string' ? value.trim() : ''
+
 const parseDateValue = (value) => {
   if (!value) return null
   const date = new Date(value)
@@ -261,8 +264,7 @@ const normalizeAddress = (rawAddress, legacyLocation) => {
 }
 
 const REQUEST_STATUSES = new Set([
-  'new',
-  'in_progress',
+  'active',
   'converted',
   'canceled',
 ])
@@ -550,6 +552,9 @@ export const PUT = async (req, { params }) => {
   if (body.yandexAim !== undefined) update.yandexAim = body.yandexAim ?? ''
   if (body.otherContacts !== undefined) {
     update.otherContacts = normalizeOtherContacts(body.otherContacts)
+  }
+  if (body.cancelReason !== undefined) {
+    update.cancelReason = normalizeCancelReason(body.cancelReason)
   }
 
   if (body.status && REQUEST_STATUSES.has(body.status)) {

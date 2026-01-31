@@ -47,6 +47,9 @@ const parseDateValue = (value) => {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+const normalizeCancelReason = (value) =>
+  typeof value === 'string' ? value.trim() : ''
+
 const normalizeOtherContacts = (contacts) => {
   if (!Array.isArray(contacts)) return []
   return contacts
@@ -172,6 +175,9 @@ export const PUT = async (req, { params }) => {
   if (body.isTransferred !== undefined) {
     update.isTransferred = Boolean(body.isTransferred)
     if (!update.isTransferred) update.colleagueId = null
+  }
+  if (body.cancelReason !== undefined) {
+    update.cancelReason = normalizeCancelReason(body.cancelReason)
   }
   if (body.status && EVENT_STATUSES.has(body.status))
     update.status = body.status

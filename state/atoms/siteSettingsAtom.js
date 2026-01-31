@@ -12,7 +12,7 @@ const siteSettingsAtom = atom({
   defaultTown: '',
   timeZone: 'Asia/Krasnoyarsk',
   storeCalendarResponse: false,
-  custom: {},
+  custom: { cancelReasons: [] },
 })
 
 export default siteSettingsAtom

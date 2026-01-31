@@ -421,6 +421,7 @@ export const DEFAULT_EVENT = Object.freeze({
   servicesIds: [],
   address: DEFAULT_ADDRESS,
   status: 'active',
+  cancelReason: '',
   contractSum: 0,
   isTransferred: false,
   isByContract: false,
@@ -467,7 +468,8 @@ export const DEFAULT_REQUEST = Object.freeze({
   address: DEFAULT_ADDRESS,
   contractSum: 0,
   comment: '',
-  status: 'new',
+  status: 'active',
+  cancelReason: '',
   eventId: null,
   calendarSyncError: '',
 })
@@ -523,10 +525,14 @@ export const DEFAULT_IMAGE_CONSTRUCTOR_ITEM = Object.freeze({
 })
 
 export const REQUEST_STATUSES = Object.freeze([
-  { value: 'new', name: 'Новая', color: 'blue' },
-  { value: 'in_progress', name: 'В работе', color: 'amber' },
-  { value: 'converted', name: 'Преобразована', color: 'green' },
-  { value: 'canceled', name: 'Отменена', color: 'red' },
+  { value: 'active', name: 'Активно', color: 'blue', icon: faPlay },
+  {
+    value: 'converted',
+    name: 'Преобразовано (в мероприятие)',
+    color: 'green',
+    icon: faCheck,
+  },
+  { value: 'canceled', name: 'Отменено', color: 'red', icon: faBan },
 ])
 
 export const EVENT_STATUSES_SIMPLE = Object.freeze([

@@ -177,7 +177,7 @@ export const POST = async (req) => {
       comment: 'Тестовая заявка',
       servicesIds,
       otherContacts: [],
-      status: 'new',
+      status: 'active',
     })
   }
   if (created.requests.length > 0) {

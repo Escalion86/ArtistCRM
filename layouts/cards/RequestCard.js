@@ -48,10 +48,13 @@ const RequestCard = ({
   // const subEventSum = useAtomValue(subEventsSumOfEventSelector(event._id))
 
   if (!request) return null
-  const requestStatus = 'active' //eventStatusFunc(event)
+  const requestStatus = request?.status ?? 'active'
   const contactUser =
     client || (request.clientPhone ? { phone: request.clientPhone } : null)
-  const requestTitle = request.createdAt
+  const requestTitle = request.eventDate
+    ? formatDate(request.eventDate, false, true)
+    : 'Дата мероприятия не указана'
+  const requestCreatedLabel = request.createdAt
     ? formatDate(request.createdAt, false, true)
     : 'Дата заявки не указана'
   const hasCalendarError = Boolean(request?.calendarSyncError)
@@ -147,6 +150,10 @@ const RequestCard = ({
               <div className="flex gap-x-1">
                 <div className="font-bold">Тип:</div>
                 <div>{requestType}</div>
+              </div>
+              <div className="flex gap-x-1">
+                <div className="font-bold">Дата заявки:</div>
+                <div>{requestCreatedLabel}</div>
               </div>
               <div className="flex gap-x-1">
                 <div className="font-bold">Аудитория:</div>

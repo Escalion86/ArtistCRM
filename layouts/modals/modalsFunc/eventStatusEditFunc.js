@@ -1,13 +1,25 @@
 import EventStatusPicker from '@components/ValuePicker/EventStatusPicker'
+import Input from '@components/Input'
 import { DEFAULT_EVENT } from '@helpers/constants'
 // import isEventExpiredFunc from '@helpers/isEventExpired'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventSelector from '@state/selectors/eventSelector'
+import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 // import expectedIncomeOfEventSelector from '@state/selectors/expectedIncomeOfEventSelector'
 // import totalIncomeOfEventSelector from '@state/selectors/totalIncomeOfEventSelector'
+import { postData } from '@helpers/CRUD'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAtomValue } from 'jotai'
+import { useAtom, useAtomValue } from 'jotai'
+
+const normalizeCancelReasons = (list = []) =>
+  Array.from(
+    new Set(
+      (Array.isArray(list) ? list : [])
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean)
+    )
+  )
 
 const eventStatusEditFunc = (eventId) => {
   const EventStatusEditModal = ({
@@ -22,6 +34,7 @@ const eventStatusEditFunc = (eventId) => {
     const event = useAtomValue(eventSelector(eventId))
     const setEvent = useAtomValue(itemsFuncAtom).event.set
     const transactions = useAtomValue(transactionsAtom)
+    const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
     // const isEventExpired = isEventExpiredFunc(event)
 
     // const totalIncome = useAtomValue(totalIncomeOfEventSelector(eventId))
@@ -31,6 +44,9 @@ const eventStatusEditFunc = (eventId) => {
     // const canSetClosed = totalIncome >= expectedIncome && isEventExpired
 
     const [status, setStatus] = useState(event?.status ?? DEFAULT_EVENT.status)
+    const [cancelReason, setCancelReason] = useState(
+      event?.cancelReason ?? ''
+    )
     const incomeTotal = useMemo(
       () =>
         (transactions ?? [])
@@ -59,13 +75,46 @@ const eventStatusEditFunc = (eventId) => {
       return []
     }, [canClose, status])
     const hasEvent = Boolean(event && eventId)
+    const cancelReasons = useMemo(
+      () => normalizeCancelReasons(siteSettings?.custom?.cancelReasons ?? []),
+      [siteSettings?.custom?.cancelReasons]
+    )
+    const normalizedCancelReason = useMemo(
+      () => (typeof cancelReason === 'string' ? cancelReason.trim() : ''),
+      [cancelReason]
+    )
+    const needsCancelReason = status === 'canceled'
+    const hasReasonChanged =
+      normalizedCancelReason !== (event?.cancelReason ?? '')
 
     const onClickConfirm = async () => {
       closeModal()
       setEvent({
         _id: event?._id,
         status,
+        cancelReason: needsCancelReason ? normalizedCancelReason : '',
       })
+      if (needsCancelReason && normalizedCancelReason) {
+        const nextReasons = normalizeCancelReasons([
+          ...cancelReasons,
+          normalizedCancelReason,
+        ])
+        if (nextReasons.length !== cancelReasons.length) {
+          await postData(
+            '/api/site',
+            {
+              custom: {
+                ...(siteSettings?.custom ?? {}),
+                cancelReasons: nextReasons,
+              },
+            },
+            (data) => setSiteSettings(data),
+            null,
+            false,
+            null
+          )
+        }
+      }
     }
 
     const onClickConfirmRef = useRef(onClickConfirm)
@@ -76,12 +125,27 @@ const eventStatusEditFunc = (eventId) => {
 
     useEffect(() => {
       if (!hasEvent) return
-      const isFormChanged = event?.status !== status
-      setDisableConfirm(!isFormChanged)
+      const isFormChanged =
+        event?.status !== status ||
+        hasReasonChanged ||
+        (!needsCancelReason && Boolean(event?.cancelReason))
+      setDisableConfirm(
+        !isFormChanged || (needsCancelReason && !normalizedCancelReason)
+      )
       setOnConfirmFunc(
         isFormChanged ? () => onClickConfirmRef.current() : undefined
       )
-    }, [event?.status, hasEvent, setDisableConfirm, setOnConfirmFunc, status])
+    }, [
+      event?.cancelReason,
+      event?.status,
+      hasEvent,
+      hasReasonChanged,
+      needsCancelReason,
+      normalizedCancelReason,
+      setDisableConfirm,
+      setOnConfirmFunc,
+      status,
+    ])
 
     if (!hasEvent)
       return (
@@ -98,6 +162,17 @@ const eventStatusEditFunc = (eventId) => {
           onChange={setStatus}
           disabledValues={statusDisabledValues}
         />
+        {needsCancelReason && (
+          <Input
+            label="Причина отмены"
+            value={cancelReason}
+            onChange={setCancelReason}
+            dataList={{ name: 'cancel-reasons', list: cancelReasons }}
+            required
+            fullWidth
+            noMargin
+          />
+        )}
         {!canClose && (
           <div className="text-xs text-gray-500">
             {event?.isByContract && !hasTaxes

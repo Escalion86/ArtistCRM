@@ -451,9 +451,11 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         if (overlaps) count += 1
       })
 
+      const linkedRequestId = event?.requestId ?? requestId
       ;(requests ?? []).forEach((item) => {
         if (!item) return
-        if (requestId && String(item._id) === String(requestId)) return
+        if (linkedRequestId && String(item._id) === String(linkedRequestId))
+          return
         if (item.status === 'canceled') return
         const range = buildRange(item.eventDate, null)
         if (!range) return

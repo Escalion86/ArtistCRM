@@ -81,8 +81,12 @@ const requestsSchema = {
   },
   status: {
     type: String,
-    enum: ['new', 'in_progress', 'converted', 'canceled'],
-    default: 'new',
+    enum: ['active', 'converted', 'canceled'],
+    default: 'active',
+  },
+  cancelReason: {
+    type: String,
+    default: '',
   },
   eventId: {
     type: Schema.Types.ObjectId,
