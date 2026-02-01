@@ -4,11 +4,13 @@ import FormWrapper from '@components/FormWrapper'
 import ImageGallery from '@components/ImageGallery'
 import TextLine from '@components/TextLine'
 import UserName from '@components/UserName'
-import { GENDERS } from '@helpers/constants'
+import { USERS_ROLES } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 import userSelector from '@state/selectors/userSelector'
 import tariffsAtom from '@state/atoms/tariffsAtom'
+import eventsAtom from '@state/atoms/eventsAtom'
+import requestsAtom from '@state/atoms/requestsAtom'
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 
@@ -37,6 +39,8 @@ const userViewFunc = (userId, params = {}) => {
 
     const user = useAtomValue(userSelector(userId))
     const tariffs = useAtomValue(tariffsAtom)
+    const events = useAtomValue(eventsAtom)
+    const requests = useAtomValue(requestsAtom)
 
     useEffect(() => {
       if (!user) closeModal()
@@ -70,6 +74,29 @@ const userViewFunc = (userId, params = {}) => {
       return value.toLocaleString('ru-RU')
     }, [user?.balance])
 
+    const roleLabel = useMemo(() => {
+      const roleValue = user?.role
+      return (
+        USERS_ROLES.find((item) => item.value === roleValue)?.name ||
+        roleValue ||
+        '[не указано]'
+      )
+    }, [user?.role])
+
+    const eventsCount = useMemo(() => {
+      if (!user?._id) return 0
+      return (events ?? []).filter(
+        (item) => String(item?.tenantId) === String(user._id)
+      ).length
+    }, [events, user?._id])
+
+    const requestsCount = useMemo(() => {
+      if (!user?._id) return 0
+      return (requests ?? []).filter(
+        (item) => String(item?.tenantId) === String(user._id)
+      ).length
+    }, [requests, user?._id])
+
     return (
       <FormWrapper flex className="flex-col">
         <ImageGallery images={user?.images} />
@@ -99,9 +126,11 @@ const userViewFunc = (userId, params = {}) => {
             </div>
           )}
           {isLoggedUserDev && <TextLine label="ID">{user?._id}</TextLine>}
-          <TextLine label="Роль">{user?.role ?? '[не указано]'}</TextLine>
+          <TextLine label="Роль">{roleLabel}</TextLine>
           <TextLine label="Тариф">{tariffInfo}</TextLine>
           <TextLine label="Баланс">{formattedBalance} руб.</TextLine>
+          <TextLine label="Создано мероприятий">{eventsCount}</TextLine>
+          <TextLine label="Создано заявок">{requestsCount}</TextLine>
           <ContactsIconsButtons
             user={user}
             withTitle

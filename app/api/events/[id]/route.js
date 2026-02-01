@@ -165,6 +165,8 @@ export const PUT = async (req, { params }) => {
     update.receiptLinks = Array.isArray(body.receiptLinks)
       ? body.receiptLinks
       : []
+  if (body.isByContract !== undefined)
+    update.isByContract = Boolean(body.isByContract)
   if (body.servicesIds !== undefined)
     update.servicesIds = Array.isArray(body.servicesIds) ? body.servicesIds : []
   if (body.otherContacts !== undefined)

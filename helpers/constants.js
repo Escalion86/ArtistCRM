@@ -528,7 +528,7 @@ export const REQUEST_STATUSES = Object.freeze([
   { value: 'active', name: 'Активно', color: 'blue', icon: faPlay },
   {
     value: 'converted',
-    name: 'Преобразовано (в мероприятие)',
+    name: 'Преобразовано',
     color: 'green',
     icon: faCheck,
   },

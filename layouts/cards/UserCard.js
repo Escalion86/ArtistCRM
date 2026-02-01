@@ -12,6 +12,9 @@ import errorAtom from '@state/atoms/errorAtom'
 import userSelector from '@state/selectors/userSelector'
 import { useAtomValue } from 'jotai'
 import tariffsAtom from '@state/atoms/tariffsAtom'
+import eventsAtom from '@state/atoms/eventsAtom'
+import requestsAtom from '@state/atoms/requestsAtom'
+import formatDate from '@helpers/formatDate'
 import CardWrapper from '@components/CardWrapper'
 
 const UserCard = ({ userId, hidden = false, style }) => {
@@ -20,6 +23,8 @@ const UserCard = ({ userId, hidden = false, style }) => {
   const loading = useAtomValue(loadingAtom('user' + userId))
   const error = useAtomValue(errorAtom('user' + userId))
   const tariffs = useAtomValue(tariffsAtom)
+  const events = useAtomValue(eventsAtom)
+  const requests = useAtomValue(requestsAtom)
   // const widthNum = useWindowDimensionsTailwindNum()
   // const itemFunc = useAtomValue(itemsFuncAtom)
 
@@ -50,6 +55,24 @@ const UserCard = ({ userId, hidden = false, style }) => {
     if (!Number.isFinite(value)) return '0'
     return value.toLocaleString('ru-RU')
   })()
+
+  const eventsCount = (() => {
+    if (!user?._id) return 0
+    return (events ?? []).filter(
+      (item) => String(item?.tenantId) === String(user._id)
+    ).length
+  })()
+
+  const requestsCount = (() => {
+    if (!user?._id) return 0
+    return (requests ?? []).filter(
+      (item) => String(item?.tenantId) === String(user._id)
+    ).length
+  })()
+
+  const registrationLabel = user?.createdAt
+    ? formatDate(user.createdAt, false, true)
+    : 'Не указана'
 
   if (!user) return null
 
@@ -87,6 +110,15 @@ const UserCard = ({ userId, hidden = false, style }) => {
             </div>
             <div className="text-xs font-semibold text-gray-600">
               Баланс: {formattedBalance} руб.
+            </div>
+            <div className="text-xs font-semibold text-gray-600">
+              Создано мероприятий: {eventsCount}
+            </div>
+            <div className="text-xs font-semibold text-gray-600">
+              Создано заявок: {requestsCount}
+            </div>
+            <div className="text-xs font-semibold text-gray-600">
+              Дата регистрации: {registrationLabel}
             </div>
             <div className="flex justify-end mt-auto sm:absolute sm:right-0 sm:bottom-0">
               <ContactsIconsButtons user={user} className="justify-end" />

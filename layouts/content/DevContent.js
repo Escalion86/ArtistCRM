@@ -139,14 +139,14 @@ const DevContent = () => {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
+    <div className="flex h-full min-h-0 flex-col gap-4 p-4">
       <ContentHeader>
         <HeaderActions
           left={<h2 className="text-xl font-semibold">Разработчик</h2>}
           right={<div />}
         />
       </ContentHeader>
-      <SectionCard className="flex flex-col gap-4 p-4">
+      <SectionCard className="flex flex-1 min-h-0 flex-col gap-4 overflow-auto p-4">
         <IconCheckBox
           label="Сохранять ответ Google Calendar в поле мероприятия"
           checked={Boolean(siteSettings?.storeCalendarResponse)}
