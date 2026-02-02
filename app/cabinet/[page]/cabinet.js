@@ -39,7 +39,7 @@ function CabinetPage(props) {
     return parts[parts.length - 1] || null
   }, [pathname])
 
-  const currentPage = page || pageFromPath || 'requests'
+  const currentPage = page || pageFromPath || 'eventsUpcoming'
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme')

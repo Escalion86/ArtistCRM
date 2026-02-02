@@ -482,10 +482,14 @@ const updateEventInCalendar = async (event, req, user) => {
     ? { useDefault: true }
     : { useDefault: false, overrides: reminders.overrides ?? [] }
 
+  const statusPrefix =
+    event.status === 'draft'
+      ? '(Заявка) '
+      : event.status === 'canceled'
+        ? '(Отменено) '
+        : ''
   const calendarEvent = {
-    summary: `${
-      event.status === 'canceled' ? '[ОТМЕНЕНО] ' : ''
-    }${calendarTitle}`,
+    summary: `${statusPrefix}${calendarTitle}`,
     description:
       DOMPurify.sanitize(
         preparedText

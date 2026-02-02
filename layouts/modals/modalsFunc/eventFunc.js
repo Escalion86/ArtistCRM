@@ -15,18 +15,17 @@ import {
   TRANSACTION_CATEGORIES,
   TRANSACTION_TYPES,
 } from '@helpers/constants'
+import { getEventStatusButtonClasses } from '@helpers/eventStatusStyles'
 import TabContext from '@components/Tabs/TabContext'
 import TabPanel from '@components/Tabs/TabPanel'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
-import requestsAtom from '@state/atoms/requestsAtom'
 import { deleteData, postData } from '@helpers/CRUD'
 import useErrors from '@helpers/useErrors'
 import clientsAtom from '@state/atoms/clientsAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import eventSelector from '@state/selectors/eventSelector'
-import requestSelector from '@state/selectors/requestSelector'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import Input from '@components/Input'
@@ -82,7 +81,7 @@ const normalizeOtherContacts = (contacts) => {
     .filter(Boolean)
 }
 
-const eventFunc = (eventId, clone = false, requestId = null) => {
+const eventFunc = (eventId, clone = false, initialStatus = null) => {
   const EventModal = ({
     closeModal,
     setOnConfirmFunc,
@@ -93,10 +92,8 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     setComponentInFooter,
   }) => {
     const event = useAtomValue(eventSelector(eventId))
-    const request = useAtomValue(requestSelector(requestId))
     const itemsFunc = useAtomValue(itemsFuncAtom)
     const setEvent = itemsFunc?.event?.set
-    const convertRequest = itemsFunc?.request?.convert
     const clients = useAtomValue(clientsAtom)
     const loggedUser = useAtomValue(loggedUserAtom)
     const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
@@ -107,7 +104,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const transactions = useAtomValue(transactionsAtom)
     const events = useAtomValue(eventsAtom)
-    const requests = useAtomValue(requestsAtom)
     const setTransactions = useSetAtom(transactionsAtom)
     const closeModalRef = useRef(closeModal)
 
@@ -115,11 +111,16 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       event?.isTransferred ??
       (event?.colleagueId ? true : (DEFAULT_EVENT.isTransferred ?? false))
 
+    const initialStatusValue =
+      event?.status ?? initialStatus ?? DEFAULT_EVENT.status
+    const [status, setStatus] = useState(initialStatusValue)
+    const isDraft = status === 'draft'
+
     const [clientId, setClientId] = useState(
-      event?.clientId ?? request?.clientId ?? DEFAULT_EVENT.clientId
+      event?.clientId ?? DEFAULT_EVENT.clientId
     )
     const [eventDate, setEventDate] = useState(
-      event?.eventDate ?? request?.eventDate ?? DEFAULT_EVENT.eventDate
+      event?.eventDate ?? DEFAULT_EVENT.eventDate
     )
     const [dateEnd, setDateEnd] = useState(
       event?.dateEnd ?? DEFAULT_EVENT.dateEnd ?? null
@@ -132,26 +133,16 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       event?.receiptLinks ?? DEFAULT_EVENT.receiptLinks ?? []
     )
     const [address, setAddress] = useState(() => {
-      const normalized = normalizeAddressValue(
-        event?.address ?? request?.address
-      )
+      const normalized = normalizeAddressValue(event?.address)
 
-      if (
-        !normalized.town &&
-        siteSettings?.defaultTown &&
-        !eventId &&
-        !request?.address?.town
-      ) {
+      if (!normalized.town && siteSettings?.defaultTown && !eventId) {
         normalized.town = siteSettings.defaultTown
       }
       return normalized
     })
 
     const [contractSum, setContractSum] = useState(
-      event?.contractSum ??
-        request?.contractSum ??
-        DEFAULT_EVENT.contractSum ??
-        0
+      event?.contractSum ?? DEFAULT_EVENT.contractSum ?? 0
     )
     const [isByContract, setIsByContract] = useState(
       event?.isByContract ?? DEFAULT_EVENT.isByContract ?? false
@@ -161,30 +152,24 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       event?.colleagueId ?? DEFAULT_EVENT.colleagueId ?? null
     )
     const [description, setDescription] = useState(
-      event?.description ??
-        event?.comment ??
-        request?.comment ??
-        DEFAULT_EVENT.description ??
-        ''
+      event?.description ?? event?.comment ?? DEFAULT_EVENT.description ?? ''
     )
     const [financeComment, setFinanceComment] = useState(
       event?.financeComment ?? DEFAULT_EVENT.financeComment ?? ''
     )
+    const [requestCreatedAt, setRequestCreatedAt] = useState(() => {
+      if (!eventId || clone) return new Date().toISOString()
+      return event?.requestCreatedAt ?? event?.createdAt ?? new Date().toISOString()
+    })
     const [calendarImportChecked, setCalendarImportChecked] = useState(
       event?.calendarImportChecked ??
         (eventId ? (DEFAULT_EVENT.calendarImportChecked ?? false) : true)
     )
     const [servicesIds, setServicesIds] = useState(
-      event?.servicesIds ??
-        request?.servicesIds ??
-        DEFAULT_EVENT.servicesIds ??
-        []
+      event?.servicesIds ?? DEFAULT_EVENT.servicesIds ?? []
     )
     const [otherContacts, setOtherContacts] = useState(
-      event?.otherContacts ??
-        request?.otherContacts ??
-        DEFAULT_EVENT.otherContacts ??
-        []
+      event?.otherContacts ?? DEFAULT_EVENT.otherContacts ?? []
     )
     const googleCalendarResponse = event?.googleCalendarResponse ?? null
     const googleCalendarResponseText = useMemo(() => {
@@ -213,35 +198,24 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
 
     const initialEventValues = useMemo(() => {
       return {
-        clientId:
-          event?.clientId ?? request?.clientId ?? DEFAULT_EVENT.clientId,
-        eventDate:
-          event?.eventDate ?? request?.eventDate ?? DEFAULT_EVENT.eventDate,
+        clientId: event?.clientId ?? DEFAULT_EVENT.clientId,
+        eventDate: event?.eventDate ?? DEFAULT_EVENT.eventDate,
         address: (() => {
-          const normalized = normalizeAddressValue(
-            event?.address ?? request?.address
-          )
+          const normalized = normalizeAddressValue(event?.address)
           if (
             !normalized.town &&
             siteSettings?.defaultTown &&
             !eventId &&
-            !event?.address?.town &&
-            !request?.address?.town
+            !event?.address?.town
           ) {
             normalized.town = siteSettings.defaultTown
           }
           return normalized
         })(),
-        contractSum:
-          event?.contractSum ??
-          request?.contractSum ??
-          DEFAULT_EVENT.contractSum,
+        contractSum: event?.contractSum ?? DEFAULT_EVENT.contractSum,
         isByContract: event?.isByContract ?? DEFAULT_EVENT.isByContract,
         description:
-          event?.description ??
-          event?.comment ??
-          request?.comment ??
-          DEFAULT_EVENT.description,
+          event?.description ?? event?.comment ?? DEFAULT_EVENT.description,
         financeComment: event?.financeComment ?? DEFAULT_EVENT.financeComment,
         dateEnd: event?.dateEnd ?? DEFAULT_EVENT.dateEnd,
         invoiceLinks: event?.invoiceLinks ?? DEFAULT_EVENT.invoiceLinks ?? [],
@@ -250,18 +224,15 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
           event?.calendarImportChecked ??
           (eventId ? DEFAULT_EVENT.calendarImportChecked : true),
         servicesIds:
-          event?.servicesIds ??
-          request?.servicesIds ??
-          DEFAULT_EVENT.servicesIds ??
-          [],
+          event?.servicesIds ?? DEFAULT_EVENT.servicesIds ?? [],
         otherContacts: normalizeOtherContacts(
-          event?.otherContacts ??
-            request?.otherContacts ??
-            DEFAULT_EVENT.otherContacts ??
-            []
+          event?.otherContacts ?? DEFAULT_EVENT.otherContacts ?? []
         ),
         colleagueId: event?.colleagueId ?? DEFAULT_EVENT.colleagueId,
         isTransferred: initialIsTransferred,
+        status: initialStatusValue,
+        requestCreatedAt:
+          event?.requestCreatedAt ?? event?.createdAt ?? requestCreatedAt,
       }
     }, [
       event?.clientId,
@@ -276,15 +247,10 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       event?.colleagueId,
       event?.otherContacts,
       initialIsTransferred,
-      requestId,
-      request?.clientId,
-      request?.clientName,
-      request?.eventDate,
-      request?.address,
-      request?.comment,
-      request?.contractSum,
-      request?.otherContacts,
-      request?.servicesIds,
+      initialStatusValue,
+      event?.requestCreatedAt,
+      event?.createdAt,
+      requestCreatedAt,
       siteSettings?.defaultTown,
     ])
 
@@ -310,6 +276,8 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         initialEventValues.colleagueId !== colleagueId ||
         initialEventValues.description !== description ||
         initialEventValues.financeComment !== financeComment ||
+        initialEventValues.status !== status ||
+        initialEventValues.requestCreatedAt !== requestCreatedAt ||
         JSON.stringify(initialEventValues.invoiceLinks ?? []) !==
           JSON.stringify(invoiceLinks) ||
         JSON.stringify(initialEventValues.receiptLinks ?? []) !==
@@ -337,6 +305,8 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         servicesIds,
         otherContacts,
         initialEventValues,
+        status,
+        requestCreatedAt,
       ]
     )
 
@@ -451,21 +421,8 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         if (overlaps) count += 1
       })
 
-      const linkedRequestId = event?.requestId ?? requestId
-      ;(requests ?? []).forEach((item) => {
-        if (!item) return
-        if (linkedRequestId && String(item._id) === String(linkedRequestId))
-          return
-        if (item.status === 'canceled') return
-        const range = buildRange(item.eventDate, null)
-        if (!range) return
-        const overlaps =
-          targetRange.start < range.end && range.start < targetRange.end
-        if (overlaps) count += 1
-      })
-
       return count
-    }, [buildRange, dateEnd, eventDate, eventId, events, requestId, requests])
+    }, [buildRange, dateEnd, eventDate, eventId, events])
 
     const onClickConfirm = useCallback(() => {
       clearErrorsRef.current()
@@ -508,8 +465,8 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         const payload = {
           _id: event?._id,
           clientId,
-          requestId: event?.requestId ?? requestId ?? null,
-          status: event?.status ?? DEFAULT_EVENT.status,
+          status,
+          requestCreatedAt: requestCreatedAt ?? new Date().toISOString(),
           isTransferred,
           colleagueId: isTransferred ? colleagueId : null,
           eventDate,
@@ -525,10 +482,6 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
           servicesIds,
           otherContacts: normalizedOtherContacts,
         }
-        if (!event?._id && requestId && convertRequest) {
-          convertRequest(requestId, payload)
-          return
-        }
         setEvent(payload, clone)
       }
 
@@ -537,7 +490,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         if (conflictsCount > 0) {
           modalsFunc.add({
             title: 'Пересечение по времени',
-            text: `Внимание! Есть мероприятия/заявки в выбранном периоде (${conflictsCount}). Все равно сохранить?`,
+            text: `Внимание! Есть мероприятия в выбранном периоде (${conflictsCount}). Все равно сохранить?`,
             confirmButtonName: 'Все равно сохранить',
             declineButtonName: 'Вернуться',
             showDecline: true,
@@ -560,18 +513,17 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       isByContract,
       dateEnd,
       event?._id,
-      event?.requestId,
       eventDate,
       getConflictsCount,
       isTransferred,
       address,
       modalsFunc,
-      requestId,
-      convertRequest,
+      requestCreatedAt,
       setEvent,
       servicesIds,
       otherContacts,
       dateRangeError,
+      status,
     ])
 
     const onClickConfirmRef = useRef(onClickConfirm)
@@ -734,6 +686,10 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
     }
 
     const openTransactionModal = (transactionId) => {
+      if (isDraft) {
+        setFinanceError('Транзакции недоступны для заявки')
+        return
+      }
       if (!event?._id || !event?.clientId) {
         setFinanceError('Сначала сохраните мероприятие и выберите клиента')
         return
@@ -750,6 +706,36 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
       <TabContext value="Общие" variant="fullWidth" scrollButtons={false} allowScrollButtonsMobile={false}>
         <TabPanel tabName="Общие">
           <FormWrapper>
+            {!eventId && (
+              <InputWrapper label="Тип" paddingY fitWidth>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 'draft', label: 'Заявка' },
+                    { value: 'active', label: 'Мероприятие' },
+                  ].map((item) => {
+                    const isActive = status === item.value
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        className={`inline-flex min-h-[32px] items-center rounded border px-3 py-1 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-general focus-visible:ring-offset-1 ${getEventStatusButtonClasses(
+                          item.value,
+                          isActive
+                        )} ${isActive ? 'shadow' : 'shadow-sm'} cursor-pointer`}
+                        onClick={() => setStatus(item.value)}
+                      >
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </InputWrapper>
+            )}
+            <DateTimePicker
+              value={requestCreatedAt}
+              onChange={(value) => setRequestCreatedAt(value ?? null)}
+              label="Дата создания заявки"
+            />
             <ServiceMultiSelect
               value={servicesIds}
               onChange={setServicesIds}
@@ -873,6 +859,12 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
         </TabPanel>
 
         <TabPanel tabName="Финансы и Документы">
+          {isDraft ? (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Для заявки финансы, транзакции и документы недоступны. Переведите
+              статус в "Активно".
+            </div>
+          ) : null}
           <div className="flex flex-col gap-2">
             <Input
               label="Договорная сумма"
@@ -898,7 +890,7 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
               checkedIconColor="#2563EB"
               noMargin
             />
-            {isByContract && (
+            {isByContract && !isDraft && (
               <div className="flex flex-col gap-2">
                 <InputWrapper label="Ссылки на счета" noMargin>
                   <div className="flex flex-col gap-2">
@@ -1011,7 +1003,9 @@ const eventFunc = (eventId, clone = false, requestId = null) => {
                 type="button"
                 className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => openTransactionModal()}
-                disabled={financeLoading || !event?._id || !event?.clientId}
+                disabled={
+                  isDraft || financeLoading || !event?._id || !event?.clientId
+                }
                 title="Добавить транзакцию"
               >
                 <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />

@@ -69,7 +69,7 @@ const EventsContent = ({ filter = 'all' }) => {
     return baseEvents.filter(
       (event) => (event?.address?.town ?? '') === selectedTown
     )
-  }, [baseEvents, selectedTown])
+  }, [selectedTown, baseEvents])
 
   const hasUncheckedEvents = useMemo(
     () => filteredEvents.some((event) => !event?.calendarImportChecked),
@@ -281,13 +281,15 @@ const EventsContent = ({ filter = 'all' }) => {
               <MutedText className="hidden tablet:inline">
                 Всего: {events.length}
               </MutedText>
-              <Button
-                name="+"
-                collapsing
-                className="text-lg rounded-full action-icon-button h-9 w-9"
-                onClick={() => modalsFunc.event?.add()}
-                disabled={!modalsFunc.event?.add}
-              />
+              <div className="flex items-center gap-2">
+                <Button
+                  name="+"
+                  collapsing
+                  className="text-lg rounded-full action-icon-button h-9 w-9"
+                  disabled={!modalsFunc.event?.create}
+                  onClick={() => modalsFunc.event?.create?.()}
+                />
+              </div>
             </>
           }
         />

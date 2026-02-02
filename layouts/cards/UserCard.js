@@ -13,7 +13,6 @@ import userSelector from '@state/selectors/userSelector'
 import { useAtomValue } from 'jotai'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
-import requestsAtom from '@state/atoms/requestsAtom'
 import formatDate from '@helpers/formatDate'
 import CardWrapper from '@components/CardWrapper'
 
@@ -24,7 +23,6 @@ const UserCard = ({ userId, hidden = false, style }) => {
   const error = useAtomValue(errorAtom('user' + userId))
   const tariffs = useAtomValue(tariffsAtom)
   const events = useAtomValue(eventsAtom)
-  const requests = useAtomValue(requestsAtom)
   // const widthNum = useWindowDimensionsTailwindNum()
   // const itemFunc = useAtomValue(itemsFuncAtom)
 
@@ -65,8 +63,10 @@ const UserCard = ({ userId, hidden = false, style }) => {
 
   const requestsCount = (() => {
     if (!user?._id) return 0
-    return (requests ?? []).filter(
-      (item) => String(item?.tenantId) === String(user._id)
+    return (events ?? []).filter(
+      (item) =>
+        String(item?.tenantId) === String(user._id) &&
+        item?.status === 'draft'
     ).length
   })()
 

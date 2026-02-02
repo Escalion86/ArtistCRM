@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import Services from '@models/Services'
 import Events from '@models/Events'
-import Requests from '@models/Requests'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 
@@ -50,19 +49,6 @@ export const DELETE = async (req, { params }) => {
       {
         success: false,
         error: `Нельзя удалить услугу: есть мероприятия (${eventsCount})`,
-      },
-      { status: 409 }
-    )
-  }
-  const requestsCount = await Requests.countDocuments({
-    tenantId,
-    servicesIds: id,
-  })
-  if (requestsCount > 0) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: `Нельзя удалить услугу: есть заявки (${requestsCount})`,
       },
       { status: 409 }
     )

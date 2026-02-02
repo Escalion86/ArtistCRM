@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import Clients from '@models/Clients'
 import Events from '@models/Events'
 import Transactions from '@models/Transactions'
-import Requests from '@models/Requests'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 
@@ -30,15 +29,11 @@ export const GET = async (req, { params }) => {
     tenantId,
     clientId: id,
   })
-  const requestsCount = await Requests.countDocuments({ tenantId, clientId: id })
-
   const reasons = []
   if (eventsCount > 0)
     reasons.push({ type: 'events', count: eventsCount })
   if (transactionsCount > 0)
     reasons.push({ type: 'transactions', count: transactionsCount })
-  if (requestsCount > 0)
-    reasons.push({ type: 'requests', count: requestsCount })
 
   return NextResponse.json(
     {

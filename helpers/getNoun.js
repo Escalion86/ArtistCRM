@@ -55,5 +55,3 @@ export const getNounAges = (number) => getNoun(number, 'год', 'года', 'л
 export const getNounQuestions = (number) =>
   getNoun(number, 'вопрос', 'вопроса', 'вопросов')
 
-export const getNounRequests = (number) =>
-  getNoun(number, 'заявка', 'заявки', 'заявок')

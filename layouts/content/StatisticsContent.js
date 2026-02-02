@@ -13,7 +13,6 @@ import clientsAtom from '@state/atoms/clientsAtom'
 import servicesAtom from '@state/atoms/servicesAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
-import requestsAtom from '@state/atoms/requestsAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { MONTHS_FULL_1 } from '@helpers/constants'
@@ -29,7 +28,9 @@ const getMonthKey = (date, year) =>
 const StatisticsContent = () => {
   const transactions = useAtomValue(transactionsAtom)
   const events = useAtomValue(eventsAtom)
-  const requests = useAtomValue(requestsAtom)
+  const requests = useAtomValue(eventsAtom).filter(
+    (event) => event?.status === 'draft'
+  )
   const clients = useAtomValue(clientsAtom)
   const services = useAtomValue(servicesAtom)
   const tariffs = useAtomValue(tariffsAtom)
@@ -342,14 +343,14 @@ const StatisticsContent = () => {
         ID: request._id,
         'Дата заявки': formatDateTime(request.createdAt),
         'Дата мероприятия': formatDateTime(request.eventDate),
-        Клиент: resolveClientName(request.clientId, request.clientName),
-        Телефон: resolveClientPhone(request.clientId, request.clientPhone),
+        Клиент: resolveClientName(request.clientId),
+        Телефон: resolveClientPhone(request.clientId),
         Город: request?.address?.town ?? '',
         Адрес: formatAddress(request.address, ''),
         Услуги: resolveServicesTitles(request.servicesIds),
         Статус: request.status ?? '',
         'Договорная сумма': Number(request.contractSum ?? 0),
-        'Связано с мероприятием': request.eventId ? 'Да' : 'Нет',
+        'Связано с мероприятием': 'Нет',
       }))
 
     const transactionsHeaders = [

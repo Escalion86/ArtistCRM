@@ -533,9 +533,12 @@ export const parseGoogleEvent = (event) => {
     contractSum: isCharity ? 0 : totalAmount,
     comment: commentMatch?.[2]?.trim() ?? '',
     status:
-      event?.status === 'cancelled' || /отмена/i.test(summary)
+      event?.status === 'cancelled' ||
+      /\(отменено\)|отмен/i.test(summary)
         ? 'canceled'
-        : 'active',
+        : /\(заявка\)/i.test(summary)
+          ? 'draft'
+          : 'active',
     clientData,
     isTransferred,
   }

@@ -18,7 +18,10 @@ export default async function Cabinet({ params, searchParams }) {
   const resolvedParams = await params
 
   const page =
-    typeof resolvedParams?.page === 'string' ? resolvedParams.page : 'requests'
+    typeof resolvedParams?.page === 'string'
+      ? resolvedParams.page
+      : 'eventsUpcoming'
+  if (page === 'requests') return redirect('/cabinet/eventsUpcoming')
 
   if (!session) return redirect('/login')
 

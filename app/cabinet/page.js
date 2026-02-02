@@ -16,13 +16,5 @@ export default async function Cabinet() {
   if (!session) return redirect('/login')
 
   const fetchedProps = await fetchProps(session?.user)
-  const requestsCount = Array.isArray(fetchedProps?.requests)
-    ? fetchedProps.requests.length
-    : 0
-
-  if (requestsCount === 0) {
-    return redirect('/cabinet/eventsUpcoming')
-  }
-
-  return redirect('/cabinet/requests')
+  return redirect('/cabinet/eventsUpcoming')
 }

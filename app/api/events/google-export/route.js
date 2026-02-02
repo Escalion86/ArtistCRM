@@ -82,10 +82,6 @@ export const POST = async (req) => {
 
   for (const item of items) {
     const summary = item?.summary ?? ''
-    if (/заявк/i.test(summary)) {
-      skipped += 1
-      continue
-    }
     const block = buildExportBlock(item)
     if (block) blocks.push(block)
   }

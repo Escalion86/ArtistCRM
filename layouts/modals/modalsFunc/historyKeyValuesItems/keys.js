@@ -17,23 +17,6 @@ export const eventKeys = {
   calendarSyncError: 'Синхронизация календаря',
 }
 
-export const requestKeys = {
-  clientId: 'Клиент',
-  clientName: 'Клиент (имя)',
-  clientPhone: 'Телефон клиента',
-  contactChannels: 'Способ связи',
-  createdAt: 'Дата заявки',
-  eventDate: 'Дата мероприятия',
-  address: 'Адрес',
-  servicesIds: 'Услуги',
-  contractSum: 'Договорная сумма',
-  comment: 'Комментарий',
-  status: 'Статус',
-  eventId: 'Связанное мероприятие',
-  otherContacts: 'Прочие контакты',
-  calendarSyncError: 'Синхронизация календаря',
-}
-
 export const userKeys = {
   firstName: 'Имя',
   secondName: 'Фамилия',

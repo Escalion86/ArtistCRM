@@ -144,6 +144,9 @@ const eventViewFunc = (eventId) => {
             />
             <Divider thin light />
             <TextLine label="ID">{event?._id}</TextLine>
+            <TextLine label="Дата создания заявки">
+              {formatDateTime(event?.requestCreatedAt ?? event?.createdAt)}
+            </TextLine>
             <TextLine label="Начало">
               {formatDateTime(event?.dateStart)}
             </TextLine>

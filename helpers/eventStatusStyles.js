@@ -1,4 +1,13 @@
 export const EVENT_STATUS_UI_STYLES = {
+  draft: {
+    badge: 'bg-gray-100 text-gray-700',
+    button: {
+      active:
+        'border-gray-400 !bg-gray-400 !text-white shadow-sm hover:brightness-95',
+      inactive:
+        'border-gray-400 text-gray-700 bg-white hover:bg-gray-50 hover:text-gray-800',
+    },
+  },
   planned: {
     badge: 'bg-blue-100 text-blue-800',
     button: {

@@ -4,7 +4,6 @@ import {
   faArrowUp,
   faCalendarAlt,
   faClockRotateLeft,
-  faClipboardList,
   faCode,
   faExchangeAlt,
   faEllipsisV,
@@ -13,11 +12,7 @@ import {
   faPencilAlt,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  EVENT_STATUSES,
-  REQUEST_STATUSES,
-  SERVICE_USER_STATUSES,
-} from '@helpers/constants'
+import { EVENT_STATUSES, SERVICE_USER_STATUSES } from '@helpers/constants'
 import { modalsFuncAtom } from '@state/atoms'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import windowDimensionsTailwindSelector from '@state/selectors/windowDimensionsTailwindSelector'
@@ -85,11 +80,8 @@ const CardButtons = ({
     ? {
         editBtn: showEditButton && canManageItem,
         cloneBtn: typeOfItem !== 'user' && typeOfItem !== 'tariff',
-        openCalendar:
-          (typeOfItem === 'event' || typeOfItem === 'request') &&
-          Boolean(calendarLink),
-        viewRequest: typeOfItem === 'event' && Boolean(item?.requestId),
-        historyBtn: typeOfItem === 'event' || typeOfItem === 'request',
+        openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
+        historyBtn: typeOfItem === 'event',
         statusBtn: typeOfItem !== 'client',
         deleteBtn:
           showDeleteButton && canManageItem && item.status !== 'closed',
@@ -104,11 +96,8 @@ const CardButtons = ({
         userTariff: typeOfItem === 'user' && canManageUsers,
         setPasswordBtn: true,
         addToCalendar: typeOfItem === 'event',
-        openCalendar:
-          (typeOfItem === 'event' || typeOfItem === 'request') &&
-          Boolean(calendarLink),
-        viewRequest: typeOfItem === 'event' && Boolean(item?.requestId),
-        historyBtn: typeOfItem === 'event' || typeOfItem === 'request',
+        openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
+        historyBtn: typeOfItem === 'event',
         upBtn: onUpClick && upDownSee,
         downBtn: onDownClick && upDownSee,
         editBtn: showEditButton && canManageItem,
@@ -214,14 +203,6 @@ const CardButtons = ({
           tooltipText="Открыть в календаре"
         />
       )}
-      {show.viewRequest && (
-        <ItemComponent
-          icon={faClipboardList}
-          onClick={() => modalsFunc.request?.view(item.requestId)}
-          color="blue"
-          tooltipText="Посмотреть заявку"
-        />
-      )}
       {show.historyBtn && (
         <ItemComponent
           icon={faClockRotateLeft}
@@ -255,11 +236,9 @@ const CardButtons = ({
         ? (() => {
             const status = item.status ?? 'active'
             const statusesList =
-              typeOfItem === 'request'
-                ? REQUEST_STATUSES
-                : typeOfItem === 'serviceUser'
-                  ? SERVICE_USER_STATUSES
-                  : EVENT_STATUSES
+              typeOfItem === 'serviceUser'
+                ? SERVICE_USER_STATUSES
+                : EVENT_STATUSES
             const statusConfig = statusesList.find(
               ({ value }) => value === status
             )

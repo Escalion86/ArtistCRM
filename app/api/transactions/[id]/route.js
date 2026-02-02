@@ -33,6 +33,11 @@ export const PUT = async (req, { params }) => {
         { success: false, error: 'Мероприятие не найдено' },
         { status: 404 }
       )
+    if (event?.status === 'draft')
+      return NextResponse.json(
+        { success: false, error: 'Транзакции недоступны для заявки' },
+        { status: 400 }
+      )
     update.eventId = body.eventId
   }
 

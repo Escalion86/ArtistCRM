@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import Events from '@models/Events'
 import Transactions from '@models/Transactions'
-import Requests from '@models/Requests'
 import Histories from '@models/Histories'
 import dbConnect from '@server/dbConnect'
 import { deleteEventFromCalendar, updateEventInCalendar } from '@server/CRUD'
@@ -9,7 +8,7 @@ import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 
-const EVENT_STATUSES = new Set(['canceled', 'active', 'closed'])
+const EVENT_STATUSES = new Set(['draft', 'canceled', 'active', 'closed'])
 
 const DEFAULT_ADDRESS = {
   town: '',
@@ -78,6 +77,12 @@ const hasDocuments = (payload) => {
   )
 }
 
+const getNextStatus = (current, body) => {
+  const next = body?.status
+  if (next && EVENT_STATUSES.has(next)) return next
+  return current
+}
+
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
@@ -119,6 +124,20 @@ export const PUT = async (req, { params }) => {
       { success: false, error: 'Мероприятие не найдено' },
       { status: 404 }
     )
+
+  const nextStatus = getNextStatus(oldEvent?.status, body)
+  if (
+    nextStatus === 'draft' &&
+    (hasDocuments(body) || hasDocuments(oldEvent))
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Документы недоступны для заявки',
+      },
+      { status: 400 }
+    )
+  }
 
   if (body.eventDate !== undefined || body.dateEnd !== undefined) {
     const startDate =
@@ -270,15 +289,6 @@ export const DELETE = async (req, { params }) => {
     data: [deleted.toJSON?.() ?? deleted],
     userId: String(user._id),
   })
-  if (deleted.requestId) {
-    await Requests.findOneAndUpdate(
-      { _id: deleted.requestId, tenantId },
-      {
-        status: 'canceled',
-        eventId: null,
-      }
-    )
-  }
   if (deleted.googleCalendarId) {
     try {
       const access = await getUserTariffAccess(user._id)

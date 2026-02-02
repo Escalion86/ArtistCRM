@@ -10,7 +10,6 @@ import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleS
 import userSelector from '@state/selectors/userSelector'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
-import requestsAtom from '@state/atoms/requestsAtom'
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 
@@ -40,7 +39,6 @@ const userViewFunc = (userId, params = {}) => {
     const user = useAtomValue(userSelector(userId))
     const tariffs = useAtomValue(tariffsAtom)
     const events = useAtomValue(eventsAtom)
-    const requests = useAtomValue(requestsAtom)
 
     useEffect(() => {
       if (!user) closeModal()
@@ -92,10 +90,12 @@ const userViewFunc = (userId, params = {}) => {
 
     const requestsCount = useMemo(() => {
       if (!user?._id) return 0
-      return (requests ?? []).filter(
-        (item) => String(item?.tenantId) === String(user._id)
+      return (events ?? []).filter(
+        (item) =>
+          String(item?.tenantId) === String(user._id) &&
+          item?.status === 'draft'
       ).length
-    }, [requests, user?._id])
+    }, [events, user?._id])
 
     return (
       <FormWrapper flex className="flex-col">

@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import clientSelector from '@state/selectors/clientSelector'
 import eventsAtom from '@state/atoms/eventsAtom'
-import requestsAtom from '@state/atoms/requestsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import formatDate from '@helpers/formatDate'
 import formatDateTime from '@helpers/formatDateTime'
@@ -12,7 +11,6 @@ const clientEventsFunc = (clientId) => {
   const ClientEventsModal = () => {
     const client = useAtomValue(clientSelector(clientId))
     const events = useAtomValue(eventsAtom)
-    const requests = useAtomValue(requestsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
 
     if (!clientId || !client)
@@ -22,14 +20,20 @@ const clientEventsFunc = (clientId) => {
         </div>
       )
 
-    const clientEvents = useMemo(
-      () => events.filter((event) => event.clientId === clientId),
+    const clientRequests = useMemo(
+      () =>
+        events.filter(
+          (event) => event.clientId === clientId && event.status === 'draft'
+        ),
       [events, clientId]
     )
 
-    const clientRequests = useMemo(
-      () => requests.filter((request) => request.clientId === clientId),
-      [requests, clientId]
+    const clientEvents = useMemo(
+      () =>
+        events.filter(
+          (event) => event.clientId === clientId && event.status !== 'draft'
+        ),
+      [events, clientId]
     )
 
     return (
@@ -62,19 +66,19 @@ const clientEventsFunc = (clientId) => {
                 >
                   <div>
                     <div className="text-sm font-semibold text-gray-900">
-                      {request.createdAt
-                        ? formatDate(request.createdAt, false, true)
+                      {request.eventDate
+                        ? formatDate(request.eventDate, false, true)
                         : 'Дата не указана'}
                     </div>
                     <div className="text-xs text-gray-600">
-                      {request.comment || 'Комментарий не указан'}
+                      {request.description || 'Комментарий не указан'}
                     </div>
                   </div>
                   <Button
                     name="Открыть"
                     thin
                     className="h-8 px-3 text-xs"
-                    onClick={() => modalsFunc.request?.view(request._id)}
+                    onClick={() => modalsFunc.event?.view(request._id)}
                   />
                 </div>
               ))}
@@ -102,8 +106,8 @@ const clientEventsFunc = (clientId) => {
                 >
                   <div>
                     <div className="text-sm font-semibold text-gray-900">
-                      {event.dateStart
-                        ? formatDateTime(event.dateStart)
+                      {event.eventDate
+                        ? formatDateTime(event.eventDate)
                         : 'Дата не указана'}
                     </div>
                     <div className="text-xs text-gray-600">

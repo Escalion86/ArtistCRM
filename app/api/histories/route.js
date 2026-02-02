@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import mongoose from 'mongoose'
 import Histories from '@models/Histories'
 import Events from '@models/Events'
-import Requests from '@models/Requests'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 
@@ -13,11 +12,6 @@ const ensureItemInTenant = async (schema, itemId, tenantId) => {
   if (schema === 'events') {
     return Boolean(
       await Events.findOne({ _id: itemId, tenantId }).select('_id').lean()
-    )
-  }
-  if (schema === 'requests') {
-    return Boolean(
-      await Requests.findOne({ _id: itemId, tenantId }).select('_id').lean()
     )
   }
   return false

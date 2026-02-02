@@ -1,7 +1,6 @@
 import Events from '@models/Events'
 import SiteSettings from '@models/SiteSettings'
 import Clients from '@models/Clients'
-import Requests from '@models/Requests'
 import Transactions from '@models/Transactions'
 import Services from '@models/Services'
 import Users from '@models/Users'
@@ -20,7 +19,6 @@ const fetchProps = async (user) => {
         clients: [],
         events: [],
         siteSettings: {},
-        requests: [],
         transactions: [],
         services: [],
         tariffs: [],
@@ -44,10 +42,6 @@ const fetchProps = async (user) => {
         { tenantId: { $exists: false } },
         { $set: { tenantId: tenantObjectId } }
       ),
-      Requests.updateMany(
-        { tenantId: { $exists: false } },
-        { $set: { tenantId: tenantObjectId } }
-      ),
       Transactions.updateMany(
         { tenantId: { $exists: false } },
         { $set: { tenantId: tenantObjectId } }
@@ -65,7 +59,6 @@ const fetchProps = async (user) => {
     const clients = await Clients.find({ tenantId }).select('-password').lean()
     const events = await Events.find({ tenantId }).lean()
     const siteSettings = await SiteSettings.findOne({ tenantId }).lean()
-    const requests = await Requests.find({ tenantId }).lean()
     const transactions = await Transactions.find({ tenantId }).lean()
     const services = await Services.find({ tenantId }).lean()
     const tariffs = await Tariffs.find({}).sort({ price: 1, title: 1 }).lean()
@@ -83,7 +76,6 @@ const fetchProps = async (user) => {
       siteSettings: JSON.parse(
         JSON.stringify(siteSettings ?? {})
       ),
-      requests: JSON.parse(JSON.stringify(requests)),
       transactions: JSON.parse(JSON.stringify(transactions)),
       services: JSON.parse(JSON.stringify(services)),
       tariffs: JSON.parse(JSON.stringify(tariffs)),
@@ -102,7 +94,6 @@ const fetchProps = async (user) => {
       clients: [],
       events: [],
       siteSettings: {},
-      requests: [],
       transactions: [],
       services: [],
       tariffs: [],

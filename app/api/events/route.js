@@ -20,6 +20,11 @@ const hasDocuments = (payload) => {
   )
 }
 
+const getStatusValue = (payload) => {
+  const status = payload?.status
+  return typeof status === 'string' ? status : ''
+}
+
 const parseDateValue = (value) => {
   if (!value) return null
   const date = new Date(value)
@@ -55,6 +60,13 @@ export const POST = async (req) => {
     return NextResponse.json(
       { success: false, error: 'Не выбран тариф' },
       { status: 403 }
+    )
+  }
+  const statusValue = getStatusValue(body)
+  if (statusValue === 'draft' && hasDocuments(body)) {
+    return NextResponse.json(
+      { success: false, error: 'Документы недоступны для заявки' },
+      { status: 400 }
     )
   }
   if (!access?.allowDocuments && hasDocuments(body)) {
@@ -93,6 +105,9 @@ export const POST = async (req) => {
   const event = await Events.create({
     ...body,
     tenantId,
+    requestCreatedAt: body.requestCreatedAt
+      ? new Date(body.requestCreatedAt)
+      : new Date(),
     calendarSyncError: access?.allowCalendarSync ? '' : 'calendar_sync_unavailable',
   })
   await Histories.create({

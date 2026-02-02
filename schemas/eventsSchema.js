@@ -11,20 +11,15 @@ const eventsSchema = {
     ref: 'Clients',
     default: null,
   },
-  requestId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Requests',
-    default: null,
-  },
   description: {
     type: String,
     default: 'Описание мероприятия',
   },
-  eventDate: {
+  requestCreatedAt: {
     type: Date,
-    default: null,
+    default: () => new Date(),
   },
-  requestDate: {
+  eventDate: {
     type: Date,
     default: null,
   },
@@ -85,6 +80,7 @@ const eventsSchema = {
   },
   status: {
     type: String,
+    enum: ['draft', 'active', 'canceled', 'closed'],
     default: 'active',
   },
   cancelReason: {

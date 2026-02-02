@@ -11,7 +11,6 @@ import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import ClientCard from '@layouts/cards/ClientCard'
 import clientsAtom from '@state/atoms/clientsAtom'
-import requestsAtom from '@state/atoms/requestsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
@@ -20,7 +19,6 @@ const ITEM_HEIGHT = 140
 
 const ClientsContent = () => {
   const clients = useAtomValue(clientsAtom)
-  const requests = useAtomValue(requestsAtom)
   const events = useAtomValue(eventsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
 
@@ -30,19 +28,19 @@ const ClientsContent = () => {
     const lowerSearch = search.trim().toLowerCase()
     return clients
       .map((client) => {
-        const clientRequests = requests.filter(
-          (request) => request.clientId === client._id
+        const clientRequests = events.filter(
+          (event) => event.clientId === client._id && event.status === 'draft'
         )
         const clientEvents = events.filter(
-          (event) => event.clientId === client._id
+          (event) => event.clientId === client._id && event.status !== 'draft'
         )
         const canceledEventsCount = clientEvents.filter(
           (event) => event.status === 'canceled'
         ).length
         const activeEventsCount = clientEvents.length - canceledEventsCount
         const lastRequest = clientRequests.reduce((latest, request) => {
-          if (!request.createdAt) return latest
-          const requestDate = new Date(request.createdAt)
+          if (!request.eventDate) return latest
+          const requestDate = new Date(request.eventDate)
           return !latest || requestDate > latest ? requestDate : latest
         }, null)
         return {
@@ -71,7 +69,7 @@ const ClientsContent = () => {
         if (b.lastRequest) return 1
         return (b.requestsCount || 0) - (a.requestsCount || 0)
       })
-  }, [clients, events, requests, search])
+  }, [clients, events, search])
 
   const RowComponent = useCallback(
     ({ index, style }) => {

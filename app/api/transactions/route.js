@@ -48,12 +48,17 @@ export const POST = async (req) => {
       { success: false, error: 'Мероприятие или клиент не найден' },
       { status: 404 }
     )
+  if (event?.status === 'draft') {
+    return NextResponse.json(
+      { success: false, error: 'Транзакции недоступны для заявки' },
+      { status: 400 }
+    )
+  }
 
   const transaction = await Transactions.create({
     tenantId,
     eventId: body.eventId,
     clientId: body.clientId,
-    requestId: body.requestId ?? null,
     amount: Number(body.amount) || 0,
     type: body.type ?? 'expense',
     category: body.category ?? 'other',

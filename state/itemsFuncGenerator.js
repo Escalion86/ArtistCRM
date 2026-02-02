@@ -11,8 +11,6 @@ import eventEditSelector from './selectors/eventEditSelector'
 import eventDeleteSelector from './selectors/eventDeleteSelector'
 import userDeleteSelector from './selectors/userDeleteSelector'
 import userEditSelector from './selectors/userEditSelector'
-import requestEditSelector from './selectors/requestEditSelector'
-import requestDeleteSelector from './selectors/requestDeleteSelector'
 import clientEditSelector from './selectors/clientEditSelector'
 import serviceEditSelector from './selectors/serviceEditSelector'
 import serviceDeleteSelector from './selectors/serviceDeleteSelector'
@@ -39,20 +37,6 @@ function capitalizeFirstLetter(string) {
 }
 
 const messages = {
-  request: {
-    update: {
-      success: 'Заявка обновлено',
-      error: 'Не удалось обновить заявку',
-    },
-    add: {
-      success: 'Заявка создано',
-      error: 'Не удалось создать заявку',
-    },
-    delete: {
-      success: 'Заявка удалено',
-      error: 'Не удалось удалить заявку',
-    },
-  },
   event: {
     update: {
       success: 'Мероприятие обновлено',
@@ -167,8 +151,6 @@ const props = {
   setNotErrorCard: setFunc(setNotErrorSelector),
   setEvent: setFunc(eventEditSelector),
   deleteEvent: setFunc(eventDeleteSelector),
-  setRequest: setFunc(requestEditSelector),
-  deleteRequest: setFunc(requestDeleteSelector),
   setClient: setFunc(clientEditSelector),
   setUser: setFunc(userEditSelector),
   setTariff: setFunc(tariffEditSelector),
@@ -197,7 +179,6 @@ const itemsFuncGenerator = (
   snackbar,
   loggedUser,
   array = [
-    'request',
     'event',
     'client',
     'service',
@@ -235,14 +216,7 @@ const itemsFuncGenerator = (
                 setNotLoadingCard(itemName + item._id)
                 if (!noSnackbar && messages[itemName]?.update?.success)
                   snackbar.success(messages[itemName].update.success)
-                if (itemName === 'request') {
-                  if (data?.request)
-                    props['set' + capitalizeFirstLetter(itemName)](data.request)
-                  else props['set' + capitalizeFirstLetter(itemName)](data)
-                  if (data?.client) props.setClient(data.client)
-                } else {
-                  props['set' + capitalizeFirstLetter(itemName)](data)
-                }
+                props['set' + capitalizeFirstLetter(itemName)](data)
                 // setEvent(data)
               },
               (error) => {
@@ -269,14 +243,7 @@ const itemsFuncGenerator = (
               (data) => {
                 if (!noSnackbar && messages[itemName]?.add?.success)
                   snackbar.success(messages[itemName].add.success)
-                if (itemName === 'request') {
-                  if (data?.request)
-                    props['set' + capitalizeFirstLetter(itemName)](data.request)
-                  else props['set' + capitalizeFirstLetter(itemName)](data)
-                  if (data?.client) props.setClient(data.client)
-                } else {
-                  props['set' + capitalizeFirstLetter(itemName)](data)
-                }
+                props['set' + capitalizeFirstLetter(itemName)](data)
                 // setEvent(data)
               },
               (error) => {
@@ -411,37 +378,6 @@ const itemsFuncGenerator = (
       false,
       loggedUser?._id
     )
-  }
-
-  if (obj.request) {
-    obj.request.convert = async (requestId, eventData = null) => {
-      setLoadingCard('request' + requestId)
-      return await putData(
-        `/api/requests/${requestId}`,
-        { convertToEvent: true, eventData },
-        (data) => {
-          const { request, event, client } = data ?? {}
-          snackbar.success('Мероприятие создано из заявки')
-          setNotLoadingCard('request' + requestId)
-          if (request) props.setRequest(request)
-          if (event) props.setEvent(event)
-          if (client) props.setClient(client)
-        },
-        (error) => {
-          snackbar.error('Не удалось преобразовать заявку')
-          setErrorCard('request' + requestId)
-          const data = {
-            errorPlace: 'REQUEST CONVERT ERROR',
-            requestId,
-            error,
-          }
-          addErrorModal(data)
-          console.log(data)
-        },
-        false,
-        loggedUser?._id
-      )
-    }
   }
 
   return obj

@@ -295,14 +295,6 @@ export const POST = async (req) => {
 
   for (const item of calendarItems) {
     const summary = item?.summary ?? ''
-    if (/заявк/i.test(summary)) {
-      skipped.push({
-        googleId: item?.id ?? null,
-        title: summary || 'Без названия',
-        reason: 'Заявка в названии',
-      })
-      continue
-    }
     if (/встреча/i.test(summary)) {
       skipped.push({
         googleId: item?.id ?? null,

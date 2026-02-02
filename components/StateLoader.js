@@ -1,6 +1,5 @@
 import { useAtom, useSetAtom } from 'jotai'
 
-import requestsAtom from '@state/atoms/requestsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
 import clientsAtom from '@state/atoms/clientsAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
@@ -41,7 +40,6 @@ const StateLoader = (props) => {
 
   const [loggedUser, setLoggedUser] = useAtom(loggedUserAtom)
 
-  const setRequestsState = useSetAtom(requestsAtom)
   const setEventsState = useSetAtom(eventsAtom)
   const setClientsState = useSetAtom(clientsAtom)
   const setTransactionsState = useSetAtom(transactionsAtom)
@@ -77,7 +75,6 @@ const StateLoader = (props) => {
 
   useEffect(() => {
     setLoggedUser(props.loggedUser)
-    setRequestsState(props.requests)
     setEventsState(props.events)
     setClientsState(props.clients)
     setTransactionsState(props.transactions ?? [])
@@ -90,7 +87,6 @@ const StateLoader = (props) => {
     props.clients,
     props.events,
     props.loggedUser,
-    props.requests,
     props.siteSettings,
     props.services,
     props.tariffs,
@@ -100,7 +96,6 @@ const StateLoader = (props) => {
     setEventsState,
     setIsSiteLoading,
     setLoggedUser,
-    setRequestsState,
     setServicesState,
     setTariffsState,
     setUsersState,
@@ -153,7 +148,7 @@ const StateLoader = (props) => {
     const pageConfig = pages.find((item) => item.href === props.page)
     const isAllowed = isPageAllowedForRole(pageConfig?.accessRoles, role)
     if (!isAllowed) {
-      router.push('/cabinet/requests')
+      router.push('/cabinet/eventsUpcoming')
     }
   }, [loggedUser?._id, loggedUser?.role, props.page, router])
 

@@ -68,7 +68,7 @@ const TariffSelectContent = () => {
     })
     if (updated?._id) {
       setLoggedUser(updated)
-      router.push('/cabinet/requests')
+      router.push('/cabinet/eventsUpcoming')
     } else {
       const message = 'Не удалось выбрать тариф'
       snackbar.error(message)

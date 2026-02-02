@@ -407,12 +407,11 @@ export const DEFAULT_ADDRESS = Object.freeze({
 
 export const DEFAULT_EVENT = Object.freeze({
   organizerId: null,
-  requestId: null,
   clientId: null,
   description: '',
   financeComment: '',
+  requestCreatedAt: null,
   eventDate: null,
-  requestDate: null,
   dateStart: null,
   dateEnd: null,
   otherContacts: [],
@@ -455,24 +454,6 @@ export const CLIENT_TYPES = Object.freeze([
   { value: 'organizer', name: 'Организатор' },
   { value: 'colleague', name: 'Коллега' },
 ])
-
-export const DEFAULT_REQUEST = Object.freeze({
-  clientId: null,
-  clientName: '',
-  clientPhone: '',
-  contactChannels: [],
-  createdAt: null,
-  eventDate: null,
-  otherContacts: [],
-  servicesIds: [],
-  address: DEFAULT_ADDRESS,
-  contractSum: 0,
-  comment: '',
-  status: 'active',
-  cancelReason: '',
-  eventId: null,
-  calendarSyncError: '',
-})
 
 export const DEFAULT_TRANSACTION = Object.freeze({
   eventId: null,
@@ -524,18 +505,8 @@ export const DEFAULT_IMAGE_CONSTRUCTOR_ITEM = Object.freeze({
   show: true,
 })
 
-export const REQUEST_STATUSES = Object.freeze([
-  { value: 'active', name: 'Активно', color: 'blue', icon: faPlay },
-  {
-    value: 'converted',
-    name: 'Преобразовано',
-    color: 'green',
-    icon: faCheck,
-  },
-  { value: 'canceled', name: 'Отменено', color: 'red', icon: faBan },
-])
-
 export const EVENT_STATUSES_SIMPLE = Object.freeze([
+  { value: 'draft', name: 'Заявка', color: 'gray' },
   { value: 'active', name: 'Активно', color: 'blue' },
   { value: 'canceled', name: 'Отменено', color: 'red' },
   { value: 'closed', name: 'Закрыто', color: 'green' },
@@ -629,6 +600,7 @@ export const EVENT_RELATIONSHIP_ACCESS = [
 ]
 
 export const EVENT_STATUSES = [
+  { value: 'draft', name: 'Заявка', color: 'gray-400', icon: faClock },
   { value: 'active', name: 'Активно', color: 'blue-400', icon: faPlay },
   { value: 'canceled', name: 'Отменено', color: 'red-400', icon: faBan },
   { value: 'closed', name: 'Закрыто', color: 'green-400', icon: faLock },
@@ -707,13 +679,6 @@ export const pages = [
   //   accessRoles: CONTENTS['userStatistics'].accessRoles,
   //   roleAccess: CONTENTS['userStatistics'].roleAccess,
   // },
-  {
-    id: 3,
-    group: 1,
-    name: 'Заявки',
-    href: 'requests',
-    icon: faCalendar,
-  },
   {
     id: 4,
     group: 2,
@@ -802,11 +767,6 @@ export const pagesGroups = [
   //   name: 'Моя статистика',
   //   icon: faTrophy,
   // },
-  {
-    id: 1,
-    name: 'Заявки',
-    icon: faCalendar,
-  },
   {
     id: 2,
     name: 'Мероприятия',

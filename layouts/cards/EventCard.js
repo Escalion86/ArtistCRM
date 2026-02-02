@@ -131,8 +131,12 @@ const EventCard = ({ eventId, style }) => {
   const hasCalendarError = Boolean(event?.calendarSyncError)
   const isCanceled = rawStatus === 'canceled'
   const isClosed = rawStatus === 'closed'
+  const isDraft = rawStatus === 'draft'
   const isFinished =
     !isCanceled && !isClosed && eventEnd && eventEnd.getTime() < now.getTime()
+  const requestCreatedLabel = event.createdAt
+    ? formatDate(event.createdAt, false, true)
+    : 'Дата заявки не указана'
 
   const coordsLink =
     event?.address?.latitude && event?.address?.longitude
@@ -234,6 +238,11 @@ const EventCard = ({ eventId, style }) => {
           <div className="font-semibold text-gray-800 text-general">
             {eventDateLabel}
           </div>
+          {isDraft && (
+            <div className="text-xs text-gray-500">
+              Дата заявки: {requestCreatedLabel}
+            </div>
+          )}
           <div className="flex items-center flex-nowrap gap-x-3">
             <span className="font-medium">Место:</span>
             <span className="flex items-center min-w-0 gap-2 truncate">

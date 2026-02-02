@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import Clients from '@models/Clients'
 import Events from '@models/Events'
 import Transactions from '@models/Transactions'
-import Requests from '@models/Requests'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 
@@ -61,16 +60,6 @@ export const DELETE = async (req, { params }) => {
       {
         success: false,
         error: `Нельзя удалить клиента: есть связанные транзакции (${transactionsCount})`,
-      },
-      { status: 409 }
-    )
-  }
-  const requestsCount = await Requests.countDocuments({ tenantId, clientId: id })
-  if (requestsCount > 0) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: `Нельзя удалить клиента: есть связанные заявки (${requestsCount})`,
       },
       { status: 409 }
     )

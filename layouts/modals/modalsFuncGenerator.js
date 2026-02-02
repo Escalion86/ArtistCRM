@@ -54,10 +54,6 @@ import clientEventsFunc from './modalsFunc/clientEventsFunc'
 // import likesViewFunc from './modalsFunc/likesViewFunc'
 // import eventAfterSignUpMessageFunc from './modalsFunc/eventAfterSignUpMessageFunc'
 // import subEventFunc from './modalsFunc/subEventFunc'
-import requestViewFunc from './modalsFunc/requestViewFunc'
-import requestFunc from './modalsFunc/requestFunc'
-import requestStatusEditFunc from './modalsFunc/requestStatusEditFunc'
-import requestHistoryFunc from './modalsFunc/requestHistoryFunc'
 
 const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
   const addModal = (value) => setAtomValue(addModalSelector, value)
@@ -187,71 +183,10 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
           })
         ),
     },
-    request: {
-      add: (requestId) => addModal(requestFunc(requestId, true)),
-      edit: (requestId) => addModal(requestFunc(requestId)),
-      history: (requestId) => addModal(requestHistoryFunc(requestId)),
-      statusEdit: (requestId) => addModal(requestStatusEditFunc(requestId)),
-      delete: async (requestId) => {
-        try {
-          const response = await fetch(
-            `/api/requests/${requestId}/delete-check`
-          )
-          const result = await response.json()
-          const reasons = Array.isArray(result?.data?.reasons)
-            ? result.data.reasons
-            : []
-          if (!result?.success) {
-            addModal({
-              title: 'Удаление заявки недоступно',
-              text: result?.error || 'Не удалось проверить заявку',
-              confirmButtonName: 'Понятно',
-              onConfirm: true,
-              showDecline: false,
-            })
-            return
-          }
-          if (reasons.length > 0) {
-            const reasonLines = reasons
-              .map((item) => {
-                if (item.type === 'event')
-                  return 'Заявка уже связана с мероприятием'
-                if (item.type === 'converted')
-                  return 'Заявка уже преобразована в мероприятие'
-                return null
-              })
-              .filter(Boolean)
-              .join('\n')
-            addModal({
-              title: 'Удаление заявки недоступно',
-              text: `Удалить заявку нельзя:\n${reasonLines}`,
-              confirmButtonName: 'Понятно',
-              onConfirm: true,
-              showDecline: false,
-            })
-            return
-          }
-          addModal({
-            title: 'Удаление заявки',
-            text: 'Вы уверены, что хотите удалить заявку?',
-            onConfirm: async () => itemsFunc.request.delete(requestId),
-          })
-        } catch (error) {
-          addModal({
-            title: 'Удаление заявки недоступно',
-            text: 'Не удалось проверить заявку',
-            confirmButtonName: 'Понятно',
-            onConfirm: true,
-            showDecline: false,
-          })
-        }
-      },
-      view: (requestId) => addModal(requestViewFunc(requestId)),
-    },
     event: {
       add: (eventId) => addModal(eventFunc(eventId, true)),
+      create: () => addModal(eventFunc(null, false, 'draft')),
       edit: (eventId) => addModal(eventFunc(eventId)),
-      fromRequest: (requestId) => addModal(eventFunc(null, false, requestId)),
       history: (eventId) => addModal(eventHistoryFunc(eventId)),
       statusEdit: (eventId) => addModal(eventStatusEditFunc(eventId)),
       close: (eventId) =>
@@ -391,8 +326,6 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
               .map((item) => {
                 if (item.type === 'events')
                   return `Мероприятия: ${item.count}`
-                if (item.type === 'requests')
-                  return `Заявки: ${item.count}`
                 return null
               })
               .filter(Boolean)
@@ -469,8 +402,6 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
                   return `Мероприятия: ${item.count}`
                 if (item.type === 'transactions')
                   return `Транзакции: ${item.count}`
-                if (item.type === 'requests')
-                  return `Заявки: ${item.count}`
                 return null
               })
               .filter(Boolean)

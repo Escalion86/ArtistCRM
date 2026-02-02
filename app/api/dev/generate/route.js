@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import Clients from '@models/Clients'
 import Services from '@models/Services'
-import Requests from '@models/Requests'
 import Events from '@models/Events'
 import Transactions from '@models/Transactions'
 import SiteSettings from '@models/SiteSettings'
@@ -160,13 +159,7 @@ export const POST = async (req) => {
     created.requests.push({
       tenantId,
       clientId: client._id,
-      clientName:
-        [client.firstName, client.secondName].filter(Boolean).join(' ') ||
-        String(client._id),
-      clientPhone: client.phone ? String(client.phone) : '',
-      contactChannels: ['Телефон'],
       eventDate: start,
-      createdAt: new Date(),
       address: {
         town,
         street: randomItem(streets),
@@ -174,14 +167,14 @@ export const POST = async (req) => {
         comment: 'Тестовая локация',
       },
       contractSum: randomFromRange(5000, 50000),
-      comment: 'Тестовая заявка',
+      description: 'Тестовая заявка',
       servicesIds,
       otherContacts: [],
-      status: 'active',
+      status: 'draft',
     })
   }
   if (created.requests.length > 0) {
-    created.requests = await Requests.insertMany(created.requests)
+    created.requests = await Events.insertMany(created.requests)
   }
 
   for (let i = 0; i < counts.events; i += 1) {
@@ -222,7 +215,9 @@ export const POST = async (req) => {
     created.events = await Events.insertMany(created.events)
   }
 
-  const eventPool = [...existingEvents, ...created.events]
+  const eventPool = [...existingEvents, ...created.events].filter(
+    (event) => event?.status !== 'draft'
+  )
   for (let i = 0; i < counts.transactions; i += 1) {
     const event = randomItem(eventPool)
     if (!event?._id) continue
