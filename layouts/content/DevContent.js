@@ -24,6 +24,9 @@ const DevContent = () => {
   const [exportError, setExportError] = useState('')
   const [exportResult, setExportResult] = useState(null)
   const [exportCopied, setExportCopied] = useState(false)
+  const [convertLoading, setConvertLoading] = useState(false)
+  const [convertError, setConvertError] = useState('')
+  const [convertResult, setConvertResult] = useState(null)
   const [generateLoading, setGenerateLoading] = useState(false)
   const [generateError, setGenerateError] = useState('')
   const [generateResult, setGenerateResult] = useState(null)
@@ -135,6 +138,34 @@ const DevContent = () => {
       setGenerateError(genError.message || 'Не удалось сгенерировать данные')
     } finally {
       setGenerateLoading(false)
+    }
+  }
+
+  const handleConvertRequests = async () => {
+    if (
+      !window.confirm(
+        'Преобразовать все заявки (requests) в мероприятия со статусом "draft"?'
+      )
+    )
+      return
+
+    setConvertLoading(true)
+    setConvertError('')
+    setConvertResult(null)
+    try {
+      const response = await fetch('/api/dev/requests-to-events', {
+        method: 'POST',
+      })
+      const rawText = await response.text()
+      const data = rawText ? JSON.parse(rawText) : null
+      if (!data) throw new Error('Пустой ответ от сервера')
+      if (!response.ok || !data.success)
+        throw new Error(data.error || 'Не удалось преобразовать заявки')
+      setConvertResult(data.data)
+    } catch (convertErr) {
+      setConvertError(convertErr.message || 'Не удалось преобразовать заявки')
+    } finally {
+      setConvertLoading(false)
     }
   }
 
@@ -338,6 +369,35 @@ const DevContent = () => {
               <div>Заявки: <b>{generateResult.requests ?? 0}</b></div>
               <div>Мероприятия: <b>{generateResult.events ?? 0}</b></div>
               <div>Транзакции: <b>{generateResult.transactions ?? 0}</b></div>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-3 rounded border border-violet-200 bg-violet-50 p-3">
+          <div className="text-sm text-violet-800">
+            Преобразовать все заявки из коллекции requests в мероприятия со статусом "draft".
+          </div>
+          <Button
+            name="Преобразовать заявки в мероприятия"
+            onClick={handleConvertRequests}
+            loading={convertLoading}
+            className="w-full sm:w-auto bg-violet-600 text-white hover:bg-violet-700"
+          />
+          {convertError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+              {convertError}
+            </div>
+          )}
+          {convertResult && (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              <div>
+                Преобразовано: <b>{convertResult.converted ?? 0}</b>
+              </div>
+              <div>
+                Пропущено: <b>{convertResult.skipped ?? 0}</b>
+              </div>
+              <div>
+                Удалено заявок: <b>{convertResult.deleted ?? 0}</b>
+              </div>
             </div>
           )}
         </div>
