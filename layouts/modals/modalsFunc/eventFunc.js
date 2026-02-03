@@ -159,7 +159,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     )
     const [requestCreatedAt, setRequestCreatedAt] = useState(() => {
       if (!eventId || clone) return new Date().toISOString()
-      return event?.requestCreatedAt ?? event?.createdAt ?? new Date().toISOString()
+      return (
+        event?.requestCreatedAt ?? event?.createdAt ?? new Date().toISOString()
+      )
     })
     const [calendarImportChecked, setCalendarImportChecked] = useState(
       event?.calendarImportChecked ??
@@ -223,8 +225,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         calendarImportChecked:
           event?.calendarImportChecked ??
           (eventId ? DEFAULT_EVENT.calendarImportChecked : true),
-        servicesIds:
-          event?.servicesIds ?? DEFAULT_EVENT.servicesIds ?? [],
+        servicesIds: event?.servicesIds ?? DEFAULT_EVENT.servicesIds ?? [],
         otherContacts: normalizeOtherContacts(
           event?.otherContacts ?? DEFAULT_EVENT.otherContacts ?? []
         ),
@@ -516,6 +517,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       eventDate,
       getConflictsCount,
       isTransferred,
+      invoiceLinks,
+      receiptLinks,
       address,
       modalsFunc,
       requestCreatedAt,
@@ -535,9 +538,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     useEffect(() => {
       setOnShowOnCloseConfirmDialog(isFormChanged)
       setDisableConfirm(false)
-      setOnConfirmFunc(
-        isFormChanged ? () => onClickConfirmRef.current() : null
-      )
+      setOnConfirmFunc(isFormChanged ? () => onClickConfirmRef.current() : null)
     }, [
       isFormChanged,
       setDisableConfirm,
@@ -554,9 +555,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       setComponentInFooter(
         <div className="flex flex-col gap-1 text-sm text-red-600">
           {requiredMissing && (
-            <div>
-              Заполните поля: {missingFields.join(', ')}
-            </div>
+            <div>Заполните поля: {missingFields.join(', ')}</div>
           )}
           {dateRangeError && <div>{dateRangeError}</div>}
         </div>
@@ -703,7 +702,12 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     }
 
     return (
-      <TabContext value="Общие" variant="fullWidth" scrollButtons={false} allowScrollButtonsMobile={false}>
+      <TabContext
+        value="Общие"
+        variant="fullWidth"
+        scrollButtons={false}
+        allowScrollButtonsMobile={false}
+      >
         <TabPanel tabName="Общие">
           <FormWrapper>
             {!eventId && (
@@ -718,7 +722,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                       <button
                         key={item.value}
                         type="button"
-                        className={`inline-flex min-h-[32px] items-center rounded border px-3 py-1 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-general focus-visible:ring-offset-1 ${getEventStatusButtonClasses(
+                        className={`focus-visible:ring-general inline-flex min-h-[32px] items-center rounded border px-3 py-1 text-sm font-medium transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none ${getEventStatusButtonClasses(
                           item.value,
                           isActive
                         )} ${isActive ? 'shadow' : 'shadow-sm'} cursor-pointer`}
@@ -771,8 +775,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               onRemoveContact={handleOtherContactRemove}
               onEditContact={(index) => {
                 const contact = otherContacts[index]
-                if (contact?.clientId)
-                  modalsFunc.client?.edit(contact.clientId)
+                if (contact?.clientId) modalsFunc.client?.edit(contact.clientId)
               }}
               onAddContact={handleOtherContactAdd}
             />
@@ -860,9 +863,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
 
         <TabPanel tabName="Финансы и Документы">
           {isDraft ? (
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              Для заявки финансы, транзакции и документы недоступны. Переведите
-              статус в "Активно".
+            <div className="px-3 py-2 text-sm border rounded-md border-amber-200 bg-amber-50 text-amber-800">
+              {`Для заявки финансы, транзакции и документы недоступны. Переведите статус в "Активно"`}
             </div>
           ) : null}
           <div className="flex flex-col gap-2">
@@ -905,7 +907,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         className="flex items-center gap-2"
                       >
                         <input
-                          className="focus:border-general h-8 w-full rounded border border-gray-200 px-2 text-sm text-gray-900 focus:outline-none"
+                          className="w-full h-8 px-2 text-sm text-gray-900 border border-gray-200 rounded focus:border-general focus:outline-none"
                           type="text"
                           value={link}
                           placeholder="Введите ссылку"
@@ -920,7 +922,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         />
                         <button
                           type="button"
-                          className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
+                          className="flex items-center justify-center w-8 h-8 text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button hover:bg-red-50"
                           onClick={() =>
                             setInvoiceLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
@@ -928,17 +930,20 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                           }
                           title="Удалить ссылку"
                         >
-                          <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
+                          <FontAwesomeIcon
+                            icon={faTrashAlt}
+                            className="w-4 h-4"
+                          />
                         </button>
                       </div>
                     ))}
                     <button
                       type="button"
-                      className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700"
+                      className="flex items-center justify-center w-8 h-8 transition border rounded shadow-sm cursor-pointer action-icon-button border-emerald-600 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
                       onClick={() => setInvoiceLinks((prev) => [...prev, ''])}
                       title="Добавить ссылку"
                     >
-                      <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
+                      <FontAwesomeIcon className="w-4 h-4" icon={faPlus} />
                     </button>
                   </div>
                 </InputWrapper>
@@ -955,7 +960,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         className="flex items-center gap-2"
                       >
                         <input
-                          className="focus:border-general h-8 w-full rounded border border-gray-200 px-2 text-sm text-gray-900 focus:outline-none"
+                          className="w-full h-8 px-2 text-sm text-gray-900 border border-gray-200 rounded focus:border-general focus:outline-none"
                           type="text"
                           value={link}
                           placeholder="Введите ссылку"
@@ -970,7 +975,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         />
                         <button
                           type="button"
-                          className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
+                          className="flex items-center justify-center w-8 h-8 text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button hover:bg-red-50"
                           onClick={() =>
                             setReceiptLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
@@ -978,17 +983,20 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                           }
                           title="Удалить ссылку"
                         >
-                          <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
+                          <FontAwesomeIcon
+                            icon={faTrashAlt}
+                            className="w-4 h-4"
+                          />
                         </button>
                       </div>
                     ))}
                     <button
                       type="button"
-                      className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700"
+                      className="flex items-center justify-center w-8 h-8 transition border rounded shadow-sm cursor-pointer action-icon-button border-emerald-600 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
                       onClick={() => setReceiptLinks((prev) => [...prev, ''])}
                       title="Добавить ссылку"
                     >
-                      <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
+                      <FontAwesomeIcon className="w-4 h-4" icon={faPlus} />
                     </button>
                   </div>
                 </InputWrapper>
@@ -1001,24 +1009,24 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               </div>
               <button
                 type="button"
-                className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center justify-center transition border rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 border-emerald-600 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={() => openTransactionModal()}
                 disabled={
                   isDraft || financeLoading || !event?._id || !event?.clientId
                 }
                 title="Добавить транзакцию"
               >
-                <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
+                <FontAwesomeIcon className="w-4 h-4" icon={faPlus} />
               </button>
             </div>
 
             {financeError && (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
                 {financeError}
               </div>
             )}
 
-            <div className="rounded border border-gray-200 bg-white shadow-sm">
+            <div className="bg-white border border-gray-200 rounded shadow-sm">
               {eventTransactions.length === 0 ? (
                 <div className="px-3 py-4 text-sm text-gray-500">
                   Транзакции не найдены
@@ -1036,9 +1044,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                     incomeTransactions.map((transaction) => (
                       <div
                         key={transaction._id}
-                        className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
+                        className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
                       >
-                        <div className="flex flex-1 flex-wrap gap-3 text-sm">
+                        <div className="flex flex-wrap flex-1 gap-3 text-sm">
                           <span className="font-semibold text-gray-900">
                             {transaction.amount.toLocaleString()} руб.
                           </span>
@@ -1079,25 +1087,31 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600"
+                            className="flex items-center justify-center text-orange-500 transition border border-orange-600 rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 bg-orange-50 hover:bg-orange-100 hover:text-orange-600"
                             onClick={() =>
                               openTransactionModal(transaction._id)
                             }
                             disabled={financeLoading}
                             title="Редактировать транзакцию"
                           >
-                            <FontAwesomeIcon className="h-4 w-4" icon={faPencilAlt} />
+                            <FontAwesomeIcon
+                              className="w-4 h-4"
+                              icon={faPencilAlt}
+                            />
                           </button>
                           <button
                             type="button"
-                            className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
+                            className="flex items-center justify-center text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button h-9 w-9 hover:bg-red-50"
                             onClick={() =>
                               handleDeleteTransaction(transaction._id)
                             }
                             disabled={financeLoading}
                             title="Удалить транзакцию"
                           >
-                            <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
+                            <FontAwesomeIcon
+                              icon={faTrashAlt}
+                              className="w-4 h-4"
+                            />
                           </button>
                         </div>
                       </div>
@@ -1114,9 +1128,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                     expenseTransactions.map((transaction) => (
                       <div
                         key={transaction._id}
-                        className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
+                        className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
                       >
-                        <div className="flex flex-1 flex-wrap gap-3 text-sm">
+                        <div className="flex flex-wrap flex-1 gap-3 text-sm">
                           <span className="font-semibold text-gray-900">
                             {transaction.amount.toLocaleString()} руб.
                           </span>
@@ -1157,25 +1171,31 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600"
+                            className="flex items-center justify-center text-orange-500 transition border border-orange-600 rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 bg-orange-50 hover:bg-orange-100 hover:text-orange-600"
                             onClick={() =>
                               openTransactionModal(transaction._id)
                             }
                             disabled={financeLoading}
                             title="Редактировать транзакцию"
                           >
-                            <FontAwesomeIcon className="h-4 w-4" icon={faPencilAlt} />
+                            <FontAwesomeIcon
+                              className="w-4 h-4"
+                              icon={faPencilAlt}
+                            />
                           </button>
                           <button
                             type="button"
-                            className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
+                            className="flex items-center justify-center text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button h-9 w-9 hover:bg-red-50"
                             onClick={() =>
                               handleDeleteTransaction(transaction._id)
                             }
                             disabled={financeLoading}
                             title="Удалить транзакцию"
                           >
-                            <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
+                            <FontAwesomeIcon
+                              icon={faTrashAlt}
+                              className="w-4 h-4"
+                            />
                           </button>
                         </div>
                       </div>
@@ -1194,7 +1214,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               </div>
               <button
                 type="button"
-                className="h-8 rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
                 onClick={() => {
                   if (!navigator?.clipboard) return
                   navigator.clipboard.writeText(googleCalendarResponseText)
@@ -1203,7 +1223,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 Скопировать
               </button>
             </div>
-            <pre className="max-h-72 w-full overflow-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs whitespace-pre-wrap text-gray-800">
+            <pre className="w-full p-3 overflow-auto text-xs text-gray-800 whitespace-pre-wrap border border-gray-200 rounded max-h-72 bg-gray-50">
               {googleCalendarResponseText}
             </pre>
           </TabPanel>
