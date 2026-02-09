@@ -46,10 +46,6 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       () => transaction?.clientId ?? null,
       [transaction?.clientId]
     )
-    const initialAmount = useMemo(
-      () => transaction?.amount ?? 0,
-      [transaction?.amount]
-    )
     const initialType = useMemo(
       () => transaction?.type ?? 'income',
       [transaction?.type]
@@ -66,18 +62,36 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       const id = selectedEventId
       return id ? events.find((item) => item._id === id) : null
     }, [events, selectedEventId])
+    const incomeTotal = useMemo(() => {
+      if (!selectedEventId) return 0
+      return (transactions ?? [])
+        .filter(
+          (item) => item.eventId === selectedEventId && item.type === 'income'
+        )
+        .reduce((total, item) => total + (Number(item.amount) || 0), 0)
+    }, [transactions, selectedEventId])
+    const defaultAmount = useMemo(() => {
+      const base = selectedEvent?.contractSum ?? contractSum ?? 0
+      const value = Number(base) - incomeTotal
+      if (!Number.isFinite(value)) return 0
+      return value > 0 ? value : 0
+    }, [selectedEvent?.contractSum, contractSum, incomeTotal])
+    const initialAmount = useMemo(() => {
+      if (transaction?.amount !== undefined && transaction?.amount !== null)
+        return transaction.amount
+      return defaultAmount
+    }, [transaction?.amount, defaultAmount])
     const initialDate = useMemo(() => {
       if (transaction?.date) return new Date(transaction.date).toISOString()
-      if (selectedEvent?.eventDate)
-        return new Date(selectedEvent.eventDate).toISOString()
       return new Date().toISOString()
-    }, [selectedEvent?.eventDate, transaction?.date])
+    }, [transaction?.date])
     const initialComment = useMemo(
       () => transaction?.comment ?? '',
       [transaction?.comment]
     )
 
     const [amount, setAmount] = useState(initialAmount)
+    const [amountTouched, setAmountTouched] = useState(false)
     const [type, setType] = useState(initialType)
     const [category, setCategory] = useState(initialCategory)
     const [date, setDate] = useState(initialDate)
@@ -119,6 +133,12 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       if (category === 'other') setCategory('colleague_percent')
       if (type !== 'income') setType('income')
     }, [transactionId, selectedEvent?.isTransferred, category, type])
+
+    useEffect(() => {
+      if (transactionId) return
+      if (amountTouched) return
+      setAmount(defaultAmount)
+    }, [transactionId, amountTouched, defaultAmount])
 
     const selectedClient = useMemo(
       () =>
@@ -323,7 +343,10 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
               label="Сумма"
               type="number"
               value={amount}
-              onChange={setAmount}
+              onChange={(value) => {
+                setAmountTouched(true)
+                setAmount(value)
+              }}
               min={0}
               disabled={loading || isReadOnly}
               step={1000}
