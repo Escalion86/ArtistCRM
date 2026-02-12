@@ -68,16 +68,18 @@ const eventViewFunc = (eventId) => {
         : []
       return contacts
         .map((contact) => {
+          if (!contact?.clientId && !contact?.comment) return null
           const client = clients.find(
             (item) => item._id === contact?.clientId
           )
           const name = [client?.firstName, client?.secondName]
             .filter(Boolean)
             .join(' ')
-          if (!name && !contact?.clientId) return null
-          return `${name || contact.clientId}${
-            contact?.comment ? ` (${contact.comment})` : ''
-          }`
+          return {
+            client,
+            label: name || contact?.clientId || 'Контакт',
+            comment: contact?.comment ? String(contact.comment) : '',
+          }
         })
         .filter(Boolean)
     }, [clients, event?.otherContacts])
@@ -98,6 +100,17 @@ const eventViewFunc = (eventId) => {
           color: map.get(value.toLowerCase()) || '#f3f4f6',
         }))
     }, [event?.tags, siteSettings?.eventsTags])
+
+    const displayAddress = useMemo(() => {
+      const address = event?.address
+      if (!address) return address
+      const defaultTown = siteSettings?.defaultTown
+      if (!defaultTown || !address?.town) return address
+      const normalizedTown = String(address.town).trim().toLowerCase()
+      const normalizedDefaultTown = String(defaultTown).trim().toLowerCase()
+      if (normalizedTown !== normalizedDefaultTown) return address
+      return { ...address, town: '' }
+    }, [event?.address, siteSettings?.defaultTown])
 
     useEffect(() => {
       if (setTopLeftComponent) {
@@ -134,7 +147,7 @@ const eventViewFunc = (eventId) => {
               )}
             </div>
             <div className="flex w-full justify-center text-3xl font-bold">
-              {formatAddress(event?.address, 'Мероприятие')}
+              {formatAddress(displayAddress, 'Мероприятие')}
             </div>
             <div
               className="textarea ql w-full max-w-full list-disc overflow-hidden"
@@ -159,7 +172,7 @@ const eventViewFunc = (eventId) => {
 
             {event?.address && (
               <TextLine label="Адрес">
-                {formatAddress(event?.address, '[не указан]')}
+                {formatAddress(displayAddress, '[не указан]')}
               </TextLine>
             )}
             {serviceTitles.length > 0 && (
@@ -167,7 +180,19 @@ const eventViewFunc = (eventId) => {
             )}
             {otherContacts.length > 0 && (
               <TextLine label="Прочие контакты">
-                {otherContacts.join(', ')}
+                <div className="flex flex-col gap-2">
+                  {otherContacts.map((contact, index) => (
+                    <div key={`${contact.label}-${index}`}>
+                      <div className="text-sm text-gray-800">
+                        {contact.label}
+                        {contact.comment ? ` (${contact.comment})` : ''}
+                      </div>
+                      {contact.client && (
+                        <ContactsIconsButtons user={contact.client} />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </TextLine>
             )}
             {event?.address && event.address?.town && event.address?.street && (

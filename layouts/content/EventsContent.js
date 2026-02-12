@@ -8,6 +8,7 @@ import ComboBox from '@components/ComboBox'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import EventCheckToggleButtons from '@components/IconToggleButtons/EventCheckToggleButtons'
+import EventStatusToggleButtons from '@components/IconToggleButtons/EventStatusToggleButtons'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import eventsAtom from '@state/atoms/eventsAtom'
@@ -34,6 +35,12 @@ const EventsContent = ({ filter = 'all' }) => {
   const [checkFilter, setCheckFilter] = useState({
     checked: true,
     unchecked: true,
+  })
+  const [statusFilter, setStatusFilter] = useState({
+    active: true,
+    finished: true,
+    closed: true,
+    canceled: true,
   })
 
   const baseEvents = useMemo(() => {
@@ -97,14 +104,47 @@ const EventsContent = ({ filter = 'all' }) => {
     return filteredEvents
   }, [checkFilter, filteredEvents])
 
+  const filteredByStatus = useMemo(() => {
+    if (
+      statusFilter.active &&
+      statusFilter.finished &&
+      statusFilter.closed &&
+      statusFilter.canceled
+    )
+      return filteredByCheck
+
+    const now = new Date()
+    return filteredByCheck.filter((event) => {
+      const status = event?.status
+      const isCanceled = status === 'canceled'
+      const isClosed = status === 'closed'
+      const rawEnd = event?.dateEnd ?? event?.eventDate ?? event?.dateStart ?? null
+      const endDate = rawEnd ? new Date(rawEnd) : null
+      const isFinished =
+        !isCanceled &&
+        !isClosed &&
+        endDate instanceof Date &&
+        !Number.isNaN(endDate.getTime()) &&
+        endDate.getTime() < now.getTime()
+      const isActive = !isCanceled && !isClosed && !isFinished
+
+      return (
+        (statusFilter.active && isActive) ||
+        (statusFilter.finished && isFinished) ||
+        (statusFilter.closed && isClosed) ||
+        (statusFilter.canceled && isCanceled)
+      )
+    })
+  }, [filteredByCheck, statusFilter])
+
   const sortedEvents = useMemo(() => {
     const sorter = (a, b) => {
       const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0
       const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0
       return filter === 'upcoming' ? dateA - dateB : dateB - dateA
     }
-    return [...filteredByCheck].sort(sorter)
-  }, [filteredByCheck, filter])
+    return [...filteredByStatus].sort(sorter)
+  }, [filteredByStatus, filter])
 
   useEffect(() => {
     const urlTargetId = searchParams?.get('openEvent')
@@ -183,6 +223,41 @@ const EventsContent = ({ filter = 'all' }) => {
         }
       }
 
+      if (
+        !statusFilter.active ||
+        !statusFilter.finished ||
+        !statusFilter.closed ||
+        !statusFilter.canceled
+      ) {
+        const status = event?.status
+        const isCanceled = status === 'canceled'
+        const isClosed = status === 'closed'
+        const rawEnd =
+          event?.dateEnd ?? event?.eventDate ?? event?.dateStart ?? null
+        const endDate = rawEnd ? new Date(rawEnd) : null
+        const isFinished =
+          !isCanceled &&
+          !isClosed &&
+          endDate instanceof Date &&
+          !Number.isNaN(endDate.getTime()) &&
+          endDate.getTime() < now.getTime()
+        const isActive = !isCanceled && !isClosed && !isFinished
+        const isVisible =
+          (statusFilter.active && isActive) ||
+          (statusFilter.finished && isFinished) ||
+          (statusFilter.closed && isClosed) ||
+          (statusFilter.canceled && isCanceled)
+        if (!isVisible) {
+          setStatusFilter({
+            active: true,
+            finished: true,
+            closed: true,
+            canceled: true,
+          })
+          return
+        }
+      }
+
       const index = sortedEvents.findIndex(
         (item) => String(item?._id) === String(targetId)
       )
@@ -225,6 +300,7 @@ const EventsContent = ({ filter = 'all' }) => {
     selectedTown,
     sortedEvents,
     pendingOpenId,
+    statusFilter,
   ])
 
   const filterName =
@@ -269,6 +345,12 @@ const EventsContent = ({ filter = 'all' }) => {
                 <EventCheckToggleButtons
                   value={checkFilter}
                   onChange={setCheckFilter}
+                />
+              )}
+              {filter !== 'all' && (
+                <EventStatusToggleButtons
+                  value={statusFilter}
+                  onChange={setStatusFilter}
                 />
               )}
             </>

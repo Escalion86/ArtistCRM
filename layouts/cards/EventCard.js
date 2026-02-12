@@ -13,6 +13,7 @@ import clientSelector from '@state/selectors/clientSelector'
 import servicesAtom from '@state/atoms/servicesAtom'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
+import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faShare,
@@ -21,6 +22,7 @@ import {
   faBan,
   faUserSlash,
   faCalendarXmark,
+  faClock,
 } from '@fortawesome/free-solid-svg-icons'
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
@@ -45,6 +47,7 @@ const EventCard = ({ eventId, style }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loading = useAtomValue(loadingAtom('event' + eventId))
   const error = useAtomValue(errorAtom('event' + eventId))
+  const siteSettings = useAtomValue(siteSettingsAtom)
 
   const calendarLink = useMemo(() => {
     if (!event?.description) return null
@@ -134,10 +137,6 @@ const EventCard = ({ eventId, style }) => {
   const isDraft = rawStatus === 'draft'
   const isFinished =
     !isCanceled && !isClosed && eventEnd && eventEnd.getTime() < now.getTime()
-  const requestCreatedLabel = event.createdAt
-    ? formatDate(event.createdAt, false, true)
-    : 'Дата заявки не указана'
-
   const coordsLink =
     event?.address?.latitude && event?.address?.longitude
       ? `dgis://2gis.ru/geo/${event.address.longitude},${event.address.latitude}`
@@ -153,6 +152,16 @@ const EventCard = ({ eventId, style }) => {
       )}`
     : null
   const mapLink = event?.address?.link2Gis || coordsLink || searchLink
+  const displayAddress = useMemo(() => {
+    const address = event?.address
+    if (!address) return address
+    const defaultTown = siteSettings?.defaultTown
+    if (!defaultTown || !address?.town) return address
+    const normalizedTown = String(address.town).trim().toLowerCase()
+    const normalizedDefaultTown = String(defaultTown).trim().toLowerCase()
+    if (normalizedTown !== normalizedDefaultTown) return address
+    return { ...address, town: '' }
+  }, [event?.address, siteSettings?.defaultTown])
 
   if (!event) return null
 
@@ -208,6 +217,13 @@ const EventCard = ({ eventId, style }) => {
               title="Мероприятие завершено"
             />
           )}
+          {isDraft && (
+            <FontAwesomeIcon
+              icon={faClock}
+              className="w-4 h-4 text-blue-500"
+              title="Заявка"
+            />
+          )}
           <div className="flex-1 text-lg font-semibold text-gray-900 truncate">
             {servicesTitle}
           </div>
@@ -238,16 +254,11 @@ const EventCard = ({ eventId, style }) => {
           <div className="font-semibold text-gray-800 text-general">
             {eventDateLabel}
           </div>
-          {isDraft && (
-            <div className="text-xs text-gray-500">
-              Дата заявки: {requestCreatedLabel}
-            </div>
-          )}
           <div className="flex items-center flex-nowrap gap-x-3">
             <span className="font-medium">Место:</span>
             <span className="flex items-center min-w-0 gap-2 truncate">
               <span className="truncate">
-                {formatAddress(event.address, '-')}
+                {formatAddress(displayAddress, '-')}
               </span>
               {mapLink && (
                 <a
@@ -287,7 +298,7 @@ const EventCard = ({ eventId, style }) => {
         ) : (
           <div className="laptop:min-w-[240px] laptop:self-start flex shrink-0 items-end">
             <div className="flex items-end justify-end gap-3 text-sm font-semibold">
-              {leftToPay === 0 && canClose && paid > 0 ? (
+              {paid > 0 && contractSum > 0 && paid >= contractSum ? (
                 <span className="text-green-700">{paid.toLocaleString()}</span>
               ) : (
                 <span>

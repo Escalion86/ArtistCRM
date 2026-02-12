@@ -132,6 +132,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     const [receiptLinks, setReceiptLinks] = useState(
       event?.receiptLinks ?? DEFAULT_EVENT.receiptLinks ?? []
     )
+    const [actLinks, setActLinks] = useState(
+      event?.actLinks ?? DEFAULT_EVENT.actLinks ?? []
+    )
     const [address, setAddress] = useState(() => {
       const normalized = normalizeAddressValue(event?.address)
 
@@ -222,6 +225,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         dateEnd: event?.dateEnd ?? DEFAULT_EVENT.dateEnd,
         invoiceLinks: event?.invoiceLinks ?? DEFAULT_EVENT.invoiceLinks ?? [],
         receiptLinks: event?.receiptLinks ?? DEFAULT_EVENT.receiptLinks ?? [],
+        actLinks: event?.actLinks ?? DEFAULT_EVENT.actLinks ?? [],
         calendarImportChecked:
           event?.calendarImportChecked ??
           (eventId ? DEFAULT_EVENT.calendarImportChecked : true),
@@ -244,6 +248,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       event?.financeComment,
       event?.comment,
       event?.dateEnd,
+      event?.invoiceLinks,
+      event?.receiptLinks,
+      event?.actLinks,
       event?.calendarImportChecked,
       event?.colleagueId,
       event?.otherContacts,
@@ -283,6 +290,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           JSON.stringify(invoiceLinks) ||
         JSON.stringify(initialEventValues.receiptLinks ?? []) !==
           JSON.stringify(receiptLinks) ||
+        JSON.stringify(initialEventValues.actLinks ?? []) !==
+          JSON.stringify(actLinks) ||
         initialEventValues.calendarImportChecked !== calendarImportChecked ||
         JSON.stringify(initialEventValues.servicesIds ?? []) !==
           JSON.stringify(servicesIds) ||
@@ -302,6 +311,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         financeComment,
         invoiceLinks,
         receiptLinks,
+        actLinks,
         calendarImportChecked,
         servicesIds,
         otherContacts,
@@ -457,6 +467,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             : 0
         const normalizedInvoiceLinks = normalizeLinksList(invoiceLinks)
         const normalizedReceiptLinks = normalizeLinksList(receiptLinks)
+        const normalizedActLinks = normalizeLinksList(actLinks)
         const normalizedOtherContacts = normalizeOtherContacts(otherContacts)
           .map((item) => ({
             clientId: item.clientId ?? null,
@@ -479,6 +490,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           financeComment: financeComment?.trim() ?? '',
           invoiceLinks: normalizedInvoiceLinks,
           receiptLinks: normalizedReceiptLinks,
+          actLinks: normalizedActLinks,
           calendarImportChecked,
           servicesIds,
           otherContacts: normalizedOtherContacts,
@@ -519,6 +531,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       isTransferred,
       invoiceLinks,
       receiptLinks,
+      actLinks,
       address,
       modalsFunc,
       requestCreatedAt,
@@ -735,11 +748,6 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 </div>
               </InputWrapper>
             )}
-            <DateTimePicker
-              value={requestCreatedAt}
-              onChange={(value) => setRequestCreatedAt(value ?? null)}
-              label="Дата создания заявки"
-            />
             <ServiceMultiSelect
               value={servicesIds}
               onChange={setServicesIds}
@@ -857,16 +865,16 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   : 'Закрытие недоступно, пока сумма поступлений меньше договорной.'}
               </div>
             )}
+            <DateTimePicker
+              value={requestCreatedAt}
+              onChange={(value) => setRequestCreatedAt(value ?? null)}
+              label="Дата заявки"
+            />
             <ErrorsList errors={errors} />
           </FormWrapper>
         </TabPanel>
 
         <TabPanel tabName="Финансы и Документы">
-          {isDraft ? (
-            <div className="px-3 py-2 text-sm border rounded-md border-amber-200 bg-amber-50 text-amber-800">
-              {`Для заявки финансы, транзакции и документы недоступны. Переведите статус в "Активно"`}
-            </div>
-          ) : null}
           <div className="flex flex-col gap-2">
             <Input
               label="Договорная сумма"
@@ -892,6 +900,11 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               checkedIconColor="#2563EB"
               noMargin
             />
+            {isDraft ? (
+              <div className="px-3 py-2 text-sm border rounded-md border-amber-200 bg-amber-50 text-amber-800">
+                {`Для заявки финансы, транзакции и документы недоступны. Переведите статус в "Активно"`}
+              </div>
+            ) : null}
             {isByContract && !isDraft && (
               <div className="flex flex-col gap-2">
                 <InputWrapper label="Ссылки на счета" noMargin>
@@ -1000,210 +1013,272 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                     </button>
                   </div>
                 </InputWrapper>
+                <InputWrapper label="Ссылки на акты" noMargin>
+                  <div className="flex flex-col gap-2">
+                    {actLinks.length === 0 && (
+                      <div className="text-sm text-gray-500">
+                        Ссылки не добавлены
+                      </div>
+                    )}
+                    {actLinks.map((link, index) => (
+                      <div
+                        key={`act-link-${index}`}
+                        className="flex items-center gap-2"
+                      >
+                        <input
+                          className="w-full h-8 px-2 text-sm text-gray-900 border border-gray-200 rounded focus:border-general focus:outline-none"
+                          type="text"
+                          value={link}
+                          placeholder="Введите ссылку"
+                          onChange={(event) => {
+                            const value = event.target.value
+                            setActLinks((prev) =>
+                              prev.map((item, idx) =>
+                                idx === index ? value : item
+                              )
+                            )
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="flex items-center justify-center w-8 h-8 text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button hover:bg-red-50"
+                          onClick={() =>
+                            setActLinks((prev) =>
+                              prev.filter((_, idx) => idx !== index)
+                            )
+                          }
+                          title="Удалить ссылку"
+                        >
+                          <FontAwesomeIcon
+                            icon={faTrashAlt}
+                            className="w-4 h-4"
+                          />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      className="flex items-center justify-center w-8 h-8 transition border rounded shadow-sm cursor-pointer action-icon-button border-emerald-600 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
+                      onClick={() => setActLinks((prev) => [...prev, ''])}
+                      title="Добавить ссылку"
+                    >
+                      <FontAwesomeIcon className="w-4 h-4" icon={faPlus} />
+                    </button>
+                  </div>
+                </InputWrapper>
               </div>
             )}
 
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-base font-semibold text-gray-900">
-                Транзакции
-              </div>
-              <button
-                type="button"
-                className="flex items-center justify-center transition border rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 border-emerald-600 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={() => openTransactionModal()}
-                disabled={
-                  isDraft || financeLoading || !event?._id || !event?.clientId
-                }
-                title="Добавить транзакцию"
-              >
-                <FontAwesomeIcon className="w-4 h-4" icon={faPlus} />
-              </button>
-            </div>
+            {!isDraft && (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-base font-semibold text-gray-900">
+                    Транзакции
+                  </div>
+                  <button
+                    type="button"
+                    className="flex items-center justify-center transition border rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 border-emerald-600 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={() => openTransactionModal()}
+                    disabled={
+                      isDraft ||
+                      financeLoading ||
+                      !event?._id ||
+                      !event?.clientId
+                    }
+                    title="Добавить транзакцию"
+                  >
+                    <FontAwesomeIcon className="w-4 h-4" icon={faPlus} />
+                  </button>
+                </div>
 
-            {financeError && (
-              <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
-                {financeError}
-              </div>
+                {financeError && (
+                  <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
+                    {financeError}
+                  </div>
+                )}
+
+                <div className="bg-white border border-gray-200 rounded shadow-sm">
+                  {eventTransactions.length === 0 ? (
+                    <div className="px-3 py-4 text-sm text-gray-500">
+                      Транзакции не найдены
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">
+                        Поступления
+                      </div>
+                      {incomeTransactions.length === 0 ? (
+                        <div className="px-3 pb-3 text-sm text-gray-500">
+                          Поступлений нет
+                        </div>
+                      ) : (
+                        incomeTransactions.map((transaction) => (
+                          <div
+                            key={transaction._id}
+                            className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
+                          >
+                            <div className="flex flex-wrap flex-1 gap-3 text-sm">
+                              <span className="font-semibold text-gray-900">
+                                {transaction.amount.toLocaleString()} руб.
+                              </span>
+                              <span className="text-emerald-700">
+                                {TRANSACTION_TYPES.find(
+                                  (item) => item.value === transaction.type
+                                )?.name ?? transaction.type}
+                              </span>
+                              {transaction.category && (
+                                <span className="text-gray-600">
+                                  {
+                                    TRANSACTION_CATEGORIES.find(
+                                      (item) =>
+                                        item.value === transaction.category
+                                    )?.name
+                                  }
+                                </span>
+                              )}
+                              <span className="text-gray-600">
+                                {transaction.date
+                                  ? new Date(transaction.date).toLocaleString(
+                                      'ru-RU',
+                                      {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      }
+                                    )
+                                  : ''}
+                              </span>
+                              {transaction.comment && (
+                                <span className="text-gray-700">
+                                  {transaction.comment}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="flex items-center justify-center text-orange-500 transition border border-orange-600 rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 bg-orange-50 hover:bg-orange-100 hover:text-orange-600"
+                                onClick={() =>
+                                  openTransactionModal(transaction._id)
+                                }
+                                disabled={financeLoading}
+                                title="Редактировать транзакцию"
+                              >
+                                <FontAwesomeIcon
+                                  className="w-4 h-4"
+                                  icon={faPencilAlt}
+                                />
+                              </button>
+                              <button
+                                type="button"
+                                className="flex items-center justify-center text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button h-9 w-9 hover:bg-red-50"
+                                onClick={() =>
+                                  handleDeleteTransaction(transaction._id)
+                                }
+                                disabled={financeLoading}
+                                title="Удалить транзакцию"
+                              >
+                                <FontAwesomeIcon
+                                  icon={faTrashAlt}
+                                  className="w-4 h-4"
+                                />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">
+                        Расходы
+                      </div>
+                      {expenseTransactions.length === 0 ? (
+                        <div className="px-3 pb-3 text-sm text-gray-500">
+                          Расходов нет
+                        </div>
+                      ) : (
+                        expenseTransactions.map((transaction) => (
+                          <div
+                            key={transaction._id}
+                            className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
+                          >
+                            <div className="flex flex-wrap flex-1 gap-3 text-sm">
+                              <span className="font-semibold text-gray-900">
+                                {transaction.amount.toLocaleString()} руб.
+                              </span>
+                              <span className="text-red-700">
+                                {TRANSACTION_TYPES.find(
+                                  (item) => item.value === transaction.type
+                                )?.name ?? transaction.type}
+                              </span>
+                              {transaction.category && (
+                                <span className="text-gray-600">
+                                  {
+                                    TRANSACTION_CATEGORIES.find(
+                                      (item) =>
+                                        item.value === transaction.category
+                                    )?.name
+                                  }
+                                </span>
+                              )}
+                              <span className="text-gray-600">
+                                {transaction.date
+                                  ? new Date(transaction.date).toLocaleString(
+                                      'ru-RU',
+                                      {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      }
+                                    )
+                                  : ''}
+                              </span>
+                              {transaction.comment && (
+                                <span className="text-gray-700">
+                                  {transaction.comment}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="flex items-center justify-center text-orange-500 transition border border-orange-600 rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 bg-orange-50 hover:bg-orange-100 hover:text-orange-600"
+                                onClick={() =>
+                                  openTransactionModal(transaction._id)
+                                }
+                                disabled={financeLoading}
+                                title="Редактировать транзакцию"
+                              >
+                                <FontAwesomeIcon
+                                  className="w-4 h-4"
+                                  icon={faPencilAlt}
+                                />
+                              </button>
+                              <button
+                                type="button"
+                                className="flex items-center justify-center text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button h-9 w-9 hover:bg-red-50"
+                                onClick={() =>
+                                  handleDeleteTransaction(transaction._id)
+                                }
+                                disabled={financeLoading}
+                                title="Удалить транзакцию"
+                              >
+                                <FontAwesomeIcon
+                                  icon={faTrashAlt}
+                                  className="w-4 h-4"
+                                />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
             )}
-
-            <div className="bg-white border border-gray-200 rounded shadow-sm">
-              {eventTransactions.length === 0 ? (
-                <div className="px-3 py-4 text-sm text-gray-500">
-                  Транзакции не найдены
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">
-                    Поступления
-                  </div>
-                  {incomeTransactions.length === 0 ? (
-                    <div className="px-3 pb-3 text-sm text-gray-500">
-                      Поступлений нет
-                    </div>
-                  ) : (
-                    incomeTransactions.map((transaction) => (
-                      <div
-                        key={transaction._id}
-                        className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
-                      >
-                        <div className="flex flex-wrap flex-1 gap-3 text-sm">
-                          <span className="font-semibold text-gray-900">
-                            {transaction.amount.toLocaleString()} руб.
-                          </span>
-                          <span className="text-emerald-700">
-                            {TRANSACTION_TYPES.find(
-                              (item) => item.value === transaction.type
-                            )?.name ?? transaction.type}
-                          </span>
-                          {transaction.category && (
-                            <span className="text-gray-600">
-                              {
-                                TRANSACTION_CATEGORIES.find(
-                                  (item) => item.value === transaction.category
-                                )?.name
-                              }
-                            </span>
-                          )}
-                          <span className="text-gray-600">
-                            {transaction.date
-                              ? new Date(transaction.date).toLocaleString(
-                                  'ru-RU',
-                                  {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  }
-                                )
-                              : ''}
-                          </span>
-                          {transaction.comment && (
-                            <span className="text-gray-700">
-                              {transaction.comment}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            className="flex items-center justify-center text-orange-500 transition border border-orange-600 rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 bg-orange-50 hover:bg-orange-100 hover:text-orange-600"
-                            onClick={() =>
-                              openTransactionModal(transaction._id)
-                            }
-                            disabled={financeLoading}
-                            title="Редактировать транзакцию"
-                          >
-                            <FontAwesomeIcon
-                              className="w-4 h-4"
-                              icon={faPencilAlt}
-                            />
-                          </button>
-                          <button
-                            type="button"
-                            className="flex items-center justify-center text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button h-9 w-9 hover:bg-red-50"
-                            onClick={() =>
-                              handleDeleteTransaction(transaction._id)
-                            }
-                            disabled={financeLoading}
-                            title="Удалить транзакцию"
-                          >
-                            <FontAwesomeIcon
-                              icon={faTrashAlt}
-                              className="w-4 h-4"
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">
-                    Расходы
-                  </div>
-                  {expenseTransactions.length === 0 ? (
-                    <div className="px-3 pb-3 text-sm text-gray-500">
-                      Расходов нет
-                    </div>
-                  ) : (
-                    expenseTransactions.map((transaction) => (
-                      <div
-                        key={transaction._id}
-                        className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
-                      >
-                        <div className="flex flex-wrap flex-1 gap-3 text-sm">
-                          <span className="font-semibold text-gray-900">
-                            {transaction.amount.toLocaleString()} руб.
-                          </span>
-                          <span className="text-red-700">
-                            {TRANSACTION_TYPES.find(
-                              (item) => item.value === transaction.type
-                            )?.name ?? transaction.type}
-                          </span>
-                          {transaction.category && (
-                            <span className="text-gray-600">
-                              {
-                                TRANSACTION_CATEGORIES.find(
-                                  (item) => item.value === transaction.category
-                                )?.name
-                              }
-                            </span>
-                          )}
-                          <span className="text-gray-600">
-                            {transaction.date
-                              ? new Date(transaction.date).toLocaleString(
-                                  'ru-RU',
-                                  {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  }
-                                )
-                              : ''}
-                          </span>
-                          {transaction.comment && (
-                            <span className="text-gray-700">
-                              {transaction.comment}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            className="flex items-center justify-center text-orange-500 transition border border-orange-600 rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 bg-orange-50 hover:bg-orange-100 hover:text-orange-600"
-                            onClick={() =>
-                              openTransactionModal(transaction._id)
-                            }
-                            disabled={financeLoading}
-                            title="Редактировать транзакцию"
-                          >
-                            <FontAwesomeIcon
-                              className="w-4 h-4"
-                              icon={faPencilAlt}
-                            />
-                          </button>
-                          <button
-                            type="button"
-                            className="flex items-center justify-center text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button h-9 w-9 hover:bg-red-50"
-                            onClick={() =>
-                              handleDeleteTransaction(transaction._id)
-                            }
-                            disabled={financeLoading}
-                            title="Удалить транзакцию"
-                          >
-                            <FontAwesomeIcon
-                              icon={faTrashAlt}
-                              className="w-4 h-4"
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         </TabPanel>
         {googleCalendarResponseText ? (

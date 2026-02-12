@@ -37,6 +37,11 @@ const transactionsSchema = {
     type: String,
     default: '',
   },
+  paymentMethod: {
+    type: String,
+    enum: ['transfer', 'account', 'cash', 'barter'],
+    default: 'transfer',
+  },
 }
 
 export default transactionsSchema

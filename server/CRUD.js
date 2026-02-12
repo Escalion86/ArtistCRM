@@ -148,6 +148,34 @@ const getSiteDefaultTown = async (tenantId) => {
   return settings?.defaultTown || ''
 }
 
+const buildNavigationLinks = (address) => {
+  if (!address || typeof address !== 'object') return []
+  const links = []
+  const town = typeof address.town === 'string' ? address.town.trim() : ''
+  const street = typeof address.street === 'string' ? address.street.trim() : ''
+  const house = typeof address.house === 'string' ? address.house.trim() : ''
+  const searchAddress = [town, street, house].filter(Boolean).join(', ')
+
+  const twoGisLink =
+    address.link2Gis ||
+    (town && street && house
+      ? `https://2gis.ru/search/${encodeURIComponent(searchAddress).replaceAll(
+          '%20',
+          ''
+        )}`
+      : '')
+  const yandexLink =
+    address.linkYandexNavigator ||
+    (town && street && house
+      ? `yandexnavi://map_search?text=${encodeURIComponent(searchAddress)}`
+      : '')
+
+  if (twoGisLink) links.push(`2ГИС: ${twoGisLink}`)
+  if (yandexLink) links.push(`Яндекс Навигатор: ${yandexLink}`)
+
+  return links
+}
+
 const getCalendarContext = async (user) => {
   if (!user) return null
   const settings = normalizeCalendarSettings(user)
@@ -385,6 +413,13 @@ const updateEventInCalendar = async (event, req, user) => {
   }
   if (financeLines.length) {
     preparedText = [preparedText, financeLines.join('\n')]
+      .filter(Boolean)
+      .join('\n\n')
+  }
+
+  const navigationLinks = buildNavigationLinks(event?.address)
+  if (navigationLinks.length > 0) {
+    preparedText = [preparedText, `Навигатор:\n${navigationLinks.join('\n')}`]
       .filter(Boolean)
       .join('\n\n')
   }

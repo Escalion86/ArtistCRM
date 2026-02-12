@@ -60,6 +60,10 @@ const eventsSchema = {
     type: [String],
     default: [],
   },
+  actLinks: {
+    type: [String],
+    default: [],
+  },
   address: {
     type: {
       town: { type: String, default: '' },

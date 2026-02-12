@@ -55,6 +55,12 @@ export const POST = async (req) => {
     )
   }
 
+  const paymentMethod =
+    body.paymentMethod &&
+    ['transfer', 'account', 'cash', 'barter'].includes(body.paymentMethod)
+      ? body.paymentMethod
+      : 'transfer'
+
   const transaction = await Transactions.create({
     tenantId,
     eventId: body.eventId,
@@ -64,6 +70,7 @@ export const POST = async (req) => {
     category: body.category ?? 'other',
     date: body.date ? new Date(body.date) : new Date(),
     comment: body.comment ?? '',
+    paymentMethod,
   })
 
   if (body.contractSum !== undefined && body.eventId) {

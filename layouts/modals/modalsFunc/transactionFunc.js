@@ -5,7 +5,11 @@ import InputWrapper from '@components/InputWrapper'
 import ClientPicker from '@components/ClientPicker'
 import EventPicker from '@components/EventPicker'
 import Note from '@components/Note'
-import { TRANSACTION_CATEGORIES, TRANSACTION_TYPES } from '@helpers/constants'
+import {
+  TRANSACTION_CATEGORIES,
+  TRANSACTION_PAYMENT_METHODS,
+  TRANSACTION_TYPES,
+} from '@helpers/constants'
 import { postData, putData } from '@helpers/CRUD'
 import clientsAtom from '@state/atoms/clientsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
@@ -54,6 +58,10 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       () => transaction?.category ?? 'other',
       [transaction?.category]
     )
+    const initialPaymentMethod = useMemo(
+      () => transaction?.paymentMethod ?? 'transfer',
+      [transaction?.paymentMethod]
+    )
     const [selectedEventId, setSelectedEventId] = useState(initialEventId)
     const [selectedClientId, setSelectedClientId] = useState(
       initialClientId ?? null
@@ -94,6 +102,7 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
     const [amountTouched, setAmountTouched] = useState(false)
     const [type, setType] = useState(initialType)
     const [category, setCategory] = useState(initialCategory)
+    const [paymentMethod, setPaymentMethod] = useState(initialPaymentMethod)
     const [date, setDate] = useState(initialDate)
     const [comment, setComment] = useState(initialComment)
     const [error, setError] = useState('')
@@ -155,6 +164,7 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
         initialAmount !== amount ||
         initialType !== type ||
         initialCategory !== category ||
+        initialPaymentMethod !== paymentMethod ||
         initialDate !== date ||
         initialComment !== comment,
       [
@@ -163,6 +173,7 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
         amount,
         type,
         category,
+        paymentMethod,
         date,
         comment,
         initialEventId,
@@ -170,6 +181,7 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
         initialAmount,
         initialType,
         initialCategory,
+        initialPaymentMethod,
         initialDate,
         initialComment,
       ]
@@ -206,6 +218,7 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
         amount: Number(amount) || 0,
         type,
         category,
+        paymentMethod,
         date,
         comment: comment?.trim() ?? '',
       }
@@ -270,6 +283,7 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       date,
       comment,
       category,
+      paymentMethod,
       selectedEventId,
       selectedClientId,
       selectedEvent?.contractSum,
@@ -395,6 +409,25 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
                     : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                 }`}
                 onClick={() => setCategory(item.value)}
+                disabled={loading || isReadOnly}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </InputWrapper>
+        <InputWrapper label="Метод оплаты" paddingY fitWidth>
+          <div className="flex flex-wrap gap-2">
+            {TRANSACTION_PAYMENT_METHODS.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className={`cursor-pointer rounded border px-3 py-2 text-sm font-semibold transition ${
+                  paymentMethod === item.value
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => setPaymentMethod(item.value)}
                 disabled={loading || isReadOnly}
               >
                 {item.name}
