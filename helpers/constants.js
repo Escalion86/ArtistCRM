@@ -417,6 +417,7 @@ export const DEFAULT_EVENT = Object.freeze({
   otherContacts: [],
   invoiceLinks: [],
   receiptLinks: [],
+  actLinks: [],
   servicesIds: [],
   address: DEFAULT_ADDRESS,
   status: 'active',
@@ -532,6 +533,13 @@ export const TRANSACTION_CATEGORIES = Object.freeze([
   { value: 'taxes', name: 'Налоги', type: 'expense' },
   { value: 'expense', name: 'Расходники', type: 'expense' },
   { value: 'other', name: 'Другое', type: 'both' },
+])
+
+export const TRANSACTION_PAYMENT_METHODS = Object.freeze([
+  { value: 'transfer', name: 'Перевод' },
+  { value: 'account', name: 'Расчетный счет' },
+  { value: 'cash', name: 'Наличка' },
+  { value: 'barter', name: 'Бартер' },
 ])
 export const DEFAULT_ADDITIONAL_BLOCK = Object.freeze({
   title: '',
