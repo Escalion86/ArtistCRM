@@ -1,17 +1,70 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { signIn } from 'next-auth/react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Input from '@components/Input'
 
 const normalizePhone = (value) => {
   if (!value) return ''
   const digits = String(value).replace(/[^\d]/g, '')
   if (digits.length === 10) return `7${digits}`
-  if (digits.length === 11 && digits.startsWith('8'))
-    return `7${digits.slice(1)}`
+  if (digits.length === 11 && digits.startsWith('8')) return `7${digits.slice(1)}`
   return digits
+}
+
+const formatPhoneForDisplay = (value) => {
+  const digits = String(value || '').replace(/[^\d]/g, '')
+  if (digits.length === 11) {
+    const normalized = digits.startsWith('8') ? `7${digits.slice(1)}` : digits
+    const local = normalized.slice(1)
+    return `+7 (${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(
+      6,
+      8
+    )}-${local.slice(8, 10)}`
+  }
+  return value || ''
+}
+
+const getPhoneForTel = (value) => {
+  const digits = String(value || '').replace(/[^\d]/g, '')
+  if (digits.length !== 11) return ''
+  if (digits.startsWith('8')) return `+7${digits.slice(1)}`
+  if (digits.startsWith('7')) return `+${digits}`
+  return ''
+}
+
+const createVerifyState = () => ({
+  callId: null,
+  status: 'idle',
+  verified: false,
+  authPhone: '',
+  urlImage: '',
+  smsRequested: false,
+  smsCode: '',
+  debugCode: '',
+  loadingStart: false,
+  loadingCheck: false,
+  loadingSmsSend: false,
+  loadingSmsCheck: false,
+  smsAvailableAt: null,
+  smsReady: false,
+})
+
+const getErrorMessage = (json, fallback) =>
+  json?.error?.message || json?.error || fallback
+
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+  const json = await res.json().catch(() => ({}))
+  return { res, json }
 }
 
 function validate_login(
@@ -55,52 +108,228 @@ const LoginInputs = () => {
   const [loginPhone, setLoginPhone] = useState(null)
   const [loginPassword, setLoginPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
   const [resetPhone, setResetPhone] = useState(null)
   const [resetPassword, setResetPassword] = useState('')
   const [isResetLoading, setIsResetLoading] = useState(false)
+  const [resetVerify, setResetVerify] = useState(createVerifyState)
+
   const [registerPhone, setRegisterPhone] = useState(null)
   const [registerPassword, setRegisterPassword] = useState('')
   const [registerPasswordRepeat, setRegisterPasswordRepeat] = useState('')
   const [isRegisterLoading, setIsRegisterLoading] = useState(false)
   const [registerTermsAccepted, setRegisterTermsAccepted] = useState(false)
+  const [registerVerify, setRegisterVerify] = useState(createVerifyState)
+
   const [loginPhoneHint, setLoginPhoneHint] = useState(false)
   const [resetPhoneHint, setResetPhoneHint] = useState(false)
   const [registerPhoneHint, setRegisterPhoneHint] = useState(false)
+
   const loginPhoneDigits = String(normalizePhone(loginPhone)).length
   const resetPhoneDigits = String(normalizePhone(resetPhone)).length
   const registerPhoneDigits = String(normalizePhone(registerPhone)).length
 
+  const resetPhoneNormalized = useMemo(() => normalizePhone(resetPhone), [resetPhone])
+  const registerPhoneNormalized = useMemo(
+    () => normalizePhone(registerPhone),
+    [registerPhone]
+  )
+
+  const startVerification = async ({
+    flow,
+    phone,
+    setPhoneHint,
+    setVerifyState,
+  }) => {
+    if (String(phone).length !== 11) {
+      setPhoneHint(true)
+      return
+    }
+
+    setVerifyState((prev) => ({
+      ...prev,
+      loadingStart: true,
+      verified: false,
+    }))
+
+    try {
+      const { res, json } = await postJson('/api/phone/verify/start', {
+        phone,
+        flow,
+      })
+
+      if (!res.ok || json?.success === false) {
+        alert(getErrorMessage(json, 'Не удалось начать подтверждение телефона'))
+        return
+      }
+
+      setVerifyState((prev) => ({
+        ...prev,
+        callId: json?.data?.id ?? null,
+        status: 'pending',
+        verified: false,
+        authPhone: json?.data?.auth_phone ?? '',
+        urlImage: json?.data?.url_image ?? '',
+        smsRequested: false,
+        smsCode: '',
+        debugCode: '',
+        smsAvailableAt: Date.now() + 60 * 1000,
+        smsReady: false,
+      }))
+    } catch (error) {
+      alert('Не удалось начать подтверждение телефона')
+    } finally {
+      setVerifyState((prev) => ({ ...prev, loadingStart: false }))
+    }
+  }
+
+  const checkVerification = async ({
+    flow,
+    phone,
+    callId,
+    setVerifyState,
+    silent = false,
+  }) => {
+    if (!callId) return
+
+    if (!silent) {
+      setVerifyState((prev) => ({ ...prev, loadingCheck: true }))
+    }
+
+    try {
+      const { res, json } = await postJson('/api/phone/verify/check', {
+        phone,
+        flow,
+        callId,
+      })
+
+      if (!res.ok || json?.success === false) {
+        if (!silent && json?.error?.code !== 'CHECK_RATE_LIMIT') {
+          alert(getErrorMessage(json, 'Не удалось проверить звонок'))
+        }
+        return
+      }
+
+      const status = json?.data?.status || 'pending'
+      const confirmed = Boolean(json?.data?.confirmed)
+
+      setVerifyState((prev) => ({
+        ...prev,
+        status,
+        verified: confirmed,
+      }))
+    } catch (error) {
+      if (!silent) {
+        alert('Не удалось проверить звонок')
+      }
+    } finally {
+      if (!silent) {
+        setVerifyState((prev) => ({ ...prev, loadingCheck: false }))
+      }
+    }
+  }
+
+  const sendSmsFallback = async ({ flow, phone, setVerifyState }) => {
+    setVerifyState((prev) => ({ ...prev, loadingSmsSend: true }))
+
+    try {
+      const { res, json } = await postJson('/api/phone/verify/sms/send', {
+        phone,
+        flow,
+      })
+
+      if (!res.ok || json?.success === false) {
+        alert(getErrorMessage(json, 'Не удалось отправить SMS-код'))
+        return
+      }
+
+      setVerifyState((prev) => ({
+        ...prev,
+        smsRequested: true,
+        debugCode: json?.data?.debugCode ?? '',
+        smsAvailableAt: Date.now() + 60 * 1000,
+        smsReady: false,
+      }))
+
+      alert('SMS-код отправлен')
+    } catch (error) {
+      alert('Не удалось отправить SMS-код')
+    } finally {
+      setVerifyState((prev) => ({ ...prev, loadingSmsSend: false }))
+    }
+  }
+
+  const checkSmsCode = async ({ flow, phone, code, setVerifyState }) => {
+    if (!String(code || '').trim()) {
+      alert('Введите код из SMS')
+      return
+    }
+
+    setVerifyState((prev) => ({ ...prev, loadingSmsCheck: true }))
+
+    try {
+      const { res, json } = await postJson('/api/phone/verify/sms/check', {
+        phone,
+        flow,
+        code,
+      })
+
+      if (!res.ok || json?.success === false) {
+        alert(getErrorMessage(json, 'Неверный код'))
+        return
+      }
+
+      setVerifyState((prev) => ({
+        ...prev,
+        verified: true,
+        status: 'ok',
+      }))
+    } catch (error) {
+      alert('Не удалось проверить SMS-код')
+    } finally {
+      setVerifyState((prev) => ({ ...prev, loadingSmsCheck: false }))
+    }
+  }
+
   const submitReset = async (event) => {
     event.preventDefault()
-    if (!resetPhone || !resetPassword) return
+
+    if (!resetPhone) return
+
+    if (!resetVerify.verified) {
+      await startVerification({
+        flow: 'recovery',
+        phone: resetPhoneNormalized,
+        setPhoneHint: setResetPhoneHint,
+        setVerifyState: setResetVerify,
+      })
+      return
+    }
+
+    if (!resetPassword) return
     if (String(resetPassword).length < 8) {
       alert('Пароль должен быть не менее 8 символов')
       return
     }
+
     setIsResetLoading(true)
-    setResetPhoneHint(false)
+
     try {
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: normalizePhone(resetPhone),
-          newPassword: resetPassword,
-        }),
+      const { res, json } = await postJson('/api/phone/verify/finalize', {
+        phone: resetPhoneNormalized,
+        password: resetPassword,
+        flow: 'recovery',
       })
-      const json = await res.json()
+
       if (!res.ok || json?.success === false) {
-        if (json?.error === 'INVALID_PHONE_LENGTH') {
-          setResetPhoneHint(true)
-        }
-        alert(json?.error || 'Не удалось восстановить пароль')
+        alert(getErrorMessage(json, 'Не удалось восстановить пароль'))
         return
       }
+
       alert('Пароль обновлен. Войдите с новым паролем.')
       setResetPhone('')
       setResetPassword('')
+      setResetVerify(createVerifyState())
       setMode('login')
     } catch (error) {
       alert('Не удалось восстановить пароль')
@@ -111,54 +340,68 @@ const LoginInputs = () => {
 
   const submitRegister = async (event) => {
     event.preventDefault()
-    if (!registerPhone || !registerPassword || !registerPasswordRepeat) return
+
+    if (!registerPhone) return
+
+    if (!registerVerify.verified) {
+      await startVerification({
+        flow: 'register',
+        phone: registerPhoneNormalized,
+        setPhoneHint: setRegisterPhoneHint,
+        setVerifyState: setRegisterVerify,
+      })
+      return
+    }
+
+    if (!registerPassword || !registerPasswordRepeat) return
+
     if (!registerTermsAccepted) {
       alert('Необходимо принять Политику и Соглашение')
       return
     }
+
     if (registerPassword !== registerPasswordRepeat) {
       alert('Пароли не совпадают')
       return
     }
+
     if (String(registerPassword).length < 8) {
       alert('Пароль должен быть не менее 8 символов')
       return
     }
+
     setIsRegisterLoading(true)
-    setRegisterPhoneHint(false)
+
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: normalizePhone(registerPhone),
-          password: registerPassword,
-        }),
+      const { res, json } = await postJson('/api/phone/verify/finalize', {
+        phone: registerPhoneNormalized,
+        password: registerPassword,
+        flow: 'register',
+        consentToMailing: false,
       })
-      const json = await res.json()
+
       if (!res.ok || json?.success === false) {
-        if (json?.error === 'INVALID_PHONE_LENGTH') {
-          setRegisterPhoneHint(true)
-        }
-        alert(json?.error || 'Не удалось зарегистрироваться')
+        alert(getErrorMessage(json, 'Не удалось зарегистрироваться'))
         return
       }
+
       const signInResult = await signIn('credentials', {
-        phone: normalizePhone(registerPhone),
+        phone: registerPhoneNormalized,
         password: registerPassword,
         redirect: false,
       })
+
       if (signInResult?.error) {
         alert('Регистрация успешна. Войдите в кабинет.')
         setRegisterPhone(null)
         setRegisterPassword('')
         setRegisterPasswordRepeat('')
         setRegisterTermsAccepted(false)
+        setRegisterVerify(createVerifyState())
         setMode('login')
         return
       }
+
       window.location.replace('/cabinet')
     } catch (error) {
       alert('Не удалось зарегистрироваться')
@@ -166,6 +409,185 @@ const LoginInputs = () => {
       setIsRegisterLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!registerVerify.smsAvailableAt || registerVerify.smsReady) return
+    const delayMs = Math.max(0, Number(registerVerify.smsAvailableAt) - Date.now())
+    const timer = setTimeout(() => {
+      setRegisterVerify((prev) => ({ ...prev, smsReady: true }))
+    }, delayMs)
+    return () => clearTimeout(timer)
+  }, [registerVerify.smsAvailableAt, registerVerify.smsReady])
+
+  useEffect(() => {
+    if (!resetVerify.smsAvailableAt || resetVerify.smsReady) return
+    const delayMs = Math.max(0, Number(resetVerify.smsAvailableAt) - Date.now())
+    const timer = setTimeout(() => {
+      setResetVerify((prev) => ({ ...prev, smsReady: true }))
+    }, delayMs)
+    return () => clearTimeout(timer)
+  }, [resetVerify.smsAvailableAt, resetVerify.smsReady])
+
+  useEffect(() => {
+    if (!registerVerify.callId || registerVerify.verified) return
+    if (registerVerify.status === 'expired') return
+
+    const interval = setInterval(() => {
+      checkVerification({
+        flow: 'register',
+        phone: registerPhoneNormalized,
+        callId: registerVerify.callId,
+        setVerifyState: setRegisterVerify,
+        silent: true,
+      })
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [
+    registerVerify.callId,
+    registerVerify.verified,
+    registerVerify.status,
+    registerPhoneNormalized,
+  ])
+
+  useEffect(() => {
+    if (!resetVerify.callId || resetVerify.verified) return
+    if (resetVerify.status === 'expired') return
+
+    const interval = setInterval(() => {
+      checkVerification({
+        flow: 'recovery',
+        phone: resetPhoneNormalized,
+        callId: resetVerify.callId,
+        setVerifyState: setResetVerify,
+        silent: true,
+      })
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [
+    resetVerify.callId,
+    resetVerify.verified,
+    resetVerify.status,
+    resetPhoneNormalized,
+  ])
+
+  const VerificationBlock = ({ flow, phone, verifyState, setVerifyState }) => (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
+      <div className="font-medium text-gray-900">Подтверждение телефона</div>
+      {!verifyState.callId && (
+        <div className="mt-2 text-gray-600">
+          Нажмите на кнопку ниже, чтобы получить подтверждающий звонок.
+        </div>
+      )}
+
+      {verifyState.callId && !verifyState.verified && (
+        <div className="mt-2 flex flex-col gap-2">
+          {verifyState.authPhone && (
+            <div className="rounded-md bg-white p-3 text-sm text-gray-800">
+              Подтвердите номер телефона, позвонив на{' '}
+              <span className="font-semibold text-black">
+                {formatPhoneForDisplay(verifyState.authPhone)}
+              </span>
+              . Звонок бесплатный.
+            </div>
+          )}
+          {verifyState.urlImage && (
+            <div className="hidden md:block">
+              <div className="mb-2 text-xs text-gray-600">
+                Или отсканируйте QR-код:
+              </div>
+              <div className="inline-flex rounded-md bg-white p-2">
+                <Image
+                  src={verifyState.urlImage}
+                  alt="QR-код для подтверждения телефона"
+                  width={120}
+                  height={120}
+                  className="h-[120px] w-[120px]"
+                  unoptimized
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {getPhoneForTel(verifyState.authPhone) && (
+              <a
+                href={`tel:${getPhoneForTel(verifyState.authPhone)}`}
+                className="w-full cursor-pointer rounded-md border border-gray-300 px-5 py-2.5 text-center text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+              >
+                Позвонить
+              </a>
+            )}
+
+            {!verifyState.smsReady && (
+              <div className="w-full text-center text-xs text-gray-500">
+                Кнопка SMS станет доступна через 60 секунд.
+              </div>
+            )}
+
+            {verifyState.smsReady && (
+              <button
+                type="button"
+                className="w-full cursor-pointer rounded-md border border-general px-3 py-2 text-sm font-medium text-general transition hover:bg-[#f7efe1] disabled:cursor-not-allowed disabled:text-gray-400 disabled:border-gray-300"
+                onClick={() =>
+                  sendSmsFallback({ flow, phone, setVerifyState })
+                }
+                disabled={verifyState.loadingSmsSend}
+              >
+                {verifyState.loadingSmsSend
+                  ? 'Отправка SMS...'
+                  : 'Получить код по SMS'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {verifyState.smsRequested && !verifyState.verified && (
+        <div className="mt-3 flex flex-col gap-2">
+          <Input
+            label="Код из SMS"
+            value={verifyState.smsCode}
+            onChange={(value) =>
+              setVerifyState((prev) => ({
+                ...prev,
+                smsCode: String(value || ''),
+              }))
+            }
+            className="w-full"
+            noMargin
+          />
+
+          {verifyState.debugCode && (
+            <div className="text-[11px] text-gray-500">
+              Тестовый код (dev): <span className="font-semibold">{verifyState.debugCode}</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="cursor-pointer self-start rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-400"
+            onClick={() =>
+              checkSmsCode({
+                flow,
+                phone,
+                code: verifyState.smsCode,
+                setVerifyState,
+              })
+            }
+            disabled={verifyState.loadingSmsCheck}
+          >
+            {verifyState.loadingSmsCheck ? 'Проверка...' : 'Подтвердить код'}
+          </button>
+        </div>
+      )}
+
+      {verifyState.verified && (
+        <div className="mt-2 font-medium text-green-700">Телефон подтвержден</div>
+      )}
+    </div>
+  )
 
   return (
     <div className="relative flex min-h-[100dvh] w-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#f7efe1] via-[#ebd3a5] to-[#d8ba86] px-4 py-10">
@@ -188,8 +610,8 @@ const LoginInputs = () => {
             {mode === 'login'
               ? 'Введите телефон и пароль, чтобы продолжить работу.'
               : mode === 'reset'
-              ? 'Укажите телефон и новый пароль для восстановления доступа.'
-              : 'Укажите телефон и задайте пароль для нового аккаунта.'}
+              ? 'Подтвердите номер и задайте новый пароль.'
+              : 'Подтвердите номер телефона и создайте аккаунт.'}
           </p>
         </div>
 
@@ -219,9 +641,7 @@ const LoginInputs = () => {
               noMargin
             />
             {loginPhoneHint && loginPhoneDigits !== 11 && (
-              <div className="text-xs text-danger">
-                Введите 11 цифр телефона.
-              </div>
+              <div className="text-xs text-danger">Введите 11 цифр телефона.</div>
             )}
 
             <Input
@@ -235,7 +655,7 @@ const LoginInputs = () => {
             />
 
             <button
-              className="bg-general mt-2 w-full rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="bg-general mt-2 w-full cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
               type="submit"
               disabled={!loginPhone || !loginPassword || isSubmitting}
             >
@@ -250,35 +670,55 @@ const LoginInputs = () => {
               onChange={(nextValue) => {
                 setResetPhone(nextValue)
                 setResetPhoneHint(false)
+                setResetVerify(createVerifyState())
               }}
               type="phone"
               className="w-full"
               noMargin
             />
             {resetPhoneHint && resetPhoneDigits !== 11 && (
-              <div className="text-xs text-danger">
-                Введите 11 цифр телефона.
-              </div>
+              <div className="text-xs text-danger">Введите 11 цифр телефона.</div>
             )}
 
-            <Input
-              label="Новый пароль"
-              type="password"
-              value={resetPassword}
-              onChange={setResetPassword}
-              placeholder="Новый пароль"
-              autoComplete="new-password"
-              fullWidth
-              noMargin
+            <VerificationBlock
+              flow="recovery"
+              phone={resetPhoneNormalized}
+              verifyState={resetVerify}
+              setVerifyState={setResetVerify}
             />
 
-            <button
-              type="submit"
-              className="bg-general mt-2 w-full rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
-              disabled={!resetPhone || !resetPassword || isResetLoading}
-            >
-              {isResetLoading ? 'Сохранение...' : 'Сбросить пароль'}
-            </button>
+            {resetVerify.verified && (
+              <Input
+                label="Новый пароль"
+                type="password"
+                value={resetPassword}
+                onChange={setResetPassword}
+                autoComplete="new-password"
+                fullWidth
+                noMargin
+              />
+            )}
+
+            {(resetVerify.verified || !resetVerify.callId) && (
+              <button
+                type="submit"
+                className="bg-general mt-2 w-full cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
+                disabled={
+                  !resetPhone ||
+                  isResetLoading ||
+                  resetVerify.loadingStart ||
+                  (resetVerify.verified && !resetPassword)
+                }
+              >
+                {!resetVerify.verified
+                  ? resetVerify.loadingStart
+                    ? 'Запрос...'
+                    : 'Подтвердить номер'
+                  : isResetLoading
+                  ? 'Сохранение...'
+                  : 'Сбросить пароль'}
+              </button>
+            )}
           </form>
         ) : (
           <form onSubmit={submitRegister} className="flex flex-col gap-4">
@@ -288,72 +728,102 @@ const LoginInputs = () => {
               onChange={(nextValue) => {
                 setRegisterPhone(nextValue)
                 setRegisterPhoneHint(false)
+                setRegisterVerify(createVerifyState())
               }}
               type="phone"
               className="w-full"
               noMargin
             />
             {registerPhoneHint && registerPhoneDigits !== 11 && (
-              <div className="text-xs text-danger">
-                Введите 11 цифр телефона.
-              </div>
+              <div className="text-xs text-danger">Введите 11 цифр телефона.</div>
             )}
 
-            <Input
-              label="Пароль"
-              type="password"
-              value={registerPassword}
-              onChange={setRegisterPassword}
-              autoComplete="new-password"
-              fullWidth
-              noMargin
+            <VerificationBlock
+              flow="register"
+              phone={registerPhoneNormalized}
+              verifyState={registerVerify}
+              setVerifyState={setRegisterVerify}
             />
 
-            <Input
-              label="Повторите пароль"
-              type="password"
-              value={registerPasswordRepeat}
-              onChange={setRegisterPasswordRepeat}
-              autoComplete="new-password"
-              fullWidth
-              noMargin
-            />
+            {registerVerify.verified && (
+              <>
+                <Input
+                  label="Пароль"
+                  type="password"
+                  value={registerPassword}
+                  onChange={setRegisterPassword}
+                  autoComplete="new-password"
+                  fullWidth
+                  noMargin
+                />
 
-            <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 cursor-pointer"
-                checked={registerTermsAccepted}
-                onChange={(event) =>
-                  setRegisterTermsAccepted(event.target.checked)
+                <Input
+                  label="Повторите пароль"
+                  type="password"
+                  value={registerPasswordRepeat}
+                  onChange={setRegisterPasswordRepeat}
+                  autoComplete="new-password"
+                  fullWidth
+                  noMargin
+                />
+
+                <label className="flex cursor-pointer items-start gap-2 text-xs text-gray-600">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 cursor-pointer"
+                    checked={registerTermsAccepted}
+                    onChange={(event) =>
+                      setRegisterTermsAccepted(event.target.checked)
+                    }
+                  />
+                  <span>
+                    Я принимаю{' '}
+                    <Link
+                      href="/privacy"
+                      className="text-general"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Политику конфиденциальности
+                    </Link>{' '}
+                    и{' '}
+                    <Link
+                      href="/terms"
+                      className="text-general"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Пользовательское соглашение
+                    </Link>
+                    .
+                  </span>
+                </label>
+              </>
+            )}
+
+            {(registerVerify.verified || !registerVerify.callId) && (
+              <button
+                type="submit"
+                className="mt-2 w-full cursor-pointer rounded-lg bg-general px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
+                disabled={
+                  !registerPhone ||
+                  isRegisterLoading ||
+                  registerVerify.loadingStart ||
+                  (registerVerify.verified &&
+                    (!registerPassword ||
+                      !registerPasswordRepeat ||
+                      !registerTermsAccepted))
                 }
-              />
-              <span>
-                Я принимаю{' '}
-                <Link href="/privacy" className="text-general">
-                  Политику конфиденциальности
-                </Link>{' '}
-                и{' '}
-                <Link href="/terms" className="text-general">
-                  Пользовательское соглашение
-                </Link>
-                .
-              </span>
-            </label>
-
-            <button
-              type="submit"
-              className="mt-2 w-full rounded-lg bg-general px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
-              disabled={
-                !registerPhone ||
-                !registerPassword ||
-                !registerPasswordRepeat ||
-                !registerTermsAccepted ||
-                isRegisterLoading
-              }
-            >
-              {isRegisterLoading ? 'Создание...' : 'Создать аккаунт'}
-            </button>
+              >
+                {!registerVerify.verified
+                  ? registerVerify.loadingStart
+                    ? 'Запрос...'
+                    : 'Подтвердить номер'
+                  : isRegisterLoading
+                  ? 'Создание...'
+                  : 'Создать аккаунт'}
+              </button>
+            )}
           </form>
         )}
 
@@ -361,21 +831,21 @@ const LoginInputs = () => {
           <div className="mt-6 flex flex-col gap-2">
             <button
               type="button"
-              className="w-full text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
               onClick={() => setMode('reset')}
             >
               Забыли пароль?
             </button>
             <button
               type="button"
-              className="w-full text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
               onClick={() => setMode('register')}
             >
               Создать аккаунт
             </button>
             <Link
               href="/"
-              className="w-full text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
             >
               На главную
             </Link>
@@ -384,14 +854,14 @@ const LoginInputs = () => {
           <div className="mt-6 flex flex-col gap-2">
             <button
               type="button"
-              className="w-full text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
               onClick={() => setMode('login')}
             >
               Вернуться ко входу
             </button>
             <Link
               href="/"
-              className="w-full text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
             >
               На главную
             </Link>

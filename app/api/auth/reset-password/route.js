@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
+import PhoneConfirms from '@models/PhoneConfirms'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -33,6 +34,18 @@ export const POST = async (req) => {
   }
 
   await dbConnect()
+
+  const phoneConfirm = await PhoneConfirms.findOne({ phone, flow: 'recovery' })
+  const confirmExpired =
+    !phoneConfirm?.expiresAt ||
+    new Date(phoneConfirm.expiresAt).getTime() <= Date.now()
+  if (!phoneConfirm?.confirmed || confirmExpired) {
+    return NextResponse.json(
+      { success: false, error: 'PHONE_NOT_CONFIRMED' },
+      { status: 403 }
+    )
+  }
+
   const numericPhone = Number(phone)
   const phoneQuery = Number.isNaN(numericPhone)
     ? { phone }
@@ -47,6 +60,7 @@ export const POST = async (req) => {
 
   user.password = await bcrypt.hash(newPassword, 10)
   await user.save()
+  await PhoneConfirms.deleteMany({ phone })
 
   return NextResponse.json({ success: true }, { status: 200 })
 }
