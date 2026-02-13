@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import dbConnect from '@server/dbConnect'
 import Tariffs from '@models/Tariffs'
 import { getServerSession } from 'next-auth'
@@ -44,6 +45,31 @@ export default async function HomePage() {
   const publicTariffs = tariffs ?? []
   return (
     <main className="home-page relative overflow-hidden">
+      <div className="relative z-20 mx-auto flex w-full max-w-6xl items-center justify-between px-6 pt-6">
+        <Link
+          href="/"
+          className="flex cursor-pointer items-center gap-3"
+        >
+          <Image
+            src="/img/logo.png"
+            alt="ArtistCRM"
+            width={36}
+            height={36}
+            className="h-9 w-9 rounded-full object-cover"
+            priority
+          />
+          <span className="text-sm font-semibold tracking-wide text-black">
+            ArtistCRM
+          </span>
+        </Link>
+        <Link
+          href="/login"
+          className="cursor-pointer rounded-full bg-general px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl"
+        >
+          Войти в систему
+        </Link>
+      </div>
+
       <div className="home-hero-bg absolute inset-0 pointer-events-none">
         <div className="absolute right-0 rounded-full from-general/40 -top-24 h-72 w-72 bg-gradient-to-br via-white/10 to-transparent blur-3xl" />
         <div className="via-general/20 absolute bottom-0 left-0 h-80 w-80 rounded-full bg-gradient-to-tr from-[#c9a86a]/30 to-transparent blur-3xl" />
@@ -104,65 +130,7 @@ export default async function HomePage() {
         </div>
 
         <div className="relative flex-1">
-          <div className="home-panel p-6 border shadow-xl landing-reveal rounded-3xl border-white/70 bg-white/70 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold tracking-[0.24em] text-gray-500 uppercase">
-                  Сегодня
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-black">
-                  6 новых заявок
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-general/20 rounded-2xl" />
-            </div>
-            <div className="mt-6 space-y-4">
-              {[
-                {
-                  title: 'Корпоратив, Москва',
-                  status: 'На подтверждении',
-                },
-                { title: 'Свадьба, Сочи', status: 'Договор подписан' },
-                { title: 'Фестиваль, Казань', status: 'Нужен счет' },
-              ].map((item, index) => (
-                <div
-                  key={item.title}
-                  className="home-mini-card flex items-center justify-between px-4 py-3 text-sm text-gray-700 bg-white border shadow-sm landing-stagger rounded-2xl border-gray-200/60"
-                  style={{ '--delay': `${index * 120 + 120}ms` }}
-                >
-                  <span className="font-medium text-gray-900">
-                    {item.title}
-                  </span>
-                  <span className="home-badge px-3 py-1 text-xs font-semibold rounded-full bg-general/15 text-general">
-                    {item.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="grid gap-4 mt-6 sm:grid-cols-2">
-              <div className="home-mini-card p-4 rounded-2xl bg-gray-50">
-                <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
-                  Доходы
-                </p>
-                <p className="mt-2 text-xl font-semibold text-black">
-                  243 000 ₽
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  +18% к прошлому месяцу
-                </p>
-              </div>
-              <div className="home-mini-card p-4 rounded-2xl bg-gray-50">
-                <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
-                  Активные клиенты
-                </p>
-                <p className="mt-2 text-xl font-semibold text-black">24</p>
-                <p className="mt-1 text-xs text-gray-500">
-                  Звонки, мессенджеры, почта
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="home-panel hidden p-5 border shadow-lg landing-reveal w-60 rounded-3xl border-white/70 bg-white/80 backdrop-blur lg:static lg:mt-6 lg:block xl:absolute xl:-right-6 xl:-bottom-6">
+          <div className="home-panel hidden p-5 border shadow-lg landing-reveal w-full rounded-3xl border-white/70 bg-white/80 backdrop-blur lg:mt-6 lg:block lg:max-w-xs">
             <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
               Синхронизация
             </p>
@@ -352,10 +320,20 @@ export default async function HomePage() {
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-8 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} ArtistCRM</span>
           <div className="flex flex-wrap gap-4">
-            <Link href="/privacy" className="text-general">
+            <Link
+              href="/privacy"
+              className="text-general"
+              target="_blank"
+              rel="noreferrer"
+            >
               Политика конфиденциальности
             </Link>
-            <Link href="/terms" className="text-general">
+            <Link
+              href="/terms"
+              className="text-general"
+              target="_blank"
+              rel="noreferrer"
+            >
               Пользовательское соглашение
             </Link>
           </div>

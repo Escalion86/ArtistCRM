@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
 import Tariffs from '@models/Tariffs'
+import PhoneConfirms from '@models/PhoneConfirms'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -34,6 +35,17 @@ export const POST = async (req) => {
   }
 
   await dbConnect()
+
+  const phoneConfirm = await PhoneConfirms.findOne({ phone, flow: 'register' })
+  const confirmExpired =
+    !phoneConfirm?.expiresAt ||
+    new Date(phoneConfirm.expiresAt).getTime() <= Date.now()
+  if (!phoneConfirm?.confirmed || confirmExpired) {
+    return NextResponse.json(
+      { success: false, error: 'PHONE_NOT_CONFIRMED' },
+      { status: 403 }
+    )
+  }
 
   const numericPhone = Number(phone)
   const phoneQuery = Number.isNaN(numericPhone)
@@ -73,6 +85,7 @@ export const POST = async (req) => {
       await user.save()
     }
 
+    await PhoneConfirms.deleteMany({ phone })
     return NextResponse.json({ success: true }, { status: 201 })
   } catch (error) {
     if (error?.code === 11000) {
