@@ -101,6 +101,12 @@ const normalizeAdditionalEvents = (items) => {
     .filter(Boolean)
 }
 
+const DEPOSIT_STATUS_OPTIONS = [
+  { value: 'none', label: 'Задатка нет' },
+  { value: 'partial', label: 'Частичный задаток' },
+  { value: 'received', label: 'Задаток получен' },
+]
+
 const eventFunc = (eventId, clone = false, initialStatus = null) => {
   const EventModal = ({
     closeModal,
@@ -167,6 +173,15 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
 
     const [contractSum, setContractSum] = useState(
       event?.contractSum ?? DEFAULT_EVENT.contractSum ?? 0
+    )
+    const [depositStatus, setDepositStatus] = useState(
+      event?.depositStatus ?? DEFAULT_EVENT.depositStatus ?? 'none'
+    )
+    const [depositAmount, setDepositAmount] = useState(
+      event?.depositAmount ?? DEFAULT_EVENT.depositAmount ?? 0
+    )
+    const [depositDueAt, setDepositDueAt] = useState(
+      event?.depositDueAt ?? DEFAULT_EVENT.depositDueAt ?? null
     )
     const [isByContract, setIsByContract] = useState(
       event?.isByContract ?? DEFAULT_EVENT.isByContract ?? false
@@ -246,6 +261,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           return normalized
         })(),
         contractSum: event?.contractSum ?? DEFAULT_EVENT.contractSum,
+        depositStatus: event?.depositStatus ?? DEFAULT_EVENT.depositStatus,
+        depositAmount: event?.depositAmount ?? DEFAULT_EVENT.depositAmount,
+        depositDueAt: event?.depositDueAt ?? DEFAULT_EVENT.depositDueAt,
         isByContract: event?.isByContract ?? DEFAULT_EVENT.isByContract,
         description:
           event?.description ?? event?.comment ?? DEFAULT_EVENT.description,
@@ -277,6 +295,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       event?.eventDate,
       event?.address,
       event?.contractSum,
+      event?.depositStatus,
+      event?.depositAmount,
+      event?.depositDueAt,
       event?.description,
       event?.isByContract,
       event?.financeComment,
@@ -315,6 +336,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         initialEventValues.dateEnd !== dateEnd ||
         initialAddressSignature !== addressSignature ||
         initialEventValues.contractSum !== contractSum ||
+        initialEventValues.depositStatus !== depositStatus ||
+        initialEventValues.depositAmount !== depositAmount ||
+        initialEventValues.depositDueAt !== depositDueAt ||
         initialEventValues.isByContract !== isByContract ||
         initialEventValues.isTransferred !== isTransferred ||
         initialEventValues.colleagueId !== colleagueId ||
@@ -342,6 +366,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         initialAddressSignature,
         addressSignature,
         contractSum,
+        depositStatus,
+        depositAmount,
+        depositDueAt,
         isByContract,
         isTransferred,
         colleagueId,
@@ -391,6 +418,15 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           (total, item) => total + (item.amount ?? 0),
           0
         ),
+      [incomeTransactions]
+    )
+    const depositIncomeTotal = useMemo(
+      () =>
+        incomeTransactions
+          .filter((item) =>
+            ['deposit', 'advance'].includes(String(item?.category ?? ''))
+          )
+          .reduce((total, item) => total + (item.amount ?? 0), 0),
       [incomeTransactions]
     )
     const hasTaxes = useMemo(
@@ -533,6 +569,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           typeof contractSum === 'number' && !Number.isNaN(contractSum)
             ? contractSum
             : 0
+        const normalizedDepositAmount =
+          typeof depositAmount === 'number' && !Number.isNaN(depositAmount)
+            ? depositAmount
+            : 0
         const normalizedInvoiceLinks = normalizeLinksList(invoiceLinks)
         const normalizedReceiptLinks = normalizeLinksList(receiptLinks)
         const normalizedActLinks = normalizeLinksList(actLinks)
@@ -564,6 +604,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           dateEnd,
           address: normalizeAddressValue(address),
           contractSum: normalizedContractSum,
+          depositStatus,
+          depositAmount: Math.max(normalizedDepositAmount, 0),
+          depositDueAt,
           isByContract,
           description: description?.trim() ?? '',
           financeComment: financeComment?.trim() ?? '',
@@ -601,6 +644,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       description,
       financeComment,
       contractSum,
+      depositStatus,
+      depositAmount,
+      depositDueAt,
       isByContract,
       dateEnd,
       event?._id,
@@ -1160,6 +1206,47 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               step={1000}
               noMargin
             />
+            <Input
+              label="Сумма задатка"
+              type="number"
+              value={depositAmount}
+              onChange={setDepositAmount}
+              min={0}
+              step={500}
+              noMargin
+            />
+            <DateTimePicker
+              value={depositDueAt}
+              onChange={(value) => setDepositDueAt(value ?? null)}
+              label="Срок задатка"
+              noMargin
+            />
+            <InputWrapper label="Статус задатка" noMargin>
+              <div className="flex flex-wrap gap-2">
+                {DEPOSIT_STATUS_OPTIONS.map((item) => {
+                  const selected = depositStatus === item.value
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      className={`cursor-pointer rounded border px-3 py-1 text-sm font-semibold transition ${
+                        selected
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                          : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setDepositStatus(item.value)}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </InputWrapper>
+            {depositIncomeTotal > 0 ? (
+              <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                Получено задатком по транзакциям: {depositIncomeTotal.toLocaleString('ru-RU')} ₽
+              </div>
+            ) : null}
             <Textarea
               label="Комментарий по финансам"
               value={financeComment}

@@ -151,6 +151,19 @@ const eventsSchema = {
     type: Number,
     default: 0,
   },
+  depositStatus: {
+    type: String,
+    enum: ['none', 'partial', 'received'],
+    default: 'none',
+  },
+  depositAmount: {
+    type: Number,
+    default: 0,
+  },
+  depositDueAt: {
+    type: Date,
+    default: null,
+  },
   isByContract: {
     type: Boolean,
     default: false,

@@ -187,6 +187,25 @@ const buildEventUpdate = (
   if (parsedEvent.eventDate) setPayload.eventDate = parsedEvent.eventDate
   if (parsedEvent.contractSum !== null && parsedEvent.contractSum !== undefined)
     setPayload.contractSum = parsedEvent.contractSum
+  const parsedDeposit = parsedEvent?.clientData?.deposit
+  if (parsedDeposit) {
+    const depositStatus = ['none', 'partial', 'received'].includes(
+      parsedDeposit.status
+    )
+      ? parsedDeposit.status
+      : Number(parsedDeposit.amount) > 0
+        ? 'partial'
+        : 'none'
+    const parsedDepositDueAt = parsedDeposit.date
+      ? new Date(parsedDeposit.date)
+      : null
+    setPayload.depositStatus = depositStatus
+    setPayload.depositAmount = Number(parsedDeposit.amount) || 0
+    setPayload.depositDueAt =
+      parsedDepositDueAt && !Number.isNaN(parsedDepositDueAt.getTime())
+        ? parsedDepositDueAt
+        : null
+  }
   if (parsedEvent.clientData && Object.keys(parsedEvent.clientData).length > 0)
     setPayload.clientData = parsedEvent.clientData
   if (parsedEvent.isTransferred) setPayload.isTransferred = true
@@ -497,7 +516,7 @@ const ensureDepositTransaction = async ({
     eventId,
     tenantId,
     type: 'income',
-    category: 'advance',
+    category: { $in: ['deposit', 'advance'] },
   }).lean()
 
   const normalizedDate = date ? new Date(date) : new Date()
@@ -506,6 +525,7 @@ const ensureDepositTransaction = async ({
     if (existing.comment !== DEPOSIT_TRANSACTION_COMMENT) return existing
     const shouldUpdate =
       Number(existing.amount ?? 0) !== Number(amount) ||
+      existing.category !== 'deposit' ||
       (existing.date && normalizedDate
         ? new Date(existing.date).getTime() !== normalizedDate.getTime()
         : Boolean(existing.date) !== Boolean(normalizedDate))
@@ -513,7 +533,7 @@ const ensureDepositTransaction = async ({
     if (shouldUpdate) {
       return Transactions.findByIdAndUpdate(
         existing._id,
-        { amount, date: normalizedDate },
+        { amount, date: normalizedDate, category: 'deposit' },
         { new: true }
       )
     }
@@ -527,7 +547,7 @@ const ensureDepositTransaction = async ({
     clientId,
     amount,
     type: 'income',
-    category: 'advance',
+    category: 'deposit',
     date: normalizedDate,
     comment: DEPOSIT_TRANSACTION_COMMENT,
   })
@@ -555,13 +575,14 @@ const ensureFinalPaymentTransaction = async ({
     eventId,
     tenantId,
     type: 'income',
-    category: 'client_payment',
+    category: { $in: ['final_payment', 'client_payment'] },
   }).lean()
 
   if (existing) {
     if (existing.comment !== FINAL_PAYMENT_TRANSACTION_COMMENT) return existing
     const shouldUpdate =
       Number(existing.amount ?? 0) !== Number(remaining) ||
+      existing.category !== 'final_payment' ||
       (existing.date && normalizedDate
         ? new Date(existing.date).getTime() !== normalizedDate.getTime()
         : Boolean(existing.date) !== Boolean(normalizedDate))
@@ -569,7 +590,7 @@ const ensureFinalPaymentTransaction = async ({
     if (shouldUpdate) {
       return Transactions.findByIdAndUpdate(
         existing._id,
-        { amount: remaining, date: normalizedDate },
+        { amount: remaining, date: normalizedDate, category: 'final_payment' },
         { new: true }
       )
     }
@@ -583,7 +604,7 @@ const ensureFinalPaymentTransaction = async ({
     clientId,
     amount: remaining,
     type: 'income',
-    category: 'client_payment',
+    category: 'final_payment',
     date: normalizedDate,
     comment: FINAL_PAYMENT_TRANSACTION_COMMENT,
   })

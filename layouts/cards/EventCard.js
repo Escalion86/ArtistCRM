@@ -30,6 +30,7 @@ import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import CardOverlay from '@components/CardOverlay'
 import CardActions from '@components/CardActions'
 import CardWrapper from '@components/CardWrapper'
+import { getSoonNoDepositEvents } from '@helpers/additionalEvents'
 
 const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
 
@@ -163,6 +164,12 @@ const EventCard = ({ eventId, style }) => {
     if (normalizedTown !== normalizedDefaultTown) return address
     return { ...address, town: '' }
   }, [event?.address, siteSettings?.defaultTown])
+
+  const hasSoonNoDepositWarning = useMemo(() => {
+    if (!event?._id) return false
+    const items = getSoonNoDepositEvents([event], transactions, new Date(), 3)
+    return items.length > 0
+  }, [event, transactions])
 
   const nearestAdditionalEvent = useMemo(() => {
     const additionalEvents = Array.isArray(event?.additionalEvents)
@@ -312,6 +319,11 @@ const EventCard = ({ eventId, style }) => {
               }
             >
               {`${nearestAdditionalEvent.title}: ${nearestAdditionalEvent.label}`}
+            </div>
+          )}
+          {hasSoonNoDepositWarning && (
+            <div className="inline-flex max-w-max items-center rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+              Скоро, задатка нет
             </div>
           )}
           <div className="flex items-center flex-nowrap gap-x-3">

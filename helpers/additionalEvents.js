@@ -4,6 +4,23 @@ const toDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+const hasDepositByTransactions = (eventId, transactions) => {
+  if (!eventId) return false
+  return (Array.isArray(transactions) ? transactions : []).some((item) => {
+    if (String(item?.eventId) !== String(eventId)) return false
+    if (item?.type !== 'income') return false
+    if (!['deposit', 'advance'].includes(String(item?.category ?? ''))) return false
+    return Number(item?.amount ?? 0) > 0
+  })
+}
+
+const hasNoDeposit = (event, transactions) => {
+  if (!event) return false
+  const status = String(event?.depositStatus ?? 'none')
+  if (status === 'received' || status === 'partial') return false
+  return !hasDepositByTransactions(event?._id, transactions)
+}
+
 const startOfDay = (date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
@@ -42,6 +59,35 @@ export const getAdditionalEventsSummary = (events, now = new Date()) => {
     )
   })
 
+  return summary
+}
+
+export const getInAppReminderSummary = (events, now = new Date()) => {
+  const summary = {
+    overdue: 0,
+    today: 0,
+    tomorrow: 0,
+    soon2h: 0,
+    total: 0,
+  }
+  const nowMs = now.getTime()
+  const soonMs = nowMs + 2 * 60 * 60 * 1000
+
+  ;(Array.isArray(events) ? events : []).forEach((event) => {
+    if (event?.status === 'canceled' || event?.status === 'closed') return
+    ;(Array.isArray(event?.additionalEvents) ? event.additionalEvents : []).forEach(
+      (item) => {
+        const date = toDate(item?.date)
+        if (!date) return
+        const dateMs = date.getTime()
+        const segment = getAdditionalEventSegment(date, now)
+        if (segment && segment in summary) summary[segment] += 1
+        if (dateMs >= nowMs && dateMs <= soonMs) summary.soon2h += 1
+      }
+    )
+  })
+
+  summary.total = summary.overdue + summary.today + summary.soon2h
   return summary
 }
 
@@ -112,4 +158,30 @@ export const getAdditionalEventsListBySegments = (events, now = new Date()) => {
   })
 
   return segments
+}
+
+export const getSoonNoDepositEvents = (
+  events,
+  transactions = [],
+  now = new Date(),
+  days = 3
+) => {
+  const nowMs = now.getTime()
+  const maxMs = nowMs + Math.max(1, days) * 24 * 60 * 60 * 1000
+
+  return (Array.isArray(events) ? events : [])
+    .filter((event) => {
+      if (!event) return false
+      if (['draft', 'canceled', 'closed'].includes(String(event.status))) return false
+      const date = toDate(event.eventDate)
+      if (!date) return false
+      const ms = date.getTime()
+      if (ms <= nowMs || ms > maxMs) return false
+      return hasNoDeposit(event, transactions)
+    })
+    .sort((a, b) => {
+      const dateA = toDate(a?.eventDate)?.getTime() ?? 0
+      const dateB = toDate(b?.eventDate)?.getTime() ?? 0
+      return dateA - dateB
+    })
 }

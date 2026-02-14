@@ -55,6 +55,13 @@ const normalizeAdditionalEvents = (items) => {
     .filter(Boolean)
 }
 
+const DEPOSIT_STATUSES = new Set(['none', 'partial', 'received'])
+
+const normalizeDepositStatus = (value) => {
+  if (typeof value !== 'string') return 'none'
+  return DEPOSIT_STATUSES.has(value) ? value : 'none'
+}
+
 export const GET = async () => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) {
@@ -133,6 +140,9 @@ export const POST = async (req) => {
       ? new Date(body.requestCreatedAt)
       : new Date(),
     additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
+    depositStatus: normalizeDepositStatus(body.depositStatus),
+    depositAmount: Math.max(Number(body.depositAmount) || 0, 0),
+    depositDueAt: parseDateValue(body.depositDueAt),
     calendarSyncError: access?.allowCalendarSync ? '' : 'calendar_sync_unavailable',
   })
   await Histories.create({

@@ -12,6 +12,7 @@ import EventStatusToggleButtons from '@components/IconToggleButtons/EventStatusT
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import eventsAtom from '@state/atoms/eventsAtom'
+import transactionsAtom from '@state/atoms/transactionsAtom'
 // import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom, modalsAtom } from '@state/atoms'
@@ -20,6 +21,8 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import {
   eventHasAdditionalSegment,
   getAdditionalEventsSummary,
+  getInAppReminderSummary,
+  getSoonNoDepositEvents,
 } from '@helpers/additionalEvents'
 import AppButton from '@components/AppButton'
 
@@ -81,6 +84,7 @@ const getEventStatusFlags = (event, now) => {
 
 const EventsContent = ({ filter = 'all' }) => {
   const events = useAtomValue(eventsAtom)
+  const transactions = useAtomValue(transactionsAtom)
   // const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const modals = useAtomValue(modalsAtom)
@@ -99,6 +103,8 @@ const EventsContent = ({ filter = 'all' }) => {
     getStatusFilterDefaults(filter)
   )
   const [additionalQuickFilter, setAdditionalQuickFilter] = useState('')
+  const reminderShownRef = useRef(false)
+  const noDepositReminderShownRef = useRef(false)
   const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
 
   const baseEvents = useMemo(() => {
@@ -185,6 +191,14 @@ const EventsContent = ({ filter = 'all' }) => {
   const additionalSummary = useMemo(
     () => getAdditionalEventsSummary(filteredByStatus),
     [filteredByStatus]
+  )
+  const inAppReminderSummary = useMemo(
+    () => getInAppReminderSummary(filteredByStatus),
+    [filteredByStatus]
+  )
+  const soonNoDepositEvents = useMemo(
+    () => getSoonNoDepositEvents(filteredByStatus, transactions, new Date(), 3),
+    [filteredByStatus, transactions]
   )
 
   const filteredByAdditionalQuick = useMemo(() => {
@@ -342,6 +356,65 @@ const EventsContent = ({ filter = 'all' }) => {
     statusFilterKeys,
   ])
 
+  useEffect(() => {
+    if (filter !== 'upcoming') return
+    if (typeof window === 'undefined') return
+    if (modals.length > 0) return
+    if (inAppReminderSummary.total <= 0) return
+    if (reminderShownRef.current) return
+
+    const dateKey = new Date().toISOString().slice(0, 10)
+    const storageKey = `inAppReminderShown:${dateKey}`
+    const signature = [
+      inAppReminderSummary.overdue,
+      inAppReminderSummary.today,
+      inAppReminderSummary.soon2h,
+    ].join(':')
+    const savedSignature = window.localStorage.getItem(storageKey)
+    if (savedSignature === signature) return
+
+    reminderShownRef.current = true
+    window.localStorage.setItem(storageKey, signature)
+
+    modalsFunc.add({
+      title: 'Напоминания по доп. событиям',
+      text: `Просрочено: ${inAppReminderSummary.overdue}\nСегодня: ${inAppReminderSummary.today}\nВ ближайшие 2 часа: ${inAppReminderSummary.soon2h}`,
+      confirmButtonName: 'Открыть ближайшие события',
+      declineButtonName: 'Позже',
+      showDecline: true,
+      onConfirm: () => modalsFunc.event?.upcomingOverview?.(),
+    })
+  }, [filter, inAppReminderSummary, modals.length, modalsFunc])
+
+  useEffect(() => {
+    if (filter !== 'upcoming') return
+    if (typeof window === 'undefined') return
+    if (modals.length > 0) return
+    if (soonNoDepositEvents.length <= 0) return
+    if (noDepositReminderShownRef.current) return
+
+    const dateKey = new Date().toISOString().slice(0, 10)
+    const storageKey = `noDepositReminderShown:${dateKey}`
+    const signature = soonNoDepositEvents
+      .slice(0, 8)
+      .map((item) => String(item?._id))
+      .join(',')
+    const savedSignature = window.localStorage.getItem(storageKey)
+    if (savedSignature === signature) return
+
+    noDepositReminderShownRef.current = true
+    window.localStorage.setItem(storageKey, signature)
+
+    modalsFunc.add({
+      title: 'Скоро мероприятие без задатка',
+      text: `В ближайшие 3 дня мероприятий без задатка: ${soonNoDepositEvents.length}`,
+      confirmButtonName: 'Открыть ближайшие события',
+      declineButtonName: 'Позже',
+      showDecline: true,
+      onConfirm: () => modalsFunc.event?.upcomingOverview?.(),
+    })
+  }, [filter, modals.length, modalsFunc, soonNoDepositEvents])
+
   const filterName =
     filter === 'upcoming'
       ? 'Предстоящие'
@@ -461,7 +534,20 @@ const EventsContent = ({ filter = 'all' }) => {
               onClick={() => modalsFunc.event?.upcomingOverview?.()}
             >
               Ближайшие события
+              {inAppReminderSummary.soon2h > 0
+                ? ` • 2ч: ${inAppReminderSummary.soon2h}`
+                : ''}
             </AppButton>
+            {soonNoDepositEvents.length > 0 ? (
+              <AppButton
+                variant="danger"
+                size="sm"
+                className="rounded"
+                onClick={() => modalsFunc.event?.upcomingOverview?.()}
+              >
+                Без задатка: {soonNoDepositEvents.length}
+              </AppButton>
+            ) : null}
           </div>
         </SectionCard>
       ) : null}

@@ -424,6 +424,9 @@ export const DEFAULT_EVENT = Object.freeze({
   status: 'active',
   cancelReason: '',
   contractSum: 0,
+  depositStatus: 'none',
+  depositAmount: 0,
+  depositDueAt: null,
   isTransferred: false,
   isByContract: false,
   importedFromCalendar: false,
@@ -520,12 +523,17 @@ export const TRANSACTION_TYPES = Object.freeze([
 ])
 
 export const TRANSACTION_CATEGORIES = Object.freeze([
-  { value: 'client_payment', name: 'Оплата клиента', type: 'income' },
-  { value: 'advance', name: 'Задаток', type: 'income' },
+  { value: 'deposit', name: 'Задаток', type: 'income' },
+  { value: 'final_payment', name: 'Остаток оплаты', type: 'income' },
+  { value: 'referral_in', name: 'Рекомендация (входящий %)', type: 'income' },
+  { value: 'referral_out', name: 'Рекомендация (исходящий %)', type: 'expense' },
+  // Legacy categories for backward compatibility
+  { value: 'client_payment', name: 'Оплата клиента (legacy)', type: 'income' },
+  { value: 'advance', name: 'Задаток (legacy)', type: 'income' },
   { value: 'tips', name: 'Чаевые', type: 'income' },
   {
     value: 'colleague_percent',
-    name: 'Процент от коллеги',
+    name: 'Процент от коллеги (legacy)',
     type: 'income',
   },
   { value: 'refund', name: 'Возврат клиенту', type: 'expense' },

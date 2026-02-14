@@ -73,6 +73,13 @@ const normalizeAdditionalEvents = (items) => {
     .filter(Boolean)
 }
 
+const DEPOSIT_STATUSES = new Set(['none', 'partial', 'received'])
+
+const normalizeDepositStatus = (value) => {
+  if (typeof value !== 'string') return 'none'
+  return DEPOSIT_STATUSES.has(value) ? value : 'none'
+}
+
 const normalizeOtherContacts = (contacts) => {
   if (!Array.isArray(contacts)) return []
   return contacts
@@ -198,6 +205,12 @@ export const PUT = async (req, { params }) => {
   }
   if (body.contractSum !== undefined)
     update.contractSum = Number(body.contractSum) || 0
+  if (body.depositStatus !== undefined)
+    update.depositStatus = normalizeDepositStatus(body.depositStatus)
+  if (body.depositAmount !== undefined)
+    update.depositAmount = Math.max(Number(body.depositAmount) || 0, 0)
+  if (body.depositDueAt !== undefined)
+    update.depositDueAt = parseDateValue(body.depositDueAt)
   if (body.description !== undefined)
     update.description = body.description ?? ''
   if (body.financeComment !== undefined)

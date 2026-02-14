@@ -232,7 +232,7 @@ export const POST = async (req) => {
       clientId: event.clientId,
       amount,
       type,
-      category: type === 'income' ? 'client_payment' : 'other',
+      category: type === 'income' ? 'final_payment' : 'other',
       date: event.eventDate ?? new Date(),
       comment: 'Тестовая транзакция',
     })
