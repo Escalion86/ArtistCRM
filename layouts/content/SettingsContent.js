@@ -135,22 +135,18 @@ const SettingsContent = () => {
           }
           fullWidth
         />
-        <InputWrapper
+        <Input
           label="Стандартная длительность мероприятия, мин"
+          type="number"
+          min={15}
+          max={1440}
+          step={15}
+          value={defaultEventDuration}
+          onChange={setDefaultEventDuration}
+          noMargin
           fullWidth
-        >
-          <Input
-            type="number"
-            min={15}
-            max={1440}
-            step={15}
-            value={defaultEventDuration}
-            onChange={setDefaultEventDuration}
-            noMargin
-            fullWidth
-            showArrows
-          />
-        </InputWrapper>
+          showArrows
+        />
         <InputWrapper label="Города" fullWidth>
           <div className="flex w-full items-center justify-between gap-3">
             <div className="flex flex-col gap-1">
@@ -166,7 +162,7 @@ const SettingsContent = () => {
             </div>
             <button
               type="button"
-              className="action-icon-button flex h-10 w-10 cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600"
+              className="action-icon-button action-icon-button--warning flex h-10 w-10 cursor-pointer items-center justify-center rounded"
               onClick={() => modalsFunc.settings?.towns()}
               title="Редактировать города"
             >

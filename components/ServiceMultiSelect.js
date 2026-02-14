@@ -48,7 +48,7 @@ const ServiceMultiSelect = ({
         {onCreate && (
           <button
             type="button"
-            className="action-icon-button flex h-10 w-10 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700"
+            className="action-icon-button action-icon-button--success flex h-10 w-10 cursor-pointer items-center justify-center rounded"
             onClick={onCreate}
             title="Добавить услугу"
           >

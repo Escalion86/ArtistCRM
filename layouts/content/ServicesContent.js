@@ -46,7 +46,7 @@ const ServicesContent = () => {
               <Button
                 name="+"
                 collapsing
-                className="action-icon-button h-9 w-9 rounded-full text-lg"
+                className="action-icon-button action-icon-button--neutral h-9 w-9 rounded-full text-lg"
                 onClick={() => modalsFunc.service?.add()}
                 disabled={!modalsFunc.service?.add}
               />

@@ -64,7 +64,7 @@ export default async function HomePage() {
         </Link>
         <Link
           href="/login"
-          className="cursor-pointer rounded-full bg-general px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl"
+          className="ui-btn ui-btn-primary cursor-pointer"
         >
           Войти в систему
         </Link>
@@ -105,13 +105,13 @@ export default async function HomePage() {
           <div className="flex flex-wrap items-center gap-4 mt-8 landing-reveal">
             <Link
               href="/login"
-              className="px-6 py-3 text-sm font-semibold text-white transition rounded-full shadow-lg cursor-pointer bg-general hover:shadow-xl"
+              className="ui-btn ui-btn-primary cursor-pointer"
             >
               Войти в систему
             </Link>
             <Link
               href="#pricing"
-              className="px-6 py-3 text-sm font-semibold text-black transition border rounded-full cursor-pointer border-general/30 hover:border-general/60 hover:text-general"
+              className="ui-btn ui-btn-secondary cursor-pointer"
             >
               Посмотреть тарифы
             </Link>
@@ -254,7 +254,7 @@ export default async function HomePage() {
           </div>
           <Link
             href="/login"
-            className="px-6 py-3 text-sm font-semibold text-white transition rounded-full shadow-lg cursor-pointer bg-general hover:shadow-xl"
+            className="ui-btn ui-btn-primary cursor-pointer"
           >
             Попробовать бесплатно
           </Link>

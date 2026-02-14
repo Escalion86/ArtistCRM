@@ -411,6 +411,7 @@ export const DEFAULT_EVENT = Object.freeze({
   description: '',
   financeComment: '',
   requestCreatedAt: null,
+  additionalEvents: [],
   eventDate: null,
   dateStart: null,
   dateEnd: null,

@@ -65,8 +65,7 @@ const UserCard = ({ userId, hidden = false, style }) => {
     if (!user?._id) return 0
     return (events ?? []).filter(
       (item) =>
-        String(item?.tenantId) === String(user._id) &&
-        item?.status === 'draft'
+        String(item?.tenantId) === String(user._id) && item?.status === 'draft'
     ).length
   })()
 
@@ -80,7 +79,7 @@ const UserCard = ({ userId, hidden = false, style }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && modalsFunc.user.view(user._id)}
-      className="flex h-full w-full cursor-pointer overflow-visible p-4 text-left hover:border-gray-300"
+      className="flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} rounded />
       <CardActions>
@@ -91,40 +90,40 @@ const UserCard = ({ userId, hidden = false, style }) => {
           alwaysCompact
         />
       </CardActions>
-        <div className="flex w-full h-full gap-3">
-          <img
-            className="h-16 w-16 min-w-[64px] rounded-lg object-cover"
-            src={getUserAvatarSrc(user)}
-            alt="user"
-          />
-          <div className="relative flex flex-col flex-1 gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <UserName
-                user={user}
-                className="text-base font-semibold text-gray-900"
-              />
-            </div>
-            <div className="text-xs font-semibold text-gray-600">
-              Тариф: {tariffTitle}
-              {tariffPaidUntil ? ` (${tariffPaidUntil})` : ''}
-            </div>
-            <div className="text-xs font-semibold text-gray-600">
-              Баланс: {formattedBalance} руб.
-            </div>
-            <div className="text-xs font-semibold text-gray-600">
-              Создано мероприятий: {eventsCount}
-            </div>
-            <div className="text-xs font-semibold text-gray-600">
-              Создано заявок: {requestsCount}
-            </div>
-            <div className="text-xs font-semibold text-gray-600">
-              Дата регистрации: {registrationLabel}
-            </div>
-            <div className="flex justify-end mt-auto sm:absolute sm:right-0 sm:bottom-0">
-              <ContactsIconsButtons user={user} className="justify-end" />
-            </div>
+      <div className="flex h-full w-full gap-3">
+        <img
+          className="h-16 w-16 min-w-[64px] rounded-lg object-cover"
+          src={getUserAvatarSrc(user)}
+          alt="user"
+        />
+        <div className="relative flex flex-1 flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <UserName
+              user={user}
+              className="text-base font-semibold text-gray-900"
+            />
+          </div>
+          <div className="text-xs font-semibold text-gray-600">
+            Тариф: {tariffTitle}
+            {tariffPaidUntil ? ` (${tariffPaidUntil})` : ''}
+          </div>
+          <div className="text-xs font-semibold text-gray-600">
+            Баланс: {formattedBalance} руб.
+          </div>
+          <div className="text-xs font-semibold text-gray-600">
+            Создано мероприятий: {eventsCount}
+          </div>
+          <div className="text-xs font-semibold text-gray-600">
+            Создано заявок: {requestsCount}
+          </div>
+          <div className="text-xs font-semibold text-gray-600">
+            Дата регистрации: {registrationLabel}
+          </div>
+          <div className="mt-auto flex justify-end sm:absolute sm:right-0 sm:bottom-0">
+            <ContactsIconsButtons user={user} className="justify-end" />
           </div>
         </div>
+      </div>
     </CardWrapper>
   )
 }

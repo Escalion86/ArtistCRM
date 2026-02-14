@@ -16,7 +16,7 @@ const CardWrapper = ({
       tabIndex={tabIndex}
       onClick={onClick}
       className={cn(
-        'relative h-full w-full rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-card',
+        'hover:shadow-card relative h-full w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition',
         className
       )}
     >

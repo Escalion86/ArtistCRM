@@ -19,6 +19,60 @@ import EventCard from '@layouts/cards/EventCard'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
 const ITEM_HEIGHT = 170
+const getStatusFilterDefaults = (filter) => {
+  if (filter === 'upcoming') {
+    return {
+      request: true,
+      active: true,
+      canceled: false,
+    }
+  }
+  if (filter === 'past') {
+    return {
+      finished: true,
+      closed: true,
+      canceled: false,
+    }
+  }
+  return {
+    request: true,
+    active: true,
+    finished: true,
+    closed: true,
+    canceled: false,
+  }
+}
+
+const getStatusFilterKeys = (filter) => {
+  if (filter === 'upcoming') return ['request', 'active', 'canceled']
+  if (filter === 'past') return ['finished', 'closed', 'canceled']
+  return ['request', 'active', 'finished', 'closed', 'canceled']
+}
+
+const getEventStatusFlags = (event, now) => {
+  const status = event?.status
+  const isRequest = status === 'draft'
+  const isCanceled = status === 'canceled'
+  const isClosed = status === 'closed'
+  const rawEnd = event?.dateEnd ?? event?.eventDate ?? event?.dateStart ?? null
+  const endDate = rawEnd ? new Date(rawEnd) : null
+  const isFinished =
+    !isRequest &&
+    !isCanceled &&
+    !isClosed &&
+    endDate instanceof Date &&
+    !Number.isNaN(endDate.getTime()) &&
+    endDate.getTime() < now.getTime()
+  const isActive = !isRequest && !isCanceled && !isClosed && !isFinished
+
+  return {
+    request: isRequest,
+    active: isActive,
+    finished: isFinished,
+    closed: isClosed,
+    canceled: isCanceled,
+  }
+}
 
 const EventsContent = ({ filter = 'all' }) => {
   const events = useAtomValue(eventsAtom)
@@ -36,12 +90,10 @@ const EventsContent = ({ filter = 'all' }) => {
     checked: true,
     unchecked: true,
   })
-  const [statusFilter, setStatusFilter] = useState({
-    active: true,
-    finished: true,
-    closed: true,
-    canceled: true,
-  })
+  const [statusFilter, setStatusFilter] = useState(() =>
+    getStatusFilterDefaults(filter)
+  )
+  const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
 
   const baseEvents = useMemo(() => {
     if (filter === 'all') return events
@@ -95,6 +147,10 @@ const EventsContent = ({ filter = 'all' }) => {
     }
   }, [modals.length])
 
+  useEffect(() => {
+    setStatusFilter(getStatusFilterDefaults(filter))
+  }, [filter])
+
   const filteredByCheck = useMemo(() => {
     if (checkFilter.checked && checkFilter.unchecked) return filteredEvents
     if (checkFilter.checked)
@@ -105,37 +161,19 @@ const EventsContent = ({ filter = 'all' }) => {
   }, [checkFilter, filteredEvents])
 
   const filteredByStatus = useMemo(() => {
-    if (
-      statusFilter.active &&
-      statusFilter.finished &&
-      statusFilter.closed &&
-      statusFilter.canceled
+    const allSelected = statusFilterKeys.every((key) =>
+      Boolean(statusFilter[key])
     )
-      return filteredByCheck
+    if (allSelected) return filteredByCheck
 
     const now = new Date()
     return filteredByCheck.filter((event) => {
-      const status = event?.status
-      const isCanceled = status === 'canceled'
-      const isClosed = status === 'closed'
-      const rawEnd = event?.dateEnd ?? event?.eventDate ?? event?.dateStart ?? null
-      const endDate = rawEnd ? new Date(rawEnd) : null
-      const isFinished =
-        !isCanceled &&
-        !isClosed &&
-        endDate instanceof Date &&
-        !Number.isNaN(endDate.getTime()) &&
-        endDate.getTime() < now.getTime()
-      const isActive = !isCanceled && !isClosed && !isFinished
-
-      return (
-        (statusFilter.active && isActive) ||
-        (statusFilter.finished && isFinished) ||
-        (statusFilter.closed && isClosed) ||
-        (statusFilter.canceled && isCanceled)
+      const flags = getEventStatusFlags(event, now)
+      return statusFilterKeys.some(
+        (key) => Boolean(statusFilter[key]) && Boolean(flags[key])
       )
     })
-  }, [filteredByCheck, statusFilter])
+  }, [filteredByCheck, statusFilter, statusFilterKeys])
 
   const sortedEvents = useMemo(() => {
     const sorter = (a, b) => {
@@ -223,37 +261,16 @@ const EventsContent = ({ filter = 'all' }) => {
         }
       }
 
-      if (
-        !statusFilter.active ||
-        !statusFilter.finished ||
-        !statusFilter.closed ||
-        !statusFilter.canceled
-      ) {
-        const status = event?.status
-        const isCanceled = status === 'canceled'
-        const isClosed = status === 'closed'
-        const rawEnd =
-          event?.dateEnd ?? event?.eventDate ?? event?.dateStart ?? null
-        const endDate = rawEnd ? new Date(rawEnd) : null
-        const isFinished =
-          !isCanceled &&
-          !isClosed &&
-          endDate instanceof Date &&
-          !Number.isNaN(endDate.getTime()) &&
-          endDate.getTime() < now.getTime()
-        const isActive = !isCanceled && !isClosed && !isFinished
-        const isVisible =
-          (statusFilter.active && isActive) ||
-          (statusFilter.finished && isFinished) ||
-          (statusFilter.closed && isClosed) ||
-          (statusFilter.canceled && isCanceled)
+      const allStatusSelected = statusFilterKeys.every((key) =>
+        Boolean(statusFilter[key])
+      )
+      if (!allStatusSelected) {
+        const flags = getEventStatusFlags(event, now)
+        const isVisible = statusFilterKeys.some(
+          (key) => Boolean(statusFilter[key]) && Boolean(flags[key])
+        )
         if (!isVisible) {
-          setStatusFilter({
-            active: true,
-            finished: true,
-            closed: true,
-            canceled: true,
-          })
+          setStatusFilter(getStatusFilterDefaults(filter))
           return
         }
       }
@@ -295,12 +312,14 @@ const EventsContent = ({ filter = 'all' }) => {
     filter,
     modalsFunc.event,
     pathname,
+    listRef,
     router,
     searchParams,
     selectedTown,
     sortedEvents,
     pendingOpenId,
     statusFilter,
+    statusFilterKeys,
   ])
 
   const filterName =
@@ -325,49 +344,57 @@ const EventsContent = ({ filter = 'all' }) => {
   )
 
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex h-full flex-col gap-4">
       <ContentHeader>
         <HeaderActions
+          className="tablet:flex-nowrap w-full gap-y-2"
+          leftClassName="min-w-0"
+          bottomClassName="w-full tablet:w-auto"
+          rightClassName="ml-auto"
           left={
-            <>
-              <div className="w-52">
-                <ComboBox
-                  label="Город"
-                  items={townsOptions}
-                  value={selectedTown}
-                  onChange={(value) => setSelectedTown(value ?? '')}
-                  placeholder="Все города"
-                  fullWidth
-                  smallMargin
-                />
-              </div>
-              {filter !== 'all' && hasUncheckedEvents && (
-                <EventCheckToggleButtons
-                  value={checkFilter}
-                  onChange={setCheckFilter}
-                />
-              )}
-              {filter !== 'all' && (
+            <div className="tablet:w-52 w-[min(56vw,220px)]">
+              <ComboBox
+                label="Город"
+                items={townsOptions}
+                value={selectedTown}
+                onChange={(value) => setSelectedTown(value ?? '')}
+                placeholder="Все города"
+                fullWidth
+                noMargin
+                className="mt-1.5"
+              />
+            </div>
+          }
+          bottom={
+            filter !== 'all' ? (
+              <div className="tablet:w-auto tablet:flex-nowrap tablet:justify-start tablet:gap-3 flex w-full flex-wrap items-center justify-center gap-2">
+                {hasUncheckedEvents && (
+                  <EventCheckToggleButtons
+                    value={checkFilter}
+                    onChange={setCheckFilter}
+                  />
+                )}
                 <EventStatusToggleButtons
                   value={statusFilter}
                   onChange={setStatusFilter}
+                  mode={filter}
                 />
-              )}
-            </>
+              </div>
+            ) : null
           }
           right={
             <>
-              <MutedText>
-                {filterName}: {sortedEvents.length}
-              </MutedText>
-              <MutedText className="hidden tablet:inline">
-                Всего: {events.length}
-              </MutedText>
               <div className="flex items-center gap-2">
+                <MutedText>
+                  {filterName}: {sortedEvents.length}
+                </MutedText>
+                <MutedText className="tablet:inline hidden">
+                  Всего: {events.length}
+                </MutedText>
                 <Button
                   name="+"
                   collapsing
-                  className="text-lg rounded-full action-icon-button h-9 w-9"
+                  className="action-icon-button action-icon-button--neutral h-9 w-9 rounded-full text-lg"
                   disabled={!modalsFunc.event?.create}
                   onClick={() => modalsFunc.event?.create?.()}
                 />
@@ -376,7 +403,7 @@ const EventsContent = ({ filter = 'all' }) => {
           }
         />
       </ContentHeader>
-      <SectionCard className="flex-1 min-h-0 overflow-hidden border-0 bg-transparent shadow-none">
+      <SectionCard className="min-h-0 flex-1 overflow-hidden border-0 bg-transparent shadow-none">
         {sortedEvents.length > 0 ? (
           <List
             listRef={listRef}
@@ -387,7 +414,7 @@ const EventsContent = ({ filter = 'all' }) => {
             style={{ height: '100%', width: '100%' }}
           />
         ) : (
-          <EmptyState text="Мероприятий пока нет для выбранного периода" />
+          <EmptyState text="Для выбранных фильтьров мероприятий пока нет" />
         )}
       </SectionCard>
     </div>

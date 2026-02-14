@@ -21,7 +21,7 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && onView?.()}
-      className="group flex h-full w-full cursor-pointer overflow-visible p-4 text-left hover:border-gray-300"
+      className="group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
@@ -50,7 +50,7 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
             </div>
           </div>
         </div>
-        <div className="mt-auto self-end whitespace-nowrap text-right text-sm font-semibold text-gray-700">
+        <div className="mt-auto self-end text-right text-sm font-semibold whitespace-nowrap text-gray-700">
           <div>Заявки: {client.requestsCount}</div>
           <div>Мероприятия: {client.eventsCount}</div>
           <div>Отмененные: {client.canceledEventsCount}</div>

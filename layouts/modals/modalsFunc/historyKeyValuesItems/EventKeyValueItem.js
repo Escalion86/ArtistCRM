@@ -33,6 +33,27 @@ const EventKeyValueItem = ({ objKey, value }) =>
       objKey
     ) ? (
     formatDateTime(value)
+  ) : objKey === 'additionalEvents' ? (
+    Array.isArray(value) && value.length > 0 ? (
+      <div className="flex flex-col gap-2">
+        {value.map((item, index) => (
+          <div
+            key={`history-additional-event-${index}`}
+            className="rounded border border-gray-200 px-2 py-1"
+          >
+            <div className="text-sm font-semibold text-gray-900">
+              {item?.title || `Событие #${index + 1}`}
+            </div>
+            <div className="text-sm text-gray-600">{formatDateTime(item?.date)}</div>
+            {item?.description ? (
+              <div className="text-sm text-gray-700">{item.description}</div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    ) : (
+      '[не указано]'
+    )
   ) : objKey === 'status' ? (
     EVENT_STATUSES_SIMPLE.find((item) => item.value === value)?.name ??
     EVENT_STATUSES.find((item) => item.value === value)?.name

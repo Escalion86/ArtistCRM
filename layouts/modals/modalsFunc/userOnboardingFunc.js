@@ -72,10 +72,13 @@ const userOnboardingFunc = () => {
       if (!confirmed && detectedTimeZone) return detectedTimeZone
       return current
     })
+    const [isDarkTheme, setIsDarkTheme] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
       setConfirmButtonName('Сохранить')
+      const storedTheme = localStorage.getItem('theme')
+      setIsDarkTheme(storedTheme === 'dark')
     }, [setConfirmButtonName])
 
     const errors = useMemo(() => {
@@ -141,11 +144,16 @@ const userOnboardingFunc = () => {
         null
       )
 
+      const themeValue = isDarkTheme ? 'dark' : 'light'
+      localStorage.setItem('theme', themeValue)
+      document.body.classList.toggle('theme-dark', isDarkTheme)
+
       setIsSaving(false)
       closeModal()
     }, [
       closeModal,
       firstName,
+      isDarkTheme,
       secondName,
       town,
       timeZone,
@@ -154,6 +162,7 @@ const userOnboardingFunc = () => {
       itemsFunc?.user,
       setLoggedUser,
       setSiteSettings,
+      siteSettings?.custom,
       siteSettings?.towns,
     ])
 
@@ -202,6 +211,15 @@ const userOnboardingFunc = () => {
           required
           fullWidth
         />
+        <label className="flex items-center gap-3 rounded border border-input px-3 py-2">
+          <input
+            type="checkbox"
+            checked={isDarkTheme}
+            onChange={(event) => setIsDarkTheme(event.target.checked)}
+            className="h-4 w-4 cursor-pointer"
+          />
+          <span className="text-sm text-gray-900">Темная тема</span>
+        </label>
       </FormWrapper>
     )
   }

@@ -10,6 +10,7 @@ import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
 import formatMinutes from '@helpers/formatMinutes'
 import getEventDuration from '@helpers/getEventDuration'
+import Image from 'next/image'
 import eventSelector from '@state/selectors/eventSelector'
 import userSelector from '@state/selectors/userSelector'
 import DOMPurify from 'isomorphic-dompurify'
@@ -49,6 +50,9 @@ const eventViewFunc = (eventId) => {
     const organizer = useAtomValue(userSelector(event?.organizerId))
 
     const duration = getEventDuration(event)
+    const additionalEvents = Array.isArray(event?.additionalEvents)
+      ? event.additionalEvents
+      : []
 
     const calendarLink = useMemo(() => {
       if (!event?.description) return null
@@ -195,6 +199,30 @@ const eventViewFunc = (eventId) => {
                 </div>
               </TextLine>
             )}
+            {additionalEvents.length > 0 && (
+              <TextLine label="Доп. события">
+                <div className="flex flex-col gap-2">
+                  {additionalEvents.map((item, index) => (
+                    <div
+                      key={`additional-event-view-${index}`}
+                      className="rounded border border-gray-200 px-2 py-1"
+                    >
+                      <div className="text-sm font-semibold text-gray-900">
+                        {item?.title || `Событие #${index + 1}`}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {formatDateTime(item?.date)}
+                      </div>
+                      {item?.description ? (
+                        <div className="text-sm text-gray-700">
+                          {item.description}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </TextLine>
+            )}
             {event?.address && event.address?.town && event.address?.street && (
               <TextLine label="Ссылки для навигатора">
                 <a
@@ -203,10 +231,12 @@ const eventViewFunc = (eventId) => {
                     event.address.street
                   }%20${event.address.house.replaceAll('/', '%2F')}`}
                 >
-                  <img
+                  <Image
                     className="h-6 min-h-6 w-6 min-w-6 object-contain"
                     src="/img/navigators/2gis.png"
                     alt="2gis"
+                    width={24}
+                    height={24}
                   />
                 </a>
                 <a
@@ -217,10 +247,12 @@ const eventViewFunc = (eventId) => {
                     event.address.street
                   }%20${event.address.house.replaceAll('/', '%2F')}`}
                 >
-                  <img
+                  <Image
                     className="h-6 min-h-6 w-6 min-w-6 object-contain"
                     src="/img/navigators/yandex.png"
                     alt="2gis"
+                    width={24}
+                    height={24}
                   />
                 </a>
               </TextLine>

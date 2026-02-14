@@ -7,6 +7,7 @@ export const eventKeys = {
   servicesIds: 'Услуги',
   contractSum: 'Договорная сумма',
   description: 'Комментарий',
+  additionalEvents: 'Доп. события',
   financeComment: 'Комментарий по финансам',
   invoiceLinks: 'Ссылки на счета',
   receiptLinks: 'Ссылки на чеки',

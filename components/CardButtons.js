@@ -23,11 +23,43 @@ import DropDown from './DropDown'
 import useCopyToClipboard from '@helpers/useCopyToClipboard'
 import { useEffect } from 'react'
 
-const MenuItem = ({ active, icon, onClick, color = 'red', tooltipText }) => (
+const MENU_ITEM_TONE = {
+  red: {
+    base: 'bg-white text-red-500',
+    hover: 'hover:bg-red-600 hover:text-white',
+    active: 'bg-red-500 text-white',
+  },
+  orange: {
+    base: 'bg-white text-orange-500',
+    hover: 'hover:bg-orange-600 hover:text-white',
+    active: 'bg-orange-500 text-white',
+  },
+  blue: {
+    base: 'bg-white text-blue-500',
+    hover: 'hover:bg-blue-600 hover:text-white',
+    active: 'bg-blue-500 text-white',
+  },
+  green: {
+    base: 'bg-white text-green-500',
+    hover: 'hover:bg-green-600 hover:text-white',
+    active: 'bg-green-500 text-white',
+  },
+  gray: {
+    base: 'bg-white text-gray-500',
+    hover: 'hover:bg-gray-600 hover:text-white',
+    active: 'bg-gray-500 text-white',
+  },
+}
+
+const MenuItem = ({ active, icon, onClick, color = 'red', tooltipText }) => {
+  const tone = MENU_ITEM_TONE[color] || MENU_ITEM_TONE.red
+
+  return (
   <div
     className={cn(
-      `flex h-9 cursor-pointer items-center gap-x-2 px-2 text-base font-normal duration-300 hover:bg-${color}-600 hover:text-white`,
-      active ? `bg-${color}-500 text-white` : `bg-white text-${color}-500`
+      'flex h-9 cursor-pointer items-center gap-x-2 px-2 text-base font-normal duration-300',
+      tone.hover,
+      active ? tone.active : tone.base
     )}
     onClick={(e) => {
       onClick && onClick()
@@ -36,7 +68,8 @@ const MenuItem = ({ active, icon, onClick, color = 'red', tooltipText }) => (
     <FontAwesomeIcon icon={icon} className="h-7 w-7" />
     <div className="prevent-select-text whitespace-nowrap">{tooltipText}</div>
   </div>
-)
+  )
+}
 
 const CardButtons = ({
   item,

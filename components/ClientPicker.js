@@ -91,7 +91,7 @@ const ClientPicker = ({
           <button
             type="button"
             className={cn(
-              'action-icon-button flex cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600',
+              'action-icon-button action-icon-button--warning flex cursor-pointer items-center justify-center rounded',
               compact ? 'h-9 w-9' : 'h-12 w-12'
             )}
             onClick={handleEdit}
@@ -104,7 +104,7 @@ const ClientPicker = ({
           <button
             type="button"
             className={cn(
-              'action-icon-button flex cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700',
+              'action-icon-button action-icon-button--success flex cursor-pointer items-center justify-center rounded',
               compact ? 'h-9 w-9' : 'h-12 w-12'
             )}
             onClick={handleCreate}

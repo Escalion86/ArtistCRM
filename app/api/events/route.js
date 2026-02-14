@@ -31,6 +31,25 @@ const parseDateValue = (value) => {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+const normalizeAdditionalEvents = (items) => {
+  if (!Array.isArray(items)) return []
+  return items
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const title = typeof item.title === 'string' ? item.title.trim() : ''
+      const description =
+        typeof item.description === 'string' ? item.description.trim() : ''
+      const date = parseDateValue(item.date)
+      if (!title && !description && !date) return null
+      return {
+        title,
+        description,
+        date,
+      }
+    })
+    .filter(Boolean)
+}
+
 export const GET = async () => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) {
@@ -108,6 +127,7 @@ export const POST = async (req) => {
     requestCreatedAt: body.requestCreatedAt
       ? new Date(body.requestCreatedAt)
       : new Date(),
+    additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
     calendarSyncError: access?.allowCalendarSync ? '' : 'calendar_sync_unavailable',
   })
   await Histories.create({
