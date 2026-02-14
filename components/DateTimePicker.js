@@ -14,6 +14,13 @@ import InputWrapper from './InputWrapper'
 
 dayjs.locale(ru)
 
+const toIsoOrNull = (date) => {
+  if (!date) return null
+  const parsed = dayjs(date)
+  if (!parsed.isValid()) return undefined
+  return parsed.toISOString()
+}
+
 const DateTimePicker = ({
   label = '',
   value,
@@ -108,7 +115,10 @@ const DateTimePicker = ({
           }
           value={value === null ? null : value ? dayjs(value) : undefined}
           defaultValue={defaultValue ? dayjs(defaultValue) : undefined}
-          onChange={(date) => onChange(date.toISOString())}
+          onChange={(date) => {
+            const nextValue = toIsoOrNull(date)
+            if (nextValue !== undefined) onChange(nextValue)
+          }}
           disabled={disabled}
           showDisabledIcon={false}
           // slotProps={{
@@ -195,7 +205,10 @@ const DateTimePicker = ({
             slots={{
               openPickerIcon: AccessTimeIcon,
             }}
-            onChange={(date) => onChange(date.toISOString())}
+            onChange={(date) => {
+              const nextValue = toIsoOrNull(date)
+              if (nextValue !== undefined) onChange(nextValue)
+            }}
             disabled={disabled}
             showDisabledIcon={false}
           />

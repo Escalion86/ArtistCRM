@@ -76,7 +76,7 @@ const EventPicker = ({
         {showEditButton && selectedEventId && !disabled && (
           <button
             type="button"
-            className="action-icon-button flex h-[50px] w-[50px] cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600"
+            className="action-icon-button action-icon-button--warning flex h-[50px] w-[50px] cursor-pointer items-center justify-center rounded"
             onClick={handleEdit}
             title="Редактировать мероприятие"
           >

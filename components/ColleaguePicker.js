@@ -62,7 +62,7 @@ const ColleaguePicker = ({
           <button
             type="button"
             className={[
-              'action-icon-button flex cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600',
+              'action-icon-button action-icon-button--warning flex cursor-pointer items-center justify-center rounded',
               compact ? 'h-9 w-9' : 'h-12 w-12',
             ].join(' ')}
             onClick={handleEdit}

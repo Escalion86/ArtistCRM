@@ -29,6 +29,7 @@ import eventSelector from '@state/selectors/eventSelector'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import Input from '@components/Input'
+import AppButton from '@components/AppButton'
 import AddressPicker from '@components/AddressPicker'
 import InputWrapper from '@components/InputWrapper'
 import OtherContactsPicker from '@components/OtherContactsPicker'
@@ -81,6 +82,21 @@ const normalizeOtherContacts = (contacts) => {
     .filter(Boolean)
 }
 
+const normalizeAdditionalEvents = (items) => {
+  if (!Array.isArray(items)) return []
+  return items
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      return {
+        title: typeof item.title === 'string' ? item.title : '',
+        description:
+          typeof item.description === 'string' ? item.description : '',
+        date: item.date ?? null,
+      }
+    })
+    .filter(Boolean)
+}
+
 const eventFunc = (eventId, clone = false, initialStatus = null) => {
   const EventModal = ({
     closeModal,
@@ -111,8 +127,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       event?.isTransferred ??
       (event?.colleagueId ? true : (DEFAULT_EVENT.isTransferred ?? false))
 
-    const initialStatusValue =
-      event?.status ?? initialStatus ?? DEFAULT_EVENT.status
+    const initialStatusValue = clone
+      ? 'active'
+      : (event?.status ?? initialStatus ?? DEFAULT_EVENT.status)
     const [status, setStatus] = useState(initialStatusValue)
     const isDraft = status === 'draft'
 
@@ -166,6 +183,13 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         event?.requestCreatedAt ?? event?.createdAt ?? new Date().toISOString()
       )
     })
+    const [additionalEvents, setAdditionalEvents] = useState(() =>
+      clone
+        ? []
+        : normalizeAdditionalEvents(
+            event?.additionalEvents ?? DEFAULT_EVENT.additionalEvents ?? []
+          )
+    )
     const [calendarImportChecked, setCalendarImportChecked] = useState(
       event?.calendarImportChecked ??
         (eventId ? (DEFAULT_EVENT.calendarImportChecked ?? false) : true)
@@ -238,6 +262,11 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         status: initialStatusValue,
         requestCreatedAt:
           event?.requestCreatedAt ?? event?.createdAt ?? requestCreatedAt,
+        additionalEvents: clone
+          ? []
+          : normalizeAdditionalEvents(
+              event?.additionalEvents ?? DEFAULT_EVENT.additionalEvents ?? []
+            ),
       }
     }, [
       event?.clientId,
@@ -245,6 +274,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       event?.address,
       event?.contractSum,
       event?.description,
+      event?.isByContract,
       event?.financeComment,
       event?.comment,
       event?.dateEnd,
@@ -254,11 +284,13 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       event?.calendarImportChecked,
       event?.colleagueId,
       event?.otherContacts,
+      event?.servicesIds,
       initialIsTransferred,
       initialStatusValue,
       event?.requestCreatedAt,
       event?.createdAt,
       requestCreatedAt,
+      event?.additionalEvents,
       siteSettings?.defaultTown,
     ])
 
@@ -286,6 +318,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         initialEventValues.financeComment !== financeComment ||
         initialEventValues.status !== status ||
         initialEventValues.requestCreatedAt !== requestCreatedAt ||
+        JSON.stringify(initialEventValues.additionalEvents ?? []) !==
+          JSON.stringify(additionalEvents) ||
         JSON.stringify(initialEventValues.invoiceLinks ?? []) !==
           JSON.stringify(invoiceLinks) ||
         JSON.stringify(initialEventValues.receiptLinks ?? []) !==
@@ -318,6 +352,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         initialEventValues,
         status,
         requestCreatedAt,
+        additionalEvents,
       ]
     )
 
@@ -325,15 +360,17 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       setAddress(initialEventValues.address)
     }, [initialEventValues.address])
 
+    const sourceEventId = clone ? null : event?._id
+
     const eventTransactions = useMemo(
       () =>
         (transactions ?? [])
-          .filter((transaction) => transaction.eventId === event?._id)
+          .filter((transaction) => transaction.eventId === sourceEventId)
           .sort(
             (a, b) =>
               new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime()
           ),
-      [event?._id, transactions]
+      [sourceEventId, transactions]
     )
 
     const incomeTransactions = useMemo(
@@ -394,6 +431,33 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       return date.toISOString()
     }
 
+    const shiftEndByStartChange = (
+      prevStartValue,
+      nextStartValue,
+      endValue
+    ) => {
+      if (!prevStartValue || !nextStartValue || !endValue) return null
+      const prevStart = new Date(prevStartValue)
+      const nextStart = new Date(nextStartValue)
+      const prevEnd = new Date(endValue)
+      if (
+        Number.isNaN(prevStart.getTime()) ||
+        Number.isNaN(nextStart.getTime()) ||
+        Number.isNaN(prevEnd.getTime())
+      ) {
+        return null
+      }
+
+      const durationMs = prevEnd.getTime() - prevStart.getTime()
+      if (durationMs <= 0) {
+        return new Date(
+          nextStart.getTime() + defaultDurationMinutes * 60 * 1000
+        ).toISOString()
+      }
+
+      return new Date(nextStart.getTime() + durationMs).toISOString()
+    }
+
     useEffect(() => {
       if (dateEndTouched) return
       if (!eventDate) return
@@ -433,7 +497,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       })
 
       return count
-    }, [buildRange, dateEnd, eventDate, eventId, events])
+    }, [buildRange, dateEnd, eventDate, events])
 
     const onClickConfirm = useCallback(() => {
       clearErrorsRef.current()
@@ -474,11 +538,21 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             comment: item.comment?.trim() ?? '',
           }))
           .filter((item) => item.clientId)
+        const normalizedAdditionalEvents = normalizeAdditionalEvents(
+          additionalEvents
+        )
+          .map((item) => ({
+            title: item.title?.trim() ?? '',
+            description: item.description?.trim() ?? '',
+            date: item.date ?? null,
+          }))
+          .filter((item) => item.title || item.description || item.date)
         const payload = {
           _id: event?._id,
           clientId,
           status,
           requestCreatedAt: requestCreatedAt ?? new Date().toISOString(),
+          additionalEvents: normalizedAdditionalEvents,
           isTransferred,
           colleagueId: isTransferred ? colleagueId : null,
           eventDate,
@@ -518,10 +592,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       calendarImportChecked,
       clearErrorsRef,
       clientId,
-      clone,
-      closeModal,
       colleagueId,
       description,
+      financeComment,
       contractSum,
       isByContract,
       dateEnd,
@@ -535,6 +608,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       address,
       modalsFunc,
       requestCreatedAt,
+      additionalEvents,
       setEvent,
       servicesIds,
       otherContacts,
@@ -697,21 +771,75 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       setOtherContacts((prev) => [...prev, { clientId: null, comment: '' }])
     }
 
+    const handleAdditionalEventChange = (index, patch) => {
+      setAdditionalEvents((prev) =>
+        prev.map((item, idx) => (idx === index ? { ...item, ...patch } : item))
+      )
+    }
+
+    const handleAdditionalEventRemove = (index) => {
+      setAdditionalEvents((prev) => prev.filter((_, idx) => idx !== index))
+    }
+
+    const handleAdditionalEventAdd = (preset = null) => {
+      const now = new Date()
+      const baseItem = {
+        title: '',
+        description: '',
+        date: now.toISOString(),
+      }
+
+      if (preset === 'decision') {
+        const date = new Date(now)
+        date.setDate(date.getDate() + 1)
+        setAdditionalEvents((prev) => [
+          ...prev,
+          {
+            title: 'Узнать что решили',
+            description: '',
+            date: date.toISOString(),
+          },
+        ])
+        return
+      }
+
+      if (preset === 'meeting') {
+        const date = new Date(now)
+        date.setDate(date.getDate() + 1)
+        date.setHours(12, 0, 0, 0)
+        setAdditionalEvents((prev) => [
+          ...prev,
+          {
+            title: 'Встреча',
+            description: '',
+            date: date.toISOString(),
+          },
+        ])
+        return
+      }
+
+      setAdditionalEvents((prev) => [...prev, baseItem])
+    }
+
     const openTransactionModal = (transactionId) => {
+      if (clone) {
+        setFinanceError('В копии транзакции недоступны до сохранения')
+        return
+      }
       if (isDraft) {
         setFinanceError('Транзакции недоступны для заявки')
         return
       }
-      if (!event?._id || !event?.clientId) {
+      if (!sourceEventId || !event?.clientId) {
         setFinanceError('Сначала сохраните мероприятие и выберите клиента')
         return
       }
       setFinanceError('')
       if (transactionId)
-        modalsFunc.transaction?.edit(event._id, transactionId, {
+        modalsFunc.transaction?.edit(sourceEventId, transactionId, {
           contractSum,
         })
-      else modalsFunc.transaction?.add(event._id, { contractSum })
+      else modalsFunc.transaction?.add(sourceEventId, { contractSum })
     }
 
     return (
@@ -756,44 +884,19 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               required
               onClearError={() => removeError('servicesIds')}
             />
-            <ClientPicker
-              selectedClient={selectedClient}
-              selectedClientId={clientId}
-              onSelectClick={openClientSelectModal}
-              onViewClick={() => modalsFunc.client?.view(clientId)}
-              onCreateClick={() =>
-                modalsFunc.client?.add((newClient) => {
-                  if (!newClient?._id) return
-                  setClientId(newClient._id)
-                  removeError('clientId')
-                })
-              }
-              label="Клиент"
-              required
-              error={errors.clientId}
-              paddingY
-              fullWidth
-              compact
-            />
-            <OtherContactsPicker
-              contacts={otherContacts}
-              clients={clients}
-              onSelectContact={handleOtherContactSelect}
-              onChangeComment={handleOtherContactCommentChange}
-              onRemoveContact={handleOtherContactRemove}
-              onEditContact={(index) => {
-                const contact = otherContacts[index]
-                if (contact?.clientId) modalsFunc.client?.edit(contact.clientId)
-              }}
-              onAddContact={handleOtherContactAdd}
-            />
 
             <div className="flex flex-wrap items-center gap-x-1">
               <DateTimePicker
                 value={eventDate}
                 onChange={(value) => {
                   removeError('eventDate')
-                  setEventDate(value ?? null)
+                  const nextStart = value ?? null
+                  setDateEnd(
+                    (prevEnd) =>
+                      shiftEndByStartChange(eventDate, nextStart, prevEnd) ??
+                      prevEnd
+                  )
+                  setEventDate(nextStart)
                 }}
                 label="Дата начала"
                 error={errors.eventDate}
@@ -858,19 +961,139 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 checkedIconColor="#10B981"
               />
             )}
-            {!canClose && (
-              <div className="text-xs text-gray-500">
-                {isByContract && !hasTaxes
-                  ? 'Закрытие недоступно: добавьте транзакцию Налоги.'
-                  : 'Закрытие недоступно, пока сумма поступлений меньше договорной.'}
-              </div>
-            )}
             <DateTimePicker
               value={requestCreatedAt}
               onChange={(value) => setRequestCreatedAt(value ?? null)}
               label="Дата заявки"
             />
             <ErrorsList errors={errors} />
+          </FormWrapper>
+        </TabPanel>
+
+        <TabPanel tabName="Клиент и Контакты">
+          <FormWrapper>
+            <ClientPicker
+              selectedClient={selectedClient}
+              selectedClientId={clientId}
+              onSelectClick={openClientSelectModal}
+              onViewClick={() => modalsFunc.client?.view(clientId)}
+              onCreateClick={() =>
+                modalsFunc.client?.add((newClient) => {
+                  if (!newClient?._id) return
+                  setClientId(newClient._id)
+                  removeError('clientId')
+                })
+              }
+              label="Клиент"
+              required
+              error={errors.clientId}
+              paddingY
+              fullWidth
+              compact
+            />
+            <OtherContactsPicker
+              contacts={otherContacts}
+              clients={clients}
+              onSelectContact={handleOtherContactSelect}
+              onChangeComment={handleOtherContactCommentChange}
+              onRemoveContact={handleOtherContactRemove}
+              onEditContact={(index) => {
+                const contact = otherContacts[index]
+                if (contact?.clientId) modalsFunc.client?.edit(contact.clientId)
+              }}
+              onAddContact={handleOtherContactAdd}
+            />
+            <InputWrapper label="Доп. события">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <AppButton
+                    variant="secondary"
+                    size="sm"
+                    className="rounded"
+                    onClick={() => handleAdditionalEventAdd('decision')}
+                  >
+                    Узнать что решили
+                  </AppButton>
+                  <AppButton
+                    variant="secondary"
+                    size="sm"
+                    className="rounded"
+                    onClick={() => handleAdditionalEventAdd('meeting')}
+                  >
+                    Встреча
+                  </AppButton>
+                  <AppButton
+                    variant="primary"
+                    size="sm"
+                    className="rounded"
+                    onClick={() => handleAdditionalEventAdd()}
+                  >
+                    Добавить событие
+                  </AppButton>
+                </div>
+
+                {additionalEvents.length === 0 ? (
+                  <div className="text-sm text-gray-500">
+                    Дополнительные события не добавлены
+                  </div>
+                ) : (
+                  additionalEvents.map((item, index) => (
+                    <div
+                      key={`additional-event-${index}`}
+                      className="rounded border border-gray-200 p-2"
+                    >
+                      <div className="laptop:grid-cols-2 grid grid-cols-1 gap-3">
+                        <div className="flex items-center justify-between gap-x-2">
+                          <Input
+                            label="Заголовок"
+                            value={item.title ?? ''}
+                            onChange={(value) =>
+                              handleAdditionalEventChange(index, {
+                                title: value,
+                              })
+                            }
+                            noMargin
+                            fullWidth
+                          />
+                          <button
+                            type="button"
+                            className="action-icon-button action-icon-button--danger flex h-8 min-h-8 w-8 min-w-8 items-center justify-center rounded"
+                            onClick={() => handleAdditionalEventRemove(index)}
+                            title="Удалить событие"
+                          >
+                            <FontAwesomeIcon
+                              icon={faTrashAlt}
+                              className="h-4 w-4"
+                            />
+                          </button>
+                        </div>
+                        <DateTimePicker
+                          value={item.date ?? null}
+                          onChange={(value) =>
+                            handleAdditionalEventChange(index, {
+                              date: value ?? null,
+                            })
+                          }
+                          label="Дата и время"
+                          noMargin
+                        />
+                        <Textarea
+                          label="Описание"
+                          value={item.description ?? ''}
+                          onChange={(value) =>
+                            handleAdditionalEventChange(index, {
+                              description: value,
+                            })
+                          }
+                          rows={2}
+                          noMargin
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </InputWrapper>
           </FormWrapper>
         </TabPanel>
 
@@ -901,7 +1124,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               noMargin
             />
             {isDraft ? (
-              <div className="px-3 py-2 text-sm border rounded-md border-amber-200 bg-amber-50 text-amber-800">
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 {`Для заявки финансы, транзакции и документы недоступны. Переведите статус в "Активно"`}
               </div>
             ) : null}
@@ -920,7 +1143,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         className="flex items-center gap-2"
                       >
                         <input
-                          className="w-full h-8 px-2 text-sm text-gray-900 border border-gray-200 rounded focus:border-general focus:outline-none"
+                          className="focus:border-general h-8 w-full rounded border border-gray-200 px-2 text-sm text-gray-900 focus:outline-none"
                           type="text"
                           value={link}
                           placeholder="Введите ссылку"
@@ -935,7 +1158,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         />
                         <button
                           type="button"
-                          className="flex items-center justify-center w-8 h-8 text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button hover:bg-red-50"
+                          className="action-icon-button action-icon-button--danger flex h-8 w-8 items-center justify-center rounded"
                           onClick={() =>
                             setInvoiceLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
@@ -945,18 +1168,18 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         >
                           <FontAwesomeIcon
                             icon={faTrashAlt}
-                            className="w-4 h-4"
+                            className="h-4 w-4"
                           />
                         </button>
                       </div>
                     ))}
                     <button
                       type="button"
-                      className="flex items-center justify-center w-8 h-8 transition border rounded shadow-sm cursor-pointer action-icon-button border-emerald-600 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
+                      className="action-icon-button action-icon-button--success flex h-8 w-8 items-center justify-center rounded"
                       onClick={() => setInvoiceLinks((prev) => [...prev, ''])}
                       title="Добавить ссылку"
                     >
-                      <FontAwesomeIcon className="w-4 h-4" icon={faPlus} />
+                      <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
                     </button>
                   </div>
                 </InputWrapper>
@@ -973,7 +1196,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         className="flex items-center gap-2"
                       >
                         <input
-                          className="w-full h-8 px-2 text-sm text-gray-900 border border-gray-200 rounded focus:border-general focus:outline-none"
+                          className="focus:border-general h-8 w-full rounded border border-gray-200 px-2 text-sm text-gray-900 focus:outline-none"
                           type="text"
                           value={link}
                           placeholder="Введите ссылку"
@@ -988,7 +1211,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         />
                         <button
                           type="button"
-                          className="flex items-center justify-center w-8 h-8 text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button hover:bg-red-50"
+                          className="action-icon-button action-icon-button--danger flex h-8 w-8 items-center justify-center rounded"
                           onClick={() =>
                             setReceiptLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
@@ -998,18 +1221,18 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         >
                           <FontAwesomeIcon
                             icon={faTrashAlt}
-                            className="w-4 h-4"
+                            className="h-4 w-4"
                           />
                         </button>
                       </div>
                     ))}
                     <button
                       type="button"
-                      className="flex items-center justify-center w-8 h-8 transition border rounded shadow-sm cursor-pointer action-icon-button border-emerald-600 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
+                      className="action-icon-button action-icon-button--success flex h-8 w-8 items-center justify-center rounded"
                       onClick={() => setReceiptLinks((prev) => [...prev, ''])}
                       title="Добавить ссылку"
                     >
-                      <FontAwesomeIcon className="w-4 h-4" icon={faPlus} />
+                      <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
                     </button>
                   </div>
                 </InputWrapper>
@@ -1026,7 +1249,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         className="flex items-center gap-2"
                       >
                         <input
-                          className="w-full h-8 px-2 text-sm text-gray-900 border border-gray-200 rounded focus:border-general focus:outline-none"
+                          className="focus:border-general h-8 w-full rounded border border-gray-200 px-2 text-sm text-gray-900 focus:outline-none"
                           type="text"
                           value={link}
                           placeholder="Введите ссылку"
@@ -1041,7 +1264,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         />
                         <button
                           type="button"
-                          className="flex items-center justify-center w-8 h-8 text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button hover:bg-red-50"
+                          className="action-icon-button action-icon-button--danger flex h-8 w-8 items-center justify-center rounded"
                           onClick={() =>
                             setActLinks((prev) =>
                               prev.filter((_, idx) => idx !== index)
@@ -1051,18 +1274,18 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         >
                           <FontAwesomeIcon
                             icon={faTrashAlt}
-                            className="w-4 h-4"
+                            className="h-4 w-4"
                           />
                         </button>
                       </div>
                     ))}
                     <button
                       type="button"
-                      className="flex items-center justify-center w-8 h-8 transition border rounded shadow-sm cursor-pointer action-icon-button border-emerald-600 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
+                      className="action-icon-button action-icon-button--success flex h-8 w-8 items-center justify-center rounded"
                       onClick={() => setActLinks((prev) => [...prev, ''])}
                       title="Добавить ссылку"
                     >
-                      <FontAwesomeIcon className="w-4 h-4" icon={faPlus} />
+                      <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
                     </button>
                   </div>
                 </InputWrapper>
@@ -1077,27 +1300,28 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   </div>
                   <button
                     type="button"
-                    className="flex items-center justify-center transition border rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 border-emerald-600 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="action-icon-button action-icon-button--success flex h-9 w-9 items-center justify-center rounded disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={() => openTransactionModal()}
                     disabled={
                       isDraft ||
+                      clone ||
                       financeLoading ||
-                      !event?._id ||
+                      !sourceEventId ||
                       !event?.clientId
                     }
                     title="Добавить транзакцию"
                   >
-                    <FontAwesomeIcon className="w-4 h-4" icon={faPlus} />
+                    <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
                   </button>
                 </div>
 
                 {financeError && (
-                  <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
+                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                     {financeError}
                   </div>
                 )}
 
-                <div className="bg-white border border-gray-200 rounded shadow-sm">
+                <div className="rounded border border-gray-200 bg-white shadow-sm">
                   {eventTransactions.length === 0 ? (
                     <div className="px-3 py-4 text-sm text-gray-500">
                       Транзакции не найдены
@@ -1115,9 +1339,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         incomeTransactions.map((transaction) => (
                           <div
                             key={transaction._id}
-                            className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
+                            className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
                           >
-                            <div className="flex flex-wrap flex-1 gap-3 text-sm">
+                            <div className="flex flex-1 flex-wrap gap-3 text-sm">
                               <span className="font-semibold text-gray-900">
                                 {transaction.amount.toLocaleString()} руб.
                               </span>
@@ -1159,7 +1383,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                             <div className="flex gap-2">
                               <button
                                 type="button"
-                                className="flex items-center justify-center text-orange-500 transition border border-orange-600 rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 bg-orange-50 hover:bg-orange-100 hover:text-orange-600"
+                                className="action-icon-button action-icon-button--warning flex h-9 w-9 items-center justify-center rounded"
                                 onClick={() =>
                                   openTransactionModal(transaction._id)
                                 }
@@ -1167,13 +1391,13 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                                 title="Редактировать транзакцию"
                               >
                                 <FontAwesomeIcon
-                                  className="w-4 h-4"
+                                  className="h-4 w-4"
                                   icon={faPencilAlt}
                                 />
                               </button>
                               <button
                                 type="button"
-                                className="flex items-center justify-center text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button h-9 w-9 hover:bg-red-50"
+                                className="action-icon-button action-icon-button--danger flex h-9 w-9 items-center justify-center rounded"
                                 onClick={() =>
                                   handleDeleteTransaction(transaction._id)
                                 }
@@ -1182,7 +1406,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                               >
                                 <FontAwesomeIcon
                                   icon={faTrashAlt}
-                                  className="w-4 h-4"
+                                  className="h-4 w-4"
                                 />
                               </button>
                             </div>
@@ -1200,9 +1424,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         expenseTransactions.map((transaction) => (
                           <div
                             key={transaction._id}
-                            className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
+                            className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
                           >
-                            <div className="flex flex-wrap flex-1 gap-3 text-sm">
+                            <div className="flex flex-1 flex-wrap gap-3 text-sm">
                               <span className="font-semibold text-gray-900">
                                 {transaction.amount.toLocaleString()} руб.
                               </span>
@@ -1244,7 +1468,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                             <div className="flex gap-2">
                               <button
                                 type="button"
-                                className="flex items-center justify-center text-orange-500 transition border border-orange-600 rounded shadow-sm cursor-pointer action-icon-button h-9 w-9 bg-orange-50 hover:bg-orange-100 hover:text-orange-600"
+                                className="action-icon-button action-icon-button--warning flex h-9 w-9 items-center justify-center rounded"
                                 onClick={() =>
                                   openTransactionModal(transaction._id)
                                 }
@@ -1252,13 +1476,13 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                                 title="Редактировать транзакцию"
                               >
                                 <FontAwesomeIcon
-                                  className="w-4 h-4"
+                                  className="h-4 w-4"
                                   icon={faPencilAlt}
                                 />
                               </button>
                               <button
                                 type="button"
-                                className="flex items-center justify-center text-red-600 transition border border-red-200 rounded cursor-pointer action-icon-button h-9 w-9 hover:bg-red-50"
+                                className="action-icon-button action-icon-button--danger flex h-9 w-9 items-center justify-center rounded"
                                 onClick={() =>
                                   handleDeleteTransaction(transaction._id)
                                 }
@@ -1267,7 +1491,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                               >
                                 <FontAwesomeIcon
                                   icon={faTrashAlt}
-                                  className="w-4 h-4"
+                                  className="h-4 w-4"
                                 />
                               </button>
                             </div>
@@ -1289,7 +1513,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               </div>
               <button
                 type="button"
-                className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+                className="h-8 rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                 onClick={() => {
                   if (!navigator?.clipboard) return
                   navigator.clipboard.writeText(googleCalendarResponseText)
@@ -1298,7 +1522,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 Скопировать
               </button>
             </div>
-            <pre className="w-full p-3 overflow-auto text-xs text-gray-800 whitespace-pre-wrap border border-gray-200 rounded max-h-72 bg-gray-50">
+            <pre className="max-h-72 w-full overflow-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs whitespace-pre-wrap text-gray-800">
               {googleCalendarResponseText}
             </pre>
           </TabPanel>

@@ -56,7 +56,7 @@ const OtherContactsPicker = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-orange-600 bg-orange-50 text-orange-500 shadow-sm transition hover:bg-orange-100 hover:text-orange-600"
+                className="action-icon-button action-icon-button--warning flex h-9 w-9 cursor-pointer items-center justify-center rounded"
                 onClick={() => onEditContact?.(index)}
                 title="Редактировать клиента"
               >
@@ -64,7 +64,7 @@ const OtherContactsPicker = ({
               </button>
               <button
                 type="button"
-                className="action-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
+                className="action-icon-button action-icon-button--danger flex h-9 w-9 cursor-pointer items-center justify-center rounded"
                 onClick={() => onRemoveContact?.(index)}
                 title="Удалить"
               >
@@ -84,7 +84,7 @@ const OtherContactsPicker = ({
       <div className="flex w-full justify-end">
         <button
           type="button"
-          className="action-icon-button flex h-10 w-10 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700"
+          className="action-icon-button action-icon-button--success flex h-10 w-10 cursor-pointer items-center justify-center rounded"
           onClick={onAddContact}
           title="Добавить контакт"
         >

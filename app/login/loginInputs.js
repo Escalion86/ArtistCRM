@@ -514,7 +514,7 @@ const LoginInputs = () => {
             {getPhoneForTel(verifyState.authPhone) && (
               <a
                 href={`tel:${getPhoneForTel(verifyState.authPhone)}`}
-                className="w-full cursor-pointer rounded-md border border-gray-300 px-5 py-2.5 text-center text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                className="ui-btn ui-btn-secondary w-full cursor-pointer rounded-md"
               >
                 Позвонить
               </a>
@@ -529,7 +529,7 @@ const LoginInputs = () => {
             {verifyState.smsReady && (
               <button
                 type="button"
-                className="w-full cursor-pointer rounded-md border border-general px-3 py-2 text-sm font-medium text-general transition hover:bg-[#f7efe1] disabled:cursor-not-allowed disabled:text-gray-400 disabled:border-gray-300"
+                className="ui-btn ui-btn-secondary w-full cursor-pointer rounded-md"
                 onClick={() =>
                   sendSmsFallback({ flow, phone, setVerifyState })
                 }
@@ -655,7 +655,7 @@ const LoginInputs = () => {
             />
 
             <button
-              className="bg-general mt-2 w-full cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="mt-2 w-full cursor-pointer rounded-lg border border-[#6f582f] bg-general px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-[#6f582f] hover:shadow-lg disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-300 disabled:shadow-none"
               type="submit"
               disabled={!loginPhone || !loginPassword || isSubmitting}
             >
@@ -702,7 +702,7 @@ const LoginInputs = () => {
             {(resetVerify.verified || !resetVerify.callId) && (
               <button
                 type="submit"
-                className="bg-general mt-2 w-full cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="ui-btn ui-btn-primary mt-2 w-full cursor-pointer rounded-lg"
                 disabled={
                   !resetPhone ||
                   isResetLoading ||
@@ -804,7 +804,7 @@ const LoginInputs = () => {
             {(registerVerify.verified || !registerVerify.callId) && (
               <button
                 type="submit"
-                className="mt-2 w-full cursor-pointer rounded-lg bg-general px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b88f52] disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="ui-btn ui-btn-primary mt-2 w-full cursor-pointer rounded-lg"
                 disabled={
                   !registerPhone ||
                   isRegisterLoading ||

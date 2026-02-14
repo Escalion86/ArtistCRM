@@ -1,5 +1,6 @@
 import isObject from '@helpers/isObject'
 import Button from '@components/Button'
+import AppButton from '@components/AppButton'
 import Divider from '@components/Divider'
 
 const ModalButtons = ({
@@ -44,44 +45,52 @@ const ModalButtons = ({
             <div className="flex-1">{bottomLeftComponent}</div>
           ) : null}
           {onConfirm2Click && (
-            <Button
-              name={confirmName2}
-              classBgColor="bg-general"
-              className="modal-action-button"
+            <AppButton
+              variant="primary"
+              size="md"
+              className="modal-action-button rounded"
               onClick={onConfirm2Click}
               disabled={disableConfirm}
-            />
+            >
+              {confirmName2}
+            </AppButton>
           )}
           {onConfirmClick && (
-            <Button
-              name={confirmName}
-              classBgColor="bg-general"
-              className="modal-action-button"
+            <AppButton
+              variant="primary"
+              size="md"
+              className="modal-action-button rounded"
               onClick={onConfirmClick}
               disabled={disableConfirm}
-            />
+            >
+              {confirmName}
+            </AppButton>
           )}
           {declineButtonShow &&
           (onConfirmClick || onConfirm2Click || onDeclineClick) ? (
-            <Button
-              name={declineName}
-              classBgColor={declineButtonBgClassName}
-              className="modal-action-button"
+            <AppButton
+              variant={declineButtonBgClassName === 'bg-danger' ? 'danger' : 'secondary'}
+              size="md"
+              className="modal-action-button rounded"
               onClick={
                 typeof onDeclineClick === 'function'
                   ? onDeclineClick
                   : closeModal
               }
               disabled={disableDecline}
-            />
+            >
+              {declineName}
+            </AppButton>
           ) : (
             closeButtonShow && (
-              <Button
-                name={closeButtonName}
-                classBgColor="bg-general"
-                className="modal-action-button"
+              <AppButton
+                variant="secondary"
+                size="md"
+                className="modal-action-button rounded"
                 onClick={closeModal}
-              />
+              >
+                {closeButtonName}
+              </AppButton>
             )
           )}
         </div>

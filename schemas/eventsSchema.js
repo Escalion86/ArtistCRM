@@ -19,6 +19,16 @@ const eventsSchema = {
     type: Date,
     default: () => new Date(),
   },
+  additionalEvents: {
+    type: [
+      {
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        date: { type: Date, default: null },
+      },
+    ],
+    default: [],
+  },
   eventDate: {
     type: Date,
     default: null,

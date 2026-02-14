@@ -31,7 +31,7 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && onEdit?.()}
-      className="group flex h-full w-full cursor-pointer overflow-visible p-4 text-left hover:border-gray-300"
+      className="group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
@@ -44,46 +44,46 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
           onDelete={onDelete}
         />
       </CardActions>
-        <div className="flex h-full w-full flex-col gap-3 pr-24">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <div className="text-base font-semibold text-gray-900">
-                {tariff.title || 'Без названия'}
-              </div>
-              <div className="mt-1 text-sm text-gray-600">
-                {formatEventsLimit(tariff.eventsPerMonth)}
-              </div>
+      <div className="flex h-full w-full flex-col gap-3 pr-24">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-base font-semibold text-gray-900">
+              {tariff.title || 'Без названия'}
             </div>
-            {tariff.hidden && (
-              <span className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
-                Скрытый
-              </span>
-            )}
+            <div className="mt-1 text-sm text-gray-600">
+              {formatEventsLimit(tariff.eventsPerMonth)}
+            </div>
           </div>
-          <div className="grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
-            <IconCheckBox
-              checked={tariff.allowCalendarSync}
-              label="Синхронизация с календарем"
-              readOnly
-              noMargin
-            />
-            <IconCheckBox
-              checked={tariff.allowStatistics}
-              label="Просмотр статистики"
-              readOnly
-              noMargin
-            />
-            <IconCheckBox
-              checked={tariff.allowDocuments}
-              label="Счета и чеки"
-              readOnly
-              noMargin
-            />
-          </div>
+          {tariff.hidden && (
+            <span className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
+              Скрытый
+            </span>
+          )}
         </div>
-        <div className="absolute bottom-4 right-4 text-lg font-semibold text-gray-900">
-          {formatPrice(tariff.price)}
+        <div className="grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
+          <IconCheckBox
+            checked={tariff.allowCalendarSync}
+            label="Синхронизация с календарем"
+            readOnly
+            noMargin
+          />
+          <IconCheckBox
+            checked={tariff.allowStatistics}
+            label="Просмотр статистики"
+            readOnly
+            noMargin
+          />
+          <IconCheckBox
+            checked={tariff.allowDocuments}
+            label="Счета и чеки"
+            readOnly
+            noMargin
+          />
         </div>
+      </div>
+      <div className="absolute right-4 bottom-4 text-lg font-semibold text-gray-900">
+        {formatPrice(tariff.price)}
+      </div>
     </CardWrapper>
   )
 }

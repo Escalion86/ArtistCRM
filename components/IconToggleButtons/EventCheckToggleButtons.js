@@ -22,12 +22,12 @@ const EventCheckToggleButtons = ({ value, onChange }) => {
         variant={value.checked ? 'contained' : 'outlined'}
         color="inherit"
         sx={{
-          color: value.checked ? '#1f1b14' : '#16a34a',
+          color: value.checked ? '#ffffff' : '#16a34a',
           borderColor: '#16a34a',
           backgroundColor: value.checked ? '#16a34a' : 'transparent',
           '&:hover': {
             borderColor: '#15803d',
-            backgroundColor: value.checked ? '#15803d' : 'rgba(22, 163, 74, 0.12)',
+            backgroundColor: value.checked ? '#15803d' : 'rgba(22, 163, 74, 0.14)',
           },
         }}
       >
@@ -38,12 +38,12 @@ const EventCheckToggleButtons = ({ value, onChange }) => {
         variant={value.unchecked ? 'contained' : 'outlined'}
         color="inherit"
         sx={{
-          color: value.unchecked ? '#1f1b14' : '#f59e0b',
+          color: value.unchecked ? '#ffffff' : '#f59e0b',
           borderColor: '#f59e0b',
           backgroundColor: value.unchecked ? '#f59e0b' : 'transparent',
           '&:hover': {
             borderColor: '#d97706',
-            backgroundColor: value.unchecked ? '#d97706' : 'rgba(245, 158, 11, 0.12)',
+            backgroundColor: value.unchecked ? '#d97706' : 'rgba(245, 158, 11, 0.14)',
           },
         }}
       >

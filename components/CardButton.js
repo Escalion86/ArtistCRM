@@ -2,6 +2,14 @@ import Tooltip from '@components/Tooltip'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cn from 'classnames'
 
+const toneByColor = {
+  red: 'danger',
+  orange: 'warning',
+  blue: 'neutral',
+  green: 'success',
+  gray: 'neutral',
+}
+
 const CardButton = ({
   active,
   icon,
@@ -11,12 +19,13 @@ const CardButton = ({
   paddingY = true,
 }) => (
   <Tooltip title={tooltipText}>
-    <div
+    <button
+      type="button"
       className={cn(
-        `cursor-pointer text-base font-normal duration-200 flex items-center justify-center w-9`,
+        'action-icon-button flex w-9 items-center justify-center rounded-full text-base font-normal duration-200',
+        `action-icon-button--${toneByColor[color] || 'neutral'}`,
         paddingY ? 'h-9' : '',
-        active ? `bg-${color}-500 text-white` : `text-${color}-500`,
-        `rounded-full hover:text-toxic hover:scale-110`
+        active ? 'scale-105 ring-2 ring-general/30' : ''
       )}
       onClick={(e) => {
         e.stopPropagation()
@@ -24,7 +33,7 @@ const CardButton = ({
       }}
     >
       <FontAwesomeIcon icon={icon} className="w-6 h-6" />
-    </div>
+    </button>
   </Tooltip>
 )
 

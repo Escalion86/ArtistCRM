@@ -49,6 +49,25 @@ const parseDateValue = (value) => {
 const normalizeCancelReason = (value) =>
   typeof value === 'string' ? value.trim() : ''
 
+const normalizeAdditionalEvents = (items) => {
+  if (!Array.isArray(items)) return []
+  return items
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const title = typeof item.title === 'string' ? item.title.trim() : ''
+      const description =
+        typeof item.description === 'string' ? item.description.trim() : ''
+      const date = parseDateValue(item.date)
+      if (!title && !description && !date) return null
+      return {
+        title,
+        description,
+        date,
+      }
+    })
+    .filter(Boolean)
+}
+
 const normalizeOtherContacts = (contacts) => {
   if (!Array.isArray(contacts)) return []
   return contacts
@@ -164,6 +183,8 @@ export const PUT = async (req, { params }) => {
     update.eventDate = body.eventDate ? new Date(body.eventDate) : null
   if (body.dateEnd !== undefined)
     update.dateEnd = body.dateEnd ? new Date(body.dateEnd) : null
+  if (body.additionalEvents !== undefined)
+    update.additionalEvents = normalizeAdditionalEvents(body.additionalEvents)
   if (body.clientId !== undefined) update.clientId = body.clientId
   if (body.address !== undefined) {
     if (typeof body.address === 'string')

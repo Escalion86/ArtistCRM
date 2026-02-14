@@ -571,7 +571,7 @@ const ProfileContent = () => {
                       <span className="text-xs text-gray-500">минут до</span>
                       <button
                         type="button"
-                        className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-red-200 text-red-600 transition hover:bg-red-50"
+                        className="action-icon-button action-icon-button--danger flex h-8 w-8 cursor-pointer items-center justify-center rounded"
                         onClick={() =>
                           setCalendarReminders((prev) => ({
                             ...prev,
@@ -589,7 +589,7 @@ const ProfileContent = () => {
                   ))}
                   <button
                     type="button"
-                    className="action-icon-button flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-700"
+                    className="action-icon-button action-icon-button--success flex h-8 w-8 cursor-pointer items-center justify-center rounded"
                     onClick={() =>
                       setCalendarReminders((prev) => ({
                         ...prev,

@@ -64,15 +64,14 @@ const TransactionCard = ({
     : eventTitle
 
   const categoryLabel =
-    TRANSACTION_CATEGORIES.find(
-      (item) => item.value === transaction.category
-    )?.name ?? null
+    TRANSACTION_CATEGORIES.find((item) => item.value === transaction.category)
+      ?.name ?? null
 
   return (
     <CardWrapper
       style={style}
       onClick={() => !loading && onEdit?.()}
-      className="flex h-full w-full cursor-pointer overflow-visible p-3 pr-4 text-left hover:border-gray-300"
+      className="flex h-full w-full cursor-pointer p-3 pr-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
@@ -91,40 +90,38 @@ const TransactionCard = ({
         }
       />
 
-        <div className="flex flex-col w-full h-full pl-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="text-sm font-semibold text-gray-900">
-              {formatTransactionDate(transaction.date)}
-            </div>
-            {categoryLabel && (
-              <div className="text-xs font-medium text-gray-500">
-                {categoryLabel}
-              </div>
-            )}
+      <div className="flex h-full w-full flex-col pl-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="text-sm font-semibold text-gray-900">
+            {formatTransactionDate(transaction.date)}
           </div>
-          <div className="grid text-sm text-gray-700 tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="truncate">
-              <div className="font-medium text-gray-800 truncate">
-                {clientName || '-'}
-              </div>
-            </div>
-            <div className="truncate">
-              <div className="font-medium text-gray-800 truncate">
-                {eventTitleWithDate}
-              </div>
-            </div>
-          </div>
-          {transaction.comment && (
-            <div className="text-sm text-gray-600">
-              {transaction.comment}
+          {categoryLabel && (
+            <div className="text-xs font-medium text-gray-500">
+              {categoryLabel}
             </div>
           )}
         </div>
-        <div className="self-end mt-auto text-lg font-semibold text-right text-gray-900 whitespace-nowrap">
-          {transaction.amount
-            ? `${transaction.amount.toLocaleString()} ₽`
-            : '0 ₽'}
+        <div className="tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] grid text-sm text-gray-700">
+          <div className="truncate">
+            <div className="truncate font-medium text-gray-800">
+              {clientName || '-'}
+            </div>
+          </div>
+          <div className="truncate">
+            <div className="truncate font-medium text-gray-800">
+              {eventTitleWithDate}
+            </div>
+          </div>
         </div>
+        {transaction.comment && (
+          <div className="text-sm text-gray-600">{transaction.comment}</div>
+        )}
+      </div>
+      <div className="mt-auto self-end text-right text-lg font-semibold whitespace-nowrap text-gray-900">
+        {transaction.amount
+          ? `${transaction.amount.toLocaleString()} ₽`
+          : '0 ₽'}
+      </div>
     </CardWrapper>
   )
 }

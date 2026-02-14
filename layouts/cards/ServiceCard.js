@@ -32,7 +32,7 @@ const ServiceCard = ({ service, style }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && modalsFunc.service?.view(service._id)}
-      className="group flex h-full w-full cursor-pointer overflow-visible p-4 text-left hover:border-gray-300"
+      className="group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
@@ -45,15 +45,15 @@ const ServiceCard = ({ service, style }) => {
         />
       </CardActions>
 
-        <div className="flex h-full w-full gap-3">
-          {previewImage && (
-            <img
-              src={previewImage}
-              alt="service"
-              className="h-16 w-16 min-w-[64px] rounded-lg object-cover"
-            />
-          )}
-          <div className="flex h-full w-full flex-col gap-2">
+      <div className="flex h-full w-full gap-3">
+        {previewImage && (
+          <img
+            src={previewImage}
+            alt="service"
+            className="h-16 w-16 min-w-[64px] rounded-lg object-cover"
+          />
+        )}
+        <div className="flex h-full w-full flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-base font-semibold text-gray-900">
               {service.title || 'Без названия'}
@@ -68,8 +68,8 @@ const ServiceCard = ({ service, style }) => {
           <TextLinesLimiter className="text-sm text-gray-600" lines={3}>
             {description}
           </TextLinesLimiter>
-          </div>
         </div>
+      </div>
     </CardWrapper>
   )
 }

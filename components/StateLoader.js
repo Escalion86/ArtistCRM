@@ -111,7 +111,14 @@ const StateLoader = (props) => {
     if (needsTariff && props.page && !allowedPages.includes(props.page)) {
       router.push('/cabinet/tariff-select')
     }
-  }, [loggedUser?._id, loggedUser?.tariffId, props.page, router])
+  }, [
+    loggedUser,
+    loggedUser?._id,
+    loggedUser?.tariffId,
+    props.page,
+    props.tariffs,
+    router,
+  ])
 
   const onboardingShownRef = useRef(false)
 

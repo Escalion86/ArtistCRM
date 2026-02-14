@@ -69,7 +69,7 @@ const AddressPicker = ({
             {allowTownCreate && (
               <button
                 type="button"
-                className="action-icon-button flex h-[42px] w-[42px] cursor-pointer items-center justify-center rounded border border-emerald-600 bg-emerald-50 text-emerald-600 shadow-sm transition hover:bg-emerald-100"
+                className="action-icon-button action-icon-button--success flex h-[42px] w-[42px] cursor-pointer items-center justify-center rounded"
                 onClick={handleCreateTown}
                 title="Добавить город"
               >
