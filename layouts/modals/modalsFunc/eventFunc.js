@@ -92,6 +92,10 @@ const normalizeAdditionalEvents = (items) => {
         description:
           typeof item.description === 'string' ? item.description : '',
         date: item.date ?? null,
+        googleCalendarEventId:
+          typeof item.googleCalendarEventId === 'string'
+            ? item.googleCalendarEventId
+            : '',
       }
     })
     .filter(Boolean)
@@ -545,6 +549,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             title: item.title?.trim() ?? '',
             description: item.description?.trim() ?? '',
             date: item.date ?? null,
+            googleCalendarEventId: item.googleCalendarEventId?.trim() ?? '',
           }))
           .filter((item) => item.title || item.description || item.date)
         const payload = {
@@ -787,9 +792,23 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         title: '',
         description: '',
         date: now.toISOString(),
+        googleCalendarEventId: '',
       }
 
-      if (preset === 'decision') {
+      if (preset === 'now') {
+        setAdditionalEvents((prev) => [
+          ...prev,
+          {
+            title: 'Уточнить детали',
+            description: '',
+            date: now.toISOString(),
+            googleCalendarEventId: '',
+          },
+        ])
+        return
+      }
+
+      if (preset === 'day1') {
         const date = new Date(now)
         date.setDate(date.getDate() + 1)
         setAdditionalEvents((prev) => [
@@ -798,6 +817,22 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             title: 'Узнать что решили',
             description: '',
             date: date.toISOString(),
+            googleCalendarEventId: '',
+          },
+        ])
+        return
+      }
+
+      if (preset === 'day3') {
+        const date = new Date(now)
+        date.setDate(date.getDate() + 3)
+        setAdditionalEvents((prev) => [
+          ...prev,
+          {
+            title: 'Узнать что решили',
+            description: '',
+            date: date.toISOString(),
+            googleCalendarEventId: '',
           },
         ])
         return
@@ -813,6 +848,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             title: 'Встреча',
             description: '',
             date: date.toISOString(),
+            googleCalendarEventId: '',
           },
         ])
         return
@@ -1010,9 +1046,25 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                     variant="secondary"
                     size="sm"
                     className="rounded"
-                    onClick={() => handleAdditionalEventAdd('decision')}
+                    onClick={() => handleAdditionalEventAdd('now')}
                   >
-                    Узнать что решили
+                    Сейчас
+                  </AppButton>
+                  <AppButton
+                    variant="secondary"
+                    size="sm"
+                    className="rounded"
+                    onClick={() => handleAdditionalEventAdd('day1')}
+                  >
+                    +1 день
+                  </AppButton>
+                  <AppButton
+                    variant="secondary"
+                    size="sm"
+                    className="rounded"
+                    onClick={() => handleAdditionalEventAdd('day3')}
+                  >
+                    +3 дня
                   </AppButton>
                   <AppButton
                     variant="secondary"

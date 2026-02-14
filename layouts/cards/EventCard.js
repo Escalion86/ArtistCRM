@@ -3,6 +3,7 @@
 // import cn from 'classnames'
 import { useAtomValue } from 'jotai'
 import { useMemo } from 'react'
+import Image from 'next/image'
 import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
@@ -163,6 +164,54 @@ const EventCard = ({ eventId, style }) => {
     return { ...address, town: '' }
   }, [event?.address, siteSettings?.defaultTown])
 
+  const nearestAdditionalEvent = useMemo(() => {
+    const additionalEvents = Array.isArray(event?.additionalEvents)
+      ? event.additionalEvents
+      : []
+    if (additionalEvents.length === 0) return null
+
+    const nowDate = new Date()
+    const soonLimit = new Date(nowDate.getTime() + 3 * 24 * 60 * 60 * 1000)
+    const prepared = additionalEvents
+      .map((item) => {
+        const date = item?.date ? new Date(item.date) : null
+        if (!date || Number.isNaN(date.getTime())) return null
+        return {
+          title: item?.title || 'Доп. событие',
+          date,
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+
+    const nearest = prepared.find((item) => item.date.getTime() >= nowDate.getTime())
+    if (!nearest) return null
+    if (nearest.date.getTime() > soonLimit.getTime()) return null
+
+    const isToday =
+      nearest.date.getFullYear() === nowDate.getFullYear() &&
+      nearest.date.getMonth() === nowDate.getMonth() &&
+      nearest.date.getDate() === nowDate.getDate()
+
+    const tomorrow = new Date(nowDate)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const isTomorrow =
+      nearest.date.getFullYear() === tomorrow.getFullYear() &&
+      nearest.date.getMonth() === tomorrow.getMonth() &&
+      nearest.date.getDate() === tomorrow.getDate()
+
+    const timeLabel = nearest.date.toLocaleTimeString('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    const prefix = isToday ? 'Сегодня' : isTomorrow ? 'Завтра' : formatDate(nearest.date)
+    return {
+      title: nearest.title,
+      label: `${prefix} ${timeLabel}`,
+      isToday,
+    }
+  }, [event?.additionalEvents])
+
   if (!event) return null
 
   return (
@@ -254,6 +303,17 @@ const EventCard = ({ eventId, style }) => {
           <div className="font-semibold text-gray-800 text-general">
             {eventDateLabel}
           </div>
+          {nearestAdditionalEvent && (
+            <div
+              className={
+                nearestAdditionalEvent.isToday
+                  ? 'inline-flex max-w-max items-center rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900'
+                  : 'inline-flex max-w-max items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-800'
+              }
+            >
+              {`${nearestAdditionalEvent.title}: ${nearestAdditionalEvent.label}`}
+            </div>
+          )}
           <div className="flex items-center flex-nowrap gap-x-3">
             <span className="font-medium">Место:</span>
             <span className="flex items-center min-w-0 gap-2 truncate">
@@ -269,10 +329,12 @@ const EventCard = ({ eventId, style }) => {
                   onClick={(event) => event.stopPropagation()}
                   className="flex items-center justify-center transition-transform h-7 w-7 hover:scale-110"
                 >
-                  <img
+                  <Image
                     src="/img/navigators/2gis.png"
                     alt="2gis"
-                    className="w-4 h-4"
+                    width={16}
+                    height={16}
+                    className="h-4 w-4"
                   />
                 </a>
               )}

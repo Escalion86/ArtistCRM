@@ -176,6 +176,9 @@ const buildNavigationLinks = (address) => {
   return links
 }
 
+const isValidDateValue = (value) =>
+  value instanceof Date && !Number.isNaN(value.getTime())
+
 const getCalendarContext = async (user) => {
   if (!user) return null
   const settings = normalizeCalendarSettings(user)
@@ -278,12 +281,15 @@ const deleteEventFromCalendar = async (googleCalendarId, calendarId, user) => {
   return calendarEventData
 }
 
-const updateEventInCalendar = async (event, req, user) => {
+const updateEventInCalendar = async (event, req, user, previousEvent = null) => {
   const context = await getCalendarContext(user)
   if (!context) return undefined
   const { calendar, calendarId } = context
   const effectiveCalendarId = event?.googleCalendarCalendarId || calendarId
   const timeZone = await getSiteTimeZone(event?.tenantId)
+  const previousAdditionalEvents = Array.isArray(previousEvent?.additionalEvents)
+    ? previousEvent.additionalEvents
+    : []
 
   // calendar.events.list(
   //   {
@@ -317,18 +323,18 @@ const updateEventInCalendar = async (event, req, user) => {
 
   var preparedText = stripCalendarResponse(event.description ?? '')
   const extraDescriptionLines = []
+  let clientName = ''
+  let clientContactLines = []
   if (event?.clientId) {
     await dbConnect()
     const client = await Clients.findById(event.clientId)
       .select('firstName secondName phone whatsapp viber telegram instagram vk email')
       .lean()
-    const clientName = [client?.firstName, client?.secondName]
-      .filter(Boolean)
-      .join(' ')
+    clientName = [client?.firstName, client?.secondName].filter(Boolean).join(' ')
     if (clientName) extraDescriptionLines.push(`Клиент: ${clientName}`)
-    const contactLines = buildClientContactsLines(client)
-    if (contactLines.length) {
-      extraDescriptionLines.push(contactLines.join('\n'))
+    clientContactLines = buildClientContactsLines(client)
+    if (clientContactLines.length) {
+      extraDescriptionLines.push(clientContactLines.join('\n'))
     }
   }
   if (Array.isArray(event?.otherContacts) && event.otherContacts.length) {
@@ -436,10 +442,8 @@ const updateEventInCalendar = async (event, req, user) => {
     (rawStart ? new Date(new Date(rawStart).getTime() + 60 * 60 * 1000) : null)
   const startDate = rawStart ? new Date(rawStart) : null
   const endDate = rawEnd ? new Date(rawEnd) : null
-  const isValidDate = (value) =>
-    value instanceof Date && !Number.isNaN(value.getTime())
   const formatDateTimeInZone = (value, zone) => {
-    if (!isValidDate(value)) return null
+    if (!isValidDateValue(value)) return null
     const parts = new Intl.DateTimeFormat('sv-SE', {
       timeZone: zone,
       year: 'numeric',
@@ -456,9 +460,9 @@ const updateEventInCalendar = async (event, req, user) => {
   }
   let startDateTime = formatDateTimeInZone(startDate, timeZone)
   let endDateTime = formatDateTimeInZone(endDate, timeZone)
-  if (startDateTime && isValidDate(startDate)) {
+  if (startDateTime && isValidDateValue(startDate)) {
     const startMs = startDate.getTime()
-    const endMs = isValidDate(endDate) ? endDate.getTime() : NaN
+    const endMs = isValidDateValue(endDate) ? endDate.getTime() : NaN
     if (!Number.isFinite(endMs) || endMs <= startMs) {
       endDateTime = formatDateTimeInZone(
         new Date(startMs + 60 * 60 * 1000),
@@ -560,36 +564,101 @@ const updateEventInCalendar = async (event, req, user) => {
     // visibility: event.showOnSite ? 'default' : 'private',
   }
 
-  if (!event.googleCalendarId) {
-    console.log('Создаем новое событие в календаре')
-    const createdCalendarEvent = await new Promise((resolve, reject) => {
+  const eventLink = `${process.env.DOMAIN + '/event/' + event._id}`
+  const eventDateLabel = isValidDateValue(startDate)
+    ? startDate.toLocaleString('ru-RU')
+    : 'не указана'
+  const additionalBaseDescriptionLines = [
+    'Доп. событие по мероприятию',
+    `Мероприятие: ${calendarTitle}`,
+    `Дата мероприятия: ${eventDateLabel}`,
+    `Статус: ${
+      event.status === 'draft'
+        ? 'Заявка'
+        : event.status === 'canceled'
+          ? 'Отменено'
+          : event.status === 'closed'
+            ? 'Закрыто'
+            : 'Активно'
+    }`,
+    clientName ? `Клиент: ${clientName}` : '',
+    clientContactLines.length ? `Контакты клиента:\n${clientContactLines.join('\n')}` : '',
+    `Ссылка на мероприятие:\n${eventLink}`,
+  ].filter(Boolean)
+
+  const toAdditionalEventPayload = (item) => {
+    if (!item || typeof item !== 'object') return null
+    const title = typeof item.title === 'string' ? item.title.trim() : ''
+    const description =
+      typeof item.description === 'string' ? item.description.trim() : ''
+    const rawDate = item.date ? new Date(item.date) : null
+    const date = isValidDateValue(rawDate) ? rawDate : null
+    const googleCalendarEventId =
+      typeof item.googleCalendarEventId === 'string'
+        ? item.googleCalendarEventId.trim()
+        : ''
+    return {
+      ...item,
+      title,
+      description,
+      date,
+      googleCalendarEventId,
+    }
+  }
+
+  const calendarInsert = async (resource) =>
+    new Promise((resolve, reject) => {
       calendar.events.insert(
         {
           calendarId: effectiveCalendarId,
-          resource: calendarEvent,
+          resource,
         },
         (error, result) => {
-          if (error) {
-            console.log({ error })
-            reject(error)
-            // res.send(JSON.stringify({ error: error }))
-          } else {
-            if (result) {
-              // console.log(result)
-              resolve(result)
-              // res.send(JSON.stringify({ events: result.data.items }))
-            } else {
-              console.log({ message: 'Что-то пошло не так' })
-              reject('Что-то пошло не так')
-              // res.send(JSON.stringify({ message: 'No upcoming events found.' }))
-            }
-          }
+          if (error) return reject(error)
+          if (!result) return reject(new Error('Не удалось создать событие'))
+          return resolve(result)
         }
       )
     })
 
+  const calendarUpdate = async (eventId, resource) =>
+    new Promise((resolve, reject) => {
+      calendar.events.update(
+        {
+          calendarId: effectiveCalendarId,
+          eventId,
+          resource,
+        },
+        (error, result) => {
+          if (error) return reject(error)
+          if (!result) return reject(new Error('Не удалось обновить событие'))
+          return resolve(result)
+        }
+      )
+    })
+
+  const calendarDelete = async (eventId) =>
+    new Promise((resolve, reject) => {
+      calendar.events.delete(
+        {
+          calendarId: effectiveCalendarId,
+          eventId,
+        },
+        (error, result) => {
+          if (error) return reject(error)
+          return resolve(result)
+        }
+      )
+    })
+
+  let updatedCalendarEvent
+  if (!event.googleCalendarId) {
+    console.log('Создаем новое событие в календаре')
+    const createdCalendarEvent = await calendarInsert(calendarEvent)
+    event.googleCalendarId = createdCalendarEvent?.data?.id ?? null
+
     await dbConnect()
-    const updatedEvent = await Events.findByIdAndUpdate(
+    await Events.findByIdAndUpdate(
       event._id,
       {
         googleCalendarId: createdCalendarEvent.data.id,
@@ -600,42 +669,143 @@ const updateEventInCalendar = async (event, req, user) => {
         runValidators: true,
       }
     ).lean()
-
-    return createdCalendarEvent
+    updatedCalendarEvent = createdCalendarEvent
+  } else {
+    console.log('Обновляем событие в календаре')
+    updatedCalendarEvent = await calendarUpdate(
+      event.googleCalendarId ?? undefined,
+      calendarEvent
+    )
   }
 
-  console.log('Обновляем событие в календаре')
-  const updatedCalendarEvent = await new Promise((resolve, reject) => {
-    calendar.events.update(
-      {
-        calendarId: effectiveCalendarId,
-        eventId: event.googleCalendarId ?? undefined,
-        resource: calendarEvent,
-      },
-      (error, result) => {
-        if (error) {
-          console.log({ error })
-          reject(error)
-          // res.send(JSON.stringify({ error: error }))
-        } else {
-          if (result) {
-            // console.log(result)
-            resolve(result)
-            // res.send(JSON.stringify({ events: result.data.items }))
-          } else {
-            console.log({ message: 'Что-то пошло не так' })
-            reject('Что-то пошло не так')
-            // res.send(JSON.stringify({ message: 'No upcoming events found.' }))
+  const previousAdditionalByGoogleId = new Map(
+    previousAdditionalEvents
+      .map((item) => toAdditionalEventPayload(item))
+      .filter((item) => item?.googleCalendarEventId)
+      .map((item) => [item.googleCalendarEventId, item])
+  )
+
+  const normalizedAdditionalEvents = (Array.isArray(event?.additionalEvents)
+    ? event.additionalEvents
+    : []
+  )
+    .map((item) => toAdditionalEventPayload(item))
+    .filter(Boolean)
+
+  const currentAdditionalGoogleIds = new Set(
+    normalizedAdditionalEvents
+      .map((item) => item.googleCalendarEventId)
+      .filter(Boolean)
+  )
+
+  const removedGoogleIds = Array.from(previousAdditionalByGoogleId.keys()).filter(
+    (googleId) => !currentAdditionalGoogleIds.has(googleId)
+  )
+  for (const googleId of removedGoogleIds) {
+    try {
+      await calendarDelete(googleId)
+    } catch (error) {
+      if (error?.code !== 404) {
+        console.log('Google Calendar additional event delete error', {
+          eventId: event?._id,
+          googleId,
+          error,
+        })
+      }
+    }
+  }
+
+  let additionalEventsChanged = false
+  const nextAdditionalEvents = []
+  for (const item of normalizedAdditionalEvents) {
+    const hasContent = Boolean(item.title || item.description || item.date)
+    if (!hasContent) continue
+
+    if (!item.date) {
+      if (item.googleCalendarEventId) {
+        try {
+          await calendarDelete(item.googleCalendarEventId)
+        } catch (error) {
+          if (error?.code !== 404) {
+            console.log('Google Calendar additional event delete error', {
+              eventId: event?._id,
+              googleId: item.googleCalendarEventId,
+              error,
+            })
           }
         }
+        item.googleCalendarEventId = ''
+        additionalEventsChanged = true
       }
-    )
-  })
+      nextAdditionalEvents.push(item)
+      continue
+    }
 
-  if (!event.googleCalendarCalendarId) {
-    await Events.findByIdAndUpdate(event._id, {
-      googleCalendarCalendarId: effectiveCalendarId,
-    })
+    const startValue = formatDateTimeInZone(item.date, timeZone)
+    const endValue = formatDateTimeInZone(
+      new Date(item.date.getTime() + 30 * 60 * 1000),
+      timeZone
+    )
+    if (!startValue || !endValue) {
+      nextAdditionalEvents.push(item)
+      continue
+    }
+
+    const detailsLines = []
+    if (item.description) detailsLines.push(`Описание:\n${item.description}`)
+    const additionalEventDescription = [
+      ...additionalBaseDescriptionLines,
+      ...detailsLines,
+    ].join('\n\n')
+    const additionalCalendarEvent = {
+      summary: item.title || 'Доп. событие',
+      description: additionalEventDescription,
+      start: {
+        dateTime: startValue,
+        timeZone,
+      },
+      end: {
+        dateTime: endValue,
+        timeZone,
+      },
+      reminders: calendarReminders,
+    }
+
+    if (item.googleCalendarEventId) {
+      try {
+        await calendarUpdate(item.googleCalendarEventId, additionalCalendarEvent)
+      } catch (error) {
+        if (error?.code === 404) {
+          const created = await calendarInsert(additionalCalendarEvent)
+          item.googleCalendarEventId = created?.data?.id || ''
+          additionalEventsChanged = true
+        } else {
+          throw error
+        }
+      }
+    } else {
+      const created = await calendarInsert(additionalCalendarEvent)
+      item.googleCalendarEventId = created?.data?.id || ''
+      additionalEventsChanged = true
+    }
+
+    nextAdditionalEvents.push(item)
+  }
+
+  if (!event.googleCalendarCalendarId || additionalEventsChanged) {
+    const updatePayload = {}
+    if (!event.googleCalendarCalendarId) {
+      updatePayload.googleCalendarCalendarId = effectiveCalendarId
+    }
+    if (additionalEventsChanged) {
+      updatePayload.additionalEvents = nextAdditionalEvents.map((item) => ({
+        title: item.title || '',
+        description: item.description || '',
+        date: item.date || null,
+        googleCalendarEventId: item.googleCalendarEventId || '',
+      }))
+    }
+    await Events.findByIdAndUpdate(event._id, updatePayload)
   }
 
   return updatedCalendarEvent

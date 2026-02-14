@@ -17,6 +17,11 @@ import { useAtomValue } from 'jotai'
 import { modalsFuncAtom, modalsAtom } from '@state/atoms'
 import EventCard from '@layouts/cards/EventCard'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import {
+  eventHasAdditionalSegment,
+  getAdditionalEventsSummary,
+} from '@helpers/additionalEvents'
+import AppButton from '@components/AppButton'
 
 const ITEM_HEIGHT = 170
 const getStatusFilterDefaults = (filter) => {
@@ -93,6 +98,7 @@ const EventsContent = ({ filter = 'all' }) => {
   const [statusFilter, setStatusFilter] = useState(() =>
     getStatusFilterDefaults(filter)
   )
+  const [additionalQuickFilter, setAdditionalQuickFilter] = useState('')
   const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
 
   const baseEvents = useMemo(() => {
@@ -149,6 +155,7 @@ const EventsContent = ({ filter = 'all' }) => {
 
   useEffect(() => {
     setStatusFilter(getStatusFilterDefaults(filter))
+    setAdditionalQuickFilter('')
   }, [filter])
 
   const filteredByCheck = useMemo(() => {
@@ -175,14 +182,27 @@ const EventsContent = ({ filter = 'all' }) => {
     })
   }, [filteredByCheck, statusFilter, statusFilterKeys])
 
+  const additionalSummary = useMemo(
+    () => getAdditionalEventsSummary(filteredByStatus),
+    [filteredByStatus]
+  )
+
+  const filteredByAdditionalQuick = useMemo(() => {
+    if (!additionalQuickFilter) return filteredByStatus
+    const now = new Date()
+    return filteredByStatus.filter((event) =>
+      eventHasAdditionalSegment(event, additionalQuickFilter, now)
+    )
+  }, [additionalQuickFilter, filteredByStatus])
+
   const sortedEvents = useMemo(() => {
     const sorter = (a, b) => {
       const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0
       const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0
       return filter === 'upcoming' ? dateA - dateB : dateB - dateA
     }
-    return [...filteredByStatus].sort(sorter)
-  }, [filteredByStatus, filter])
+    return [...filteredByAdditionalQuick].sort(sorter)
+  }, [filteredByAdditionalQuick, filter])
 
   useEffect(() => {
     const urlTargetId = searchParams?.get('openEvent')
@@ -329,6 +349,10 @@ const EventsContent = ({ filter = 'all' }) => {
         ? 'Прошедшие'
         : 'Все'
 
+  const toggleAdditionalQuickFilter = (value) => {
+    setAdditionalQuickFilter((prev) => (prev === value ? '' : value))
+  }
+
   const RowComponent = useCallback(
     ({ index, style }) => {
       const event = sortedEvents[index]
@@ -403,6 +427,44 @@ const EventsContent = ({ filter = 'all' }) => {
           }
         />
       </ContentHeader>
+      {filter === 'upcoming' ? (
+        <SectionCard className="border border-gray-200 bg-white/95 p-3 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <AppButton
+              variant={additionalQuickFilter === 'overdue' ? 'primary' : 'secondary'}
+              size="sm"
+              className="rounded"
+              onClick={() => toggleAdditionalQuickFilter('overdue')}
+            >
+              Просрочено: {additionalSummary.overdue}
+            </AppButton>
+            <AppButton
+              variant={additionalQuickFilter === 'today' ? 'primary' : 'secondary'}
+              size="sm"
+              className="rounded"
+              onClick={() => toggleAdditionalQuickFilter('today')}
+            >
+              Сегодня: {additionalSummary.today}
+            </AppButton>
+            <AppButton
+              variant={additionalQuickFilter === 'tomorrow' ? 'primary' : 'secondary'}
+              size="sm"
+              className="rounded"
+              onClick={() => toggleAdditionalQuickFilter('tomorrow')}
+            >
+              Завтра: {additionalSummary.tomorrow}
+            </AppButton>
+            <AppButton
+              variant="ghost"
+              size="sm"
+              className="rounded"
+              onClick={() => modalsFunc.event?.upcomingOverview?.()}
+            >
+              Ближайшие события
+            </AppButton>
+          </div>
+        </SectionCard>
+      ) : null}
       <SectionCard className="min-h-0 flex-1 overflow-hidden border-0 bg-transparent shadow-none">
         {sortedEvents.length > 0 ? (
           <List

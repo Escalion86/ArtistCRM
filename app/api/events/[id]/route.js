@@ -59,10 +59,15 @@ const normalizeAdditionalEvents = (items) => {
         typeof item.description === 'string' ? item.description.trim() : ''
       const date = parseDateValue(item.date)
       if (!title && !description && !date) return null
+      const googleCalendarEventId =
+        typeof item.googleCalendarEventId === 'string'
+          ? item.googleCalendarEventId.trim()
+          : ''
       return {
         title,
         description,
         date,
+        googleCalendarEventId,
       }
     })
     .filter(Boolean)
@@ -253,7 +258,7 @@ export const PUT = async (req, { params }) => {
     )
   } else if (event.calendarImportChecked && access?.allowCalendarSync) {
     try {
-      await updateEventInCalendar(event, req, user)
+      await updateEventInCalendar(event, req, user, oldEvent)
       responseEvent = await Events.findByIdAndUpdate(
         event._id,
         { calendarSyncError: '' },

@@ -25,6 +25,7 @@ const eventsSchema = {
         title: { type: String, default: '' },
         description: { type: String, default: '' },
         date: { type: Date, default: null },
+        googleCalendarEventId: { type: String, default: '' },
       },
     ],
     default: [],

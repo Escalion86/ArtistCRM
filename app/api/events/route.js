@@ -41,10 +41,15 @@ const normalizeAdditionalEvents = (items) => {
         typeof item.description === 'string' ? item.description.trim() : ''
       const date = parseDateValue(item.date)
       if (!title && !description && !date) return null
+      const googleCalendarEventId =
+        typeof item.googleCalendarEventId === 'string'
+          ? item.googleCalendarEventId.trim()
+          : ''
       return {
         title,
         description,
         date,
+        googleCalendarEventId,
       }
     })
     .filter(Boolean)
