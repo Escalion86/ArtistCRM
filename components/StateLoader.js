@@ -126,8 +126,7 @@ const StateLoader = (props) => {
     if (!loggedUser?._id || onboardingShownRef.current) return
     const firstName = loggedUser?.firstName?.trim() ?? ''
     const secondName = loggedUser?.secondName?.trim() ?? ''
-    const town =
-      loggedUser?.town?.trim() ?? siteSettingsState?.defaultTown?.trim() ?? ''
+    const town = siteSettingsState?.defaultTown?.trim() ?? ''
     const timeZone = siteSettingsState?.timeZone ?? ''
     const timeZoneConfirmed =
       siteSettingsState?.custom?.timeZoneConfirmed === true
@@ -142,7 +141,6 @@ const StateLoader = (props) => {
     loggedUser?._id,
     loggedUser?.firstName,
     loggedUser?.secondName,
-    loggedUser?.town,
     siteSettingsState?.defaultTown,
     siteSettingsState?.timeZone,
     siteSettingsState?.custom?.timeZoneConfirmed,

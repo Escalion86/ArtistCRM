@@ -500,7 +500,7 @@ const EventsContent = ({ filter = 'all' }) => {
           }
         />
       </ContentHeader>
-      {filter === 'upcoming' ? (
+      {filter !== 'all' ? (
         <SectionCard className="border border-gray-200 bg-white/95 p-3 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <AppButton

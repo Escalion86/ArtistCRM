@@ -29,16 +29,10 @@ const EventKeyValueItem = ({ objKey, value }) =>
     )
   ) : objKey === 'organizerId' ? (
     <UserNameById userId={value} thin trunc={1} />
-  ) : ['eventDate', 'dateStart', 'dateEnd', 'depositDueAt', 'createdAt', 'updatedAt'].includes(
+  ) : ['eventDate', 'dateStart', 'dateEnd', 'createdAt', 'updatedAt'].includes(
       objKey
     ) ? (
     formatDateTime(value)
-  ) : objKey === 'depositStatus' ? (
-    value === 'received'
-      ? 'Задаток получен'
-      : value === 'partial'
-        ? 'Частичный задаток'
-        : 'Задатка нет'
   ) : objKey === 'additionalEvents' ? (
     Array.isArray(value) && value.length > 0 ? (
       <div className="flex flex-col gap-2">
@@ -84,8 +78,6 @@ const EventKeyValueItem = ({ objKey, value }) =>
   ) : objKey === 'price' ? (
     value / 100 + ' ₽'
   ) : objKey === 'contractSum' ? (
-    typeof value === 'number' ? value.toLocaleString('ru-RU') + ' ₽' : value
-  ) : objKey === 'depositAmount' ? (
     typeof value === 'number' ? value.toLocaleString('ru-RU') + ' ₽' : value
   ) : objKey === 'calendarSyncError' ? (
     value === 'calendar_sync_unavailable'

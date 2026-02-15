@@ -13,8 +13,9 @@ import ClientErrorLogger from '@components/ClientErrorLogger'
 // import Head from 'next/head'
 
 export const metadata = {
-  title: 'Иллюзионист Алексей Белинский',
-  description: 'Уникальное шоу на любое мероприятие',
+  title: 'ArtistCRM — CRM для артистов',
+  description:
+    'CRM-система для артистов: заявки, мероприятия, финансы, договоры и напоминания.',
   applicationName: 'ArtistCRM',
   manifest: '/manifest.json',
   appleWebApp: {

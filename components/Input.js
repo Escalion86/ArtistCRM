@@ -102,7 +102,7 @@ const Input = forwardRef(
         {showArrows && type === 'number' && !disabled && (
           <div
             className={cn(
-              'p-1 duration-300',
+              'px-1 duration-300',
               typeof min === 'number' && value <= min
                 ? 'text-disabled cursor-not-allowed'
                 : 'text-general hover:text-success cursor-pointer'
@@ -113,7 +113,7 @@ const Input = forwardRef(
               else onChange(Math.max(Number(value) - Number(step), min))
             }}
           >
-            <FontAwesomeIcon icon={faArrowDown} className="h-5 w-5" />
+            <FontAwesomeIcon icon={faArrowDown} className="h-4 min-h-4 w-4" />
           </div>
         )}
 
@@ -158,6 +158,7 @@ const Input = forwardRef(
             step={step}
             className={cn(
               'peer h-7 flex-1 bg-transparent px-1 text-black placeholder-transparent focus:outline-none',
+              type === 'number' ? 'hide-number-spin' : '',
               disabled ? 'text-disabled cursor-not-allowed' : '',
               inputClassName
             )}
@@ -169,8 +170,8 @@ const Input = forwardRef(
               value === null
                 ? ''
                 : typeof value === 'number'
-                ? String(value)
-                : value
+                  ? String(value)
+                  : value
             }
             defaultValue={defaultValue}
             onChange={(e) => {
@@ -205,7 +206,7 @@ const Input = forwardRef(
         {showArrows && type === 'number' && !disabled && (
           <div
             className={cn(
-              'p-1 duration-300',
+              'px-1 duration-300',
               typeof max === 'number' && value >= max
                 ? 'text-disabled cursor-not-allowed'
                 : 'text-general hover:text-success cursor-pointer'
@@ -216,7 +217,7 @@ const Input = forwardRef(
               else onChange(Math.min(Number(value) + Number(step), max))
             }}
           >
-            <FontAwesomeIcon icon={faArrowUp} className="h-5 w-5" />
+            <FontAwesomeIcon icon={faArrowUp} className="h-4 min-h-4 w-4" />
           </div>
         )}
       </InputWrapper>

@@ -25,13 +25,6 @@ const clientViewFunc = (clientId) => {
     const transactions = useAtomValue(transactionsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
 
-    if (!clientId || !client)
-      return (
-        <div className="flex justify-center w-full text-lg ">
-          ОШИБКА! Клиент не найден!
-        </div>
-      )
-
     const now = new Date()
     const startOfToday = new Date(
       now.getFullYear(),
@@ -39,10 +32,10 @@ const clientViewFunc = (clientId) => {
       now.getDate()
     ).getTime()
 
-    const clientEvents = useMemo(
-      () => events.filter((event) => event.clientId === clientId),
-      [events, clientId]
-    )
+    const clientEvents = useMemo(() => {
+      if (!clientId) return []
+      return events.filter((event) => event.clientId === clientId)
+    }, [events])
 
     const canceledCount = clientEvents.filter(
       (event) => event.status === 'canceled'
@@ -61,13 +54,12 @@ const clientViewFunc = (clientId) => {
         return new Date(event.eventDate).getTime() >= startOfToday
       }).length
 
-    const clientTransactions = useMemo(
-      () =>
-        (transactions ?? []).filter(
-          (transaction) => transaction.clientId === clientId
-        ),
-      [transactions, clientId]
-    )
+    const clientTransactions = useMemo(() => {
+      if (!clientId) return []
+      return (transactions ?? []).filter(
+        (transaction) => transaction.clientId === clientId
+      )
+    }, [transactions])
 
     const incomeTotal = clientTransactions.reduce(
       (total, item) =>
@@ -80,6 +72,22 @@ const clientViewFunc = (clientId) => {
       0
     )
     const balanceTotal = incomeTotal - expenseTotal
+    const requisitesLines = useMemo(() => {
+      if (!client) return []
+      const rows = []
+      if (client.legalName) rows.push(`Наименование: ${client.legalName}`)
+      if (client.inn) rows.push(`ИНН: ${client.inn}`)
+      if (client.kpp) rows.push(`КПП: ${client.kpp}`)
+      if (client.ogrn) rows.push(`ОГРН/ОГРНИП: ${client.ogrn}`)
+      if (client.bankName) rows.push(`Банк: ${client.bankName}`)
+      if (client.bik) rows.push(`БИК: ${client.bik}`)
+      if (client.checkingAccount)
+        rows.push(`Расчетный счет: ${client.checkingAccount}`)
+      if (client.correspondentAccount)
+        rows.push(`Корр. счет: ${client.correspondentAccount}`)
+      if (client.legalAddress) rows.push(`Юридический адрес: ${client.legalAddress}`)
+      return rows
+    }, [client])
 
     useEffect(() => {
       if (setTopLeftComponent)
@@ -89,7 +97,14 @@ const clientViewFunc = (clientId) => {
             onEdit={() => modalsFunc.client?.edit(clientId)}
           />
         ))
-    }, [client, clientId, modalsFunc.client, setTopLeftComponent])
+    }, [client, modalsFunc.client, setTopLeftComponent])
+
+    if (!clientId || !client)
+      return (
+        <div className="flex justify-center w-full text-lg ">
+          ОШИБКА! Клиент не найден!
+        </div>
+      )
 
     return (
       <div className="flex flex-col gap-4 text-sm text-gray-800">
@@ -174,6 +189,16 @@ const clientViewFunc = (clientId) => {
             </div>
           </div>
         </div>
+        {requisitesLines.length > 0 && (
+          <div className="p-4 bg-white border border-gray-200 rounded-lg">
+            <div className="text-sm font-semibold text-gray-900">Реквизиты</div>
+            <div className="mt-2 space-y-1 text-sm text-gray-700">
+              {requisitesLines.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     )
   }

@@ -25,7 +25,7 @@ import {
   faVk,
   faWhatsapp,
 } from '@fortawesome/free-brands-svg-icons'
-import { faChartLine, faCog } from '@fortawesome/free-solid-svg-icons'
+import { faChartLine, faCog, faPlug } from '@fortawesome/free-solid-svg-icons'
 
 const colors = [
   'border-blue-400',
@@ -419,14 +419,12 @@ export const DEFAULT_EVENT = Object.freeze({
   invoiceLinks: [],
   receiptLinks: [],
   actLinks: [],
+  contractLinks: [],
   servicesIds: [],
   address: DEFAULT_ADDRESS,
   status: 'active',
   cancelReason: '',
   contractSum: 0,
-  depositStatus: 'none',
-  depositAmount: 0,
-  depositDueAt: null,
   isTransferred: false,
   isByContract: false,
   importedFromCalendar: false,
@@ -451,6 +449,15 @@ export const DEFAULT_CLIENT = Object.freeze({
   instagram: '',
   vk: '',
   clientType: 'none',
+  legalName: '',
+  inn: '',
+  kpp: '',
+  ogrn: '',
+  bankName: '',
+  bik: '',
+  checkingAccount: '',
+  correspondentAccount: '',
+  legalAddress: '',
 })
 
 export const CLIENT_TYPES = Object.freeze([
@@ -759,6 +766,13 @@ export const pages = [
     name: 'Настройки',
     href: 'settings',
     icon: faCog,
+  },
+  {
+    id: 22,
+    group: 6,
+    name: 'Интеграции',
+    href: 'integrations',
+    icon: faPlug,
   },
   {
     id: 21,

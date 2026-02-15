@@ -75,6 +75,10 @@ const eventsSchema = {
     type: [String],
     default: [],
   },
+  contractLinks: {
+    type: [String],
+    default: [],
+  },
   address: {
     type: {
       town: { type: String, default: '' },
@@ -150,19 +154,6 @@ const eventsSchema = {
   contractSum: {
     type: Number,
     default: 0,
-  },
-  depositStatus: {
-    type: String,
-    enum: ['none', 'partial', 'received'],
-    default: 'none',
-  },
-  depositAmount: {
-    type: Number,
-    default: 0,
-  },
-  depositDueAt: {
-    type: Date,
-    default: null,
   },
   isByContract: {
     type: Boolean,

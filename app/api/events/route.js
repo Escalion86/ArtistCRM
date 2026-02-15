@@ -14,9 +14,15 @@ const hasDocuments = (payload) => {
   const receiptLinks = Array.isArray(payload?.receiptLinks)
     ? payload.receiptLinks
     : []
+  const actLinks = Array.isArray(payload?.actLinks) ? payload.actLinks : []
+  const contractLinks = Array.isArray(payload?.contractLinks)
+    ? payload.contractLinks
+    : []
   return (
     invoiceLinks.some((item) => Boolean(item)) ||
-    receiptLinks.some((item) => Boolean(item))
+    receiptLinks.some((item) => Boolean(item)) ||
+    actLinks.some((item) => Boolean(item)) ||
+    contractLinks.some((item) => Boolean(item))
   )
 }
 
@@ -53,13 +59,6 @@ const normalizeAdditionalEvents = (items) => {
       }
     })
     .filter(Boolean)
-}
-
-const DEPOSIT_STATUSES = new Set(['none', 'partial', 'received'])
-
-const normalizeDepositStatus = (value) => {
-  if (typeof value !== 'string') return 'none'
-  return DEPOSIT_STATUSES.has(value) ? value : 'none'
 }
 
 export const GET = async () => {
@@ -140,9 +139,6 @@ export const POST = async (req) => {
       ? new Date(body.requestCreatedAt)
       : new Date(),
     additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
-    depositStatus: normalizeDepositStatus(body.depositStatus),
-    depositAmount: Math.max(Number(body.depositAmount) || 0, 0),
-    depositDueAt: parseDateValue(body.depositDueAt),
     calendarSyncError: access?.allowCalendarSync ? '' : 'calendar_sync_unavailable',
   })
   await Histories.create({

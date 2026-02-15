@@ -187,25 +187,6 @@ const buildEventUpdate = (
   if (parsedEvent.eventDate) setPayload.eventDate = parsedEvent.eventDate
   if (parsedEvent.contractSum !== null && parsedEvent.contractSum !== undefined)
     setPayload.contractSum = parsedEvent.contractSum
-  const parsedDeposit = parsedEvent?.clientData?.deposit
-  if (parsedDeposit) {
-    const depositStatus = ['none', 'partial', 'received'].includes(
-      parsedDeposit.status
-    )
-      ? parsedDeposit.status
-      : Number(parsedDeposit.amount) > 0
-        ? 'partial'
-        : 'none'
-    const parsedDepositDueAt = parsedDeposit.date
-      ? new Date(parsedDeposit.date)
-      : null
-    setPayload.depositStatus = depositStatus
-    setPayload.depositAmount = Number(parsedDeposit.amount) || 0
-    setPayload.depositDueAt =
-      parsedDepositDueAt && !Number.isNaN(parsedDepositDueAt.getTime())
-        ? parsedDepositDueAt
-        : null
-  }
   if (parsedEvent.clientData && Object.keys(parsedEvent.clientData).length > 0)
     setPayload.clientData = parsedEvent.clientData
   if (parsedEvent.isTransferred) setPayload.isTransferred = true

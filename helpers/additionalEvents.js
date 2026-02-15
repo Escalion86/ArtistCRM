@@ -16,8 +16,6 @@ const hasDepositByTransactions = (eventId, transactions) => {
 
 const hasNoDeposit = (event, transactions) => {
   if (!event) return false
-  const status = String(event?.depositStatus ?? 'none')
-  if (status === 'received' || status === 'partial') return false
   return !hasDepositByTransactions(event?._id, transactions)
 }
 

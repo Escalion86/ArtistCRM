@@ -73,13 +73,6 @@ const normalizeAdditionalEvents = (items) => {
     .filter(Boolean)
 }
 
-const DEPOSIT_STATUSES = new Set(['none', 'partial', 'received'])
-
-const normalizeDepositStatus = (value) => {
-  if (typeof value !== 'string') return 'none'
-  return DEPOSIT_STATUSES.has(value) ? value : 'none'
-}
-
 const normalizeOtherContacts = (contacts) => {
   if (!Array.isArray(contacts)) return []
   return contacts
@@ -102,9 +95,15 @@ const hasDocuments = (payload) => {
   const receiptLinks = Array.isArray(payload?.receiptLinks)
     ? payload.receiptLinks
     : []
+  const actLinks = Array.isArray(payload?.actLinks) ? payload.actLinks : []
+  const contractLinks = Array.isArray(payload?.contractLinks)
+    ? payload.contractLinks
+    : []
   return (
     invoiceLinks.some((item) => Boolean(item)) ||
-    receiptLinks.some((item) => Boolean(item))
+    receiptLinks.some((item) => Boolean(item)) ||
+    actLinks.some((item) => Boolean(item)) ||
+    contractLinks.some((item) => Boolean(item))
   )
 }
 
@@ -134,16 +133,6 @@ export const PUT = async (req, { params }) => {
   if (!access?.allowDocuments && hasDocuments(body)) {
     return NextResponse.json(
       { success: false, error: 'Доступ к документам недоступен' },
-      { status: 403 }
-    )
-  }
-  if (
-    body.calendarImportChecked !== undefined &&
-    Boolean(body.calendarImportChecked) &&
-    !access?.allowCalendarSync
-  ) {
-    return NextResponse.json(
-      { success: false, error: 'Синхронизация с календарем недоступна' },
       { status: 403 }
     )
   }
@@ -205,12 +194,6 @@ export const PUT = async (req, { params }) => {
   }
   if (body.contractSum !== undefined)
     update.contractSum = Number(body.contractSum) || 0
-  if (body.depositStatus !== undefined)
-    update.depositStatus = normalizeDepositStatus(body.depositStatus)
-  if (body.depositAmount !== undefined)
-    update.depositAmount = Math.max(Number(body.depositAmount) || 0, 0)
-  if (body.depositDueAt !== undefined)
-    update.depositDueAt = parseDateValue(body.depositDueAt)
   if (body.description !== undefined)
     update.description = body.description ?? ''
   if (body.financeComment !== undefined)
@@ -223,13 +206,19 @@ export const PUT = async (req, { params }) => {
     update.receiptLinks = Array.isArray(body.receiptLinks)
       ? body.receiptLinks
       : []
+  if (body.actLinks !== undefined)
+    update.actLinks = Array.isArray(body.actLinks) ? body.actLinks : []
+  if (body.contractLinks !== undefined)
+    update.contractLinks = Array.isArray(body.contractLinks)
+      ? body.contractLinks
+      : []
   if (body.isByContract !== undefined)
     update.isByContract = Boolean(body.isByContract)
   if (body.servicesIds !== undefined)
     update.servicesIds = Array.isArray(body.servicesIds) ? body.servicesIds : []
   if (body.otherContacts !== undefined)
     update.otherContacts = normalizeOtherContacts(body.otherContacts)
-  if (body.calendarImportChecked !== undefined)
+  if (body.calendarImportChecked !== undefined && access?.allowCalendarSync)
     update.calendarImportChecked = Boolean(body.calendarImportChecked)
   if (body.colleagueId !== undefined) update.colleagueId = body.colleagueId
   if (body.isTransferred !== undefined) {

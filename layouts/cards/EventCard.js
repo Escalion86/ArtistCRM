@@ -191,7 +191,9 @@ const EventCard = ({ eventId, style }) => {
       .filter(Boolean)
       .sort((a, b) => a.date.getTime() - b.date.getTime())
 
-    const nearest = prepared.find((item) => item.date.getTime() >= nowDate.getTime())
+    const nearest = prepared.find(
+      (item) => item.date.getTime() >= nowDate.getTime()
+    )
     if (!nearest) return null
     if (nearest.date.getTime() > soonLimit.getTime()) return null
 
@@ -211,7 +213,11 @@ const EventCard = ({ eventId, style }) => {
       hour: '2-digit',
       minute: '2-digit',
     })
-    const prefix = isToday ? 'Сегодня' : isTomorrow ? 'Завтра' : formatDate(nearest.date)
+    const prefix = isToday
+      ? 'Сегодня'
+      : isTomorrow
+        ? 'Завтра'
+        : formatDate(nearest.date)
     return {
       title: nearest.title,
       label: `${prefix} ${timeLabel}`,
@@ -229,58 +235,58 @@ const EventCard = ({ eventId, style }) => {
       className="laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-2 overflow-hidden rounded-lg p-3"
     >
       <CardOverlay loading={loading} error={error} />
-      <div className="flex items-center justify-between w-full gap-x-1">
-        <div className="flex items-center flex-1 min-w-0 gap-2">
+      <div className="flex w-full items-center justify-between gap-x-1">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {event.isTransferred && (
             <FontAwesomeIcon
               icon={faShare}
-              className="w-4 h-4 text-amber-500"
+              className="h-4 w-4 text-amber-500"
               title="Передано коллеге"
             />
           )}
           {needsCheck && (
             <FontAwesomeIcon
               icon={faTriangleExclamation}
-              className="w-4 h-4 text-amber-500"
+              className="h-4 w-4 text-amber-500"
               title="Проверка мероприятия не завершена"
             />
           )}
           {hasCalendarError && (
             <FontAwesomeIcon
               icon={faCalendarXmark}
-              className="w-4 h-4 text-red-500"
+              className="h-4 w-4 text-red-500"
               title="Синхронизация с календарем не выполнена"
             />
           )}
           {isClosed && (
             <FontAwesomeIcon
               icon={faCircleCheck}
-              className="w-4 h-4 text-green-600"
+              className="h-4 w-4 text-green-600"
               title="Мероприятие закрыто"
             />
           )}
           {isCanceled && (
             <FontAwesomeIcon
               icon={faBan}
-              className="w-4 h-4 text-red-500"
+              className="h-4 w-4 text-red-500"
               title="Мероприятие отменено"
             />
           )}
           {isFinished && (
             <FontAwesomeIcon
               icon={faCircleCheck}
-              className="w-4 h-4 text-gray-400"
+              className="h-4 w-4 text-gray-400"
               title="Мероприятие завершено"
             />
           )}
           {isDraft && (
             <FontAwesomeIcon
               icon={faClock}
-              className="w-4 h-4 text-blue-500"
+              className="h-4 w-4 text-blue-500"
               title="Заявка"
             />
           )}
-          <div className="flex-1 text-lg font-semibold text-gray-900 truncate">
+          <div className="flex-1 truncate text-lg font-semibold text-gray-900">
             {servicesTitle}
           </div>
           <CardActions className="z-10 -mt-1 -mr-3">
@@ -299,7 +305,7 @@ const EventCard = ({ eventId, style }) => {
           {!client && (
             <FontAwesomeIcon
               icon={faUserSlash}
-              className="w-4 h-4 text-red-500"
+              className="h-4 w-4 text-red-500"
               title="Клиент не указан"
             />
           )}
@@ -307,7 +313,7 @@ const EventCard = ({ eventId, style }) => {
       </div>
       <div className="flex gap-x-1">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm text-gray-700">
-          <div className="font-semibold text-gray-800 text-general">
+          <div className="text-general font-semibold text-gray-800">
             {eventDateLabel}
           </div>
           {nearestAdditionalEvent && (
@@ -326,9 +332,9 @@ const EventCard = ({ eventId, style }) => {
               Скоро, задатка нет
             </div>
           )}
-          <div className="flex items-center flex-nowrap gap-x-3">
+          <div className="flex flex-nowrap items-center gap-x-3">
             <span className="font-medium">Место:</span>
-            <span className="flex items-center min-w-0 gap-2 truncate">
+            <span className="flex min-w-0 items-center gap-2 truncate">
               <span className="truncate">
                 {formatAddress(displayAddress, '-')}
               </span>
@@ -339,7 +345,7 @@ const EventCard = ({ eventId, style }) => {
                   rel="noreferrer"
                   title="Открыть в 2ГИС"
                   onClick={(event) => event.stopPropagation()}
-                  className="flex items-center justify-center transition-transform h-7 w-7 hover:scale-110"
+                  className="flex h-7 w-7 items-center justify-center transition-transform hover:scale-110"
                 >
                   <Image
                     src="/img/navigators/2gis.png"
@@ -352,7 +358,7 @@ const EventCard = ({ eventId, style }) => {
               )}
             </span>
           </div>
-          <div className="flex items-center flex-nowrap gap-x-3">
+          <div className="flex flex-nowrap items-center gap-x-3">
             <span className="font-medium">Клиент:</span>
             <span className="truncate">
               {client
@@ -361,8 +367,8 @@ const EventCard = ({ eventId, style }) => {
                   }`.trim() || client._id
                 : '-'}
             </span>
+            {client && <ContactsIconsButtons user={client} />}
           </div>
-          {client && <ContactsIconsButtons user={client} />}
         </div>
 
         {isClosed ? (
