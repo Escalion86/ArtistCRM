@@ -1584,6 +1584,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                       if (!next) {
                         setDepositDueAt(null)
                         setDepositExpectedAmount(null)
+                      } else if (!depositDueAt) {
+                        setDepositDueAt(
+                          new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                        )
                       }
                       return next
                     })
@@ -1594,7 +1598,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   noMargin
                 />
                 {waitDeposit ? (
-                  <div className="flex flex-wrap items-center mt-1 gap-x-2">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
                     <Input
                       label="Сумма задатка"
                       type="number"

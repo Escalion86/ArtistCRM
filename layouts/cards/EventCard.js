@@ -209,6 +209,7 @@ const EventCard = ({ eventId, style }) => {
         isTomorrow: false,
         isLater: false,
         isOverdue: true,
+        totalCount: prepared.length,
         remainingCount: prepared.length - 1,
       }
     }
@@ -246,9 +247,24 @@ const EventCard = ({ eventId, style }) => {
       isTomorrow,
       isLater: !isToday && !isTomorrow,
       isOverdue: false,
+      totalCount: prepared.length,
       remainingCount: prepared.length - 1,
     }
   }, [event?.additionalEvents])
+
+  const hiddenAdditionalCount = hasSoonNoDepositWarning
+    ? (nearestAdditionalEventInfo?.totalCount ?? 0)
+    : (nearestAdditionalEventInfo?.remainingCount ?? 0)
+
+  const hiddenAdditionalCountClass = hasSoonNoDepositWarning
+    ? nearestAdditionalEventInfo?.isOverdue
+      ? 'border-red-300 bg-red-50 text-red-700'
+      : nearestAdditionalEventInfo?.isToday
+        ? 'border-amber-300 bg-amber-50 text-amber-700'
+        : nearestAdditionalEventInfo?.isTomorrow
+          ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+          : 'border-gray-300 bg-gray-50 text-gray-700'
+    : 'border-gray-300 bg-gray-50 text-gray-700'
 
   if (!event) return null
 
@@ -257,61 +273,61 @@ const EventCard = ({ eventId, style }) => {
       style={style}
       outerClassName="px-2 py-1"
       onClick={() => !loading && modalsFunc.event?.view(event._id)}
-      className="laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-2 overflow-hidden rounded-lg p-3"
+      className="laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg p-3"
     >
       <CardOverlay loading={loading} error={error} />
-      <div className="flex w-full items-center justify-between gap-x-1">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className="flex items-center justify-between w-full gap-x-1">
+        <div className="flex items-center flex-1 min-w-0 gap-2">
           {event.isTransferred && (
             <FontAwesomeIcon
               icon={faShare}
-              className="h-4 w-4 text-amber-500"
+              className="w-4 h-4 text-amber-500"
               title="Передано коллеге"
             />
           )}
           {needsCheck && (
             <FontAwesomeIcon
               icon={faTriangleExclamation}
-              className="h-4 w-4 text-amber-500"
+              className="w-4 h-4 text-amber-500"
               title="Проверка мероприятия не завершена"
             />
           )}
           {hasCalendarError && (
             <FontAwesomeIcon
               icon={faCalendarXmark}
-              className="h-4 w-4 text-red-500"
+              className="w-4 h-4 text-red-500"
               title="Синхронизация с календарем не выполнена"
             />
           )}
           {isClosed && (
             <FontAwesomeIcon
               icon={faCircleCheck}
-              className="h-4 w-4 text-green-600"
+              className="w-4 h-4 text-green-600"
               title="Мероприятие закрыто"
             />
           )}
           {isCanceled && (
             <FontAwesomeIcon
               icon={faBan}
-              className="h-4 w-4 text-red-500"
+              className="w-4 h-4 text-red-500"
               title="Мероприятие отменено"
             />
           )}
           {isFinished && (
             <FontAwesomeIcon
               icon={faCircleCheck}
-              className="h-4 w-4 text-gray-400"
+              className="w-4 h-4 text-gray-400"
               title="Мероприятие завершено"
             />
           )}
           {isDraft && (
             <FontAwesomeIcon
               icon={faClock}
-              className="h-4 w-4 text-blue-500"
+              className="w-4 h-4 text-blue-500"
               title="Заявка"
             />
           )}
-          <div className="flex-1 truncate text-lg font-semibold text-gray-900">
+          <div className="flex-1 text-lg font-semibold text-gray-900 truncate">
             {servicesTitle}
           </div>
           <CardActions className="z-10 -mt-1 -mr-3">
@@ -330,47 +346,48 @@ const EventCard = ({ eventId, style }) => {
           {!client && (
             <FontAwesomeIcon
               icon={faUserSlash}
-              className="h-4 w-4 text-red-500"
+              className="w-4 h-4 text-red-500"
               title="Клиент не указан"
             />
           )}
         </div>
       </div>
-      <div className="flex gap-x-1">
+      <div className="flex gap-x-1 py-0.5">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm text-gray-700">
-          <div className="text-general font-semibold text-gray-800">
+          <div className="font-semibold text-gray-800 text-general">
             {eventDateLabel}
           </div>
-          {nearestAdditionalEventInfo && (
-            <div className="flex flex-wrap items-center gap-1">
+          <div className="flex items-center h-6 gap-1 overflow-hidden">
+            {hasSoonNoDepositWarning ? (
+              <div className="inline-flex max-w-full min-w-0 items-center rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                <span className="truncate">Просрочен задаток</span>
+              </div>
+            ) : nearestAdditionalEventInfo ? (
               <div
                 className={
                   nearestAdditionalEventInfo.isOverdue
-                    ? 'inline-flex max-w-max items-center rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700'
+                    ? 'inline-flex max-w-full min-w-0 items-center rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700'
                     : nearestAdditionalEventInfo.isToday
-                      ? 'inline-flex max-w-max items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700'
+                      ? 'inline-flex max-w-full min-w-0 items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700'
                       : nearestAdditionalEventInfo.isTomorrow
-                        ? 'inline-flex max-w-max items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700'
-                        : 'inline-flex max-w-max items-center rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700'
+                        ? 'inline-flex max-w-full min-w-0 items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700'
+                        : 'inline-flex max-w-full min-w-0 items-center rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700'
                 }
               >
-                {`${nearestAdditionalEventInfo.title}: ${nearestAdditionalEventInfo.label}`}
+                <span className="truncate">{`${nearestAdditionalEventInfo.title}: ${nearestAdditionalEventInfo.label}`}</span>
               </div>
-              {nearestAdditionalEventInfo.remainingCount > 0 ? (
-                <div className="inline-flex max-w-max items-center rounded-full border border-gray-300 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-700">
-                  +{nearestAdditionalEventInfo.remainingCount}
-                </div>
-              ) : null}
-            </div>
-          )}
-          {hasSoonNoDepositWarning && (
-            <div className="inline-flex max-w-max items-center rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
-              Просрочен задаток
-            </div>
-          )}
-          <div className="flex flex-nowrap items-center gap-x-3">
+            ) : null}
+            {hiddenAdditionalCount > 0 ? (
+              <div
+                className={`inline-flex max-w-max shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${hiddenAdditionalCountClass}`}
+              >
+                +{hiddenAdditionalCount}
+              </div>
+            ) : null}
+          </div>
+          <div className="flex h-[25px] flex-nowrap items-center gap-x-3">
             <span className="font-medium">Место:</span>
-            <span className="flex min-w-0 items-center gap-2 truncate">
+            <span className="flex items-center min-w-0 gap-2 truncate">
               <span className="truncate">
                 {formatAddress(displayAddress, '-')}
               </span>
@@ -381,30 +398,32 @@ const EventCard = ({ eventId, style }) => {
                   rel="noreferrer"
                   title="Открыть в 2ГИС"
                   onClick={(event) => event.stopPropagation()}
-                  className="flex h-7 w-7 items-center justify-center transition-transform hover:scale-110"
+                  className="flex items-center justify-center transition-transform h-7 w-7 hover:scale-110"
                 >
                   <Image
                     src="/img/navigators/2gis.png"
                     alt="2gis"
                     width={16}
                     height={16}
-                    className="h-4 w-4"
+                    className="w-4 h-4"
                   />
                 </a>
               )}
             </span>
           </div>
-          <div className="flex flex-nowrap items-center gap-x-3">
+          <div className="flex h-[25px] flex-nowrap items-center gap-x-3">
             <span className="font-medium">Клиент:</span>
             <span className="truncate">
-              {client ? getPersonFullName(client, { fallback: client._id }) : '-'}
+              {client
+                ? getPersonFullName(client, { fallback: client._id })
+                : '-'}
             </span>
             {client && <ContactsIconsButtons user={client} />}
           </div>
         </div>
 
         {isClosed ? (
-          <div className="event-profit-card absolute right-0 bottom-0 flex min-w-[160px] items-center justify-end rounded-tl-xl px-3 py-2 text-sm font-semibold">
+          <div className="event-profit-card tablet:min-w-[120px] absolute right-0 bottom-0 flex min-w-[80px] items-center justify-end rounded-tl-xl px-3 py-2 text-sm font-semibold">
             <span className="event-profit-text">{net.toLocaleString()}</span>
           </div>
         ) : (

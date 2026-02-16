@@ -80,7 +80,7 @@ const DateTimePicker = ({
     },
     '& .MuiInputAdornment-root': {
       marginLeft: -2,
-      marginRight: 0,
+      marginRight: 2,
     },
     '& .MuiButtonBase-root': {
       padding: 0,
@@ -179,7 +179,7 @@ const DateTimePicker = ({
               },
               '& .MuiInputAdornment-root': {
                 marginLeft: -2,
-                marginRight: 2,
+                marginRight: 3,
               },
             }}
             inputFormat="HH:mm"
