@@ -76,8 +76,6 @@ const useErrors = () => {
       organizerId: (data) =>
         !data ? setError({ organizerId: 'Выберите организатора' }) : null,
       date: (data) => (!data ? setError({ date: 'Введите дату' }) : null),
-      dateStart: (data) =>
-        !data ? setError({ dateStart: 'Введите дату начала' }) : null,
       dateEnd: (data) =>
         !data ? setError({ dateEnd: 'Введите дату завершения' }) : null,
       payAt: (data) =>

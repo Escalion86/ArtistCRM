@@ -2,9 +2,10 @@ import DateTimePicker from '@components/DateTimePicker'
 import ErrorsList from '@components/ErrorsList'
 import FormWrapper from '@components/FormWrapper'
 import IconCheckBox from '@components/IconCheckBox'
+import AddIconButton from '@components/AddIconButton'
+import IconActionButton from '@components/IconActionButton'
 import Textarea from '@components/Textarea'
 import { faCircleCheck, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
-import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import ClientPicker from '@components/ClientPicker'
 import ColleaguePicker from '@components/ColleaguePicker'
@@ -41,6 +42,7 @@ import serviceFunc from './serviceFunc'
 import servicesAtom from '@state/atoms/servicesAtom'
 import generateContractTemplate from '@helpers/generateContractTemplate'
 import exportContractTemplateDocx from '@helpers/exportContractTemplateDocx'
+import getPersonFullName from '@helpers/getPersonFullName'
 
 const normalizeAddressValue = (rawAddress) => {
   const normalized = { ...DEFAULT_ADDRESS }
@@ -96,6 +98,7 @@ const normalizeAdditionalEvents = (items) => {
         description:
           typeof item.description === 'string' ? item.description : '',
         date: item.date ?? null,
+        done: Boolean(item.done),
         googleCalendarEventId:
           typeof item.googleCalendarEventId === 'string'
             ? item.googleCalendarEventId
@@ -176,6 +179,12 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     const [contractSum, setContractSum] = useState(
       event?.contractSum ?? DEFAULT_EVENT.contractSum ?? 0
     )
+    const [waitDeposit, setWaitDeposit] = useState(
+      clone ? false : (event?.waitDeposit ?? DEFAULT_EVENT.waitDeposit ?? false)
+    )
+    const [depositDueAt, setDepositDueAt] = useState(
+      clone ? null : (event?.depositDueAt ?? DEFAULT_EVENT.depositDueAt ?? null)
+    )
     const [isByContract, setIsByContract] = useState(
       event?.isByContract ?? DEFAULT_EVENT.isByContract ?? false
     )
@@ -202,6 +211,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             event?.additionalEvents ?? DEFAULT_EVENT.additionalEvents ?? []
           )
     )
+    const [showDoneAdditionalEvents, setShowDoneAdditionalEvents] =
+      useState(false)
     const [calendarImportChecked, setCalendarImportChecked] = useState(
       event?.calendarImportChecked ??
         (eventId ? (DEFAULT_EVENT.calendarImportChecked ?? false) : true)
@@ -254,6 +265,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           return normalized
         })(),
         contractSum: event?.contractSum ?? DEFAULT_EVENT.contractSum,
+        waitDeposit: event?.waitDeposit ?? DEFAULT_EVENT.waitDeposit,
+        depositDueAt: event?.depositDueAt ?? DEFAULT_EVENT.depositDueAt,
         isByContract: event?.isByContract ?? DEFAULT_EVENT.isByContract,
         description:
           event?.description ?? event?.comment ?? DEFAULT_EVENT.description,
@@ -287,6 +300,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       event?.eventDate,
       event?.address,
       event?.contractSum,
+      event?.waitDeposit,
+      event?.depositDueAt,
       event?.description,
       event?.isByContract,
       event?.financeComment,
@@ -326,6 +341,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         initialEventValues.dateEnd !== dateEnd ||
         initialAddressSignature !== addressSignature ||
         initialEventValues.contractSum !== contractSum ||
+        initialEventValues.waitDeposit !== waitDeposit ||
+        initialEventValues.depositDueAt !== depositDueAt ||
         initialEventValues.isByContract !== isByContract ||
         initialEventValues.isTransferred !== isTransferred ||
         initialEventValues.colleagueId !== colleagueId ||
@@ -355,6 +372,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         initialAddressSignature,
         addressSignature,
         contractSum,
+        waitDeposit,
+        depositDueAt,
         isByContract,
         isTransferred,
         colleagueId,
@@ -404,6 +423,15 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         incomeTransactions.reduce(
           (total, item) => total + (item.amount ?? 0),
           0
+        ),
+      [incomeTransactions]
+    )
+    const hasDepositTransaction = useMemo(
+      () =>
+        incomeTransactions.some(
+          (item) =>
+            ['deposit', 'advance'].includes(String(item?.category ?? '')) &&
+            Number(item?.amount ?? 0) > 0
         ),
       [incomeTransactions]
     )
@@ -564,6 +592,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             title: item.title?.trim() ?? '',
             description: item.description?.trim() ?? '',
             date: item.date ?? null,
+            done: Boolean(item.done),
             googleCalendarEventId: item.googleCalendarEventId?.trim() ?? '',
           }))
           .filter((item) => item.title || item.description || item.date)
@@ -579,6 +608,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           dateEnd,
           address: normalizeAddressValue(address),
           contractSum: normalizedContractSum,
+          waitDeposit: hasDepositTransaction ? false : Boolean(waitDeposit),
+          depositDueAt:
+            hasDepositTransaction || !waitDeposit ? null : depositDueAt,
           isByContract,
           description: description?.trim() ?? '',
           financeComment: financeComment?.trim() ?? '',
@@ -618,6 +650,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       financeComment,
       contractSum,
       isByContract,
+      waitDeposit,
+      depositDueAt,
       dateEnd,
       event?._id,
       eventDate,
@@ -636,6 +670,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       otherContacts,
       dateRangeError,
       status,
+      hasDepositTransaction,
     ])
 
     const onClickConfirmRef = useRef(onClickConfirm)
@@ -686,6 +721,19 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           .filter(Boolean),
       [services, servicesIds]
     )
+    const hasDoneAdditionalEvents = useMemo(
+      () => (additionalEvents ?? []).some((item) => Boolean(item?.done)),
+      [additionalEvents]
+    )
+    const filteredAdditionalEvents = useMemo(
+      () =>
+        (additionalEvents ?? [])
+          .map((item, index) => ({ item, index }))
+          .filter(({ item }) =>
+            showDoneAdditionalEvents ? true : !Boolean(item?.done)
+          ),
+      [additionalEvents, showDoneAdditionalEvents]
+    )
     const buildContractTemplateText = useCallback(
       (
         documentNumber,
@@ -702,9 +750,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           },
           client: selectedClient,
           serviceTitles: selectedServiceTitles,
-          performerName: [loggedUser?.firstName, loggedUser?.secondName]
-            .filter(Boolean)
-            .join(' '),
+          performerName: getPersonFullName(loggedUser),
           template: currentSettings?.custom?.contractTemplate ?? '',
           contractMeta: {
             defaultTown: currentSettings?.defaultTown ?? '',
@@ -736,8 +782,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         contractSum,
         event,
         eventDate,
-        loggedUser?.firstName,
-        loggedUser?.secondName,
+        loggedUser,
         selectedClient,
         selectedServiceTitles,
         siteSettings,
@@ -858,101 +903,224 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       setOtherContacts((prev) => [...prev, { clientId: null, comment: '' }])
     }
 
-    const handleAdditionalEventChange = (index, patch) => {
-      setAdditionalEvents((prev) =>
-        prev.map((item, idx) => (idx === index ? { ...item, ...patch } : item))
-      )
-    }
-
     const handleAdditionalEventRemove = (index) => {
       setAdditionalEvents((prev) => prev.filter((_, idx) => idx !== index))
     }
 
-    const handleAdditionalEventAdd = (preset = null) => {
-      const now = new Date()
-      const baseItem = {
-        title: '',
-        description: '',
-        date: now.toISOString(),
-        googleCalendarEventId: '',
+    const openAdditionalEventModal = (index = null) => {
+      const sourceItem =
+        index !== null
+          ? additionalEvents[index]
+          : {
+              title: '',
+              description: '',
+              date: new Date().toISOString(),
+              done: false,
+              googleCalendarEventId: '',
+            }
+      const stateRef = {
+        current: {
+          title: sourceItem?.title ?? '',
+          description: sourceItem?.description ?? '',
+          date: sourceItem?.date ?? new Date().toISOString(),
+          done: Boolean(sourceItem?.done),
+          googleCalendarEventId: sourceItem?.googleCalendarEventId ?? '',
+        },
       }
 
-      if (preset === 'now') {
-        setAdditionalEvents((prev) => [
-          ...prev,
-          {
-            title: 'Уточнить детали',
-            description: '',
-            date: now.toISOString(),
-            googleCalendarEventId: '',
-          },
-        ])
-        return
+      const AdditionalEventModal = () => {
+        const [title, setTitle] = useState(stateRef.current.title)
+        const [description, setDescription] = useState(
+          stateRef.current.description
+        )
+        const [date, setDate] = useState(stateRef.current.date)
+        const [done, setDone] = useState(stateRef.current.done)
+        const parseDateSafe = (value) => {
+          if (!value) return null
+          const parsed = new Date(value)
+          return Number.isNaN(parsed.getTime()) ? null : parsed
+        }
+        const getBaseDate = () => parseDateSafe(date) || new Date()
+        const applyPresetTime = (hours, minutes) => {
+          const next = getBaseDate()
+          next.setHours(hours, minutes, 0, 0)
+          setDate(next.toISOString())
+        }
+        const applyPresetDateFromToday = (days) => {
+          const base = getBaseDate()
+          const next = new Date()
+          next.setDate(next.getDate() + days)
+          next.setHours(base.getHours(), base.getMinutes(), 0, 0)
+          setDate(next.toISOString())
+        }
+
+        useEffect(() => {
+          stateRef.current = {
+            ...stateRef.current,
+            title,
+            description,
+            date,
+            done,
+          }
+        }, [date, description, done, title])
+
+        return (
+          <div className="mt-2 flex flex-col gap-y-2.5">
+            <div className="mt-2 text-xs font-semibold text-gray-700">
+              Быстрый заголовок
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="rounded"
+                onClick={() => setTitle('Узнать что решили')}
+              >
+                Узнать что решили
+              </AppButton>
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="rounded"
+                onClick={() => setTitle('Встреча')}
+              >
+                Встреча
+              </AppButton>
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="rounded"
+                onClick={() => setTitle('Жду задаток')}
+              >
+                Жду задаток
+              </AppButton>
+            </div>
+            <Input
+              label="Заголовок"
+              value={title}
+              onChange={setTitle}
+              noMargin
+              fullWidth
+            />
+            <div className="text-xs font-semibold text-gray-700">
+              Быстрая дата и время
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="rounded"
+                onClick={() => applyPresetTime(11, 0)}
+              >
+                11:00
+              </AppButton>
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="rounded"
+                onClick={() => applyPresetTime(19, 0)}
+              >
+                19:00
+              </AppButton>
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="rounded"
+                onClick={() => applyPresetDateFromToday(0)}
+              >
+                Сегодня
+              </AppButton>
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="rounded"
+                onClick={() => applyPresetDateFromToday(1)}
+              >
+                Завтра
+              </AppButton>
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="rounded"
+                onClick={() => applyPresetDateFromToday(3)}
+              >
+                Через 2 дня
+              </AppButton>
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="rounded"
+                onClick={() => applyPresetDateFromToday(7)}
+              >
+                Через неделю
+              </AppButton>
+            </div>
+            <DateTimePicker
+              value={date ?? null}
+              onChange={(value) => setDate(value ?? null)}
+              label="Дата и время"
+              noMargin
+            />
+            <Textarea
+              label="Описание"
+              value={description}
+              onChange={setDescription}
+              rows={3}
+              noMargin
+            />
+            <IconCheckBox
+              checked={done}
+              onClick={() => setDone((prev) => !prev)}
+              label="Сделано"
+              checkedIcon={faCircleCheck}
+              checkedIconColor="#16A34A"
+              noMargin
+            />
+          </div>
+        )
       }
 
-      if (preset === 'day1') {
-        const date = new Date(now)
-        date.setDate(date.getDate() + 1)
-        setAdditionalEvents((prev) => [
-          ...prev,
-          {
-            title: 'Узнать что решили',
-            description: '',
-            date: date.toISOString(),
-            googleCalendarEventId: '',
-          },
-        ])
-        return
-      }
+      modalsFunc.add({
+        title: `${index !== null ? 'Редактирование' : 'Создание'} доп. события`,
+        confirmButtonName: 'Сохранить',
+        declineButtonName: 'Отмена',
+        showDecline: true,
+        onConfirm: () => {
+          const nextItem = {
+            title: stateRef.current.title?.trim() ?? '',
+            description: stateRef.current.description?.trim() ?? '',
+            date: stateRef.current.date ?? null,
+            done: Boolean(stateRef.current.done),
+            googleCalendarEventId: stateRef.current.googleCalendarEventId ?? '',
+          }
+          if (index !== null) {
+            setAdditionalEvents((prev) =>
+              prev.map((item, idx) =>
+                idx === index ? { ...item, ...nextItem } : item
+              )
+            )
+          } else {
+            setAdditionalEvents((prev) => [...prev, nextItem])
+          }
+        },
+        Children: AdditionalEventModal,
+      })
+    }
 
-      if (preset === 'day3') {
-        const date = new Date(now)
-        date.setDate(date.getDate() + 3)
-        setAdditionalEvents((prev) => [
-          ...prev,
-          {
-            title: 'Узнать что решили',
-            description: '',
-            date: date.toISOString(),
-            googleCalendarEventId: '',
-          },
-        ])
-        return
-      }
+    const handleAdditionalEventAdd = () => {
+      openAdditionalEventModal(null)
+    }
 
-      if (preset === 'meeting') {
-        const date = new Date(now)
-        date.setDate(date.getDate() + 1)
-        date.setHours(12, 0, 0, 0)
-        setAdditionalEvents((prev) => [
-          ...prev,
-          {
-            title: 'Встреча',
-            description: '',
-            date: date.toISOString(),
-            googleCalendarEventId: '',
-          },
-        ])
-        return
-      }
+    const handleAdditionalEventEdit = (index) => {
+      openAdditionalEventModal(index)
+    }
 
-      if (preset === 'deposit_waiting') {
-        const date = new Date(now)
-        date.setDate(date.getDate() + 1)
-        date.setHours(12, 0, 0, 0)
-        setAdditionalEvents((prev) => [
-          ...prev,
-          {
-            title: 'Жду задаток',
-            description: '',
-            date: date.toISOString(),
-            googleCalendarEventId: '',
-          },
-        ])
-        return
-      }
-
-      setAdditionalEvents((prev) => [...prev, baseItem])
+    const handleAdditionalEventToggleDone = (index) => {
+      setAdditionalEvents((prev) =>
+        prev.map((item, idx) =>
+          idx === index ? { ...item, done: !item?.done } : item
+        )
+      )
     }
 
     const openTransactionModal = (transactionId) => {
@@ -1038,14 +1206,14 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             <div className="flex items-end justify-between gap-2">
               <div className="mt-1.5 flex items-end gap-2">
                 <Input
-                  label="Номер договора"
+                  label="№ договора"
                   value={contractNumber}
                   onChange={setContractNumber}
                   type="number"
                   min={1}
                   noMargin
-                  className="w-[135px]"
-                  inputClassName="hide-number-spin w-[60px]"
+                  className="w-[104px]"
+                  inputClassName="hide-number-spin w-[35px]"
                 />
                 <Input
                   label="Дата договора"
@@ -1060,35 +1228,36 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 <AppButton
                   variant="secondary"
                   size="sm"
-                  className="cursor-pointer rounded"
+                  className="rounded cursor-pointer"
                   onClick={() =>
                     modalsFunc.settings?.contractTemplateEditor?.()
                   }
                 >
                   Редактор шаблона договора
                 </AppButton>
-                <button
-                  type="button"
-                  className="cursor-pointer rounded border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
-                  onClick={async () => {
-                    if (!navigator?.clipboard) return
-                    navigator.clipboard.writeText(templateText)
-                    await updateLastContractNumber(contractNumber)
-                  }}
-                >
-                  Скопировать текст
-                </button>
               </div>
             </div>
             <pre className="max-h-[65dvh] overflow-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs leading-5 whitespace-pre-wrap text-gray-800">
               {templateText}
             </pre>
+            <button
+              type="button"
+              className="px-3 py-1 text-xs font-semibold text-gray-700 transition border border-gray-300 rounded cursor-pointer hover:bg-gray-50"
+              onClick={async () => {
+                if (!navigator?.clipboard) return
+                navigator.clipboard.writeText(templateText)
+                await updateLastContractNumber(contractNumber)
+              }}
+            >
+              Скопировать текст
+            </button>
           </div>
         )
       }
-      const clientName = [selectedClient?.firstName, selectedClient?.secondName]
-        .filter(Boolean)
-        .join('_')
+      const clientName = getPersonFullName(selectedClient, {
+        separator: '_',
+        fallback: 'client',
+      })
       const contractFileName = `dogovor_${clientName || 'client'}_${new Date()
         .toISOString()
         .slice(0, 10)}.docx`
@@ -1275,117 +1444,102 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               onAddContact={handleOtherContactAdd}
             />
             <InputWrapper label="Доп. события">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap gap-2">
-                  <AppButton
-                    variant="secondary"
-                    size="sm"
-                    className="rounded"
-                    onClick={() => handleAdditionalEventAdd('now')}
-                  >
-                    Сейчас
-                  </AppButton>
-                  <AppButton
-                    variant="secondary"
-                    size="sm"
-                    className="rounded"
-                    onClick={() => handleAdditionalEventAdd('day1')}
-                  >
-                    +1 день
-                  </AppButton>
-                  <AppButton
-                    variant="secondary"
-                    size="sm"
-                    className="rounded"
-                    onClick={() => handleAdditionalEventAdd('day3')}
-                  >
-                    +3 дня
-                  </AppButton>
-                  <AppButton
-                    variant="secondary"
-                    size="sm"
-                    className="rounded"
-                    onClick={() => handleAdditionalEventAdd('meeting')}
-                  >
-                    Встреча
-                  </AppButton>
-                  <AppButton
-                    variant="secondary"
-                    size="sm"
-                    className="rounded"
-                    onClick={() => handleAdditionalEventAdd('deposit_waiting')}
-                  >
-                    Жду задаток
-                  </AppButton>
-                  <AppButton
-                    variant="primary"
-                    size="sm"
-                    className="rounded"
+              <div className="flex flex-col w-full gap-2">
+                <div className="flex justify-end w-full">
+                  <AddIconButton
                     onClick={() => handleAdditionalEventAdd()}
-                  >
-                    Добавить событие
-                  </AppButton>
+                    title="Добавить событие"
+                    size="sm"
+                  />
                 </div>
+                {hasDoneAdditionalEvents ? (
+                  <IconCheckBox
+                    checked={showDoneAdditionalEvents}
+                    onClick={() => setShowDoneAdditionalEvents((prev) => !prev)}
+                    label="Показывать выполненные"
+                    checkedIcon={faCircleCheck}
+                    checkedIconColor="#16A34A"
+                    noMargin
+                  />
+                ) : null}
 
-                {additionalEvents.length === 0 ? (
+                {additionalEvents.length ===
+                0 ? null : filteredAdditionalEvents.length === 0 ? (
                   <div className="text-sm text-gray-500">
-                    Дополнительные события не добавлены
+                    Нет событий для выбранного фильтра
                   </div>
                 ) : (
-                  additionalEvents.map((item, index) => (
-                    <div
-                      key={`additional-event-${index}`}
-                      className="rounded border border-gray-200 p-2"
-                    >
-                      <div className="laptop:grid-cols-2 grid grid-cols-1 gap-3">
-                        <div className="flex items-center justify-between gap-x-2">
-                          <Input
-                            label="Заголовок"
-                            value={item.title ?? ''}
-                            onChange={(value) =>
-                              handleAdditionalEventChange(index, {
-                                title: value,
-                              })
-                            }
-                            noMargin
-                            fullWidth
-                          />
-                          <button
-                            type="button"
-                            className="action-icon-button action-icon-button--danger flex h-8 min-h-8 w-8 min-w-8 items-center justify-center rounded"
-                            onClick={() => handleAdditionalEventRemove(index)}
-                            title="Удалить событие"
-                          >
-                            <FontAwesomeIcon
-                              icon={faTrashAlt}
-                              className="h-4 w-4"
+                  <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
+                    {filteredAdditionalEvents.map(({ item, index }) => (
+                      <div
+                        key={`additional-event-${index}`}
+                        className={`w-full rounded border p-2 ${
+                          item?.done
+                            ? 'border-emerald-200 bg-emerald-50/70'
+                            : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div
+                              className={`truncate text-sm font-semibold ${
+                                item?.done
+                                  ? 'text-emerald-700'
+                                  : 'text-gray-900'
+                              }`}
+                            >
+                              {item?.done ? '✓ ' : ''}
+                              {item?.title || `Событие #${index + 1}`}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {item?.date
+                                ? new Date(item.date).toLocaleString('ru-RU', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
+                                : 'Дата не указана'}
+                            </div>
+                            {item?.description ? (
+                              <div className="text-xs text-gray-700">
+                                {item.description}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <AppButton
+                              variant={item?.done ? 'secondary' : 'primary'}
+                              size="sm"
+                              className="rounded"
+                              onClick={() =>
+                                handleAdditionalEventToggleDone(index)
+                              }
+                            >
+                              {item?.done ? 'Вернуть' : 'Сделано'}
+                            </AppButton>
+                            <IconActionButton
+                              icon={faPencilAlt}
+                              onClick={() => handleAdditionalEventEdit(index)}
+                              title="Редактировать событие"
+                              variant="warning"
+                              size="xs"
+                              className="min-h-8 min-w-8"
                             />
-                          </button>
+                            <IconActionButton
+                              icon={faTrashAlt}
+                              onClick={() => handleAdditionalEventRemove(index)}
+                              title="Удалить событие"
+                              variant="danger"
+                              size="xs"
+                              className="min-h-8 min-w-8"
+                            />
+                          </div>
                         </div>
-                        <DateTimePicker
-                          value={item.date ?? null}
-                          onChange={(value) =>
-                            handleAdditionalEventChange(index, {
-                              date: value ?? null,
-                            })
-                          }
-                          label="Дата и время"
-                          noMargin
-                        />
-                        <Textarea
-                          label="Описание"
-                          value={item.description ?? ''}
-                          onChange={(value) =>
-                            handleAdditionalEventChange(index, {
-                              description: value,
-                            })
-                          }
-                          rows={2}
-                          noMargin
-                        />
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             </InputWrapper>
@@ -1403,11 +1557,39 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               step={1000}
               noMargin
             />
+            {!hasDepositTransaction ? (
+              <div className="flex flex-col gap-2">
+                <IconCheckBox
+                  checked={waitDeposit}
+                  onClick={() =>
+                    setWaitDeposit((prev) => {
+                      const next = !prev
+                      if (!next) setDepositDueAt(null)
+                      return next
+                    })
+                  }
+                  label="Ждем задаток"
+                  checkedIcon={faCircleCheck}
+                  checkedIconColor="#F97316"
+                  noMargin
+                />
+                {waitDeposit ? (
+                  <DateTimePicker
+                    value={depositDueAt}
+                    onChange={(value) => setDepositDueAt(value ?? null)}
+                    label="Дата ожидания задатка"
+                    noMargin
+                    className="mt-1"
+                  />
+                ) : null}
+              </div>
+            ) : null}
             <Textarea
               label="Комментарий по финансам"
               value={financeComment}
               onChange={setFinanceComment}
               rows={2}
+              wrapperClassName="mt-2"
               noMargin
             />
             <IconCheckBox
@@ -1434,7 +1616,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               </div>
             )}
             {isDraft ? (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <div className="px-3 py-2 text-sm border rounded-md border-amber-200 bg-amber-50 text-amber-800">
                 {`Для заявки финансы, транзакции и документы недоступны. Переведите статус в "Активно"`}
               </div>
             ) : null}
@@ -1473,9 +1655,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   <div className="text-base font-semibold text-gray-900">
                     Транзакции
                   </div>
-                  <button
-                    type="button"
-                    className="action-icon-button action-icon-button--success flex h-9 w-9 items-center justify-center rounded disabled:cursor-not-allowed disabled:opacity-60"
+                  <AddIconButton
                     onClick={() => openTransactionModal()}
                     disabled={
                       isDraft ||
@@ -1485,18 +1665,18 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                       !event?.clientId
                     }
                     title="Добавить транзакцию"
-                  >
-                    <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
-                  </button>
+                    size="sm"
+                    className="disabled:cursor-not-allowed disabled:opacity-60"
+                  />
                 </div>
 
                 {financeError && (
-                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
                     {financeError}
                   </div>
                 )}
 
-                <div className="rounded border border-gray-200 bg-white shadow-sm">
+                <div className="bg-white border border-gray-200 rounded shadow-sm">
                   {eventTransactions.length === 0 ? (
                     <div className="px-3 py-4 text-sm text-gray-500">
                       Транзакции не найдены
@@ -1514,9 +1694,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         incomeTransactions.map((transaction) => (
                           <div
                             key={transaction._id}
-                            className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
+                            className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
                           >
-                            <div className="flex flex-1 flex-wrap gap-3 text-sm">
+                            <div className="flex flex-wrap flex-1 gap-3 text-sm">
                               <span className="font-semibold text-gray-900">
                                 {transaction.amount.toLocaleString()} руб.
                               </span>
@@ -1556,34 +1736,26 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                               )}
                             </div>
                             <div className="flex gap-2">
-                              <button
-                                type="button"
-                                className="action-icon-button action-icon-button--warning flex h-9 w-9 items-center justify-center rounded"
+                              <IconActionButton
+                                icon={faPencilAlt}
                                 onClick={() =>
                                   openTransactionModal(transaction._id)
                                 }
                                 disabled={financeLoading}
                                 title="Редактировать транзакцию"
-                              >
-                                <FontAwesomeIcon
-                                  className="h-4 w-4"
-                                  icon={faPencilAlt}
-                                />
-                              </button>
-                              <button
-                                type="button"
-                                className="action-icon-button action-icon-button--danger flex h-9 w-9 items-center justify-center rounded"
+                                variant="warning"
+                                size="sm"
+                              />
+                              <IconActionButton
+                                icon={faTrashAlt}
                                 onClick={() =>
                                   handleDeleteTransaction(transaction._id)
                                 }
                                 disabled={financeLoading}
                                 title="Удалить транзакцию"
-                              >
-                                <FontAwesomeIcon
-                                  icon={faTrashAlt}
-                                  className="h-4 w-4"
-                                />
-                              </button>
+                                variant="danger"
+                                size="sm"
+                              />
                             </div>
                           </div>
                         ))
@@ -1599,9 +1771,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         expenseTransactions.map((transaction) => (
                           <div
                             key={transaction._id}
-                            className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
+                            className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
                           >
-                            <div className="flex flex-1 flex-wrap gap-3 text-sm">
+                            <div className="flex flex-wrap flex-1 gap-3 text-sm">
                               <span className="font-semibold text-gray-900">
                                 {transaction.amount.toLocaleString()} руб.
                               </span>
@@ -1641,34 +1813,26 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                               )}
                             </div>
                             <div className="flex gap-2">
-                              <button
-                                type="button"
-                                className="action-icon-button action-icon-button--warning flex h-9 w-9 items-center justify-center rounded"
+                              <IconActionButton
+                                icon={faPencilAlt}
                                 onClick={() =>
                                   openTransactionModal(transaction._id)
                                 }
                                 disabled={financeLoading}
                                 title="Редактировать транзакцию"
-                              >
-                                <FontAwesomeIcon
-                                  className="h-4 w-4"
-                                  icon={faPencilAlt}
-                                />
-                              </button>
-                              <button
-                                type="button"
-                                className="action-icon-button action-icon-button--danger flex h-9 w-9 items-center justify-center rounded"
+                                variant="warning"
+                                size="sm"
+                              />
+                              <IconActionButton
+                                icon={faTrashAlt}
                                 onClick={() =>
                                   handleDeleteTransaction(transaction._id)
                                 }
                                 disabled={financeLoading}
                                 title="Удалить транзакцию"
-                              >
-                                <FontAwesomeIcon
-                                  icon={faTrashAlt}
-                                  className="h-4 w-4"
-                                />
-                              </button>
+                                variant="danger"
+                                size="sm"
+                              />
                             </div>
                           </div>
                         ))
@@ -1688,7 +1852,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               </div>
               <button
                 type="button"
-                className="h-8 rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
                 onClick={() => {
                   if (!navigator?.clipboard) return
                   navigator.clipboard.writeText(googleCalendarResponseText)
@@ -1697,7 +1861,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 Скопировать
               </button>
             </div>
-            <pre className="max-h-72 w-full overflow-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs whitespace-pre-wrap text-gray-800">
+            <pre className="w-full p-3 overflow-auto text-xs text-gray-800 whitespace-pre-wrap border border-gray-200 rounded max-h-72 bg-gray-50">
               {googleCalendarResponseText}
             </pre>
           </TabPanel>

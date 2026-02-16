@@ -46,6 +46,8 @@ const parseDateValue = (value) => {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+const normalizeWaitDeposit = (value) => Boolean(value)
+
 const normalizeCancelReason = (value) =>
   typeof value === 'string' ? value.trim() : ''
 
@@ -63,10 +65,12 @@ const normalizeAdditionalEvents = (items) => {
         typeof item.googleCalendarEventId === 'string'
           ? item.googleCalendarEventId.trim()
           : ''
+      const done = Boolean(item.done)
       return {
         title,
         description,
         date,
+        done,
         googleCalendarEventId,
       }
     })
@@ -87,6 +91,7 @@ const normalizeOtherContacts = (contacts) => {
     })
     .filter(Boolean)
 }
+
 
 const hasDocuments = (payload) => {
   const invoiceLinks = Array.isArray(payload?.invoiceLinks)
@@ -194,6 +199,10 @@ export const PUT = async (req, { params }) => {
   }
   if (body.contractSum !== undefined)
     update.contractSum = Number(body.contractSum) || 0
+  if (body.waitDeposit !== undefined)
+    update.waitDeposit = normalizeWaitDeposit(body.waitDeposit)
+  if (body.depositDueAt !== undefined)
+    update.depositDueAt = parseDateValue(body.depositDueAt)
   if (body.description !== undefined)
     update.description = body.description ?? ''
   if (body.financeComment !== undefined)

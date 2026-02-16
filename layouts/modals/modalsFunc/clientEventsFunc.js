@@ -5,6 +5,7 @@ import eventsAtom from '@state/atoms/eventsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import formatDate from '@helpers/formatDate'
 import formatDateTime from '@helpers/formatDateTime'
+import getPersonFullName from '@helpers/getPersonFullName'
 import Button from '@components/Button'
 
 const clientEventsFunc = (clientId) => {
@@ -13,19 +14,12 @@ const clientEventsFunc = (clientId) => {
     const events = useAtomValue(eventsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
 
-    if (!clientId || !client)
-      return (
-        <div className="flex w-full justify-center text-lg ">
-          ОШИБКА! Клиент не найден!
-        </div>
-      )
-
     const clientRequests = useMemo(
       () =>
         events.filter(
           (event) => event.clientId === clientId && event.status === 'draft'
         ),
-      [events, clientId]
+      [events]
     )
 
     const clientEvents = useMemo(
@@ -33,15 +27,21 @@ const clientEventsFunc = (clientId) => {
         events.filter(
           (event) => event.clientId === clientId && event.status !== 'draft'
         ),
-      [events, clientId]
+      [events]
     )
+
+    if (!clientId || !client)
+      return (
+        <div className="flex w-full justify-center text-lg ">
+          ОШИБКА! Клиент не найден!
+        </div>
+      )
 
     return (
       <div className="flex flex-col gap-4 text-sm text-gray-800">
         <div className="p-4 bg-white border border-gray-200 rounded-lg">
           <div className="text-base font-semibold text-gray-900">
-            {[client.firstName, client.secondName].filter(Boolean).join(' ') ||
-              'Без имени'}
+            {getPersonFullName(client, { fallback: 'Без имени' })}
           </div>
           <div className="mt-1 text-gray-600">
             {client.phone ? `+${client.phone}` : 'Телефон не указан'}

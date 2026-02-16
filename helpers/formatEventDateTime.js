@@ -7,8 +7,8 @@ function formatEventDateTime(event, props = {}) {
   const { dontShowDayOfWeek, fullWeek, showYear, fullMonth, weekInBrackets } =
     props
 
-  const dateStart = dateToDateTimeStr(
-    event.dateStart,
+  const eventDate = dateToDateTimeStr(
+    event.eventDate,
     !dontShowDayOfWeek,
     fullMonth,
     showYear,
@@ -25,17 +25,17 @@ function formatEventDateTime(event, props = {}) {
   )
   var date = ''
   if (
-    dateStart[0] === dateEnd[0] &&
-    dateStart[1] === dateEnd[1] &&
-    dateStart[3] === dateEnd[3]
+    eventDate[0] === dateEnd[0] &&
+    eventDate[1] === dateEnd[1] &&
+    eventDate[3] === dateEnd[3]
   ) {
-    date = `${dateStart[0]} ${dateStart[1]} ${
-      weekInBrackets ? `(${dateStart[2]})` : dateStart[2]
-    } ${dateStart[4]}:${dateStart[5]} - ${dateEnd[4]}:${dateEnd[5]}`
+    date = `${eventDate[0]} ${eventDate[1]} ${
+      weekInBrackets ? `(${eventDate[2]})` : eventDate[2]
+    } ${eventDate[4]}:${eventDate[5]} - ${dateEnd[4]}:${dateEnd[5]}`
   } else {
-    date = `${dateStart[0]} ${dateStart[1]} ${
-      weekInBrackets ? `(${dateStart[2]})` : dateStart[2]
-    } ${dateStart[4]}:${dateStart[5]} - ${dateEnd[0]} ${dateEnd[1]} ${
+    date = `${eventDate[0]} ${eventDate[1]} ${
+      weekInBrackets ? `(${eventDate[2]})` : eventDate[2]
+    } ${eventDate[4]}:${eventDate[5]} - ${dateEnd[0]} ${dateEnd[1]} ${
       weekInBrackets ? `(${dateEnd[2]})` : dateEnd[2]
     } ${dateEnd[4]}:${dateEnd[5]}`
   }

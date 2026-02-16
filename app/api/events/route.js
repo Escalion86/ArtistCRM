@@ -37,6 +37,8 @@ const parseDateValue = (value) => {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+const normalizeWaitDeposit = (value) => Boolean(value)
+
 const normalizeAdditionalEvents = (items) => {
   if (!Array.isArray(items)) return []
   return items
@@ -51,15 +53,18 @@ const normalizeAdditionalEvents = (items) => {
         typeof item.googleCalendarEventId === 'string'
           ? item.googleCalendarEventId.trim()
           : ''
+      const done = Boolean(item.done)
       return {
         title,
         description,
         date,
+        done,
         googleCalendarEventId,
       }
     })
     .filter(Boolean)
 }
+
 
 export const GET = async () => {
   const { tenantId } = await getTenantContext()
@@ -139,6 +144,8 @@ export const POST = async (req) => {
       ? new Date(body.requestCreatedAt)
       : new Date(),
     additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
+    waitDeposit: normalizeWaitDeposit(body.waitDeposit),
+    depositDueAt: parseDateValue(body.depositDueAt),
     calendarSyncError: access?.allowCalendarSync ? '' : 'calendar_sync_unavailable',
   })
   await Histories.create({

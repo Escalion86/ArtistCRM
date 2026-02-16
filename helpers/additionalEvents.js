@@ -14,8 +14,12 @@ const hasDepositByTransactions = (eventId, transactions) => {
   })
 }
 
-const hasNoDeposit = (event, transactions) => {
+const hasNoDeposit = (event, transactions, now = new Date()) => {
   if (!event) return false
+  if (!event?.waitDeposit) return false
+  const dueAt = toDate(event?.depositDueAt)
+  if (!dueAt) return false
+  if (dueAt.getTime() > now.getTime()) return false
   return !hasDepositByTransactions(event?._id, transactions)
 }
 
@@ -51,6 +55,7 @@ export const getAdditionalEventsSummary = (events, now = new Date()) => {
   ;(Array.isArray(events) ? events : []).forEach((event) => {
     ;(Array.isArray(event?.additionalEvents) ? event.additionalEvents : []).forEach(
       (item) => {
+        if (item?.done) return
         const segment = getAdditionalEventSegment(item?.date, now)
         if (segment) summary[segment] += 1
       }
@@ -75,6 +80,7 @@ export const getInAppReminderSummary = (events, now = new Date()) => {
     if (event?.status === 'canceled' || event?.status === 'closed') return
     ;(Array.isArray(event?.additionalEvents) ? event.additionalEvents : []).forEach(
       (item) => {
+        if (item?.done) return
         const date = toDate(item?.date)
         if (!date) return
         const dateMs = date.getTime()
@@ -95,7 +101,7 @@ export const eventHasAdditionalSegment = (event, segment, now = new Date()) => {
     ? event.additionalEvents
     : []
   return additionalEvents.some(
-    (item) => getAdditionalEventSegment(item?.date, now) === segment
+    (item) => !item?.done && getAdditionalEventSegment(item?.date, now) === segment
   )
 }
 
@@ -130,6 +136,7 @@ export const getAdditionalEventsListBySegments = (events, now = new Date()) => {
   ;(Array.isArray(events) ? events : []).forEach((event) => {
     ;(Array.isArray(event?.additionalEvents) ? event.additionalEvents : []).forEach(
       (item, index) => {
+        if (item?.done) return
         const segment = getAdditionalEventSegment(item?.date, now)
         if (!segment) return
         segments[segment].push({
@@ -164,22 +171,17 @@ export const getSoonNoDepositEvents = (
   now = new Date(),
   days = 3
 ) => {
-  const nowMs = now.getTime()
-  const maxMs = nowMs + Math.max(1, days) * 24 * 60 * 60 * 1000
+  void days
 
   return (Array.isArray(events) ? events : [])
     .filter((event) => {
       if (!event) return false
       if (['draft', 'canceled', 'closed'].includes(String(event.status))) return false
-      const date = toDate(event.eventDate)
-      if (!date) return false
-      const ms = date.getTime()
-      if (ms <= nowMs || ms > maxMs) return false
-      return hasNoDeposit(event, transactions)
+      return hasNoDeposit(event, transactions, now)
     })
     .sort((a, b) => {
-      const dateA = toDate(a?.eventDate)?.getTime() ?? 0
-      const dateB = toDate(b?.eventDate)?.getTime() ?? 0
-      return dateA - dateB
+      const dueA = toDate(a?.depositDueAt)?.getTime() ?? 0
+      const dueB = toDate(b?.depositDueAt)?.getTime() ?? 0
+      return dueA - dueB
     })
 }

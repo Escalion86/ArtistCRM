@@ -1,6 +1,7 @@
 import InputWrapper from '@components/InputWrapper'
-import { faPlus, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import AddIconButton from '@components/AddIconButton'
+import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
+import IconActionButton from '@components/IconActionButton'
 
 const LinksListEditor = ({ label, links = [], onChange, noMargin = false }) => {
   const safeLinks = Array.isArray(links) ? links : []
@@ -29,28 +30,23 @@ const LinksListEditor = ({ label, links = [], onChange, noMargin = false }) => {
               placeholder="Введите ссылку"
               onChange={(event) => handleUpdateLink(index, event.target.value)}
             />
-            <button
-              type="button"
-              className="action-icon-button action-icon-button--danger flex h-8 w-8 cursor-pointer items-center justify-center rounded"
+            <IconActionButton
+              icon={faTrashAlt}
               onClick={() => handleRemoveLink(index)}
               title="Удалить ссылку"
-            >
-              <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
-            </button>
+              variant="danger"
+              size="xs"
+            />
           </div>
         ))}
-        <button
-          type="button"
-          className="action-icon-button action-icon-button--success flex h-8 w-8 cursor-pointer items-center justify-center rounded"
+        <AddIconButton
           onClick={handleAddLink}
           title="Добавить ссылку"
-        >
-          <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
-        </button>
+          size="xs"
+        />
       </div>
     </InputWrapper>
   )
 }
 
 export default LinksListEditor
-

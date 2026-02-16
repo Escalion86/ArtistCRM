@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import ContentHeader from '@components/ContentHeader'
-import Button from '@components/Button'
+import AddIconButton from '@components/AddIconButton'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import Input from '@components/Input'
@@ -53,12 +53,12 @@ const UsersContent = () => {
           right={
             <>
               <MutedText>Всего: {users.length}</MutedText>
-              <Button
-                name="+"
-                collapsing
-                className="action-icon-button action-icon-button--neutral h-9 w-9 rounded-full text-lg"
+              <AddIconButton
                 onClick={() => modalsFunc.user?.add()}
                 disabled={!modalsFunc.user?.add}
+                title="Добавить пользователя"
+                size="sm"
+                variant="neutral"
               />
             </>
           }

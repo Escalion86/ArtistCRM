@@ -3,7 +3,7 @@
 import { useCallback } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
-import Button from '@components/Button'
+import AddIconButton from '@components/AddIconButton'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import MutedText from '@components/MutedText'
@@ -63,12 +63,12 @@ const TariffsContent = () => {
           right={
             <>
               <MutedText>Всего: {tariffs.length}</MutedText>
-              <Button
-                name="+"
-                collapsing
-                className="action-icon-button action-icon-button--neutral h-9 w-9 rounded-full text-lg"
+              <AddIconButton
                 onClick={() => modalsFunc.tariff?.add()}
                 disabled={!modalsFunc.tariff?.add}
+                title="Добавить тариф"
+                size="sm"
+                variant="neutral"
               />
             </>
           }

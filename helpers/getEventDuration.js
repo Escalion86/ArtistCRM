@@ -1,6 +1,8 @@
 import getMinutesBetween from './getMinutesBetween'
 
-const getEventDuration = (event) =>
-  getMinutesBetween(event.dateStart, event.dateEnd)
+const getEventDuration = (event) => {
+  const start = event?.eventDate
+  return getMinutesBetween(start, event?.dateEnd)
+}
 
 export default getEventDuration

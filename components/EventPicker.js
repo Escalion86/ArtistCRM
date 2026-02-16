@@ -1,9 +1,9 @@
 'use client'
 
 import PropTypes from 'prop-types'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import InputWrapper from '@components/InputWrapper'
+import IconActionButton from '@components/IconActionButton'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
 import { useAtomValue } from 'jotai'
@@ -74,14 +74,14 @@ const EventPicker = ({
           </div>
         </div>
         {showEditButton && selectedEventId && !disabled && (
-          <button
-            type="button"
-            className="action-icon-button action-icon-button--warning flex h-[50px] w-[50px] cursor-pointer items-center justify-center rounded"
+          <IconActionButton
+            icon={faPencilAlt}
             onClick={handleEdit}
             title="Редактировать мероприятие"
-          >
-            <FontAwesomeIcon className="h-5 w-5" icon={faPencilAlt} />
-          </button>
+            variant="warning"
+            size="lg"
+            className="h-[50px] w-[50px]"
+          />
         )}
       </div>
     </InputWrapper>

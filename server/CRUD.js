@@ -436,7 +436,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       preparedText = preparedText.replaceAll(aTags[i], linkAReformer(aTags[i]))
   }
 
-  const rawStart = event.eventDate ?? event.dateStart ?? event.dateEnd ?? null
+  const rawStart = event.eventDate ?? event.dateEnd ?? null
   const rawEnd =
     event.dateEnd ??
     (rawStart ? new Date(new Date(rawStart).getTime() + 60 * 60 * 1000) : null)
@@ -566,8 +566,19 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
 
   const eventLink = `${process.env.DOMAIN + '/event/' + event._id}`
   const eventDateLabel = isValidDateValue(startDate)
-    ? startDate.toLocaleString('ru-RU')
+    ? startDate.toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     : 'не указана'
+  const clientBlock = clientName
+    ? `Клиент: ${clientName}${
+        clientContactLines.length ? `\n${clientContactLines.join('\n')}` : ''
+      }`
+    : ''
   const additionalBaseDescriptionLines = [
     'Доп. событие по мероприятию',
     `Мероприятие: ${calendarTitle}`,
@@ -578,11 +589,10 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         : event.status === 'canceled'
           ? 'Отменено'
           : event.status === 'closed'
-            ? 'Закрыто'
+          ? 'Закрыто'
             : 'Активно'
     }`,
-    clientName ? `Клиент: ${clientName}` : '',
-    clientContactLines.length ? `Контакты клиента:\n${clientContactLines.join('\n')}` : '',
+    clientBlock,
     `Ссылка на мероприятие:\n${eventLink}`,
   ].filter(Boolean)
 
@@ -597,11 +607,13 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       typeof item.googleCalendarEventId === 'string'
         ? item.googleCalendarEventId.trim()
         : ''
+    const done = Boolean(item.done)
     return {
       ...item,
       title,
       description,
       date,
+      done,
       googleCalendarEventId,
     }
   }
@@ -758,7 +770,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       ...detailsLines,
     ].join('\n\n')
     const additionalCalendarEvent = {
-      summary: item.title || 'Доп. событие',
+      summary: `${item.done ? '✓ ' : ''}${item.title || 'Доп. событие'}`,
       description: additionalEventDescription,
       start: {
         dateTime: startValue,
@@ -768,7 +780,9 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         dateTime: endValue,
         timeZone,
       },
-      reminders: calendarReminders,
+      reminders: item.done
+        ? { useDefault: false, overrides: [] }
+        : calendarReminders,
     }
 
     if (item.googleCalendarEventId) {
@@ -802,6 +816,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         title: item.title || '',
         description: item.description || '',
         date: item.date || null,
+        done: Boolean(item.done),
         googleCalendarEventId: item.googleCalendarEventId || '',
       }))
     }

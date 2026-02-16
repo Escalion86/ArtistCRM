@@ -4,6 +4,7 @@ import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
 import PhoneInput from '@components/PhoneInput'
 import { CLIENT_TYPES, DEFAULT_CLIENT } from '@helpers/constants'
+import getPersonFullName from '@helpers/getPersonFullName'
 import useErrors from '@helpers/useErrors'
 import clientSelector from '@state/selectors/clientSelector'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
@@ -31,6 +32,9 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     )
     const [secondName, setSecondName] = useState(
       client?.secondName ?? DEFAULT_CLIENT.secondName
+    )
+    const [thirdName, setThirdName] = useState(
+      client?.thirdName ?? DEFAULT_CLIENT.thirdName
     )
     const [phone, setPhone] = useState(client?.phone ?? DEFAULT_CLIENT.phone)
     const [whatsapp, setWhatsapp] = useState(
@@ -81,6 +85,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       () =>
         (client?.firstName ?? DEFAULT_CLIENT.firstName) !== firstName ||
         (client?.secondName ?? DEFAULT_CLIENT.secondName) !== secondName ||
+        (client?.thirdName ?? DEFAULT_CLIENT.thirdName) !== thirdName ||
         (client?.phone ?? DEFAULT_CLIENT.phone) !== phone ||
         (client?.whatsapp ?? DEFAULT_CLIENT.whatsapp) !== whatsapp ||
         (client?.telegram ?? DEFAULT_CLIENT.telegram) !== telegram ||
@@ -103,6 +108,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
         firstName,
         phone,
         secondName,
+        thirdName,
         whatsapp,
         telegram,
         instagram,
@@ -138,9 +144,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             )
             if (existedClient) {
               const existingName =
-                [existedClient.firstName, existedClient.secondName]
-                  .filter(Boolean)
-                  .join(' ') || 'Без имени'
+                getPersonFullName(existedClient, { fallback: 'Без имени' })
               if (typeof onSuccess === 'function') {
                 modalsFunc.add({
                   title: 'Клиент уже существует',
@@ -169,6 +173,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             _id: client?._id,
             firstName: firstName.trim(),
             secondName: secondName.trim(),
+            thirdName: thirdName.trim(),
             phone: phone ?? null,
             whatsapp: whatsapp ?? null,
             telegram: telegram.trim(),
@@ -198,6 +203,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       firstName,
       phone,
       secondName,
+      thirdName,
       whatsapp,
       telegram,
       instagram,
@@ -246,7 +252,9 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
 
       if (typeof onSuccess === 'function') {
         const confirmed = window.confirm(
-          `Найден клиент: ${existingClient.firstName || 'Без имени'}. Выбрать его?`
+          `Найден клиент: ${getPersonFullName(existingClient, {
+            fallback: 'Без имени',
+          })}. Выбрать его?`
         )
         if (confirmed) {
           onSuccess(existingClient)
@@ -284,6 +292,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
           error={errors.firstName}
         />
         <Input label="Фамилия" value={secondName} onChange={setSecondName} />
+        <Input label="Отчество" value={thirdName} onChange={setThirdName} />
         <div className="mt-3 flex items-end gap-2">
           <PhoneInput
             label="Телефон"

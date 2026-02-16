@@ -8,6 +8,7 @@ import { modalsFuncAtom } from '@state/atoms'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import useSnackbar from '@helpers/useSnackbar'
+import getPersonFullName from '@helpers/getPersonFullName'
 
 const userTariffChangeFunc = (userId) => {
   const UserTariffChangeModal = ({ closeModal }) => {
@@ -149,7 +150,7 @@ const userTariffChangeFunc = (userId) => {
     return (
       <FormWrapper flex className="flex-col gap-3">
         <div className="w-full text-center">
-          Пользователь {user.firstName} {user.secondName}
+          Пользователь {getPersonFullName(user, { fallback: '-' })}
         </div>
         <div className="text-sm text-gray-600">
           Текущий баланс пользователя:{' '}

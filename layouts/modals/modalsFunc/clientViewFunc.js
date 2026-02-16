@@ -6,6 +6,7 @@ import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
+import getPersonFullName from '@helpers/getPersonFullName'
 
 const CardButtonsComponent = ({ client, onEdit }) => (
   <CardButtons
@@ -110,8 +111,7 @@ const clientViewFunc = (clientId) => {
       <div className="flex flex-col gap-4 text-sm text-gray-800">
         <div className="relative p-4 bg-white border border-gray-200 rounded-lg">
           <div className="text-lg font-semibold text-gray-900">
-            {[client.firstName, client.secondName].filter(Boolean).join(' ') ||
-              'Без имени'}
+            {getPersonFullName(client, { fallback: 'Без имени' })}
           </div>
           {!setTopLeftComponent && (
             <div className="absolute right-4 top-4">

@@ -488,9 +488,9 @@ export const parseGoogleEvent = (event) => {
   const timeStart = event?.start?.dateTime ?? event?.start?.date ?? null
   const timeEnd = event?.end?.dateTime ?? event?.end?.date ?? null
 
-  const dateStart = timeStart ? new Date(timeStart) : null
+  const startDateTime = timeStart ? new Date(timeStart) : null
   const dateEnd = timeEnd ? new Date(timeEnd) : null
-  const eventDate = dateStart ?? dateEnd ?? null
+  const eventDate = startDateTime ?? dateEnd ?? null
 
   const contactChannels = unique([
     ...emails,
@@ -501,7 +501,7 @@ export const parseGoogleEvent = (event) => {
 
   const clientData = {}
   if (currency) clientData.currency = currency
-  const depositDate = dateStart ?? eventDate ?? dateEnd ?? null
+  const depositDate = eventDate ?? dateEnd ?? null
 
   if (!isCharity && (depositAmount !== null || depositStatus))
     clientData.deposit = {
@@ -527,7 +527,6 @@ export const parseGoogleEvent = (event) => {
     clientName,
     clientPhone,
     contactChannels,
-    dateStart,
     dateEnd,
     eventDate,
     contractSum: isCharity ? 0 : totalAmount,

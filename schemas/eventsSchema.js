@@ -25,6 +25,7 @@ const eventsSchema = {
         title: { type: String, default: '' },
         description: { type: String, default: '' },
         date: { type: Date, default: null },
+        done: { type: Boolean, default: false },
         googleCalendarEventId: { type: String, default: '' },
       },
     ],
@@ -38,10 +39,6 @@ const eventsSchema = {
     type: [Schema.Types.ObjectId],
     ref: 'Services',
     default: [],
-  },
-  dateStart: {
-    type: Date,
-    default: null,
   },
   dateEnd: {
     type: Date,
@@ -154,6 +151,14 @@ const eventsSchema = {
   contractSum: {
     type: Number,
     default: 0,
+  },
+  waitDeposit: {
+    type: Boolean,
+    default: false,
+  },
+  depositDueAt: {
+    type: Date,
+    default: null,
   },
   isByContract: {
     type: Boolean,

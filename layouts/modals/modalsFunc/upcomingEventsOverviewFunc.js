@@ -28,14 +28,6 @@ const SEGMENT_META = {
   },
 }
 
-const getEventStatusLabel = (status) => {
-  if (status === 'draft') return 'Заявка'
-  if (status === 'active') return 'Активно'
-  if (status === 'closed') return 'Закрыто'
-  if (status === 'canceled') return 'Отменено'
-  return status || 'Не указан'
-}
-
 const normalizeText = (value, fallback = '') => {
   if (!value) return fallback
   return String(value).replace(/<[^>]+>/g, '').trim() || fallback
@@ -135,6 +127,42 @@ const upcomingEventsOverviewFunc = () => {
       await updateAdditionalEventDate(eventId, additionalEventIndex, nextDate)
     }
 
+    const markAdditionalEventDone = async (eventId, additionalEventIndex) => {
+      const event = (events ?? []).find((item) => String(item?._id) === String(eventId))
+      if (!event) return
+      const additionalEvents = Array.isArray(event.additionalEvents)
+        ? event.additionalEvents
+        : []
+      const target = additionalEvents[additionalEventIndex]
+      if (!target) return
+
+      modalsFunc.confirm({
+        title: 'Выполнить доп. событие',
+        text: 'Отметить событие как выполненное?',
+        confirmButtonName: 'Выполнено',
+        declineButtonName: 'Отмена',
+        onConfirm: async () => {
+          const nextAdditionalEvents = additionalEvents.map((item, idx) =>
+            idx === additionalEventIndex ? { ...item, done: true } : item
+          )
+          const actionKey = `${eventId}-${additionalEventIndex}`
+          try {
+            setSavingKey(actionKey)
+            await itemsFunc?.event?.set(
+              {
+                _id: event._id,
+                additionalEvents: nextAdditionalEvents,
+              },
+              false,
+              true
+            )
+          } finally {
+            setSavingKey('')
+          }
+        },
+      })
+    }
+
     return (
       <div className="flex flex-col gap-3 pb-2">
         {Object.keys(SEGMENT_META).map((key) => {
@@ -162,13 +190,16 @@ const upcomingEventsOverviewFunc = () => {
                           ? formatDateTime(item.date, true, false, true, false)
                           : 'Дата не указана'}
                       </div>
-                      <div className="text-xs text-gray-600">
-                        {normalizeText(item.description, 'Без описания')}
-                      </div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        {item.eventTown ? `${item.eventTown} • ` : ''}
-                        {getEventStatusLabel(item.eventStatus)}
-                      </div>
+                      {item?.description ? (
+                        <div className="text-xs text-gray-600">
+                          {normalizeText(item.description)}
+                        </div>
+                      ) : null}
+                      {item.eventTown ? (
+                        <div className="mt-1 text-xs text-gray-500">
+                          {item.eventTown}
+                        </div>
+                      ) : null}
                       <div className="mt-2">
                         <AppButton
                           size="sm"
@@ -180,6 +211,17 @@ const upcomingEventsOverviewFunc = () => {
                         </AppButton>
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <AppButton
+                          size="sm"
+                          variant="primary"
+                          className="rounded"
+                          disabled={savingKey === `${item.eventId}-${item.index}`}
+                          onClick={() =>
+                            markAdditionalEventDone(item.eventId, item.index)
+                          }
+                        >
+                          Выполнено
+                        </AppButton>
                         <AppButton
                           size="sm"
                           variant="secondary"
@@ -256,7 +298,13 @@ const upcomingEventsOverviewFunc = () => {
                   </div>
                   <div className="text-xs text-gray-600">
                     {event?.address?.town ? `${event.address.town} • ` : ''}
-                    {getEventStatusLabel(event?.status)}
+                    {event?.status === 'draft'
+                      ? 'Заявка'
+                      : event?.status === 'closed'
+                        ? 'Закрыто'
+                        : event?.status === 'canceled'
+                          ? 'Отменено'
+                          : 'Активно'}
                   </div>
                   <div className="text-xs text-gray-600">
                     {normalizeText(event?.description, 'Описание не указано')}

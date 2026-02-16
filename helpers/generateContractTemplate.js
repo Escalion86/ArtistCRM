@@ -1,6 +1,7 @@
 import formatAddress from '@helpers/formatAddress'
 import formatDate from '@helpers/formatDate'
 import formatDateTime from '@helpers/formatDateTime'
+import getPersonFullName from '@helpers/getPersonFullName'
 
 const EMPTY_VALUE = '____________'
 const PARTIES_TABLES_MARKER_PREFIX = '[[PARTIES_TABLES:'
@@ -19,9 +20,12 @@ const formatMoneyNoCurrency = (value) => {
 
 const getClientName = (client) => {
   if (!client) return EMPTY_VALUE
-  const firstName = clean(client.firstName, '')
-  const secondName = clean(client.secondName, '')
-  return clean(`${firstName} ${secondName}`.trim())
+  return clean(
+    getPersonFullName(client, {
+      fallback: '',
+      order: ['second', 'first', 'third'],
+    })
+  )
 }
 
 const getClientLegalName = (client) => {

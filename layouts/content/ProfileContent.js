@@ -4,6 +4,8 @@ import Input from '@components/Input'
 import InputImages from '@components/InputImages'
 import PhoneInput from '@components/PhoneInput'
 import IconCheckBox from '@components/IconCheckBox'
+import AddIconButton from '@components/AddIconButton'
+import IconActionButton from '@components/IconActionButton'
 import compareArrays from '@helpers/compareArrays'
 import { DEFAULT_USER } from '@helpers/constants'
 import useErrors from '@helpers/useErrors'
@@ -13,8 +15,6 @@ import usersAtom from '@state/atoms/usersAtom'
 import { useAtom, useAtomValue } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import { modalsFuncAtom } from '@state/atoms'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
 import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 
 const normalizePhone = (value) =>
@@ -569,9 +569,8 @@ const ProfileContent = () => {
                         disabled={!calendarStatus.connected}
                       />
                       <span className="text-xs text-gray-500">минут до</span>
-                      <button
-                        type="button"
-                        className="action-icon-button action-icon-button--danger flex h-8 w-8 cursor-pointer items-center justify-center rounded"
+                      <IconActionButton
+                        icon={faTrashAlt}
                         onClick={() =>
                           setCalendarReminders((prev) => ({
                             ...prev,
@@ -582,14 +581,12 @@ const ProfileContent = () => {
                         }
                         disabled={!calendarStatus.connected}
                         title="Удалить уведомление"
-                      >
-                        <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
-                      </button>
+                        variant="danger"
+                        size="xs"
+                      />
                     </div>
                   ))}
-                  <button
-                    type="button"
-                    className="action-icon-button action-icon-button--success flex h-8 w-8 cursor-pointer items-center justify-center rounded"
+                  <AddIconButton
                     onClick={() =>
                       setCalendarReminders((prev) => ({
                         ...prev,
@@ -601,9 +598,8 @@ const ProfileContent = () => {
                     }
                     disabled={!calendarStatus.connected}
                     title="Добавить уведомление"
-                  >
-                    <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
-                  </button>
+                    size="xs"
+                  />
                 </div>
               )}
               <div className="mt-3 flex justify-end">

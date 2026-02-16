@@ -4,7 +4,7 @@ import getMinutesBetween from './getMinutesBetween'
 const isEventInProcess = (event) => {
   // const minutesBetween = getMinutesBetween(event.date)
   return (
-    getDiffBetweenDates(event.dateStart) >= 0 &&
+    getDiffBetweenDates(event.eventDate) >= 0 &&
     getDiffBetweenDates(event.dateEnd) <= 0
   )
 

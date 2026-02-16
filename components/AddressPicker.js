@@ -6,8 +6,7 @@ import Input from './Input'
 import InputWrapper from './InputWrapper'
 import Note from './Note'
 import ComboBox from './ComboBox'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus } from '@fortawesome/free-solid-svg-icons'
+import AddIconButton from './AddIconButton'
 import { useMemo } from 'react'
 
 const AddressPicker = ({
@@ -67,14 +66,12 @@ const AddressPicker = ({
               className="min-w-38 flex-1"
             />
             {allowTownCreate && (
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--success flex h-[42px] w-[42px] cursor-pointer items-center justify-center rounded"
+              <AddIconButton
                 onClick={handleCreateTown}
                 title="Добавить город"
-              >
-                <FontAwesomeIcon className="h-4 w-4" icon={faPlus} />
-              </button>
+                size="md"
+                className="h-[42px] w-[42px]"
+              />
             )}
           </div>
         </FormWrapper>

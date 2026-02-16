@@ -182,7 +182,6 @@ const buildEventUpdate = (
   if (hasAddressValues(parsedEvent.address))
     setPayload.address = parsedEvent.address
 
-  if (parsedEvent.dateStart) setPayload.dateStart = parsedEvent.dateStart
   if (parsedEvent.dateEnd) setPayload.dateEnd = parsedEvent.dateEnd
   if (parsedEvent.eventDate) setPayload.eventDate = parsedEvent.eventDate
   if (parsedEvent.contractSum !== null && parsedEvent.contractSum !== undefined)
@@ -412,8 +411,7 @@ export const POST = async (req) => {
       })
     }
 
-    const eventCompletedAt =
-      parsed.dateEnd ?? parsed.eventDate ?? parsed.dateStart ?? null
+    const eventCompletedAt = parsed.dateEnd ?? parsed.eventDate ?? null
     const isCompleted =
       parsed.status !== 'canceled' &&
       eventCompletedAt &&

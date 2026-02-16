@@ -15,7 +15,7 @@ const DateTimeEvent = ({
   thin,
   twoLines,
 }) => {
-  const dateTimeStart = event?.dateStart
+  const dateTimeStart = event?.eventDate
   if (!dateTimeStart) return undefined
 
   const dateTimeEnd = event?.dateEnd

@@ -12,6 +12,7 @@ import {
   DEFAULT_CONTRACT_TEMPLATE,
   CONTRACT_TEMPLATE_VARIABLES,
 } from '@helpers/generateContractTemplate'
+import getPersonFullName from '@helpers/getPersonFullName'
 
 const contractTemplateEditorFunc = () => {
   const ContractTemplateEditorModal = ({
@@ -32,16 +33,10 @@ const contractTemplateEditorFunc = () => {
         : DEFAULT_CONTRACT_TEMPLATE
     )
     const [artistFullName, setArtistFullName] = useState(
-      custom?.contractArtistFullName ??
-        [loggedUser?.firstName, loggedUser?.secondName]
-          .filter(Boolean)
-          .join(' ')
+      custom?.contractArtistFullName ?? getPersonFullName(loggedUser)
     )
     const [artistName, setArtistName] = useState(
-      custom?.contractArtistName ??
-        [loggedUser?.firstName, loggedUser?.secondName]
-          .filter(Boolean)
-          .join(' ')
+      custom?.contractArtistName ?? getPersonFullName(loggedUser)
     )
     const [artistOgrnip, setArtistOgrnip] = useState(
       custom?.contractArtistOgrnip ?? ''

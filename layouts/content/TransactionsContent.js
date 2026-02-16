@@ -3,7 +3,7 @@
 import { useMemo, useCallback, useState } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
-import Button from '@components/Button'
+import AddIconButton from '@components/AddIconButton'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import TransactionTypeToggleButtons from '@components/IconToggleButtons/TransactionTypeToggleButtons'
@@ -158,12 +158,12 @@ const TransactionsContent = () => {
               <MutedText>
                 {filteredTransactions.length} из {transactions.length}
               </MutedText>
-              <Button
-                name="+"
-                collapsing
-                className="action-icon-button action-icon-button--neutral h-9 w-9 rounded-full text-lg"
+              <AddIconButton
                 onClick={() => modalsFunc.transaction?.add()}
                 disabled={!modalsFunc.transaction?.add}
+                title="Добавить транзакцию"
+                size="sm"
+                variant="neutral"
               />
             </>
           }

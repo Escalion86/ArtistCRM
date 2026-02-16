@@ -29,10 +29,12 @@ const EventKeyValueItem = ({ objKey, value }) =>
     )
   ) : objKey === 'organizerId' ? (
     <UserNameById userId={value} thin trunc={1} />
-  ) : ['eventDate', 'dateStart', 'dateEnd', 'createdAt', 'updatedAt'].includes(
+  ) : ['eventDate', 'dateEnd', 'createdAt', 'updatedAt'].includes(
       objKey
     ) ? (
     formatDateTime(value)
+  ) : objKey === 'waitDeposit' ? (
+    value ? 'Да' : 'Нет'
   ) : objKey === 'additionalEvents' ? (
     Array.isArray(value) && value.length > 0 ? (
       <div className="flex flex-col gap-2">
@@ -42,6 +44,7 @@ const EventKeyValueItem = ({ objKey, value }) =>
             className="rounded border border-gray-200 px-2 py-1"
           >
             <div className="text-sm font-semibold text-gray-900">
+              {item?.done ? '✓ ' : ''}
               {item?.title || `Событие #${index + 1}`}
             </div>
             <div className="text-sm text-gray-600">{formatDateTime(item?.date)}</div>
