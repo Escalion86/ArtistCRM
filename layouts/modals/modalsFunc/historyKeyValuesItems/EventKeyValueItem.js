@@ -82,6 +82,8 @@ const EventKeyValueItem = ({ objKey, value }) =>
     value / 100 + ' ₽'
   ) : objKey === 'contractSum' ? (
     typeof value === 'number' ? value.toLocaleString('ru-RU') + ' ₽' : value
+  ) : objKey === 'depositExpectedAmount' ? (
+    typeof value === 'number' ? value.toLocaleString('ru-RU') + ' ₽' : '[не указано]'
   ) : objKey === 'calendarSyncError' ? (
     value === 'calendar_sync_unavailable'
       ? 'Синхронизация недоступна по тарифу'

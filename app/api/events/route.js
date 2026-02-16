@@ -38,6 +38,12 @@ const parseDateValue = (value) => {
 }
 
 const normalizeWaitDeposit = (value) => Boolean(value)
+const normalizeDepositExpectedAmount = (value) => {
+  if (value === null || value === undefined || value === '') return null
+  const number = Number(value)
+  if (!Number.isFinite(number) || number < 0) return null
+  return Math.floor(number)
+}
 
 const normalizeAdditionalEvents = (items) => {
   if (!Array.isArray(items)) return []
@@ -146,6 +152,9 @@ export const POST = async (req) => {
     additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
     waitDeposit: normalizeWaitDeposit(body.waitDeposit),
     depositDueAt: parseDateValue(body.depositDueAt),
+    depositExpectedAmount: normalizeDepositExpectedAmount(
+      body.depositExpectedAmount
+    ),
     calendarSyncError: access?.allowCalendarSync ? '' : 'calendar_sync_unavailable',
   })
   await Histories.create({

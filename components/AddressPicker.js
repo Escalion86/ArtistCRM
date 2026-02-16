@@ -52,8 +52,8 @@ const AddressPicker = ({
       centerLabel={true}
     >
       <div className="mt-0.5 mb-1 flex-1">
-        <FormWrapper className="mt-3 mb-1 flex flex-wrap gap-x-2 gap-y-3">
-          <div className="flex flex-1 items-center gap-x-1">
+        <FormWrapper className="flex flex-wrap mt-3 mb-1 gap-x-2 gap-y-3">
+          <div className="flex items-center flex-1 gap-x-1">
             <ComboBox
               label="Город"
               items={townItems}
@@ -63,19 +63,18 @@ const AddressPicker = ({
               noMargin
               fullWidth
               error={errors?.address?.town}
-              className="min-w-38 flex-1"
+              className="flex-1 min-w-38"
             />
             {allowTownCreate && (
               <AddIconButton
                 onClick={handleCreateTown}
                 title="Добавить город"
                 size="md"
-                className="h-[42px] w-[42px]"
               />
             )}
           </div>
         </FormWrapper>
-        <FormWrapper className="mt-1 mb-1 flex flex-wrap gap-x-2 gap-y-3">
+        <FormWrapper className="flex flex-wrap mt-1 mb-1 gap-x-2 gap-y-3">
           <Input
             label="Улица"
             type="text"
@@ -83,7 +82,7 @@ const AddressPicker = ({
             onChange={(street) => onChange({ ...address, street })}
             error={errors?.address?.street}
             noMargin
-            className="min-w-24 flex-1"
+            className="flex-1 min-w-24"
           />
           <Input
             label="Дом"
@@ -92,10 +91,10 @@ const AddressPicker = ({
             onChange={(house) => onChange({ ...address, house })}
             error={errors?.address?.house}
             noMargin
-            className="min-w-24 flex-1"
+            className="flex-1 min-w-24"
           />
         </FormWrapper>
-        <FormWrapper className="mt-1 mb-1 flex flex-wrap gap-x-2 gap-y-3">
+        <FormWrapper className="flex flex-wrap mt-1 mb-1 gap-x-2 gap-y-3">
           <Input
             label="Подъезд"
             type="text"
@@ -103,7 +102,7 @@ const AddressPicker = ({
             onChange={(entrance) => onChange({ ...address, entrance })}
             error={errors?.address?.entrance}
             noMargin
-            className="min-w-12 flex-1"
+            className="flex-1 min-w-12"
           />
           <Input
             label="Этаж"
@@ -112,7 +111,7 @@ const AddressPicker = ({
             onChange={(floor) => onChange({ ...address, floor })}
             error={errors?.address?.floor}
             noMargin
-            className="min-w-12 flex-1"
+            className="flex-1 min-w-12"
           />
           <Input
             label="Кв. / Офис"
@@ -121,7 +120,7 @@ const AddressPicker = ({
             onChange={(flat) => onChange({ ...address, flat })}
             error={errors?.address?.flat}
             noMargin
-            className="min-w-12 flex-1"
+            className="flex-1 min-w-12"
           />
         </FormWrapper>
         <Input
@@ -132,7 +131,7 @@ const AddressPicker = ({
           noMargin
           error={errors?.address?.comment}
         />
-        <FormWrapper className="mt-1 mb-1 flex flex-wrap gap-x-2 gap-y-3">
+        <FormWrapper className="flex flex-wrap mt-1 mb-1 gap-x-2 gap-y-3">
           <Input
             label="Широта"
             type="text"
@@ -140,7 +139,7 @@ const AddressPicker = ({
             onChange={(latitude) => onChange({ ...address, latitude })}
             error={errors?.address?.latitude}
             noMargin
-            className="min-w-24 flex-1"
+            className="flex-1 min-w-24"
           />
           <Input
             label="Долгота"
@@ -149,11 +148,11 @@ const AddressPicker = ({
             onChange={(longitude) => onChange({ ...address, longitude })}
             error={errors?.address?.longitude}
             noMargin
-            className="min-w-24 flex-1"
+            className="flex-1 min-w-24"
           />
         </FormWrapper>
-        <div className="flex flex-wrap items-end justify-between gap-x-2">
-          {/* <ImageCheckBox
+        {/* <div className="flex flex-wrap items-end justify-between gap-x-2"> */}
+        {/* <ImageCheckBox
             checked={address.link2GisShow}
             onClick={() =>
               onChange({ ...address, link2GisShow: !address.link2GisShow })
@@ -163,9 +162,9 @@ const AddressPicker = ({
             big
             alt="2gis"
           /> */}
-          {address.link2GisShow &&
+        {/* {address.link2GisShow &&
             (address.link2Gis || (address?.town && address?.street)) && (
-              <div className="flex flex-1 justify-end">
+              <div className="flex justify-end flex-1">
                 <a
                   data-tip="Открыть адрес в 2ГИС"
                   href={
@@ -174,14 +173,14 @@ const AddressPicker = ({
                       address.street
                     }%20${address.house.replaceAll('/', '%2F')}`
                   }
-                  className="text-sm whitespace-nowrap underline"
+                  className="text-sm underline whitespace-nowrap"
                   target="_blank"
                 >
                   Проверить ссылку
                 </a>
               </div>
-            )}
-        </div>
+            )} */}
+        {/* </div> */}
         {/* {address.link2GisShow && ( */}
         <Input
           label="Ссылка 2ГИС"
@@ -193,8 +192,8 @@ const AddressPicker = ({
           className="mt-0.5"
         />
         {/* )} */}
-        <div className="mt-1 flex flex-wrap items-end justify-between gap-x-2">
-          {/* <ImageCheckBox
+        {/* <div className="flex flex-wrap items-end justify-between mt-1 gap-x-2"> */}
+        {/* <ImageCheckBox
             checked={address.linkYandexShow}
             onClick={() =>
               onChange({ ...address, linkYandexShow: !address.linkYandexShow })
@@ -204,10 +203,10 @@ const AddressPicker = ({
             big
             alt="yandex_nav"
           /> */}
-          {address.linkYandexShow &&
+        {/* {address.linkYandexShow &&
             (address.linkYandexNavigator ||
               (address?.town && address?.street)) && (
-              <div className="flex flex-1 justify-end">
+              <div className="flex justify-end flex-1">
                 <a
                   data-tip="Открыть адрес в 2ГИС"
                   href={
@@ -216,14 +215,14 @@ const AddressPicker = ({
                       address.street
                     }%20${address.house.replaceAll('/', '%2F')}`
                   }
-                  className="text-sm whitespace-nowrap underline"
+                  className="text-sm underline whitespace-nowrap"
                   target="_blank"
                 >
                   Проверить ссылку
                 </a>
-              </div>
-            )}
-        </div>
+              </div> */}
+        {/* )} */}
+        {/* </div> */}
         {/* {address.linkYandexShow && ( */}
         <Input
           label="Ссылка Yandex Navigator"

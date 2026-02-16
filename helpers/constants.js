@@ -426,6 +426,7 @@ export const DEFAULT_EVENT = Object.freeze({
   contractSum: 0,
   waitDeposit: false,
   depositDueAt: null,
+  depositExpectedAmount: null,
   isTransferred: false,
   isByContract: false,
   importedFromCalendar: false,

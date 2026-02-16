@@ -8,6 +8,7 @@ export const eventKeys = {
   contractSum: 'Договорная сумма',
   waitDeposit: 'Ждем задаток',
   depositDueAt: 'Дата ожидания задатка',
+  depositExpectedAmount: 'Сумма задатка',
   description: 'Комментарий',
   additionalEvents: 'Доп. события',
   financeComment: 'Комментарий по финансам',

@@ -185,6 +185,13 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     const [depositDueAt, setDepositDueAt] = useState(
       clone ? null : (event?.depositDueAt ?? DEFAULT_EVENT.depositDueAt ?? null)
     )
+    const [depositExpectedAmount, setDepositExpectedAmount] = useState(
+      clone
+        ? null
+        : (event?.depositExpectedAmount ??
+            DEFAULT_EVENT.depositExpectedAmount ??
+            null)
+    )
     const [isByContract, setIsByContract] = useState(
       event?.isByContract ?? DEFAULT_EVENT.isByContract ?? false
     )
@@ -267,6 +274,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         contractSum: event?.contractSum ?? DEFAULT_EVENT.contractSum,
         waitDeposit: event?.waitDeposit ?? DEFAULT_EVENT.waitDeposit,
         depositDueAt: event?.depositDueAt ?? DEFAULT_EVENT.depositDueAt,
+        depositExpectedAmount:
+          event?.depositExpectedAmount ?? DEFAULT_EVENT.depositExpectedAmount,
         isByContract: event?.isByContract ?? DEFAULT_EVENT.isByContract,
         description:
           event?.description ?? event?.comment ?? DEFAULT_EVENT.description,
@@ -302,6 +311,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       event?.contractSum,
       event?.waitDeposit,
       event?.depositDueAt,
+      event?.depositExpectedAmount,
       event?.description,
       event?.isByContract,
       event?.financeComment,
@@ -343,6 +353,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         initialEventValues.contractSum !== contractSum ||
         initialEventValues.waitDeposit !== waitDeposit ||
         initialEventValues.depositDueAt !== depositDueAt ||
+        initialEventValues.depositExpectedAmount !== depositExpectedAmount ||
         initialEventValues.isByContract !== isByContract ||
         initialEventValues.isTransferred !== isTransferred ||
         initialEventValues.colleagueId !== colleagueId ||
@@ -374,6 +385,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         contractSum,
         waitDeposit,
         depositDueAt,
+        depositExpectedAmount,
         isByContract,
         isTransferred,
         colleagueId,
@@ -611,6 +623,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           waitDeposit: hasDepositTransaction ? false : Boolean(waitDeposit),
           depositDueAt:
             hasDepositTransaction || !waitDeposit ? null : depositDueAt,
+          depositExpectedAmount:
+            hasDepositTransaction || !waitDeposit
+              ? null
+              : (depositExpectedAmount ?? null),
           isByContract,
           description: description?.trim() ?? '',
           financeComment: financeComment?.trim() ?? '',
@@ -652,6 +668,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       isByContract,
       waitDeposit,
       depositDueAt,
+      depositExpectedAmount,
       dateEnd,
       event?._id,
       eventDate,
@@ -1564,7 +1581,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   onClick={() =>
                     setWaitDeposit((prev) => {
                       const next = !prev
-                      if (!next) setDepositDueAt(null)
+                      if (!next) {
+                        setDepositDueAt(null)
+                        setDepositExpectedAmount(null)
+                      }
                       return next
                     })
                   }
@@ -1574,13 +1594,25 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   noMargin
                 />
                 {waitDeposit ? (
-                  <DateTimePicker
-                    value={depositDueAt}
-                    onChange={(value) => setDepositDueAt(value ?? null)}
-                    label="Дата ожидания задатка"
-                    noMargin
-                    className="mt-1"
-                  />
+                  <div className="flex flex-wrap items-center mt-1 gap-x-2">
+                    <Input
+                      label="Сумма задатка"
+                      type="number"
+                      value={depositExpectedAmount}
+                      onChange={setDepositExpectedAmount}
+                      min={0}
+                      step={1000}
+                      noMargin
+                      className="w-[140px]"
+                      inputClassName="w-[60px]"
+                    />
+                    <DateTimePicker
+                      value={depositDueAt}
+                      onChange={(value) => setDepositDueAt(value ?? null)}
+                      label="Дата ожидания задатка"
+                      noMargin
+                    />
+                  </div>
                 ) : null}
               </div>
             ) : null}
@@ -1621,7 +1653,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               </div>
             ) : null}
             {isByContract && !isDraft && (
-              <div className="mt-2 flex flex-col gap-2.5">
+              <div className="flex flex-col gap-3 mt-3">
                 <LinksListEditor
                   label="Ссылки на договора"
                   links={contractLinks}

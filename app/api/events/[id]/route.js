@@ -47,6 +47,12 @@ const parseDateValue = (value) => {
 }
 
 const normalizeWaitDeposit = (value) => Boolean(value)
+const normalizeDepositExpectedAmount = (value) => {
+  if (value === null || value === undefined || value === '') return null
+  const number = Number(value)
+  if (!Number.isFinite(number) || number < 0) return null
+  return Math.floor(number)
+}
 
 const normalizeCancelReason = (value) =>
   typeof value === 'string' ? value.trim() : ''
@@ -203,6 +209,10 @@ export const PUT = async (req, { params }) => {
     update.waitDeposit = normalizeWaitDeposit(body.waitDeposit)
   if (body.depositDueAt !== undefined)
     update.depositDueAt = parseDateValue(body.depositDueAt)
+  if (body.depositExpectedAmount !== undefined)
+    update.depositExpectedAmount = normalizeDepositExpectedAmount(
+      body.depositExpectedAmount
+    )
   if (body.description !== undefined)
     update.description = body.description ?? ''
   if (body.financeComment !== undefined)

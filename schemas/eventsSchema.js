@@ -160,6 +160,10 @@ const eventsSchema = {
     type: Date,
     default: null,
   },
+  depositExpectedAmount: {
+    type: Number,
+    default: null,
+  },
   isByContract: {
     type: Boolean,
     default: false,
