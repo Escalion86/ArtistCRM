@@ -5,6 +5,18 @@ import Clients from '@models/Clients'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 
+const CATEGORY_ALIASES = {
+  advance: 'deposit',
+  client_payment: 'final_payment',
+  colleague_percent: 'referral_in',
+}
+
+const normalizeCategory = (value) => {
+  const raw = typeof value === 'string' ? value.trim() : ''
+  if (!raw) return 'other'
+  return CATEGORY_ALIASES[raw] || raw
+}
+
 export const GET = async () => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) {
@@ -67,7 +79,7 @@ export const POST = async (req) => {
     clientId: body.clientId,
     amount: Number(body.amount) || 0,
     type: body.type ?? 'expense',
-    category: body.category ?? 'other',
+    category: normalizeCategory(body.category),
     date: body.date ? new Date(body.date) : new Date(),
     comment: body.comment ?? '',
     paymentMethod,

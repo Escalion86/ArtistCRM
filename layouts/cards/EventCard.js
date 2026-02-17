@@ -3,6 +3,7 @@
 // import cn from 'classnames'
 import { useAtomValue } from 'jotai'
 import { useMemo } from 'react'
+import Image from 'next/image'
 import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
@@ -29,6 +30,8 @@ import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import CardOverlay from '@components/CardOverlay'
 import CardActions from '@components/CardActions'
 import CardWrapper from '@components/CardWrapper'
+import { getSoonNoDepositEvents } from '@helpers/additionalEvents'
+import getPersonFullName from '@helpers/getPersonFullName'
 
 const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
 
@@ -163,6 +166,106 @@ const EventCard = ({ eventId, style }) => {
     return { ...address, town: '' }
   }, [event?.address, siteSettings?.defaultTown])
 
+  const hasSoonNoDepositWarning = useMemo(() => {
+    if (!event?._id) return false
+    const items = getSoonNoDepositEvents([event], transactions, new Date(), 3)
+    return items.length > 0
+  }, [event, transactions])
+
+  const nearestAdditionalEventInfo = useMemo(() => {
+    const additionalEvents = Array.isArray(event?.additionalEvents)
+      ? event.additionalEvents
+      : []
+    if (additionalEvents.length === 0) return null
+
+    const nowDate = new Date()
+    const prepared = additionalEvents
+      .map((item) => {
+        if (item?.done) return null
+        const date = item?.date ? new Date(item.date) : null
+        if (!date || Number.isNaN(date.getTime())) return null
+        return {
+          title: item?.title || 'Доп. событие',
+          date,
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+    if (prepared.length === 0) return null
+
+    const overdueItems = prepared.filter(
+      (item) => item.date.getTime() < nowDate.getTime()
+    )
+    if (overdueItems.length > 0) {
+      const overdue = overdueItems[overdueItems.length - 1]
+      const timeLabel = overdue.date.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      return {
+        title: overdue.title,
+        label: `${formatDate(overdue.date)} ${timeLabel}`,
+        isToday: false,
+        isTomorrow: false,
+        isLater: false,
+        isOverdue: true,
+        totalCount: prepared.length,
+        remainingCount: prepared.length - 1,
+      }
+    }
+
+    const nearest = prepared.find(
+      (item) => item.date.getTime() >= nowDate.getTime()
+    )
+    if (!nearest) return null
+
+    const isToday =
+      nearest.date.getFullYear() === nowDate.getFullYear() &&
+      nearest.date.getMonth() === nowDate.getMonth() &&
+      nearest.date.getDate() === nowDate.getDate()
+
+    const tomorrow = new Date(nowDate)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const isTomorrow =
+      nearest.date.getFullYear() === tomorrow.getFullYear() &&
+      nearest.date.getMonth() === tomorrow.getMonth() &&
+      nearest.date.getDate() === tomorrow.getDate()
+
+    const timeLabel = nearest.date.toLocaleTimeString('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    const prefix = isToday
+      ? 'Сегодня'
+      : isTomorrow
+        ? 'Завтра'
+        : formatDate(nearest.date)
+    return {
+      title: nearest.title,
+      label: `${prefix} ${timeLabel}`,
+      isToday,
+      isTomorrow,
+      isLater: !isToday && !isTomorrow,
+      isOverdue: false,
+      totalCount: prepared.length,
+      remainingCount: prepared.length - 1,
+    }
+  }, [event?.additionalEvents])
+
+  const hiddenAdditionalCount = hasSoonNoDepositWarning
+    ? (nearestAdditionalEventInfo?.totalCount ?? 0)
+    : (nearestAdditionalEventInfo?.remainingCount ?? 0)
+
+  const hiddenAdditionalCountClass = hasSoonNoDepositWarning
+    ? nearestAdditionalEventInfo?.isOverdue
+      ? 'border-red-300 bg-red-50 text-red-700'
+      : nearestAdditionalEventInfo?.isToday
+        ? 'border-amber-300 bg-amber-50 text-amber-700'
+        : nearestAdditionalEventInfo?.isTomorrow
+          ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+          : 'border-gray-300 bg-gray-50 text-gray-700'
+    : 'border-gray-300 bg-gray-50 text-gray-700'
+
   if (!event) return null
 
   return (
@@ -170,7 +273,7 @@ const EventCard = ({ eventId, style }) => {
       style={style}
       outerClassName="px-2 py-1"
       onClick={() => !loading && modalsFunc.event?.view(event._id)}
-      className="laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-2 overflow-hidden rounded-lg p-3"
+      className="laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg p-3"
     >
       <CardOverlay loading={loading} error={error} />
       <div className="flex items-center justify-between w-full gap-x-1">
@@ -249,12 +352,40 @@ const EventCard = ({ eventId, style }) => {
           )}
         </div>
       </div>
-      <div className="flex gap-x-1">
+      <div className="flex gap-x-1 py-0.5">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm text-gray-700">
           <div className="font-semibold text-gray-800 text-general">
             {eventDateLabel}
           </div>
-          <div className="flex items-center flex-nowrap gap-x-3">
+          <div className="flex items-center h-6 gap-1 overflow-hidden">
+            {hasSoonNoDepositWarning ? (
+              <div className="inline-flex max-w-full min-w-0 items-center rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+                <span className="truncate">Просрочен задаток</span>
+              </div>
+            ) : nearestAdditionalEventInfo ? (
+              <div
+                className={
+                  nearestAdditionalEventInfo.isOverdue
+                    ? 'inline-flex max-w-full min-w-0 items-center rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700'
+                    : nearestAdditionalEventInfo.isToday
+                      ? 'inline-flex max-w-full min-w-0 items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700'
+                      : nearestAdditionalEventInfo.isTomorrow
+                        ? 'inline-flex max-w-full min-w-0 items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700'
+                        : 'inline-flex max-w-full min-w-0 items-center rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700'
+                }
+              >
+                <span className="truncate">{`${nearestAdditionalEventInfo.title}: ${nearestAdditionalEventInfo.label}`}</span>
+              </div>
+            ) : null}
+            {hiddenAdditionalCount > 0 ? (
+              <div
+                className={`inline-flex max-w-max shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${hiddenAdditionalCountClass}`}
+              >
+                +{hiddenAdditionalCount}
+              </div>
+            ) : null}
+          </div>
+          <div className="flex h-[25px] flex-nowrap items-center gap-x-3">
             <span className="font-medium">Место:</span>
             <span className="flex items-center min-w-0 gap-2 truncate">
               <span className="truncate">
@@ -269,30 +400,30 @@ const EventCard = ({ eventId, style }) => {
                   onClick={(event) => event.stopPropagation()}
                   className="flex items-center justify-center transition-transform h-7 w-7 hover:scale-110"
                 >
-                  <img
+                  <Image
                     src="/img/navigators/2gis.png"
                     alt="2gis"
+                    width={16}
+                    height={16}
                     className="w-4 h-4"
                   />
                 </a>
               )}
             </span>
           </div>
-          <div className="flex items-center flex-nowrap gap-x-3">
+          <div className="flex h-[25px] flex-nowrap items-center gap-x-3">
             <span className="font-medium">Клиент:</span>
             <span className="truncate">
               {client
-                ? `${client.firstName ?? ''} ${
-                    client.secondName ?? ''
-                  }`.trim() || client._id
+                ? getPersonFullName(client, { fallback: client._id })
                 : '-'}
             </span>
+            {client && <ContactsIconsButtons user={client} />}
           </div>
-          {client && <ContactsIconsButtons user={client} />}
         </div>
 
         {isClosed ? (
-          <div className="event-profit-card absolute right-0 bottom-0 flex min-w-[160px] items-center justify-end rounded-tl-xl px-3 py-2 text-sm font-semibold">
+          <div className="event-profit-card tablet:min-w-[120px] absolute right-0 bottom-0 flex min-w-[80px] items-center justify-end rounded-tl-xl px-3 py-2 text-sm font-semibold">
             <span className="event-profit-text">{net.toLocaleString()}</span>
           </div>
         ) : (

@@ -182,7 +182,6 @@ const buildEventUpdate = (
   if (hasAddressValues(parsedEvent.address))
     setPayload.address = parsedEvent.address
 
-  if (parsedEvent.dateStart) setPayload.dateStart = parsedEvent.dateStart
   if (parsedEvent.dateEnd) setPayload.dateEnd = parsedEvent.dateEnd
   if (parsedEvent.eventDate) setPayload.eventDate = parsedEvent.eventDate
   if (parsedEvent.contractSum !== null && parsedEvent.contractSum !== undefined)
@@ -412,8 +411,7 @@ export const POST = async (req) => {
       })
     }
 
-    const eventCompletedAt =
-      parsed.dateEnd ?? parsed.eventDate ?? parsed.dateStart ?? null
+    const eventCompletedAt = parsed.dateEnd ?? parsed.eventDate ?? null
     const isCompleted =
       parsed.status !== 'canceled' &&
       eventCompletedAt &&
@@ -497,7 +495,7 @@ const ensureDepositTransaction = async ({
     eventId,
     tenantId,
     type: 'income',
-    category: 'advance',
+    category: { $in: ['deposit', 'advance'] },
   }).lean()
 
   const normalizedDate = date ? new Date(date) : new Date()
@@ -506,6 +504,7 @@ const ensureDepositTransaction = async ({
     if (existing.comment !== DEPOSIT_TRANSACTION_COMMENT) return existing
     const shouldUpdate =
       Number(existing.amount ?? 0) !== Number(amount) ||
+      existing.category !== 'deposit' ||
       (existing.date && normalizedDate
         ? new Date(existing.date).getTime() !== normalizedDate.getTime()
         : Boolean(existing.date) !== Boolean(normalizedDate))
@@ -513,7 +512,7 @@ const ensureDepositTransaction = async ({
     if (shouldUpdate) {
       return Transactions.findByIdAndUpdate(
         existing._id,
-        { amount, date: normalizedDate },
+        { amount, date: normalizedDate, category: 'deposit' },
         { new: true }
       )
     }
@@ -527,7 +526,7 @@ const ensureDepositTransaction = async ({
     clientId,
     amount,
     type: 'income',
-    category: 'advance',
+    category: 'deposit',
     date: normalizedDate,
     comment: DEPOSIT_TRANSACTION_COMMENT,
   })
@@ -555,13 +554,14 @@ const ensureFinalPaymentTransaction = async ({
     eventId,
     tenantId,
     type: 'income',
-    category: 'client_payment',
+    category: { $in: ['final_payment', 'client_payment'] },
   }).lean()
 
   if (existing) {
     if (existing.comment !== FINAL_PAYMENT_TRANSACTION_COMMENT) return existing
     const shouldUpdate =
       Number(existing.amount ?? 0) !== Number(remaining) ||
+      existing.category !== 'final_payment' ||
       (existing.date && normalizedDate
         ? new Date(existing.date).getTime() !== normalizedDate.getTime()
         : Boolean(existing.date) !== Boolean(normalizedDate))
@@ -569,7 +569,7 @@ const ensureFinalPaymentTransaction = async ({
     if (shouldUpdate) {
       return Transactions.findByIdAndUpdate(
         existing._id,
-        { amount: remaining, date: normalizedDate },
+        { amount: remaining, date: normalizedDate, category: 'final_payment' },
         { new: true }
       )
     }
@@ -583,7 +583,7 @@ const ensureFinalPaymentTransaction = async ({
     clientId,
     amount: remaining,
     type: 'income',
-    category: 'client_payment',
+    category: 'final_payment',
     date: normalizedDate,
     comment: FINAL_PAYMENT_TRANSACTION_COMMENT,
   })

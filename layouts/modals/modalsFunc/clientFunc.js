@@ -4,6 +4,7 @@ import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
 import PhoneInput from '@components/PhoneInput'
 import { CLIENT_TYPES, DEFAULT_CLIENT } from '@helpers/constants'
+import getPersonFullName from '@helpers/getPersonFullName'
 import useErrors from '@helpers/useErrors'
 import clientSelector from '@state/selectors/clientSelector'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
@@ -32,6 +33,9 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     const [secondName, setSecondName] = useState(
       client?.secondName ?? DEFAULT_CLIENT.secondName
     )
+    const [thirdName, setThirdName] = useState(
+      client?.thirdName ?? DEFAULT_CLIENT.thirdName
+    )
     const [phone, setPhone] = useState(client?.phone ?? DEFAULT_CLIENT.phone)
     const [whatsapp, setWhatsapp] = useState(
       client?.whatsapp ?? DEFAULT_CLIENT.whatsapp
@@ -45,6 +49,25 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     const [vk, setVk] = useState(client?.vk ?? DEFAULT_CLIENT.vk)
     const [clientType, setClientType] = useState(
       client?.clientType ?? DEFAULT_CLIENT.clientType
+    )
+    const [legalName, setLegalName] = useState(
+      client?.legalName ?? DEFAULT_CLIENT.legalName
+    )
+    const [inn, setInn] = useState(client?.inn ?? DEFAULT_CLIENT.inn)
+    const [kpp, setKpp] = useState(client?.kpp ?? DEFAULT_CLIENT.kpp)
+    const [ogrn, setOgrn] = useState(client?.ogrn ?? DEFAULT_CLIENT.ogrn)
+    const [bankName, setBankName] = useState(
+      client?.bankName ?? DEFAULT_CLIENT.bankName
+    )
+    const [bik, setBik] = useState(client?.bik ?? DEFAULT_CLIENT.bik)
+    const [checkingAccount, setCheckingAccount] = useState(
+      client?.checkingAccount ?? DEFAULT_CLIENT.checkingAccount
+    )
+    const [correspondentAccount, setCorrespondentAccount] = useState(
+      client?.correspondentAccount ?? DEFAULT_CLIENT.correspondentAccount
+    )
+    const [legalAddress, setLegalAddress] = useState(
+      client?.legalAddress ?? DEFAULT_CLIENT.legalAddress
     )
     const [errors, checkErrors, addError, removeError] = useErrors()
 
@@ -62,21 +85,44 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       () =>
         (client?.firstName ?? DEFAULT_CLIENT.firstName) !== firstName ||
         (client?.secondName ?? DEFAULT_CLIENT.secondName) !== secondName ||
+        (client?.thirdName ?? DEFAULT_CLIENT.thirdName) !== thirdName ||
         (client?.phone ?? DEFAULT_CLIENT.phone) !== phone ||
         (client?.whatsapp ?? DEFAULT_CLIENT.whatsapp) !== whatsapp ||
         (client?.telegram ?? DEFAULT_CLIENT.telegram) !== telegram ||
         (client?.instagram ?? DEFAULT_CLIENT.instagram) !== instagram ||
         (client?.vk ?? DEFAULT_CLIENT.vk) !== vk ||
-        (client?.clientType ?? DEFAULT_CLIENT.clientType) !== clientType,
+        (client?.clientType ?? DEFAULT_CLIENT.clientType) !== clientType ||
+        (client?.legalName ?? DEFAULT_CLIENT.legalName) !== legalName ||
+        (client?.inn ?? DEFAULT_CLIENT.inn) !== inn ||
+        (client?.kpp ?? DEFAULT_CLIENT.kpp) !== kpp ||
+        (client?.ogrn ?? DEFAULT_CLIENT.ogrn) !== ogrn ||
+        (client?.bankName ?? DEFAULT_CLIENT.bankName) !== bankName ||
+        (client?.bik ?? DEFAULT_CLIENT.bik) !== bik ||
+        (client?.checkingAccount ?? DEFAULT_CLIENT.checkingAccount) !==
+          checkingAccount ||
+        (client?.correspondentAccount ??
+          DEFAULT_CLIENT.correspondentAccount) !== correspondentAccount ||
+        (client?.legalAddress ?? DEFAULT_CLIENT.legalAddress) !== legalAddress,
       [
+        client,
         firstName,
         phone,
         secondName,
+        thirdName,
         whatsapp,
         telegram,
         instagram,
         vk,
         clientType,
+        legalName,
+        inn,
+        kpp,
+        ogrn,
+        bankName,
+        bik,
+        checkingAccount,
+        correspondentAccount,
+        legalAddress,
       ]
     )
 
@@ -98,9 +144,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             )
             if (existedClient) {
               const existingName =
-                [existedClient.firstName, existedClient.secondName]
-                  .filter(Boolean)
-                  .join(' ') || 'Без имени'
+                getPersonFullName(existedClient, { fallback: 'Без имени' })
               if (typeof onSuccess === 'function') {
                 modalsFunc.add({
                   title: 'Клиент уже существует',
@@ -129,12 +173,22 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             _id: client?._id,
             firstName: firstName.trim(),
             secondName: secondName.trim(),
+            thirdName: thirdName.trim(),
             phone: phone ?? null,
             whatsapp: whatsapp ?? null,
             telegram: telegram.trim(),
             instagram: instagram.trim(),
             vk: vk.trim(),
             clientType,
+            legalName: legalName.trim(),
+            inn: inn.trim(),
+            kpp: kpp.trim(),
+            ogrn: ogrn.trim(),
+            bankName: bankName.trim(),
+            bik: bik.trim(),
+            checkingAccount: checkingAccount.trim(),
+            correspondentAccount: correspondentAccount.trim(),
+            legalAddress: legalAddress.trim(),
           },
           clone
         )
@@ -145,17 +199,29 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       addError,
       checkErrors,
       client?._id,
-      clone,
       closeModal,
       firstName,
       phone,
       secondName,
+      thirdName,
       whatsapp,
       telegram,
       instagram,
       vk,
       setClient,
-      onSuccess,
+      clientType,
+      clients,
+      modalsFunc,
+      normalizePhoneValue,
+      legalName,
+      inn,
+      kpp,
+      ogrn,
+      bankName,
+      bik,
+      checkingAccount,
+      correspondentAccount,
+      legalAddress,
     ])
 
     const onClickConfirmRef = useRef(onClickConfirm)
@@ -164,7 +230,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       onClickConfirmRef.current = onClickConfirm
     }, [onClickConfirm])
 
-    const handleCheckPhone = useCallback(() => {
+    const handleCheckPhone = () => {
       removeError('phone')
       const normalizedPhone = normalizePhoneValue(phone)
       if (!normalizedPhone) {
@@ -186,7 +252,9 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
 
       if (typeof onSuccess === 'function') {
         const confirmed = window.confirm(
-          `Найден клиент: ${existingClient.firstName || 'Без имени'}. Выбрать его?`
+          `Найден клиент: ${getPersonFullName(existingClient, {
+            fallback: 'Без имени',
+          })}. Выбрать его?`
         )
         if (confirmed) {
           onSuccess(existingClient)
@@ -196,16 +264,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       }
 
       addError({ phone: 'Клиент с таким номером уже существует' })
-    }, [
-      addError,
-      client?._id,
-      clients,
-      closeModal,
-      normalizePhoneValue,
-      onSuccess,
-      phone,
-      removeError,
-    ])
+    }
 
     useEffect(() => {
       setOnShowOnCloseConfirmDialog(isFormChanged)
@@ -233,6 +292,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
           error={errors.firstName}
         />
         <Input label="Фамилия" value={secondName} onChange={setSecondName} />
+        <Input label="Отчество" value={thirdName} onChange={setThirdName} />
         <div className="mt-3 flex items-end gap-2">
           <PhoneInput
             label="Телефон"
@@ -306,6 +366,73 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
                 {item.name}
               </button>
             ))}
+          </div>
+        </InputWrapper>
+        <InputWrapper label="Реквизиты для договора" paddingY>
+          <div className="grid gap-0 sm:grid-cols-2">
+            <Input
+              label="Наименование / ФИО"
+              value={legalName}
+              onChange={setLegalName}
+              className="w-full"
+              smallMargin
+            />
+            <Input
+              label="ИНН"
+              value={inn}
+              onChange={setInn}
+              className="w-full"
+              smallMargin
+            />
+            <Input
+              label="КПП"
+              value={kpp}
+              onChange={setKpp}
+              className="w-full"
+              smallMargin
+            />
+            <Input
+              label="ОГРН / ОГРНИП"
+              value={ogrn}
+              onChange={setOgrn}
+              className="w-full"
+              smallMargin
+            />
+            <Input
+              label="Банк"
+              value={bankName}
+              onChange={setBankName}
+              className="w-full"
+              smallMargin
+            />
+            <Input
+              label="БИК"
+              value={bik}
+              onChange={setBik}
+              className="w-full"
+              smallMargin
+            />
+            <Input
+              label="Расчетный счет"
+              value={checkingAccount}
+              onChange={setCheckingAccount}
+              className="w-full"
+              smallMargin
+            />
+            <Input
+              label="Корр. счет"
+              value={correspondentAccount}
+              onChange={setCorrespondentAccount}
+              className="w-full"
+              smallMargin
+            />
+            <Input
+              label="Юридический адрес"
+              value={legalAddress}
+              onChange={setLegalAddress}
+              className="w-full sm:col-span-2"
+              smallMargin
+            />
           </div>
         </InputWrapper>
         <ErrorsList errors={errors} />

@@ -459,6 +459,21 @@ body.theme-dark textarea::placeholder {
   color: #64748b;
 }
 
+body.theme-dark input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.2);
+  opacity: 0.9;
+}
+
+.hide-number-spin::-webkit-outer-spin-button,
+.hide-number-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.hide-number-spin[type='number'] {
+  -moz-appearance: textfield;
+}
+
 body.theme-dark .MuiInputBase-root,
 body.theme-dark .MuiInputBase-input,
 body.theme-dark .MuiPickersSectionList-root,

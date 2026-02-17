@@ -10,6 +10,7 @@ import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
 import formatMinutes from '@helpers/formatMinutes'
 import getEventDuration from '@helpers/getEventDuration'
+import getPersonFullName from '@helpers/getPersonFullName'
 import Image from 'next/image'
 import eventSelector from '@state/selectors/eventSelector'
 import userSelector from '@state/selectors/userSelector'
@@ -19,6 +20,7 @@ import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
 import clientsAtom from '@state/atoms/clientsAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
+import { modalsFuncAtom } from '@state/atoms'
 
 const CardButtonsComponent = ({ event, calendarLink }) => (
   <CardButtons
@@ -46,6 +48,7 @@ const eventViewFunc = (eventId) => {
     const services = useAtomValue(servicesAtom)
     const clients = useAtomValue(clientsAtom)
     const siteSettings = useAtomValue(siteSettingsAtom)
+    const modalsFunc = useAtomValue(modalsFuncAtom)
 
     const organizer = useAtomValue(userSelector(event?.organizerId))
 
@@ -76,9 +79,7 @@ const eventViewFunc = (eventId) => {
           const client = clients.find(
             (item) => item._id === contact?.clientId
           )
-          const name = [client?.firstName, client?.secondName]
-            .filter(Boolean)
-            .join(' ')
+          const name = getPersonFullName(client)
           return {
             client,
             label: name || contact?.clientId || 'Контакт',
@@ -165,7 +166,7 @@ const eventViewFunc = (eventId) => {
               {formatDateTime(event?.requestCreatedAt ?? event?.createdAt)}
             </TextLine>
             <TextLine label="Начало">
-              {formatDateTime(event?.dateStart)}
+              {formatDateTime(event?.eventDate)}
             </TextLine>
             <TextLine label="Завершение">
               {formatDateTime(event?.dateEnd)}
@@ -201,20 +202,57 @@ const eventViewFunc = (eventId) => {
             )}
             {additionalEvents.length > 0 && (
               <TextLine label="Доп. события">
-                <div className="flex flex-col gap-2">
+                <div className="tablet:grid-cols-2 laptop:grid-cols-3 grid grid-cols-1 gap-2">
                   {additionalEvents.map((item, index) => (
                     <div
                       key={`additional-event-view-${index}`}
-                      className="rounded border border-gray-200 px-2 py-1"
+                      className={`w-full rounded border p-2 ${
+                        item?.done
+                          ? 'border-emerald-200 bg-emerald-50/70'
+                          : 'border-gray-200'
+                      } cursor-pointer transition hover:shadow-sm`}
+                      onClick={() =>
+                        modalsFunc.add({
+                          title: item?.title || `Событие #${index + 1}`,
+                          confirmButtonName: 'Закрыть',
+                          onConfirm: true,
+                          showDecline: false,
+                          Children: () => (
+                            <div className="flex flex-col gap-2 text-sm text-gray-800">
+                              <div>
+                                <span className="font-semibold">Статус: </span>
+                                {item?.done ? 'Выполнено' : 'Активно'}
+                              </div>
+                              <div>
+                                <span className="font-semibold">Дата и время: </span>
+                                {formatDateTime(item?.date)}
+                              </div>
+                              {item?.description ? (
+                                <div>
+                                  <div className="font-semibold">Описание:</div>
+                                  <div className="mt-1 whitespace-pre-wrap text-gray-700">
+                                    {item.description}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          ),
+                        })
+                      }
                     >
-                      <div className="text-sm font-semibold text-gray-900">
+                      <div
+                        className={`truncate text-sm font-semibold ${
+                          item?.done ? 'text-emerald-700' : 'text-gray-900'
+                        }`}
+                      >
+                        {item?.done ? '✓ ' : ''}
                         {item?.title || `Событие #${index + 1}`}
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-xs text-gray-600">
                         {formatDateTime(item?.date)}
                       </div>
                       {item?.description ? (
-                        <div className="text-sm text-gray-700">
+                        <div className="text-xs text-gray-700">
                           {item.description}
                         </div>
                       ) : null}

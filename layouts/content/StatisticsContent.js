@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { ResponsiveBar } from '@nivo/bar'
 import { useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
@@ -19,6 +19,7 @@ import { MONTHS_FULL_1 } from '@helpers/constants'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { useRouter } from 'next/navigation'
 import formatAddress from '@helpers/formatAddress'
+import getPersonFullName from '@helpers/getPersonFullName'
 
 const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
 
@@ -37,27 +38,7 @@ const StatisticsContent = () => {
   const loggedUser = useAtomValue(loggedUserAtom)
   const access = getUserTariffAccess(loggedUser, tariffs)
   const router = useRouter()
-
-  if (!access.allowStatistics) {
-    return (
-      <div className="flex h-full flex-col gap-4">
-        <ContentHeader />
-        <SectionCard className="flex min-h-0 flex-1 items-center justify-center px-4">
-          <EmptyState bordered={false}>
-            <div className="flex flex-col items-center gap-4 text-center text-gray-500">
-              <div className="text-lg font-semibold text-gray-700">
-                Статистика доступна только на расширенном тарифе
-              </div>
-              <Button
-                name="Сменить тариф"
-                onClick={() => router.push('/cabinet/tariff-select')}
-              />
-            </div>
-          </EmptyState>
-        </SectionCard>
-      </div>
-    )
-  }
+  const canShowStatistics = access.allowStatistics
 
   const eventsMap = useMemo(() => {
     const map = new Map()
@@ -206,10 +187,7 @@ const StatisticsContent = () => {
     if (!clientId) return fallbackName || ''
     const client = clientsMap.get(clientId)
     if (!client) return fallbackName || String(clientId)
-    return (
-      [client.firstName, client.secondName].filter(Boolean).join(' ') ||
-      String(clientId)
-    )
+    return getPersonFullName(client, { fallback: String(clientId) })
   }
 
   const resolveClientPhone = (clientId, fallbackPhone) => {
@@ -274,7 +252,7 @@ const StatisticsContent = () => {
     URL.revokeObjectURL(url)
   }
 
-  const handleExport = useCallback(() => {
+  const handleExport = () => {
     const yearFilter = selectedYear
     const isInYear = (value) => {
       if (!yearFilter) return true
@@ -336,9 +314,7 @@ const StatisticsContent = () => {
       'Связано с мероприятием',
     ]
     const requestsRows = requests
-      .filter((request) =>
-        isInYear(request?.eventDate ?? request?.createdAt)
-      )
+      .filter((request) => isInYear(request?.eventDate ?? request?.createdAt))
       .map((request) => ({
         ID: request._id,
         'Дата заявки': formatDateTime(request.createdAt),
@@ -380,11 +356,7 @@ const StatisticsContent = () => {
       })
 
     const fileSuffix = yearFilter ? String(yearFilter) : 'all'
-    downloadCsv(
-      `artistcrm-events-${fileSuffix}.csv`,
-      eventsHeaders,
-      eventsRows
-    )
+    downloadCsv(`artistcrm-events-${fileSuffix}.csv`, eventsHeaders, eventsRows)
     downloadCsv(
       `artistcrm-requests-${fileSuffix}.csv`,
       requestsHeaders,
@@ -395,124 +367,134 @@ const StatisticsContent = () => {
       transactionsHeaders,
       transactionsRows
     )
-  }, [
-    buildEventFinanceMap,
-    events,
-    eventsMap,
-    requests,
-    transactions,
-    selectedYear,
-    resolveClientName,
-    resolveClientPhone,
-    resolveEventTitle,
-    resolveServicesTitles,
-  ])
+  }
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <ContentHeader>
-        <HeaderActions
-          left={
-            <div className="w-52">
-              <ComboBox
-                label="Год"
-                items={availableYears}
-                value={selectedYear}
-                onChange={(value) =>
-                  setSelectedYear(value !== null ? Number(value) : null)
-                }
-                placeholder="Выберите год"
-                fullWidth
-                noMargin
-              />
-            </div>
-          }
-          right={<Button name="Экспорт CSV" onClick={handleExport} />}
-        />
-      </ContentHeader>
-
-      <SectionCard className="min-h-0 flex-1 overflow-hidden p-4">
-        <div className="mb-3 flex flex-wrap items-center gap-4 text-sm text-gray-700">
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded bg-blue-600" />
-            <span>Прибыль</span>
-          </div>
-        </div>
-        {stats.length === 0 ? (
-          <EmptyState
-            bordered={false}
-            text={
-              selectedYear
-                ? 'Нет данных для статистики'
-                : 'Нет данных для выбранного года'
-            }
-          />
-        ) : (
-          <div className="h-full min-h-[320px]">
-            <ResponsiveBar
-              data={stats}
-              keys={['profit']}
-              indexBy="month"
-              margin={{ top: 20, right: 20, bottom: 60, left: 70 }}
-              padding={0.2}
-              colors={['#2563eb']}
-              defs={[
-                {
-                  id: 'futurePattern',
-                  type: 'patternLines',
-                  background: 'inherit',
-                  color: 'rgba(0,0,0,0.25)',
-                  rotation: -45,
-                  lineWidth: 4,
-                  spacing: 6,
-                },
-              ]}
-              fill={[
-                {
-                  match: (d) => d.data.isFuture === true,
-                  id: 'futurePattern',
-                },
-              ]}
-              axisBottom={{
-                tickSize: 5,
-                tickPadding: 5,
-                tickRotation: -20,
-              }}
-              axisLeft={{
-                tickSize: 5,
-                tickPadding: 5,
-                legend: 'Сумма, руб.',
-                legendPosition: 'middle',
-                legendOffset: -55,
-              }}
-              enableLabel={false}
-              groupMode="grouped"
-              valueFormat={(value) => value.toLocaleString('ru-RU')}
-              tooltip={({ id, value, indexValue }) => (
-                <div className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 shadow">
-                  <div className="font-semibold">{indexValue}</div>
-                  <div>
-                    {id === 'profit' ? 'Прибыль' : id}:{' '}
-                    {Number(value).toLocaleString('ru-RU')} ₽
-                  </div>
+    <div className="flex flex-col h-full gap-4">
+      {!canShowStatistics ? (
+        <>
+          <ContentHeader />
+          <SectionCard className="flex items-center justify-center flex-1 min-h-0 px-4">
+            <EmptyState bordered={false}>
+              <div className="flex flex-col items-center gap-4 text-center text-gray-500">
+                <div className="text-lg font-semibold text-gray-700">
+                  Статистика доступна только на расширенном тарифе
                 </div>
-              )}
-              theme={{
-                text: { fontSize: 12, fill: '#374151' },
-                axis: {
-                  legend: { text: { fontSize: 12, fill: '#374151' } },
-                  ticks: {
-                    text: { fontSize: 11, fill: '#6b7280' },
-                  },
-                },
-                grid: {
-                  line: { stroke: '#e5e7eb', strokeWidth: 1 },
-                },
-              }}
+                <Button
+                  name="Сменить тариф"
+                  onClick={() => router.push('/cabinet/tariff-select')}
+                />
+              </div>
+            </EmptyState>
+          </SectionCard>
+        </>
+      ) : (
+        <>
+          <ContentHeader>
+            <HeaderActions
+              left={
+                <div className="mt-2 w-52">
+                  <ComboBox
+                    label="Год"
+                    items={availableYears}
+                    value={selectedYear}
+                    onChange={(value) =>
+                      setSelectedYear(value !== null ? Number(value) : null)
+                    }
+                    placeholder="Выберите год"
+                    fullWidth
+                    noMargin
+                  />
+                </div>
+              }
+              right={<Button name="Экспорт CSV" onClick={handleExport} />}
             />
-          </div>
-        )}
-      </SectionCard>
+          </ContentHeader>
+
+          <SectionCard className="flex-1 min-h-0 p-4 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-4 mb-3 text-sm text-gray-700">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-blue-600 rounded" />
+                <span>Прибыль</span>
+              </div>
+            </div>
+            {stats.length === 0 ? (
+              <EmptyState
+                bordered={false}
+                text={
+                  selectedYear
+                    ? 'Нет данных для статистики'
+                    : 'Нет данных для выбранного года'
+                }
+              />
+            ) : (
+              <div className="h-full min-h-[320px]">
+                <ResponsiveBar
+                  data={stats}
+                  keys={['profit']}
+                  indexBy="month"
+                  margin={{ top: 20, right: 20, bottom: 60, left: 70 }}
+                  padding={0.2}
+                  colors={['#2563eb']}
+                  defs={[
+                    {
+                      id: 'futurePattern',
+                      type: 'patternLines',
+                      background: 'inherit',
+                      color: 'rgba(0,0,0,0.25)',
+                      rotation: -45,
+                      lineWidth: 4,
+                      spacing: 6,
+                    },
+                  ]}
+                  fill={[
+                    {
+                      match: (d) => d.data.isFuture === true,
+                      id: 'futurePattern',
+                    },
+                  ]}
+                  axisBottom={{
+                    tickSize: 5,
+                    tickPadding: 5,
+                    tickRotation: -20,
+                  }}
+                  axisLeft={{
+                    tickSize: 5,
+                    tickPadding: 5,
+                    legend: 'Сумма, руб.',
+                    legendPosition: 'middle',
+                    legendOffset: -55,
+                  }}
+                  enableLabel={false}
+                  groupMode="grouped"
+                  valueFormat={(value) => value.toLocaleString('ru-RU')}
+                  tooltip={({ id, value, indexValue }) => (
+                    <div className="px-2 py-1 text-xs text-gray-700 bg-white border border-gray-200 rounded shadow">
+                      <div className="font-semibold">{indexValue}</div>
+                      <div>
+                        {id === 'profit' ? 'Прибыль' : id}:{' '}
+                        {Number(value).toLocaleString('ru-RU')} ₽
+                      </div>
+                    </div>
+                  )}
+                  theme={{
+                    text: { fontSize: 12, fill: '#374151' },
+                    axis: {
+                      legend: { text: { fontSize: 12, fill: '#374151' } },
+                      ticks: {
+                        text: { fontSize: 11, fill: '#6b7280' },
+                      },
+                    },
+                    grid: {
+                      line: { stroke: '#e5e7eb', strokeWidth: 1 },
+                    },
+                  }}
+                />
+              </div>
+            )}
+          </SectionCard>
+        </>
+      )}
     </div>
   )
 }

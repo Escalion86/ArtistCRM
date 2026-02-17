@@ -9,13 +9,13 @@ const sortFunctions = {
     desc: (a, b) =>
       new Date(a.date).getTime() > new Date(b.date).getTime() ? -1 : 1,
   },
-  dateStart: {
+  eventDate: {
     asc: (a, b) =>
-      new Date(a.dateStart).getTime() < new Date(b.dateStart).getTime()
+      new Date(a.eventDate).getTime() < new Date(b.eventDate).getTime()
         ? -1
         : 1,
     desc: (a, b) =>
-      new Date(a.dateStart).getTime() > new Date(b.dateStart).getTime()
+      new Date(a.eventDate).getTime() > new Date(b.eventDate).getTime()
         ? -1
         : 1,
   },

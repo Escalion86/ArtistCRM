@@ -1,4 +1,5 @@
 import Input from '@components/Input'
+import getPersonFullName from '@helpers/getPersonFullName'
 import clientsAtom from '@state/atoms/clientsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useState } from 'react'
@@ -21,6 +22,7 @@ const clientSelectFunc = (onSelect, title = 'Выбор клиента', options
         return [
           client.firstName,
           client.secondName,
+          client.thirdName,
           client.phone ? `+${client.phone}` : '',
         ]
           .filter(Boolean)
@@ -72,9 +74,7 @@ const clientSelectFunc = (onSelect, title = 'Выбор клиента', options
                 >
                   <div className="flex flex-col">
                     <span className="font-semibold text-gray-900">
-                      {[client.firstName, client.secondName]
-                        .filter(Boolean)
-                        .join(' ') || '[Без имени]'}
+                      {getPersonFullName(client, { fallback: '[Без имени]' })}
                     </span>
                     <span className="text-sm text-gray-600">
                       {client.phone ? `+${client.phone}` : 'Телефон не указан'}

@@ -1,10 +1,9 @@
 import PropTypes from 'prop-types'
 import CheckBox from '@components/CheckBox'
+import AddIconButton from '@components/AddIconButton'
 import InputWrapper from '@components/InputWrapper'
 import servicesAtom from '@state/atoms/servicesAtom'
 import { useAtomValue } from 'jotai'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
 
 const ServiceMultiSelect = ({
   value,
@@ -46,14 +45,11 @@ const ServiceMultiSelect = ({
           )}
         </div>
         {onCreate && (
-          <button
-            type="button"
-            className="action-icon-button action-icon-button--success flex h-10 w-10 cursor-pointer items-center justify-center rounded"
+          <AddIconButton
             onClick={onCreate}
             title="Добавить услугу"
-          >
-            <FontAwesomeIcon className="h-5 w-5" icon={faPlus} />
-          </button>
+            size="md"
+          />
         )}
       </div>
     </InputWrapper>

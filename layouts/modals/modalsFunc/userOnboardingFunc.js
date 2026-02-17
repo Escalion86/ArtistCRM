@@ -63,9 +63,7 @@ const userOnboardingFunc = () => {
     const [secondName, setSecondName] = useState(
       loggedUser?.secondName ?? ''
     )
-    const [town, setTown] = useState(
-      loggedUser?.town ?? siteSettings?.defaultTown ?? ''
-    )
+    const [town, setTown] = useState(siteSettings?.defaultTown ?? '')
     const [timeZone, setTimeZone] = useState(() => {
       const current = siteSettings?.timeZone ?? 'Asia/Krasnoyarsk'
       const confirmed = siteSettings?.custom?.timeZoneConfirmed === true
@@ -78,7 +76,9 @@ const userOnboardingFunc = () => {
     useEffect(() => {
       setConfirmButtonName('Сохранить')
       const storedTheme = localStorage.getItem('theme')
-      setIsDarkTheme(storedTheme === 'dark')
+      const isDark = storedTheme === 'dark'
+      setIsDarkTheme(isDark)
+      document.body.classList.toggle('theme-dark', isDark)
     }, [setConfirmButtonName])
 
     const errors = useMemo(() => {
@@ -106,50 +106,53 @@ const userOnboardingFunc = () => {
     const handleSave = useCallback(async () => {
       if (!isValid || !loggedUser?._id) return
       setIsSaving(true)
+      try {
+        const trimmedFirstName = firstName.trim()
+        const trimmedSecondName = secondName.trim()
+        const trimmedTown = town.trim()
 
-      const trimmedFirstName = firstName.trim()
-      const trimmedSecondName = secondName.trim()
-      const trimmedTown = town.trim()
+        const updatedUser = await itemsFunc?.user?.set({
+          _id: loggedUser._id,
+          firstName: trimmedFirstName,
+          secondName: trimmedSecondName,
+        })
 
-      const updatedUser = await itemsFunc?.user?.set({
-        _id: loggedUser._id,
-        firstName: trimmedFirstName,
-        secondName: trimmedSecondName,
-        town: trimmedTown,
-      })
+        if (updatedUser?._id) {
+          setLoggedUser(updatedUser)
+        }
 
-      if (updatedUser?._id) {
-        setLoggedUser(updatedUser)
-      }
+        const nextTowns = normalizeTowns([
+          ...(siteSettings?.towns ?? []),
+          trimmedTown,
+        ])
 
-      const nextTowns = normalizeTowns([
-        ...(siteSettings?.towns ?? []),
-        trimmedTown,
-      ])
-
-      await postData(
-        '/api/site',
-        {
-          timeZone,
-          defaultTown: trimmedTown,
-          towns: nextTowns,
-          custom: {
-            ...(siteSettings?.custom ?? {}),
-            timeZoneConfirmed: true,
+        await postData(
+          '/api/site',
+          {
+            timeZone,
+            defaultTown: trimmedTown,
+            towns: nextTowns,
+            custom: {
+              ...(siteSettings?.custom ?? {}),
+              timeZoneConfirmed: true,
+            },
           },
-        },
-        (data) => setSiteSettings(data),
-        null,
-        false,
-        null
-      )
+          (data) => setSiteSettings(data),
+          null,
+          false,
+          null
+        )
 
-      const themeValue = isDarkTheme ? 'dark' : 'light'
-      localStorage.setItem('theme', themeValue)
-      document.body.classList.toggle('theme-dark', isDarkTheme)
+        const themeValue = isDarkTheme ? 'dark' : 'light'
+        localStorage.setItem('theme', themeValue)
+        document.body.classList.toggle('theme-dark', isDarkTheme)
 
-      setIsSaving(false)
-      closeModal()
+        closeModal()
+      } catch (error) {
+        console.error('User onboarding save error', error)
+      } finally {
+        setIsSaving(false)
+      }
     }, [
       closeModal,
       firstName,
@@ -215,7 +218,12 @@ const userOnboardingFunc = () => {
           <input
             type="checkbox"
             checked={isDarkTheme}
-            onChange={(event) => setIsDarkTheme(event.target.checked)}
+            onChange={(event) => {
+              const nextValue = event.target.checked
+              setIsDarkTheme(nextValue)
+              localStorage.setItem('theme', nextValue ? 'dark' : 'light')
+              document.body.classList.toggle('theme-dark', nextValue)
+            }}
             className="h-4 w-4 cursor-pointer"
           />
           <span className="text-sm text-gray-900">Темная тема</span>

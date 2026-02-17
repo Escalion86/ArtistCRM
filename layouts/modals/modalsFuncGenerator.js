@@ -9,9 +9,11 @@ import eventFunc from './modalsFunc/eventFunc'
 // import eventSignUpFunc from './modalsFunc/eventSignUpFunc2'
 import eventStatusEditFunc from './modalsFunc/eventStatusEditFunc'
 import eventViewFunc from './modalsFunc/eventViewFunc'
+import upcomingEventsOverviewFunc from './modalsFunc/upcomingEventsOverviewFunc'
 import transactionFunc from './modalsFunc/transactionFunc'
 import eventsTagsFunc from './modalsFunc/eventsTagsFunc'
 import townsFunc from './modalsFunc/townsFunc'
+import contractTemplateEditorFunc from './modalsFunc/contractTemplateEditorFunc'
 import jsonFunc from './modalsFunc/jsonFunc'
 // import questionnaireConstructorFunc from './modalsFunc/questionnaireConstructorFunc'
 import selectEventsFunc from './modalsFunc/selectEventsFunc'
@@ -165,6 +167,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
     },
     settings: {
       towns: () => addModal(townsFunc()),
+      contractTemplateEditor: () => addModal(contractTemplateEditorFunc()),
     },
     transaction: {
       add: (eventId, props) =>
@@ -258,6 +261,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
         }
       },
       view: (eventId) => addModal(eventViewFunc(eventId)),
+      upcomingOverview: () => addModal(upcomingEventsOverviewFunc()),
       // editLikes: (eventId) => addModal(likesEditFunc(eventId)),
       // viewLikes: (eventId) => addModal(likesViewFunc(eventId)),
     },

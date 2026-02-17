@@ -3,7 +3,7 @@
 import { useMemo, useCallback } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
-import Button from '@components/Button'
+import AddIconButton from '@components/AddIconButton'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import MutedText from '@components/MutedText'
@@ -43,12 +43,12 @@ const ServicesContent = () => {
           right={
             <>
               <MutedText>Всего: {services.length}</MutedText>
-              <Button
-                name="+"
-                collapsing
-                className="action-icon-button action-icon-button--neutral h-9 w-9 rounded-full text-lg"
+              <AddIconButton
                 onClick={() => modalsFunc.service?.add()}
                 disabled={!modalsFunc.service?.add}
+                title="Добавить услугу"
+                size="sm"
+                variant="neutral"
               />
             </>
           }

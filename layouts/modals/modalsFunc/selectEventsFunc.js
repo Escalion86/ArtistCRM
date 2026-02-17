@@ -73,7 +73,7 @@ const selectEventsFunc = (
       )
     }
 
-    const sortedEvents = [...filteredEvents].sort(sortFunctions.dateStart.asc)
+    const sortedEvents = [...filteredEvents].sort(sortFunctions.eventDate.asc)
 
     const onClick = (eventId) => {
       const index = selectedEvents.indexOf(eventId)
@@ -96,7 +96,7 @@ const selectEventsFunc = (
     const handleConfirm = useCallback(() => {
       onConfirm(selectedEvents)
       closeModal()
-    }, [closeModal, onConfirm, selectedEvents])
+    }, [closeModal, selectedEvents])
 
     useEffect(() => {
       // const isFormChanged =
@@ -124,7 +124,6 @@ const selectEventsFunc = (
       // setDisableConfirm(!isFormChanged)
     }, [
       handleConfirm,
-      maxEvents,
       selectedEvents,
       setComponentInFooter,
       setOnConfirmFunc,
@@ -137,7 +136,7 @@ const selectEventsFunc = (
 
     useEffect(() => {
       if (!canSelectNone) setDisableConfirm(selectedEvents.length === 0)
-    }, [canSelectNone, selectedEvents])
+    }, [selectedEvents, setDisableConfirm])
 
     return (
       <div className="flex flex-col w-full h-full max-h-full gap-y-0.5">

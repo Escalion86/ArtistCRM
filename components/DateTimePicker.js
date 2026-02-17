@@ -36,6 +36,57 @@ const DateTimePicker = ({
   startWithYear = false,
 }) => {
   const widthNum = useWindowDimensionsTailwindNum()
+  const pickerFieldSx = {
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderStyle: 'none',
+      outline: 'none',
+      boxShadow: 'none',
+    },
+    '& .MuiPickersOutlinedInput-notchedOutline': {
+      borderStyle: 'none',
+      outline: 'none',
+      boxShadow: 'none',
+    },
+    '& .MuiPickersOutlinedInput-root': {
+      borderStyle: 'none',
+      padding: 0,
+      margin: 0,
+      boxShadow: 'none',
+    },
+    '& .MuiInputBase-root': {
+      minHeight: 28,
+      height: 28,
+      fontSize: '0.875rem',
+      lineHeight: '1.25rem',
+      padding: 0,
+      boxSizing: 'border-box',
+    },
+    '& .MuiInputBase-input': {
+      height: 28,
+      minHeight: 28,
+      padding: 0,
+      lineHeight: '1.25rem',
+      boxSizing: 'border-box',
+    },
+    '& .MuiPickersInputBase-root': {
+      minHeight: 28,
+      height: 28,
+      padding: 0,
+    },
+    '& .MuiPickersSectionList-root': {
+      padding: 0,
+      minHeight: 28,
+      alignItems: 'center',
+    },
+    '& .MuiInputAdornment-root': {
+      marginLeft: -2,
+      marginRight: 2,
+    },
+    '& .MuiButtonBase-root': {
+      padding: 0,
+    },
+  }
+
   return (
     <InputWrapper
       label={label}
@@ -78,34 +129,7 @@ const DateTimePicker = ({
             'border-0 ring-0 outline-hidden',
             widthNum <= 2 ? 'w-[12rem]' : 'w-[12rem]'
           )}
-          sx={{
-            '.MuiPickersOutlinedInput-notchedOutline': {
-              borderStyle: 'none',
-              outline: 'none',
-              boxShadow: 'none',
-            },
-            '.MuiPickersOutlinedInput-root': {
-              borderStyle: 'none',
-              padding: 0,
-            },
-            '.MuiInputBase-root': {
-              minHeight: 28,
-              fontSize: '0.875rem',
-              padding: 0,
-            },
-            '.MuiInputBase-input': {
-              padding: 0,
-              height: '1.5rem',
-            },
-            '.MuiPickersSectionList-root': {
-              padding: 1,
-              borderStyle: 'none',
-            },
-            '.MuiInputAdornment-root': {
-              marginLeft: -2,
-              marginRight: 0,
-            },
-          }}
+          sx={pickerFieldSx}
           inputFormat={widthNum <= 2 ? 'dd.MM.yyyy HH:mm' : 'dd.MM.yyyy'}
           openTo={startWithYear ? 'year' : 'day'}
           views={
@@ -144,58 +168,19 @@ const DateTimePicker = ({
           <MUIDateTimePicker
             className="w-[10rem] border-0 ring-0 outline-hidden"
             sx={{
-              '.MuiOutlinedInput-notchedOutline': {
+              ...pickerFieldSx,
+              '& .MuiPickersOutlinedInput-root': {
                 borderStyle: 'none',
-                outline: 'none',
+                marginLeft: 2,
+                padding: 0,
+                marginTop: 0,
+                marginBottom: 0,
                 boxShadow: 'none',
               },
-              '.MuiPickersOutlinedInput-notchedOutline': {
-                borderStyle: 'none',
-                outline: 'none',
-                boxShadow: 'none',
+              '& .MuiInputAdornment-root': {
+                marginLeft: -2,
+                marginRight: 3,
               },
-            '.MuiPickersOutlinedInput-root': {
-              borderStyle: 'none',
-              marginLeft: 2,
-              padding: 0,
-              boxShadow: 'none',
-            },
-            '.MuiPickersSectionList-root': {
-              padding: 1,
-              boxShadow: 'none',
-              borderStyle: 'none',
-            },
-            '.MuiInputAdornment-root': {
-              marginLeft: -2,
-              marginRight: 2,
-            },
-            '& .MuiInputBase-root': {
-              minHeight: 28,
-              padding: 0,
-              '& .MuiButtonBase-root': {
-                padding: 0,
-                // paddingRight: 3,
-                // paddingLeft: 10
-              },
-              '& .MuiInputBase-input': {
-                height: '1.5rem',
-                padding: 0,
-                // paddingLeft: 1,
-              },
-              '& .MuiPickersInputBase-root': {
-                padding: 0,
-                  border: 'none',
-                  boxShadow: 'none',
-                  '& .MuiPickersSectionList-root': {
-                    padding: 0,
-                  },
-                },
-                '& .MuiPickersOutlinedInput-root': {
-                  padding: 0,
-                  border: 'none',
-                },
-              },
-              disableUnderline: true,
             }}
             inputFormat="HH:mm"
             openTo="hours"

@@ -105,7 +105,7 @@ const SettingsContent = () => {
         <HeaderActions left={<div />} right={<div />} />
       </ContentHeader>
 
-      <SectionCard className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4">
+      <SectionCard className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         <IconCheckBox
           label="Темная тема"
           checked={darkTheme}
@@ -170,6 +170,15 @@ const SettingsContent = () => {
             </button>
           </div>
         </InputWrapper>
+        <div className="flex w-full justify-end">
+          <button
+            type="button"
+            className="action-icon-button action-icon-button--warning flex h-10 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+            onClick={() => modalsFunc.settings?.contractTemplateEditor?.()}
+          >
+            Редактор шаблона договора
+          </button>
+        </div>
       </SectionCard>
     </div>
   )

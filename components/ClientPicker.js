@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
-import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
 import InputWrapper from '@components/InputWrapper'
+import AddIconButton from '@components/AddIconButton'
+import IconActionButton from '@components/IconActionButton'
+import getPersonFullName from '@helpers/getPersonFullName'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
 import cn from 'classnames'
@@ -73,9 +74,7 @@ const ClientPicker = ({
               compact ? 'text-sm' : 'text-base'
             )}
           >
-            {[selectedClient?.firstName, selectedClient?.secondName]
-              .filter(Boolean)
-              .join(' ') || 'Не выбрано'}
+            {getPersonFullName(selectedClient, { fallback: 'Не выбрано' })}
           </div>
           {selectedClient && (
             <>
@@ -88,30 +87,20 @@ const ClientPicker = ({
           )}
         </div>
         {selectedClientId && !disabled && (
-          <button
-            type="button"
-            className={cn(
-              'action-icon-button action-icon-button--warning flex cursor-pointer items-center justify-center rounded',
-              compact ? 'h-9 w-9' : 'h-12 w-12'
-            )}
+          <IconActionButton
+            icon={faPencilAlt}
             onClick={handleEdit}
             title="Сменить клиента"
-          >
-            <FontAwesomeIcon className="h-5 w-5" icon={faPencilAlt} />
-          </button>
+            variant="warning"
+            size={compact ? 'sm' : 'lg'}
+          />
         )}
         {!disabled && (
-          <button
-            type="button"
-            className={cn(
-              'action-icon-button action-icon-button--success flex cursor-pointer items-center justify-center rounded',
-              compact ? 'h-9 w-9' : 'h-12 w-12'
-            )}
+          <AddIconButton
             onClick={handleCreate}
             title="Создать нового клиента"
-          >
-            <FontAwesomeIcon className="h-5 w-5" icon={faPlus} />
-          </button>
+            size={compact ? 'sm' : 'lg'}
+          />
         )}
       </div>
     </InputWrapper>

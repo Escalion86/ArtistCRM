@@ -3,6 +3,7 @@ import ClientsContent from './ClientsContent'
 import DevContent from './DevContent'
 import TransactionsContent from './TransactionsContent'
 import SettingsContent from './SettingsContent'
+import IntegrationsContent from './IntegrationsContent'
 import StatisticsContent from './StatisticsContent'
 import ServicesContent from './ServicesContent'
 import UsersContent from './UsersContent'
@@ -41,6 +42,10 @@ export const CONTENTS = Object.freeze({
   settings: {
     Component: SettingsContent,
     name: 'Настройки',
+  },
+  integrations: {
+    Component: IntegrationsContent,
+    name: 'Интеграции',
   },
   tariffs: {
     Component: TariffsContent,

@@ -1,9 +1,10 @@
 import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import AddIconButton from '@components/AddIconButton'
 import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
-import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
+import getPersonFullName from '@helpers/getPersonFullName'
+import IconActionButton from '@components/IconActionButton'
 
 const OtherContactsPicker = ({
   contacts = [],
@@ -21,10 +22,9 @@ const OtherContactsPicker = ({
         const contactClient = clients.find(
           (client) => client._id === contact.clientId
         )
-        const contactName =
-          [contactClient?.firstName, contactClient?.secondName]
-            .filter(Boolean)
-            .join(' ') || 'Выберите клиента'
+        const contactName = getPersonFullName(contactClient, {
+          fallback: 'Выберите клиента',
+        })
         return (
           <div
             key={`other-contact-${index}`}
@@ -54,22 +54,20 @@ const OtherContactsPicker = ({
               />
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--warning flex h-9 w-9 cursor-pointer items-center justify-center rounded"
+              <IconActionButton
+                icon={faPencilAlt}
                 onClick={() => onEditContact?.(index)}
                 title="Редактировать клиента"
-              >
-                <FontAwesomeIcon icon={faPencilAlt} className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--danger flex h-9 w-9 cursor-pointer items-center justify-center rounded"
+                variant="warning"
+                size="sm"
+              />
+              <IconActionButton
+                icon={faTrashAlt}
                 onClick={() => onRemoveContact?.(index)}
                 title="Удалить"
-              >
-                <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
-              </button>
+                variant="danger"
+                size="sm"
+              />
             </div>
           </div>
         )
@@ -82,14 +80,11 @@ const OtherContactsPicker = ({
         Добавить контакт
       </button> */}
       <div className="flex w-full justify-end">
-        <button
-          type="button"
-          className="action-icon-button action-icon-button--success flex h-10 w-10 cursor-pointer items-center justify-center rounded"
+        <AddIconButton
           onClick={onAddContact}
           title="Добавить контакт"
-        >
-          <FontAwesomeIcon className="h-5 w-5" icon={faPlus} />
-        </button>
+          size="sm"
+        />
       </div>
     </div>
   </InputWrapper>

@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
-import Button from '@components/Button'
+import AddIconButton from '@components/AddIconButton'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import Input from '@components/Input'
@@ -56,6 +56,7 @@ const ClientsContent = () => {
         return [
           client.firstName,
           client.secondName,
+          client.thirdName,
           client.phone ? `+${client.phone}` : '',
         ]
           .join(' ')
@@ -94,12 +95,12 @@ const ClientsContent = () => {
           right={
             <>
               <MutedText>Всего: {clients.length}</MutedText>
-              <Button
-                name="+"
-                collapsing
-                className="action-icon-button action-icon-button--neutral h-9 w-9 rounded-full text-lg"
+              <AddIconButton
                 onClick={() => modalsFunc.client?.add()}
                 disabled={!modalsFunc.client?.add}
+                title="Добавить клиента"
+                size="sm"
+                variant="neutral"
               />
             </>
           }

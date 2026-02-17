@@ -23,6 +23,7 @@ import tariffsAtom from '@state/atoms/tariffsAtom'
 import { getNounDays } from '@helpers/getNoun'
 import { modalsFuncAtom } from '@state/atoms'
 import Button from '@components/Button'
+import getPersonFullName from '@helpers/getPersonFullName'
 // import { faCalendarAlt } from '@fortawesome/free-regular-svg-icons'
 
 const variants = {
@@ -130,6 +131,9 @@ const UserMenu = () => {
       missingAmount,
     }
   }, [loggedUser?.balance, loggedUser?.tariffActiveUntil, selectedTariff])
+  const fullName = getPersonFullName(loggedUser, { fallback: '-' })
+  const [firstLine, ...restLines] = fullName.split(' ')
+  const secondLine = restLines.join(' ')
 
   // const router = useRouter()
 
@@ -180,8 +184,8 @@ const UserMenu = () => {
           transition={{ duration: 0.2, type: 'tween' }}
         >
           <div className="flex flex-col justify-center px-3 py-1 font-bold leading-4 text-white border-b border-gray-800 cursor-default bg-general h-11 rounded-tr-3xl">
-            <span>{loggedUser?.firstName}</span>
-            <span>{loggedUser?.secondName}</span>
+            <span>{firstLine}</span>
+            <span>{secondLine}</span>
           </div>
           <div className="px-3 py-2 text-xs text-gray-700 truncate bg-white border-b border-gray-300">
             Тариф: {selectedTariffTitle}

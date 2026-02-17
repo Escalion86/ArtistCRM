@@ -55,8 +55,8 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       [transaction?.type]
     )
     const initialCategory = useMemo(
-      () => transaction?.category ?? 'other',
-      [transaction?.category]
+      () => transaction?.category ?? (initialType === 'income' ? 'final_payment' : 'other'),
+      [transaction?.category, initialType]
     )
     const initialPaymentMethod = useMemo(
       () => transaction?.paymentMethod ?? 'transfer',
@@ -139,7 +139,7 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
     useEffect(() => {
       if (transactionId) return
       if (!selectedEvent?.isTransferred) return
-      if (category === 'other') setCategory('colleague_percent')
+      if (category === 'other') setCategory('referral_in')
       if (type !== 'income') setType('income')
     }, [transactionId, selectedEvent?.isTransferred, category, type])
 

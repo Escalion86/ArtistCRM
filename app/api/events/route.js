@@ -14,9 +14,15 @@ const hasDocuments = (payload) => {
   const receiptLinks = Array.isArray(payload?.receiptLinks)
     ? payload.receiptLinks
     : []
+  const actLinks = Array.isArray(payload?.actLinks) ? payload.actLinks : []
+  const contractLinks = Array.isArray(payload?.contractLinks)
+    ? payload.contractLinks
+    : []
   return (
     invoiceLinks.some((item) => Boolean(item)) ||
-    receiptLinks.some((item) => Boolean(item))
+    receiptLinks.some((item) => Boolean(item)) ||
+    actLinks.some((item) => Boolean(item)) ||
+    contractLinks.some((item) => Boolean(item))
   )
 }
 
@@ -31,6 +37,14 @@ const parseDateValue = (value) => {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+const normalizeWaitDeposit = (value) => Boolean(value)
+const normalizeDepositExpectedAmount = (value) => {
+  if (value === null || value === undefined || value === '') return null
+  const number = Number(value)
+  if (!Number.isFinite(number) || number < 0) return null
+  return Math.floor(number)
+}
+
 const normalizeAdditionalEvents = (items) => {
   if (!Array.isArray(items)) return []
   return items
@@ -41,14 +55,22 @@ const normalizeAdditionalEvents = (items) => {
         typeof item.description === 'string' ? item.description.trim() : ''
       const date = parseDateValue(item.date)
       if (!title && !description && !date) return null
+      const googleCalendarEventId =
+        typeof item.googleCalendarEventId === 'string'
+          ? item.googleCalendarEventId.trim()
+          : ''
+      const done = Boolean(item.done)
       return {
         title,
         description,
         date,
+        done,
+        googleCalendarEventId,
       }
     })
     .filter(Boolean)
 }
+
 
 export const GET = async () => {
   const { tenantId } = await getTenantContext()
@@ -128,6 +150,11 @@ export const POST = async (req) => {
       ? new Date(body.requestCreatedAt)
       : new Date(),
     additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
+    waitDeposit: normalizeWaitDeposit(body.waitDeposit),
+    depositDueAt: parseDateValue(body.depositDueAt),
+    depositExpectedAmount: normalizeDepositExpectedAmount(
+      body.depositExpectedAmount
+    ),
     calendarSyncError: access?.allowCalendarSync ? '' : 'calendar_sync_unavailable',
   })
   await Histories.create({

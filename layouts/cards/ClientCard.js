@@ -7,6 +7,7 @@ import CardButtons from '@components/CardButtons'
 import CardOverlay from '@components/CardOverlay'
 import CardActions from '@components/CardActions'
 import formatDate from '@helpers/formatDate'
+import getPersonFullName from '@helpers/getPersonFullName'
 import { useAtomValue } from 'jotai'
 import CardWrapper from '@components/CardWrapper'
 
@@ -38,7 +39,7 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
         <div className="flex flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="text-base font-semibold text-gray-900">
-              {client.firstName || '-'} {client.secondName || ''}
+              {getPersonFullName(client, { fallback: '-' })}
             </div>
             <div className="text-sm text-gray-500">
               Последняя заявка: {lastRequestLabel}
@@ -65,6 +66,7 @@ ClientCard.propTypes = {
     _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     firstName: PropTypes.string,
     secondName: PropTypes.string,
+    thirdName: PropTypes.string,
     phone: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     requestsCount: PropTypes.number,
     eventsCount: PropTypes.number,

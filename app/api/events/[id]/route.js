@@ -46,6 +46,14 @@ const parseDateValue = (value) => {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+const normalizeWaitDeposit = (value) => Boolean(value)
+const normalizeDepositExpectedAmount = (value) => {
+  if (value === null || value === undefined || value === '') return null
+  const number = Number(value)
+  if (!Number.isFinite(number) || number < 0) return null
+  return Math.floor(number)
+}
+
 const normalizeCancelReason = (value) =>
   typeof value === 'string' ? value.trim() : ''
 
@@ -59,10 +67,17 @@ const normalizeAdditionalEvents = (items) => {
         typeof item.description === 'string' ? item.description.trim() : ''
       const date = parseDateValue(item.date)
       if (!title && !description && !date) return null
+      const googleCalendarEventId =
+        typeof item.googleCalendarEventId === 'string'
+          ? item.googleCalendarEventId.trim()
+          : ''
+      const done = Boolean(item.done)
       return {
         title,
         description,
         date,
+        done,
+        googleCalendarEventId,
       }
     })
     .filter(Boolean)
@@ -83,6 +98,7 @@ const normalizeOtherContacts = (contacts) => {
     .filter(Boolean)
 }
 
+
 const hasDocuments = (payload) => {
   const invoiceLinks = Array.isArray(payload?.invoiceLinks)
     ? payload.invoiceLinks
@@ -90,9 +106,15 @@ const hasDocuments = (payload) => {
   const receiptLinks = Array.isArray(payload?.receiptLinks)
     ? payload.receiptLinks
     : []
+  const actLinks = Array.isArray(payload?.actLinks) ? payload.actLinks : []
+  const contractLinks = Array.isArray(payload?.contractLinks)
+    ? payload.contractLinks
+    : []
   return (
     invoiceLinks.some((item) => Boolean(item)) ||
-    receiptLinks.some((item) => Boolean(item))
+    receiptLinks.some((item) => Boolean(item)) ||
+    actLinks.some((item) => Boolean(item)) ||
+    contractLinks.some((item) => Boolean(item))
   )
 }
 
@@ -122,16 +144,6 @@ export const PUT = async (req, { params }) => {
   if (!access?.allowDocuments && hasDocuments(body)) {
     return NextResponse.json(
       { success: false, error: 'Доступ к документам недоступен' },
-      { status: 403 }
-    )
-  }
-  if (
-    body.calendarImportChecked !== undefined &&
-    Boolean(body.calendarImportChecked) &&
-    !access?.allowCalendarSync
-  ) {
-    return NextResponse.json(
-      { success: false, error: 'Синхронизация с календарем недоступна' },
       { status: 403 }
     )
   }
@@ -193,6 +205,14 @@ export const PUT = async (req, { params }) => {
   }
   if (body.contractSum !== undefined)
     update.contractSum = Number(body.contractSum) || 0
+  if (body.waitDeposit !== undefined)
+    update.waitDeposit = normalizeWaitDeposit(body.waitDeposit)
+  if (body.depositDueAt !== undefined)
+    update.depositDueAt = parseDateValue(body.depositDueAt)
+  if (body.depositExpectedAmount !== undefined)
+    update.depositExpectedAmount = normalizeDepositExpectedAmount(
+      body.depositExpectedAmount
+    )
   if (body.description !== undefined)
     update.description = body.description ?? ''
   if (body.financeComment !== undefined)
@@ -205,13 +225,19 @@ export const PUT = async (req, { params }) => {
     update.receiptLinks = Array.isArray(body.receiptLinks)
       ? body.receiptLinks
       : []
+  if (body.actLinks !== undefined)
+    update.actLinks = Array.isArray(body.actLinks) ? body.actLinks : []
+  if (body.contractLinks !== undefined)
+    update.contractLinks = Array.isArray(body.contractLinks)
+      ? body.contractLinks
+      : []
   if (body.isByContract !== undefined)
     update.isByContract = Boolean(body.isByContract)
   if (body.servicesIds !== undefined)
     update.servicesIds = Array.isArray(body.servicesIds) ? body.servicesIds : []
   if (body.otherContacts !== undefined)
     update.otherContacts = normalizeOtherContacts(body.otherContacts)
-  if (body.calendarImportChecked !== undefined)
+  if (body.calendarImportChecked !== undefined && access?.allowCalendarSync)
     update.calendarImportChecked = Boolean(body.calendarImportChecked)
   if (body.colleagueId !== undefined) update.colleagueId = body.colleagueId
   if (body.isTransferred !== undefined) {
@@ -253,7 +279,7 @@ export const PUT = async (req, { params }) => {
     )
   } else if (event.calendarImportChecked && access?.allowCalendarSync) {
     try {
-      await updateEventInCalendar(event, req, user)
+      await updateEventInCalendar(event, req, user, oldEvent)
       responseEvent = await Events.findByIdAndUpdate(
         event._id,
         { calendarSyncError: '' },

@@ -25,7 +25,7 @@ import {
   faVk,
   faWhatsapp,
 } from '@fortawesome/free-brands-svg-icons'
-import { faChartLine, faCog } from '@fortawesome/free-solid-svg-icons'
+import { faChartLine, faCog, faPlug } from '@fortawesome/free-solid-svg-icons'
 
 const colors = [
   'border-blue-400',
@@ -413,17 +413,20 @@ export const DEFAULT_EVENT = Object.freeze({
   requestCreatedAt: null,
   additionalEvents: [],
   eventDate: null,
-  dateStart: null,
   dateEnd: null,
   otherContacts: [],
   invoiceLinks: [],
   receiptLinks: [],
   actLinks: [],
+  contractLinks: [],
   servicesIds: [],
   address: DEFAULT_ADDRESS,
   status: 'active',
   cancelReason: '',
   contractSum: 0,
+  waitDeposit: false,
+  depositDueAt: null,
+  depositExpectedAmount: null,
   isTransferred: false,
   isByContract: false,
   importedFromCalendar: false,
@@ -442,12 +445,22 @@ export const DEFAULT_EVENT = Object.freeze({
 export const DEFAULT_CLIENT = Object.freeze({
   firstName: '',
   secondName: '',
+  thirdName: '',
   phone: null,
   whatsapp: null,
   telegram: '',
   instagram: '',
   vk: '',
   clientType: 'none',
+  legalName: '',
+  inn: '',
+  kpp: '',
+  ogrn: '',
+  bankName: '',
+  bik: '',
+  checkingAccount: '',
+  correspondentAccount: '',
+  legalAddress: '',
 })
 
 export const CLIENT_TYPES = Object.freeze([
@@ -520,12 +533,17 @@ export const TRANSACTION_TYPES = Object.freeze([
 ])
 
 export const TRANSACTION_CATEGORIES = Object.freeze([
-  { value: 'client_payment', name: 'Оплата клиента', type: 'income' },
-  { value: 'advance', name: 'Задаток', type: 'income' },
+  { value: 'deposit', name: 'Задаток', type: 'income' },
+  { value: 'final_payment', name: 'Остаток оплаты', type: 'income' },
+  { value: 'referral_in', name: 'Рекомендация (входящий %)', type: 'income' },
+  { value: 'referral_out', name: 'Рекомендация (исходящий %)', type: 'expense' },
+  // Legacy categories for backward compatibility
+  { value: 'client_payment', name: 'Оплата клиента (legacy)', type: 'income' },
+  { value: 'advance', name: 'Задаток (legacy)', type: 'income' },
   { value: 'tips', name: 'Чаевые', type: 'income' },
   {
     value: 'colleague_percent',
-    name: 'Процент от коллеги',
+    name: 'Процент от коллеги (legacy)',
     type: 'income',
   },
   { value: 'refund', name: 'Возврат клиенту', type: 'expense' },
@@ -751,6 +769,13 @@ export const pages = [
     name: 'Настройки',
     href: 'settings',
     icon: faCog,
+  },
+  {
+    id: 22,
+    group: 6,
+    name: 'Интеграции',
+    href: 'integrations',
+    icon: faPlug,
   },
   {
     id: 21,

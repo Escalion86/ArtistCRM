@@ -197,7 +197,6 @@ export const PUT = async (req, { params }) => {
     'birthday',
     'gender',
     'images',
-    'town',
     'tariffId',
   ]
 
@@ -220,6 +219,7 @@ export const PUT = async (req, { params }) => {
       if (result?.error) return result.error
     } else {
       Object.assign(update, body)
+      delete update._id
       if (!existing.tenantId) update.tenantId = existing._id
       if (body.phone !== undefined) {
         const normalizedPhone = normalizePhone(body.phone)
@@ -276,6 +276,7 @@ export const PUT = async (req, { params }) => {
     }
 
     Object.assign(update, body)
+    delete update._id
     if (shouldApplyTariff) {
       delete update.tariffId
     }

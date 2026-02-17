@@ -3,7 +3,7 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { List, useListRef } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
-import Button from '@components/Button'
+import AddIconButton from '@components/AddIconButton'
 import ComboBox from '@components/ComboBox'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
@@ -12,11 +12,19 @@ import EventStatusToggleButtons from '@components/IconToggleButtons/EventStatusT
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import eventsAtom from '@state/atoms/eventsAtom'
+import transactionsAtom from '@state/atoms/transactionsAtom'
 // import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom, modalsAtom } from '@state/atoms'
 import EventCard from '@layouts/cards/EventCard'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import {
+  eventHasAdditionalSegment,
+  getAdditionalEventsSummary,
+  getInAppReminderSummary,
+  getSoonNoDepositEvents,
+} from '@helpers/additionalEvents'
+import AppButton from '@components/AppButton'
 
 const ITEM_HEIGHT = 170
 const getStatusFilterDefaults = (filter) => {
@@ -54,7 +62,7 @@ const getEventStatusFlags = (event, now) => {
   const isRequest = status === 'draft'
   const isCanceled = status === 'canceled'
   const isClosed = status === 'closed'
-  const rawEnd = event?.dateEnd ?? event?.eventDate ?? event?.dateStart ?? null
+  const rawEnd = event?.dateEnd ?? event?.eventDate ?? null
   const endDate = rawEnd ? new Date(rawEnd) : null
   const isFinished =
     !isRequest &&
@@ -76,6 +84,7 @@ const getEventStatusFlags = (event, now) => {
 
 const EventsContent = ({ filter = 'all' }) => {
   const events = useAtomValue(eventsAtom)
+  const transactions = useAtomValue(transactionsAtom)
   // const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const modals = useAtomValue(modalsAtom)
@@ -93,6 +102,9 @@ const EventsContent = ({ filter = 'all' }) => {
   const [statusFilter, setStatusFilter] = useState(() =>
     getStatusFilterDefaults(filter)
   )
+  const [additionalQuickFilter, setAdditionalQuickFilter] = useState('')
+  const reminderShownRef = useRef(false)
+  const noDepositReminderShownRef = useRef(false)
   const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
 
   const baseEvents = useMemo(() => {
@@ -149,6 +161,7 @@ const EventsContent = ({ filter = 'all' }) => {
 
   useEffect(() => {
     setStatusFilter(getStatusFilterDefaults(filter))
+    setAdditionalQuickFilter('')
   }, [filter])
 
   const filteredByCheck = useMemo(() => {
@@ -175,14 +188,35 @@ const EventsContent = ({ filter = 'all' }) => {
     })
   }, [filteredByCheck, statusFilter, statusFilterKeys])
 
+  const additionalSummary = useMemo(
+    () => getAdditionalEventsSummary(filteredByStatus),
+    [filteredByStatus]
+  )
+  const inAppReminderSummary = useMemo(
+    () => getInAppReminderSummary(filteredByStatus),
+    [filteredByStatus]
+  )
+  const soonNoDepositEvents = useMemo(
+    () => getSoonNoDepositEvents(filteredByStatus, transactions, new Date(), 3),
+    [filteredByStatus, transactions]
+  )
+
+  const filteredByAdditionalQuick = useMemo(() => {
+    if (!additionalQuickFilter) return filteredByStatus
+    const now = new Date()
+    return filteredByStatus.filter((event) =>
+      eventHasAdditionalSegment(event, additionalQuickFilter, now)
+    )
+  }, [additionalQuickFilter, filteredByStatus])
+
   const sortedEvents = useMemo(() => {
     const sorter = (a, b) => {
       const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0
       const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0
       return filter === 'upcoming' ? dateA - dateB : dateB - dateA
     }
-    return [...filteredByStatus].sort(sorter)
-  }, [filteredByStatus, filter])
+    return [...filteredByAdditionalQuick].sort(sorter)
+  }, [filteredByAdditionalQuick, filter])
 
   useEffect(() => {
     const urlTargetId = searchParams?.get('openEvent')
@@ -322,12 +356,98 @@ const EventsContent = ({ filter = 'all' }) => {
     statusFilterKeys,
   ])
 
+  useEffect(() => {
+    if (filter !== 'upcoming') return
+    if (typeof window === 'undefined') return
+    if (modals.length > 0) return
+    if (inAppReminderSummary.total <= 0) return
+    if (reminderShownRef.current) return
+
+    const dateKey = new Date().toISOString().slice(0, 10)
+    const storageKey = `inAppReminderShown:${dateKey}`
+    const signature = [
+      inAppReminderSummary.overdue,
+      inAppReminderSummary.today,
+      inAppReminderSummary.soon2h,
+    ].join(':')
+    const savedSignature = window.localStorage.getItem(storageKey)
+    if (savedSignature === signature) return
+
+    reminderShownRef.current = true
+    window.localStorage.setItem(storageKey, signature)
+
+    modalsFunc.add({
+      title: 'Напоминания по доп. событиям',
+      text: `Просрочено: ${inAppReminderSummary.overdue}\nСегодня: ${inAppReminderSummary.today}\nВ ближайшие 2 часа: ${inAppReminderSummary.soon2h}`,
+      confirmButtonName: 'Открыть ближайшие события',
+      declineButtonName: 'Позже',
+      showDecline: true,
+      onConfirm: () => modalsFunc.event?.upcomingOverview?.(),
+    })
+  }, [filter, inAppReminderSummary, modals.length, modalsFunc])
+
+  useEffect(() => {
+    if (filter !== 'upcoming') return
+    if (typeof window === 'undefined') return
+    if (modals.length > 0) return
+    if (soonNoDepositEvents.length <= 0) return
+    if (noDepositReminderShownRef.current) return
+
+    const dateKey = new Date().toISOString().slice(0, 10)
+    const storageKey = `noDepositReminderShown:${dateKey}`
+    const signature = soonNoDepositEvents
+      .slice(0, 8)
+      .map((item) => String(item?._id))
+      .join(',')
+    const savedSignature = window.localStorage.getItem(storageKey)
+    if (savedSignature === signature) return
+
+    noDepositReminderShownRef.current = true
+    window.localStorage.setItem(storageKey, signature)
+
+    modalsFunc.add({
+      title: 'Просрочено ожидание задатка',
+      text: `Мероприятий с просроченным ожиданием задатка: ${soonNoDepositEvents.length}`,
+      confirmButtonName: 'Открыть ближайшие события',
+      declineButtonName: 'Позже',
+      showDecline: true,
+      onConfirm: () => modalsFunc.event?.upcomingOverview?.(),
+    })
+  }, [filter, modals.length, modalsFunc, soonNoDepositEvents])
+
   const filterName =
     filter === 'upcoming'
       ? 'Предстоящие'
       : filter === 'past'
         ? 'Прошедшие'
         : 'Все'
+
+  const toggleAdditionalQuickFilter = (value) => {
+    setAdditionalQuickFilter((prev) => (prev === value ? '' : value))
+  }
+
+  const getAdditionalQuickFilterButtonClass = (segment) => {
+    const isActive = additionalQuickFilter === segment
+    if (segment === 'overdue') {
+      return isActive
+        ? 'rounded border-red-700 bg-red-600 text-white hover:bg-red-700'
+        : 'rounded border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
+    }
+    if (segment === 'today') {
+      return isActive
+        ? 'rounded border-amber-700 bg-amber-500 text-white hover:bg-amber-600'
+        : 'rounded border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'
+    }
+    return isActive
+      ? 'rounded border-emerald-700 bg-emerald-600 text-white hover:bg-emerald-700'
+      : 'rounded border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+  }
+
+  useEffect(() => {
+    if (!additionalQuickFilter) return
+    if ((additionalSummary?.[additionalQuickFilter] ?? 0) > 0) return
+    setAdditionalQuickFilter('')
+  }, [additionalQuickFilter, additionalSummary])
 
   const RowComponent = useCallback(
     ({ index, style }) => {
@@ -344,10 +464,10 @@ const EventsContent = ({ filter = 'all' }) => {
   )
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex flex-col h-full gap-4">
       <ContentHeader>
         <HeaderActions
-          className="tablet:flex-nowrap w-full gap-y-2"
+          className="w-full tablet:flex-nowrap gap-y-2"
           leftClassName="min-w-0"
           bottomClassName="w-full tablet:w-auto"
           rightClassName="ml-auto"
@@ -367,7 +487,7 @@ const EventsContent = ({ filter = 'all' }) => {
           }
           bottom={
             filter !== 'all' ? (
-              <div className="tablet:w-auto tablet:flex-nowrap tablet:justify-start tablet:gap-3 flex w-full flex-wrap items-center justify-center gap-2">
+              <div className="flex flex-wrap items-center justify-center w-full gap-2 tablet:w-auto tablet:flex-nowrap tablet:justify-start tablet:gap-3">
                 {hasUncheckedEvents && (
                   <EventCheckToggleButtons
                     value={checkFilter}
@@ -388,22 +508,81 @@ const EventsContent = ({ filter = 'all' }) => {
                 <MutedText>
                   {filterName}: {sortedEvents.length}
                 </MutedText>
-                <MutedText className="tablet:inline hidden">
+                <MutedText className="hidden tablet:inline">
                   Всего: {events.length}
                 </MutedText>
-                <Button
-                  name="+"
-                  collapsing
-                  className="action-icon-button action-icon-button--neutral h-9 w-9 rounded-full text-lg"
+                <AddIconButton
                   disabled={!modalsFunc.event?.create}
                   onClick={() => modalsFunc.event?.create?.()}
+                  title="Добавить мероприятие"
+                  size="sm"
+                  variant="neutral"
                 />
               </div>
             </>
           }
         />
       </ContentHeader>
-      <SectionCard className="min-h-0 flex-1 overflow-hidden border-0 bg-transparent shadow-none">
+      {filter === 'upcoming' || filter === 'past' ? (
+        <SectionCard className="p-3 border border-gray-200 shadow-sm bg-white/95">
+          <div className="flex flex-wrap items-center gap-2">
+            {additionalSummary.overdue > 0 ? (
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className={getAdditionalQuickFilterButtonClass('overdue')}
+                onClick={() => toggleAdditionalQuickFilter('overdue')}
+              >
+                Просрочено: {additionalSummary.overdue}
+              </AppButton>
+            ) : null}
+            {additionalSummary.today > 0 ? (
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className={getAdditionalQuickFilterButtonClass('today')}
+                onClick={() => toggleAdditionalQuickFilter('today')}
+              >
+                Сегодня: {additionalSummary.today}
+              </AppButton>
+            ) : null}
+            {additionalSummary.tomorrow > 0 ? (
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className={getAdditionalQuickFilterButtonClass('tomorrow')}
+                onClick={() => toggleAdditionalQuickFilter('tomorrow')}
+              >
+                Завтра: {additionalSummary.tomorrow}
+              </AppButton>
+            ) : null}
+            {soonNoDepositEvents.length > 0 ? (
+              <AppButton
+                variant="danger"
+                size="sm"
+                className="rounded"
+                onClick={() => modalsFunc.event?.upcomingOverview?.()}
+              >
+                Просрочен задаток: {soonNoDepositEvents.length}
+              </AppButton>
+            ) : null}
+            <div className="flex items-center justify-end flex-1">
+              <AppButton
+                variant="primary"
+                size="sm"
+                className="px-4 font-semibold rounded-md shadow-md"
+                onClick={() => modalsFunc.event?.upcomingOverview?.()}
+              >
+                Ближайшие события
+                {inAppReminderSummary.soon2h > 0
+                  ? ` • 2ч: ${inAppReminderSummary.soon2h}`
+                  : ''}
+              </AppButton>
+            </div>
+          </div>
+        </SectionCard>
+      ) : null}
+      <SectionCard className="flex-1 min-h-0 overflow-hidden bg-transparent border-0 shadow-none">
         {sortedEvents.length > 0 ? (
           <List
             listRef={listRef}

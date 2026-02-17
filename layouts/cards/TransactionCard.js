@@ -10,6 +10,7 @@ import CardStatusBar from '@components/CardStatusBar'
 import { TRANSACTION_CATEGORIES } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
+import getPersonFullName from '@helpers/getPersonFullName'
 import { useAtomValue } from 'jotai'
 import CardWrapper from '@components/CardWrapper'
 
@@ -40,9 +41,7 @@ const TransactionCard = ({
 }) => {
   const loading = useAtomValue(loadingAtom('transaction' + transaction._id))
   const error = useAtomValue(errorAtom('transaction' + transaction._id))
-  const clientName = client
-    ? `${client.firstName || ''} ${client.secondName || ''}`.trim()
-    : '-'
+  const clientName = client ? getPersonFullName(client, { fallback: '-' }) : '-'
 
   const eventTitle =
     formatAddress(event?.address, '') ||

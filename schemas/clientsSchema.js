@@ -105,6 +105,42 @@ const clientsSchema = {
     type: String,
     default: null,
   },
+  legalName: {
+    type: String,
+    default: '',
+  },
+  inn: {
+    type: String,
+    default: '',
+  },
+  kpp: {
+    type: String,
+    default: '',
+  },
+  ogrn: {
+    type: String,
+    default: '',
+  },
+  bankName: {
+    type: String,
+    default: '',
+  },
+  bik: {
+    type: String,
+    default: '',
+  },
+  checkingAccount: {
+    type: String,
+    default: '',
+  },
+  correspondentAccount: {
+    type: String,
+    default: '',
+  },
+  legalAddress: {
+    type: String,
+    default: '',
+  },
 }
 
 export default clientsSchema

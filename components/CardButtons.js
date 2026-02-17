@@ -44,6 +44,11 @@ const MENU_ITEM_TONE = {
     hover: 'hover:bg-green-600 hover:text-white',
     active: 'bg-green-500 text-white',
   },
+  purple: {
+    base: 'bg-white text-purple-600',
+    hover: 'hover:bg-purple-700 hover:text-white',
+    active: 'bg-purple-600 text-white',
+  },
   gray: {
     base: 'bg-white text-gray-500',
     hover: 'hover:bg-gray-600 hover:text-white',
@@ -240,7 +245,7 @@ const CardButtons = ({
         <ItemComponent
           icon={faClockRotateLeft}
           onClick={() => modalsFunc[typeOfItem].history(item._id)}
-          color="blue"
+          color="purple"
           tooltipText="История изменений"
         />
       )}

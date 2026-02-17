@@ -12,6 +12,17 @@ const TRANSACTION_PAYMENT_METHODS = new Set([
   'cash',
   'barter',
 ])
+const CATEGORY_ALIASES = {
+  advance: 'deposit',
+  client_payment: 'final_payment',
+  colleague_percent: 'referral_in',
+}
+
+const normalizeCategory = (value) => {
+  const raw = typeof value === 'string' ? value.trim() : ''
+  if (!raw) return 'other'
+  return CATEGORY_ALIASES[raw] || raw
+}
 
 export const PUT = async (req, { params }) => {
   const { id } = await params
@@ -30,7 +41,7 @@ export const PUT = async (req, { params }) => {
   if (body.date !== undefined) update.date = body.date ? new Date(body.date) : new Date()
   if (body.comment !== undefined) update.comment = body.comment ?? ''
   if (body.type && TRANSACTION_TYPES.has(body.type)) update.type = body.type
-  if (body.category !== undefined) update.category = body.category ?? ''
+  if (body.category !== undefined) update.category = normalizeCategory(body.category)
   if (
     body.paymentMethod &&
     TRANSACTION_PAYMENT_METHODS.has(body.paymentMethod)
