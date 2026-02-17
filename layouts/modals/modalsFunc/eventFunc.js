@@ -40,8 +40,9 @@ import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import ServiceMultiSelect from '@components/ServiceMultiSelect'
 import serviceFunc from './serviceFunc'
 import servicesAtom from '@state/atoms/servicesAtom'
-import generateContractTemplate from '@helpers/generateContractTemplate'
-import exportContractTemplateDocx from '@helpers/exportContractTemplateDocx'
+import { getContractTemplateVariablesMap } from '@helpers/generateContractTemplate'
+import { getActTemplateVariablesMap } from '@helpers/generateActTemplate'
+import exportDocxFromTemplate from '@helpers/exportDocxFromTemplate'
 import getPersonFullName from '@helpers/getPersonFullName'
 
 const normalizeAddressValue = (rawAddress) => {
@@ -106,6 +107,21 @@ const normalizeAdditionalEvents = (items) => {
       }
     })
     .filter(Boolean)
+}
+
+const DEFAULT_CONTRACT_DOCX_TEMPLATE_URL =
+  '/templates/default-contract-template.docx'
+const DEFAULT_ACT_DOCX_TEMPLATE_URL = '/templates/default-act-template.docx'
+
+const arrayBufferToBase64 = (buffer) => {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize)
+    binary += String.fromCharCode(...chunk)
+  }
+  return window.btoa(binary)
 }
 
 const eventFunc = (eventId, clone = false, initialStatus = null) => {
@@ -751,7 +767,43 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           ),
       [additionalEvents, showDoneAdditionalEvents]
     )
-    const buildContractTemplateText = useCallback(
+    const hasRequiredArtistRequisites = (settings) => {
+      const custom = settings?.custom ?? {}
+      const artistStatus =
+        custom?.contractArtistStatus === 'self_employed'
+          ? 'self_employed'
+          : 'individual_entrepreneur'
+      const hasCommonFields = Boolean(
+        String(custom?.contractArtistFullName ?? '').trim() &&
+          String(custom?.contractArtistName ?? '').trim() &&
+          String(custom?.contractArtistInn ?? '').trim() &&
+          String(custom?.contractArtistBankName ?? '').trim() &&
+          String(custom?.contractArtistBik ?? '').trim() &&
+          String(custom?.contractArtistCheckingAccount ?? '').trim() &&
+          String(custom?.contractArtistCorrespondentAccount ?? '').trim() &&
+          String(custom?.contractArtistLegalAddress ?? '').trim()
+      )
+      if (!hasCommonFields) return false
+      if (artistStatus === 'self_employed') return true
+      return Boolean(String(custom?.contractArtistOgrnip ?? '').trim())
+    }
+    const hasRequiredClientRequisites = (client) => {
+      if (!client) return false
+      const hasName = Boolean(
+        String(client?.legalName ?? '').trim() ||
+          getPersonFullName(client, { fallback: '' }).trim()
+      )
+      return Boolean(
+        hasName &&
+          String(client?.inn ?? '').trim() &&
+          String(client?.bankName ?? '').trim() &&
+          String(client?.bik ?? '').trim() &&
+          String(client?.checkingAccount ?? '').trim() &&
+          String(client?.correspondentAccount ?? '').trim() &&
+          String(client?.legalAddress ?? '').trim()
+      )
+    }
+    const buildContractTemplateVariables = useCallback(
       (
         documentNumber,
         contractDate,
@@ -759,7 +811,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         requisitesSidesMode = 'preview',
         currentClient = selectedClient
       ) =>
-        generateContractTemplate({
+        getContractTemplateVariablesMap({
           event: {
             ...event,
             eventDate,
@@ -769,7 +821,6 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           client: currentClient,
           serviceTitles: selectedServiceTitles,
           performerName: getPersonFullName(loggedUser),
-          template: currentSettings?.custom?.contractTemplate ?? '',
           contractMeta: {
             defaultTown: currentSettings?.defaultTown ?? '',
             artistFullName:
@@ -805,6 +856,86 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         selectedServiceTitles,
         siteSettings,
       ]
+    )
+    const buildActTemplateVariables = useCallback(
+      (
+        documentNumber,
+        actDate,
+        currentSettings = siteSettings,
+        requisitesSidesMode = 'preview',
+        currentClient = selectedClient
+      ) =>
+        getActTemplateVariablesMap({
+          event: {
+            ...event,
+            eventDate,
+            contractSum,
+            address: normalizeAddressValue(address),
+          },
+          client: currentClient,
+          serviceTitles: selectedServiceTitles,
+          performerName: getPersonFullName(loggedUser),
+          actMeta: {
+            defaultTown: currentSettings?.defaultTown ?? '',
+            artistFullName:
+              currentSettings?.custom?.contractArtistFullName ?? '',
+            artistName: currentSettings?.custom?.contractArtistName ?? '',
+            artistStatus:
+              currentSettings?.custom?.contractArtistStatus ??
+              'individual_entrepreneur',
+            artistOgrnip: currentSettings?.custom?.contractArtistOgrnip ?? '',
+            artistInn: currentSettings?.custom?.contractArtistInn ?? '',
+            artistBankName:
+              currentSettings?.custom?.contractArtistBankName ?? '',
+            artistBik: currentSettings?.custom?.contractArtistBik ?? '',
+            artistCheckingAccount:
+              currentSettings?.custom?.contractArtistCheckingAccount ?? '',
+            artistCorrespondentAccount:
+              currentSettings?.custom?.contractArtistCorrespondentAccount ?? '',
+            artistLegalAddress:
+              currentSettings?.custom?.contractArtistLegalAddress ?? '',
+            documentNumber: documentNumber ? String(documentNumber) : '',
+            nextDocumentNumber: documentNumber ? Number(documentNumber) : null,
+            contractDate: actDate || '',
+            actDate: actDate || '',
+            requisitesSidesMode,
+          },
+        }),
+      [
+        address,
+        contractSum,
+        event,
+        eventDate,
+        loggedUser,
+        selectedClient,
+        selectedServiceTitles,
+        siteSettings,
+      ]
+    )
+    const formatDateForDocFileName = (value) => {
+      if (!value) return ''
+      const str = String(value)
+      const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+      if (isoMatch) return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) return str
+      const dd = String(date.getDate()).padStart(2, '0')
+      const mm = String(date.getMonth() + 1).padStart(2, '0')
+      const yyyy = date.getFullYear()
+      return `${dd}.${mm}.${yyyy}`
+    }
+
+    const getDocxTemplateBase64 = useCallback(
+      async (customTemplateBase64, defaultTemplateUrl) => {
+        if (customTemplateBase64) return customTemplateBase64
+        const response = await fetch(defaultTemplateUrl, { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error(`Не найден шаблон DOCX: ${defaultTemplateUrl}`)
+        }
+        const arrayBuffer = await response.arrayBuffer()
+        return arrayBufferToBase64(arrayBuffer)
+      },
+      []
     )
 
     const townOptions = useMemo(() => {
@@ -1212,13 +1343,6 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             ) ?? null,
           [liveClients]
         )
-        const templateText = buildContractTemplateText(
-          contractNumber,
-          contractDate,
-          liveSiteSettings,
-          'preview',
-          liveSelectedClient
-        )
 
         useEffect(() => {
           numberRef.current = contractNumber
@@ -1232,29 +1356,53 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         useEffect(() => {
           clientRef.current = liveSelectedClient
         }, [liveSelectedClient])
+        const hasArtistRequisites = hasRequiredArtistRequisites(liveSiteSettings)
+        const hasClientRequisites = hasRequiredClientRequisites(liveSelectedClient)
+        const showRequisitesWarning = !hasArtistRequisites || !hasClientRequisites
 
         return (
           <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-2 rounded border border-red-200 bg-red-50/80 px-3 py-2">
-              <div className="text-xs text-red-700">
-                Необходимо заполнить реквизиты в карточке клиента
+            {showRequisitesWarning ? (
+              <div className="flex flex-col gap-2 rounded border border-red-200 bg-red-50/80 px-3 py-2">
+                {!hasArtistRequisites ? (
+                  <div className="text-xs text-red-700">
+                    Необходимо заполнить реквизиты артиста
+                  </div>
+                ) : null}
+                {!hasClientRequisites ? (
+                  <div className="text-xs text-red-700">
+                    Необходимо заполнить реквизиты в карточке клиента
+                  </div>
+                ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  {!hasArtistRequisites ? (
+                    <AppButton
+                      variant="danger"
+                      size="sm"
+                      className="rounded"
+                      onClick={() => modalsFunc.settings?.artistRequisitesEditor?.()}
+                    >
+                      Редактировать реквизиты
+                    </AppButton>
+                  ) : null}
+                  {!hasClientRequisites ? (
+                    <AppButton
+                      variant="danger"
+                      size="sm"
+                      className="rounded"
+                      disabled={!liveSelectedClient?._id}
+                      onClick={() =>
+                        liveSelectedClient?._id
+                          ? modalsFunc.client?.edit(liveSelectedClient._id)
+                          : null
+                      }
+                    >
+                      Редактировать клиента
+                    </AppButton>
+                  ) : null}
+                </div>
               </div>
-              <div>
-                <AppButton
-                  variant="danger"
-                  size="sm"
-                  className="rounded"
-                  disabled={!liveSelectedClient?._id}
-                  onClick={() =>
-                    liveSelectedClient?._id
-                      ? modalsFunc.client?.edit(liveSelectedClient._id)
-                      : null
-                  }
-                >
-                  Редактировать клиента
-                </AppButton>
-              </div>
-            </div>
+            ) : null}
             <div className="flex items-end justify-between gap-2">
               <div className="mt-1.5 flex items-end gap-2">
                 <Input
@@ -1276,43 +1424,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   className="w-[150px]"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <AppButton
-                  variant="secondary"
-                  size="sm"
-                  className="rounded cursor-pointer"
-                  onClick={() =>
-                    modalsFunc.settings?.contractTemplateEditor?.()
-                  }
-                >
-                  Редактор шаблона договора
-                </AppButton>
-              </div>
             </div>
-            <pre className="max-h-[65dvh] overflow-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs leading-5 whitespace-pre-wrap text-gray-800">
-              {templateText}
-            </pre>
-            <button
-              type="button"
-              className="px-3 py-1 text-xs font-semibold text-gray-700 transition border border-gray-300 rounded cursor-pointer hover:bg-gray-50"
-              onClick={async () => {
-                if (!navigator?.clipboard) return
-                navigator.clipboard.writeText(templateText)
-                await updateLastContractNumber(contractNumber)
-              }}
-            >
-              Скопировать текст
-            </button>
           </div>
         )
       }
-      const clientName = getPersonFullName(selectedClient, {
-        separator: '_',
-        fallback: 'client',
-      })
-      const contractFileName = `dogovor_${clientName || 'client'}_${new Date()
-        .toISOString()
-        .slice(0, 10)}.docx`
       modalsFunc.add({
         title: 'Шаблон договора',
         confirmButtonName: 'Скачать Word (.docx)',
@@ -1321,17 +1436,194 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         onConfirm: async () => {
           const contractNumber = numberRef.current
           const contractDate = dateRef.current
-          const text = buildContractTemplateText(
+          const contractFileName = `Договор №${String(contractNumber || '').trim() || '1'} от ${formatDateForDocFileName(contractDate) || formatDateForDocFileName(new Date())}.docx`
+          const customTemplateBase64 =
+            settingsRef.current?.custom?.contractDocxTemplateBase64 ?? ''
+          const templateBase64 = await getDocxTemplateBase64(
+            customTemplateBase64,
+            DEFAULT_CONTRACT_DOCX_TEMPLATE_URL
+          )
+          const variables = buildContractTemplateVariables(
             contractNumber,
             contractDate,
             settingsRef.current,
             'docx',
             clientRef.current
           )
-          await exportContractTemplateDocx(text, contractFileName)
+          await exportDocxFromTemplate({
+            templateBase64,
+            fileName: contractFileName,
+            variables,
+          })
           await updateLastContractNumber(contractNumber)
         },
         Children: ContractTemplatePreview,
+      })
+    }
+
+    const openActTemplateModal = () => {
+      const settingsRef = { current: siteSettings }
+      const currentLastNumber = Number(siteSettings?.custom?.actLastNumber)
+      const nextDefaultNumber =
+        Number.isFinite(currentLastNumber) && currentLastNumber > 0
+          ? currentLastNumber + 1
+          : 1
+      const now = new Date()
+      const defaultActDate = `${now.getFullYear()}-${String(
+        now.getMonth() + 1
+      ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      const numberRef = { current: String(nextDefaultNumber) }
+      const dateRef = { current: defaultActDate }
+      const clientRef = { current: selectedClient }
+
+      const updateLastActNumber = async (value) => {
+        const parsed = Number(String(value ?? '').trim())
+        if (!Number.isFinite(parsed) || parsed <= 0) return
+        const currentSettings = settingsRef.current
+        const previous = Number(currentSettings?.custom?.actLastNumber)
+        if (Number.isFinite(previous) && previous >= parsed) return
+        await postData(
+          '/api/site',
+          {
+            custom: {
+              ...(currentSettings?.custom ?? {}),
+              actLastNumber: parsed,
+            },
+          },
+          (data) => setSiteSettings(data),
+          null,
+          false,
+          loggedUser?._id
+        )
+      }
+
+      const ActTemplatePreview = () => {
+        const liveSiteSettings = useAtomValue(siteSettingsAtom)
+        const liveClients = useAtomValue(clientsAtom)
+        const [actNumber, setActNumber] = useState(String(nextDefaultNumber))
+        const [actDate, setActDate] = useState(defaultActDate)
+        const liveSelectedClient = useMemo(
+          () =>
+            (liveClients ?? []).find(
+              (item) => String(item?._id) === String(clientId)
+            ) ?? null,
+          [liveClients]
+        )
+
+        useEffect(() => {
+          numberRef.current = actNumber
+        }, [actNumber])
+        useEffect(() => {
+          dateRef.current = actDate
+        }, [actDate])
+        useEffect(() => {
+          settingsRef.current = liveSiteSettings
+        }, [liveSiteSettings])
+        useEffect(() => {
+          clientRef.current = liveSelectedClient
+        }, [liveSelectedClient])
+        const hasArtistRequisites = hasRequiredArtistRequisites(liveSiteSettings)
+        const hasClientRequisites = hasRequiredClientRequisites(liveSelectedClient)
+        const showRequisitesWarning = !hasArtistRequisites || !hasClientRequisites
+
+        return (
+          <div className="flex flex-col gap-2">
+            {showRequisitesWarning ? (
+              <div className="flex flex-col gap-2 rounded border border-red-200 bg-red-50/80 px-3 py-2">
+                {!hasArtistRequisites ? (
+                  <div className="text-xs text-red-700">
+                    Необходимо заполнить реквизиты артиста
+                  </div>
+                ) : null}
+                {!hasClientRequisites ? (
+                  <div className="text-xs text-red-700">
+                    Необходимо заполнить реквизиты в карточке клиента
+                  </div>
+                ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  {!hasArtistRequisites ? (
+                    <AppButton
+                      variant="danger"
+                      size="sm"
+                      className="rounded"
+                      onClick={() => modalsFunc.settings?.artistRequisitesEditor?.()}
+                    >
+                      Редактировать реквизиты
+                    </AppButton>
+                  ) : null}
+                  {!hasClientRequisites ? (
+                    <AppButton
+                      variant="danger"
+                      size="sm"
+                      className="rounded"
+                      disabled={!liveSelectedClient?._id}
+                      onClick={() =>
+                        liveSelectedClient?._id
+                          ? modalsFunc.client?.edit(liveSelectedClient._id)
+                          : null
+                      }
+                    >
+                      Редактировать клиента
+                    </AppButton>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+            <div className="flex items-end justify-between gap-2">
+              <div className="mt-1.5 flex items-end gap-2">
+                <Input
+                  label="№ акта"
+                  value={actNumber}
+                  onChange={setActNumber}
+                  type="number"
+                  min={1}
+                  noMargin
+                  className="w-[104px]"
+                  inputClassName="hide-number-spin w-[35px]"
+                />
+                <Input
+                  label="Дата акта"
+                  value={actDate}
+                  onChange={setActDate}
+                  type="date"
+                  noMargin
+                  className="w-[150px]"
+                />
+              </div>
+            </div>
+          </div>
+        )
+      }
+      modalsFunc.add({
+        title: 'Шаблон акта',
+        confirmButtonName: 'Скачать Word (.docx)',
+        declineButtonName: 'Закрыть',
+        showDecline: true,
+        onConfirm: async () => {
+          const actNumber = numberRef.current
+          const actDate = dateRef.current
+          const actFileName = `Акт №${String(actNumber || '').trim() || '1'} от ${formatDateForDocFileName(actDate) || formatDateForDocFileName(new Date())}.docx`
+          const customTemplateBase64 =
+            settingsRef.current?.custom?.actDocxTemplateBase64 ?? ''
+          const templateBase64 = await getDocxTemplateBase64(
+            customTemplateBase64,
+            DEFAULT_ACT_DOCX_TEMPLATE_URL
+          )
+          const variables = buildActTemplateVariables(
+            actNumber,
+            actDate,
+            settingsRef.current,
+            'docx',
+            clientRef.current
+          )
+          await exportDocxFromTemplate({
+            templateBase64,
+            fileName: actFileName,
+            variables,
+          })
+          await updateLastActNumber(actNumber)
+        },
+        Children: ActTemplatePreview,
       })
     }
 
@@ -1673,7 +1965,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               noMargin
             />
             {isByContract && (
-              <div className="flex">
+              <div className="flex flex-wrap items-center gap-2">
                 <AppButton
                   variant="secondary"
                   size="sm"
@@ -1681,6 +1973,14 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   onClick={openContractTemplateModal}
                 >
                   Сформировать договор
+                </AppButton>
+                <AppButton
+                  variant="secondary"
+                  size="sm"
+                  className="rounded"
+                  onClick={openActTemplateModal}
+                >
+                  Сформировать акт
                 </AppButton>
               </div>
             )}

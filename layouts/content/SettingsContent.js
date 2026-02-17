@@ -40,12 +40,19 @@ const TIME_ZONE_OPTIONS = [
   { value: 'Asia/Kamchatka', name: 'UTC+12 Камчатка' },
 ]
 
+const DEFAULT_CONTRACT_TEMPLATE_DOWNLOAD_URL =
+  '/templates/default-contract-template.docx'
+const DEFAULT_ACT_TEMPLATE_DOWNLOAD_URL =
+  '/templates/default-act-template.docx'
+
 const SettingsContent = () => {
   const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const [darkTheme, setDarkTheme] = useState(false)
   const [defaultEventDuration, setDefaultEventDuration] = useState(60)
   const durationTimeoutRef = useRef(null)
+  const contractTemplateInputRef = useRef(null)
+  const actTemplateInputRef = useRef(null)
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme')
@@ -98,6 +105,48 @@ const SettingsContent = () => {
       }
     }
   }, [defaultEventDuration, setSiteSettings, siteSettings])
+
+  const readFileAsBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = String(reader.result ?? '')
+        const [, payload = ''] = result.split(',')
+        resolve(payload || '')
+      }
+      reader.onerror = () => reject(new Error('Ошибка чтения файла'))
+      reader.readAsDataURL(file)
+    })
+
+  const saveDocxTemplate = async (type, file) => {
+    if (!file) return
+    if (
+      file.type !==
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ) {
+      return
+    }
+    const base64 = await readFileAsBase64(file)
+    const prevCustom = siteSettings?.custom ?? {}
+    const nextCustom = {
+      ...prevCustom,
+    }
+    if (type === 'contract') {
+      nextCustom.contractDocxTemplateBase64 = base64
+      nextCustom.contractDocxTemplateFileName = file.name
+    } else {
+      nextCustom.actDocxTemplateBase64 = base64
+      nextCustom.actDocxTemplateFileName = file.name
+    }
+    await postData(
+      '/api/site',
+      { custom: nextCustom },
+      (data) => setSiteSettings(data),
+      null,
+      false,
+      null
+    )
+  }
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -170,15 +219,94 @@ const SettingsContent = () => {
             </button>
           </div>
         </InputWrapper>
-        <div className="flex w-full justify-end">
-          <button
-            type="button"
-            className="action-icon-button action-icon-button--warning flex h-10 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
-            onClick={() => modalsFunc.settings?.contractTemplateEditor?.()}
-          >
-            Редактор шаблона договора
-          </button>
-        </div>
+        <InputWrapper label="Работа с документами" fullWidth>
+          <div className="flex w-full flex-col gap-3">
+            <div className="flex w-full flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--warning flex h-10 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+                onClick={() => modalsFunc.settings?.artistRequisitesEditor?.()}
+              >
+                Редактировать реквизиты
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+              <div className="rounded border border-gray-200 p-3">
+                <div className="text-sm font-semibold text-gray-800">
+                  DOCX-шаблон договора
+                </div>
+                <div className="mt-1 text-xs text-gray-500">
+                  Текущий:{' '}
+                  {customSettings?.contractDocxTemplateFileName ||
+                    'не загружен'}
+                </div>
+                <input
+                  ref={contractTemplateInputRef}
+                  type="file"
+                  accept=".docx"
+                  className="hidden"
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0]
+                    await saveDocxTemplate('contract', file)
+                    event.target.value = ''
+                  }}
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="action-icon-button action-icon-button--warning flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                    onClick={() => contractTemplateInputRef.current?.click()}
+                  >
+                    Загрузить .docx
+                  </button>
+                  <a
+                    href={DEFAULT_CONTRACT_TEMPLATE_DOWNLOAD_URL}
+                    download
+                    className="action-icon-button action-icon-button--warning inline-flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                  >
+                    Скачать стандартный шаблон
+                  </a>
+                </div>
+              </div>
+              <div className="rounded border border-gray-200 p-3">
+                <div className="text-sm font-semibold text-gray-800">
+                  DOCX-шаблон акта
+                </div>
+                <div className="mt-1 text-xs text-gray-500">
+                  Текущий:{' '}
+                  {customSettings?.actDocxTemplateFileName || 'не загружен'}
+                </div>
+                <input
+                  ref={actTemplateInputRef}
+                  type="file"
+                  accept=".docx"
+                  className="hidden"
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0]
+                    await saveDocxTemplate('act', file)
+                    event.target.value = ''
+                  }}
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="action-icon-button action-icon-button--warning flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                    onClick={() => actTemplateInputRef.current?.click()}
+                  >
+                    Загрузить .docx
+                  </button>
+                  <a
+                    href={DEFAULT_ACT_TEMPLATE_DOWNLOAD_URL}
+                    download
+                    className="action-icon-button action-icon-button--warning inline-flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                  >
+                    Скачать стандартный шаблон
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </InputWrapper>
       </SectionCard>
     </div>
   )

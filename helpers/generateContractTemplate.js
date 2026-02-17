@@ -6,6 +6,8 @@ import getPersonFullName from '@helpers/getPersonFullName'
 const EMPTY_VALUE = '____________'
 const PARTIES_TABLES_MARKER_PREFIX = '[[PARTIES_TABLES:'
 const PARTIES_TABLES_MARKER_SUFFIX = ']]'
+const SIGNATURES_TABLE_MARKER_PREFIX = '[[SIGNATURES_TABLE:'
+const SIGNATURES_TABLE_MARKER_SUFFIX = ']]'
 
 const clean = (value, fallback = EMPTY_VALUE) => {
   if (value === null || value === undefined) return fallback
@@ -211,6 +213,7 @@ const CONTRACT_TEMPLATE_VARIABLES = [
   'КОРР СЧЕТ',
   'ЮР АДРЕС',
   'РЕКВИЗИТЫ СТОРОН',
+  'ПОДПИСИ СТОРОН',
   'БАНК АРТИСТА',
   'БИК АРТИСТА',
   'РАСЧЕТНЫЙ СЧЕТ АРТИСТА',
@@ -291,15 +294,6 @@ const DEFAULT_CONTRACT_TEMPLATE = `ДОГОВОР ОКАЗАНИЯ УСЛУГ П
 9. АДРЕСА И РЕКВИЗИТЫ СТОРОН
 {РЕКВИЗИТЫ СТОРОН}`
 
-const encodePartiesTablesMarker = (value) => {
-  try {
-    const payload = encodeURIComponent(JSON.stringify(value))
-    return `${PARTIES_TABLES_MARKER_PREFIX}${payload}${PARTIES_TABLES_MARKER_SUFFIX}`
-  } catch (error) {
-    return ''
-  }
-}
-
 const buildPartiesRequisitesText = ({
   performerSignatory,
   performerRows,
@@ -313,6 +307,58 @@ const buildPartiesRequisitesText = ({
     `Заказчик: ${clientLegalName}`,
     ...clientRows.map(({ key, value }) => `${key}: ${value}`),
   ].join('\n')
+
+const encodePartiesTablesMarker = (value) => {
+  try {
+    const payload = encodeURIComponent(JSON.stringify(value))
+    return `${PARTIES_TABLES_MARKER_PREFIX}${payload}${PARTIES_TABLES_MARKER_SUFFIX}`
+  } catch (error) {
+    return ''
+  }
+}
+
+const encodeSignaturesTableMarker = (value) => {
+  try {
+    const payload = encodeURIComponent(JSON.stringify(value))
+    return `${SIGNATURES_TABLE_MARKER_PREFIX}${payload}${SIGNATURES_TABLE_MARKER_SUFFIX}`
+  } catch (error) {
+    return ''
+  }
+}
+
+const toSurnameWithInitials = (fullName) => {
+  const value = String(fullName ?? '').trim()
+  if (!value || value === EMPTY_VALUE) return EMPTY_VALUE
+  const parts = value.split(/\s+/).filter(Boolean)
+  if (parts.length < 2) return value
+  const surname = parts[0]
+  const firstInitial = parts[1]?.[0] ? `${parts[1][0]}.` : ''
+  const secondInitial = parts[2]?.[0] ? `${parts[2][0]}.` : ''
+  return `${surname} ${firstInitial}${secondInitial}`.trim()
+}
+
+const buildPartiesSignaturesText = ({
+  performerFullName,
+  clientFullName,
+  mode = 'preview',
+}) => {
+  const performerSignature = `${toSurnameWithInitials(performerFullName)} _______________`
+  const clientSignature = `${toSurnameWithInitials(clientFullName)} _______________`
+
+  if (mode === 'docx') {
+    return encodeSignaturesTableMarker({
+      leftTitle: 'Исполнитель',
+      rightTitle: 'Заказчик',
+      leftValue: performerSignature,
+      rightValue: clientSignature,
+    })
+  }
+
+  return [
+    `Исполнитель: ${performerSignature}`,
+    `Заказчик: ${clientSignature}`,
+  ].join('\n')
+}
 
 const buildAutoDocumentNumber = (event, contractMeta) => {
   const manualNumber = clean(contractMeta?.documentNumber, '')
@@ -482,6 +528,11 @@ const buildContractVariables = ({
     'КОРР СЧЕТ': clean(client?.correspondentAccount, EMPTY_VALUE),
     'ЮР АДРЕС': clean(client?.legalAddress, EMPTY_VALUE),
     'РЕКВИЗИТЫ СТОРОН': partiesTablesValue,
+    'ПОДПИСИ СТОРОН': buildPartiesSignaturesText({
+      performerFullName,
+      clientFullName: getClientName(client),
+      mode: requisitesSidesMode,
+    }),
     'НАИМЕНОВАНИЕ КЛИЕНТА (КРАТКО)': getClientLegalName(client),
     'БАНК АРТИСТА': performerBank,
     'БИК АРТИСТА': performerBik,
@@ -530,5 +581,24 @@ const generateContractTemplate = ({
   return replaceTemplateVariables(template, variables)
 }
 
-export { DEFAULT_CONTRACT_TEMPLATE, CONTRACT_TEMPLATE_VARIABLES }
+const getContractTemplateVariablesMap = ({
+  event,
+  client,
+  serviceTitles = [],
+  performerName = '',
+  contractMeta = {},
+}) =>
+  buildContractVariables({
+    event,
+    client,
+    serviceTitles,
+    performerName,
+    contractMeta,
+  })
+
+export {
+  DEFAULT_CONTRACT_TEMPLATE,
+  CONTRACT_TEMPLATE_VARIABLES,
+  getContractTemplateVariablesMap,
+}
 export default generateContractTemplate

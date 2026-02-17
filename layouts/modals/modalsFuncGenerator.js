@@ -13,7 +13,7 @@ import upcomingEventsOverviewFunc from './modalsFunc/upcomingEventsOverviewFunc'
 import transactionFunc from './modalsFunc/transactionFunc'
 import eventsTagsFunc from './modalsFunc/eventsTagsFunc'
 import townsFunc from './modalsFunc/townsFunc'
-import contractTemplateEditorFunc from './modalsFunc/contractTemplateEditorFunc'
+import artistRequisitesEditorFunc from './modalsFunc/artistRequisitesEditorFunc'
 import jsonFunc from './modalsFunc/jsonFunc'
 // import questionnaireConstructorFunc from './modalsFunc/questionnaireConstructorFunc'
 import selectEventsFunc from './modalsFunc/selectEventsFunc'
@@ -167,7 +167,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
     },
     settings: {
       towns: () => addModal(townsFunc()),
-      contractTemplateEditor: () => addModal(contractTemplateEditorFunc()),
+      artistRequisitesEditor: () => addModal(artistRequisitesEditorFunc()),
     },
     transaction: {
       add: (eventId, props) =>
