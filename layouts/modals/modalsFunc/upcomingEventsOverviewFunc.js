@@ -204,17 +204,17 @@ const upcomingEventsOverviewFunc = () => {
                         <AppButton
                           size="sm"
                           variant="secondary"
-                          className="rounded"
+                          className="w-full rounded tablet:w-auto"
                           onClick={() => openEvent(item.eventId)}
                         >
                           Открыть мероприятие
                         </AppButton>
                       </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="mt-2 grid grid-cols-2 items-center gap-2 tablet:flex tablet:flex-wrap">
                         <AppButton
                           size="sm"
                           variant="primary"
-                          className="rounded"
+                          className="w-full rounded tablet:w-auto"
                           disabled={savingKey === `${item.eventId}-${item.index}`}
                           onClick={() =>
                             markAdditionalEventDone(item.eventId, item.index)
@@ -225,7 +225,7 @@ const upcomingEventsOverviewFunc = () => {
                         <AppButton
                           size="sm"
                           variant="secondary"
-                          className="rounded"
+                          className="w-full rounded tablet:w-auto"
                           disabled={savingKey === `${item.eventId}-${item.index}`}
                           onClick={() =>
                             shiftAdditionalEventDate(item.eventId, item.index, 1)
@@ -236,7 +236,7 @@ const upcomingEventsOverviewFunc = () => {
                         <AppButton
                           size="sm"
                           variant="secondary"
-                          className="rounded"
+                          className="w-full rounded tablet:w-auto"
                           disabled={savingKey === `${item.eventId}-${item.index}`}
                           onClick={() =>
                             shiftAdditionalEventDate(item.eventId, item.index, 3)
@@ -246,7 +246,7 @@ const upcomingEventsOverviewFunc = () => {
                         </AppButton>
                         <input
                           type="datetime-local"
-                          className="h-8 rounded border border-gray-300 px-2 text-xs text-gray-800 outline-none focus:border-general"
+                          className="col-span-2 h-9 w-full rounded border border-gray-300 px-2 text-sm text-gray-800 outline-none focus:border-general tablet:col-span-1 tablet:w-auto"
                           value={
                             customDates[`${item.eventId}-${item.index}`] ??
                             toDateTimeLocalValue(item.date)
@@ -261,7 +261,7 @@ const upcomingEventsOverviewFunc = () => {
                         <AppButton
                           size="sm"
                           variant="primary"
-                          className="rounded"
+                          className="col-span-2 w-full rounded tablet:col-span-1 tablet:w-auto"
                           disabled={savingKey === `${item.eventId}-${item.index}`}
                           onClick={() => applyCustomDate(item.eventId, item.index)}
                         >
@@ -313,7 +313,7 @@ const upcomingEventsOverviewFunc = () => {
                     <AppButton
                       size="sm"
                       variant="secondary"
-                      className="rounded"
+                      className="w-full rounded tablet:w-auto"
                       onClick={() => openEvent(event._id)}
                     >
                       Открыть мероприятие

@@ -756,7 +756,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         documentNumber,
         contractDate,
         currentSettings = siteSettings,
-        requisitesSidesMode = 'preview'
+        requisitesSidesMode = 'preview',
+        currentClient = selectedClient
       ) =>
         generateContractTemplate({
           event: {
@@ -765,7 +766,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             contractSum,
             address: normalizeAddressValue(address),
           },
-          client: selectedClient,
+          client: currentClient,
           serviceTitles: selectedServiceTitles,
           performerName: getPersonFullName(loggedUser),
           template: currentSettings?.custom?.contractTemplate ?? '',
@@ -1174,6 +1175,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
       const numberRef = { current: String(nextDefaultNumber) }
       const dateRef = { current: defaultContractDate }
+      const clientRef = { current: selectedClient }
 
       const updateLastContractNumber = async (value) => {
         const parsed = Number(String(value ?? '').trim())
@@ -1198,14 +1200,24 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
 
       const ContractTemplatePreview = () => {
         const liveSiteSettings = useAtomValue(siteSettingsAtom)
+        const liveClients = useAtomValue(clientsAtom)
         const [contractNumber, setContractNumber] = useState(
           String(nextDefaultNumber)
         )
         const [contractDate, setContractDate] = useState(defaultContractDate)
+        const liveSelectedClient = useMemo(
+          () =>
+            (liveClients ?? []).find(
+              (item) => String(item?._id) === String(clientId)
+            ) ?? null,
+          [liveClients]
+        )
         const templateText = buildContractTemplateText(
           contractNumber,
           contractDate,
-          liveSiteSettings
+          liveSiteSettings,
+          'preview',
+          liveSelectedClient
         )
 
         useEffect(() => {
@@ -1217,9 +1229,32 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         useEffect(() => {
           settingsRef.current = liveSiteSettings
         }, [liveSiteSettings])
+        useEffect(() => {
+          clientRef.current = liveSelectedClient
+        }, [liveSelectedClient])
 
         return (
           <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 rounded border border-red-200 bg-red-50/80 px-3 py-2">
+              <div className="text-xs text-red-700">
+                Необходимо заполнить реквизиты в карточке клиента
+              </div>
+              <div>
+                <AppButton
+                  variant="danger"
+                  size="sm"
+                  className="rounded"
+                  disabled={!liveSelectedClient?._id}
+                  onClick={() =>
+                    liveSelectedClient?._id
+                      ? modalsFunc.client?.edit(liveSelectedClient._id)
+                      : null
+                  }
+                >
+                  Редактировать клиента
+                </AppButton>
+              </div>
+            </div>
             <div className="flex items-end justify-between gap-2">
               <div className="mt-1.5 flex items-end gap-2">
                 <Input
@@ -1290,7 +1325,8 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             contractNumber,
             contractDate,
             settingsRef.current,
-            'docx'
+            'docx',
+            clientRef.current
           )
           await exportContractTemplateDocx(text, contractFileName)
           await updateLastContractNumber(contractNumber)
@@ -1525,11 +1561,11 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                               </div>
                             ) : null}
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                             <AppButton
                               variant={item?.done ? 'secondary' : 'primary'}
                               size="sm"
-                              className="rounded"
+                              className="rounded tablet:w-auto"
                               onClick={() =>
                                 handleAdditionalEventToggleDone(index)
                               }
@@ -1637,7 +1673,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               noMargin
             />
             {isByContract && (
-              <div className="flex items-center gap-3">
+              <div className="flex">
                 <AppButton
                   variant="secondary"
                   size="sm"
@@ -1646,9 +1682,6 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 >
                   Сформировать договор
                 </AppButton>
-                <div className="text-xs text-red-600">
-                  Необходимо заполнить реквизиты в карточке клиента
-                </div>
               </div>
             )}
             {isDraft ? (
@@ -1715,7 +1748,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 <div className="bg-white border border-gray-200 rounded shadow-sm">
                   {eventTransactions.length === 0 ? (
                     <div className="px-3 py-4 text-sm text-gray-500">
-                      Транзакции не найдены
+                      Пока никаких транзакций небыло
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-100">

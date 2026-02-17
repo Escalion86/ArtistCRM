@@ -559,11 +559,11 @@ const EventsContent = ({ filter = 'all' }) => {
                 Просрочен задаток: {soonNoDepositEvents.length}
               </AppButton>
             ) : null}
-            <div className="flex items-center justify-end flex-1">
+            <div className="flex w-full items-center justify-start tablet:w-auto tablet:flex-1 tablet:justify-end">
               <AppButton
                 variant="primary"
                 size="sm"
-                className="px-4 font-semibold rounded-md shadow-md"
+                className="w-full rounded-md px-4 font-semibold shadow-md tablet:w-auto"
                 onClick={() => modalsFunc.event?.upcomingOverview?.()}
               >
                 Ближайшие события
