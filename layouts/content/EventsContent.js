@@ -376,14 +376,7 @@ const EventsContent = ({ filter = 'all' }) => {
     reminderShownRef.current = true
     window.localStorage.setItem(storageKey, signature)
 
-    modalsFunc.add({
-      title: 'Напоминания по доп. событиям',
-      text: `Просрочено: ${inAppReminderSummary.overdue}\nСегодня: ${inAppReminderSummary.today}\nВ ближайшие 2 часа: ${inAppReminderSummary.soon2h}`,
-      confirmButtonName: 'Открыть ближайшие события',
-      declineButtonName: 'Позже',
-      showDecline: true,
-      onConfirm: () => modalsFunc.event?.upcomingOverview?.(),
-    })
+    modalsFunc.event?.upcomingOverview?.()
   }, [filter, inAppReminderSummary, modals.length, modalsFunc])
 
   useEffect(() => {
