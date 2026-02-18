@@ -223,7 +223,7 @@ const TariffSelectContent = () => {
                   />
                   <IconCheckBox
                     checked={tariff.allowDocuments}
-                    label="Счета и чеки"
+                    label="Работа с документами"
                     readOnly
                     noMargin
                   />

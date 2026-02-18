@@ -75,7 +75,7 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
           />
           <IconCheckBox
             checked={tariff.allowDocuments}
-            label="Счета и чеки"
+            label="Работа с документами"
             readOnly
             noMargin
           />

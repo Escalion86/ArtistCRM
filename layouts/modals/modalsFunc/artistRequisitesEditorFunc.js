@@ -1,21 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import FormWrapper from '@components/FormWrapper'
-import MutedText from '@components/MutedText'
 import AppButton from '@components/AppButton'
 import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { postData } from '@helpers/CRUD'
-import {
-  DEFAULT_CONTRACT_TEMPLATE,
-  CONTRACT_TEMPLATE_VARIABLES,
-} from '@helpers/generateContractTemplate'
 import getPersonFullName from '@helpers/getPersonFullName'
 
-const contractTemplateEditorFunc = () => {
-  const ContractTemplateEditorModal = ({
+const artistRequisitesEditorFunc = () => {
+  const ArtistRequisitesEditorModal = ({
     closeModal,
     setOnConfirmFunc,
     setOnShowOnCloseConfirmDialog,
@@ -27,11 +22,7 @@ const contractTemplateEditorFunc = () => {
       () => siteSettings?.custom ?? {},
       [siteSettings?.custom]
     )
-    const [template, setTemplate] = useState(
-      typeof custom?.contractTemplate === 'string'
-        ? custom.contractTemplate
-        : DEFAULT_CONTRACT_TEMPLATE
-    )
+
     const [artistFullName, setArtistFullName] = useState(
       custom?.contractArtistFullName ?? getPersonFullName(loggedUser)
     )
@@ -60,10 +51,6 @@ const contractTemplateEditorFunc = () => {
       custom?.contractArtistLegalAddress ?? ''
     )
 
-    const currentTemplate =
-      typeof custom?.contractTemplate === 'string'
-        ? custom.contractTemplate
-        : DEFAULT_CONTRACT_TEMPLATE
     const currentArtistFullName = custom?.contractArtistFullName ?? ''
     const currentArtistName = custom?.contractArtistName ?? ''
     const currentArtistOgrnip = custom?.contractArtistOgrnip ?? ''
@@ -82,7 +69,6 @@ const contractTemplateEditorFunc = () => {
 
     const isChanged = useMemo(
       () =>
-        template !== currentTemplate ||
         (artistFullName ?? '') !== currentArtistFullName ||
         (artistName ?? '') !== currentArtistName ||
         (artistOgrnip ?? '') !== currentArtistOgrnip ||
@@ -115,14 +101,11 @@ const contractTemplateEditorFunc = () => {
         currentArtistCheckingAccount,
         currentArtistCorrespondentAccount,
         currentArtistLegalAddress,
-        currentTemplate,
-        template,
       ]
     )
 
     useEffect(() => {
       if (isChanged) return
-      setTemplate(currentTemplate)
       setArtistFullName(currentArtistFullName)
       setArtistName(currentArtistName)
       setArtistOgrnip(currentArtistOgrnip)
@@ -144,7 +127,6 @@ const contractTemplateEditorFunc = () => {
       currentArtistCheckingAccount,
       currentArtistCorrespondentAccount,
       currentArtistLegalAddress,
-      currentTemplate,
       isChanged,
     ])
 
@@ -154,7 +136,6 @@ const contractTemplateEditorFunc = () => {
         {
           custom: {
             ...(custom ?? {}),
-            contractTemplate: template,
             contractArtistFullName: artistFullName.trim(),
             contractArtistName: artistName.trim(),
             contractArtistOgrnip: artistOgrnip.trim(),
@@ -189,31 +170,7 @@ const contractTemplateEditorFunc = () => {
       custom,
       loggedUser?._id,
       setSiteSettings,
-      template,
     ])
-
-    const hasPerformerRequisites = useMemo(
-      () =>
-        Boolean(
-          artistInn.trim() &&
-          artistBankName.trim() &&
-          artistBik.trim() &&
-          artistCheckingAccount.trim() &&
-          artistCorrespondentAccount.trim() &&
-          artistLegalAddress.trim() &&
-          (artistStatus === 'self_employed' || artistOgrnip.trim())
-        ),
-      [
-        artistInn,
-        artistBankName,
-        artistBik,
-        artistCheckingAccount,
-        artistCorrespondentAccount,
-        artistLegalAddress,
-        artistOgrnip,
-        artistStatus,
-      ]
-    )
 
     useEffect(() => {
       setDisableConfirm(!isChanged)
@@ -229,9 +186,9 @@ const contractTemplateEditorFunc = () => {
 
     return (
       <FormWrapper className="flex h-full flex-col gap-2">
-        <div className="tablet:grid-cols-2 mt-2 grid grid-cols-1 gap-3">
+        <div className="mt-2 grid grid-cols-1 gap-3 tablet:grid-cols-2">
           <Input
-            label="ФИО артиста (для договора)"
+            label="ФИО артиста (для документов)"
             value={artistFullName}
             onChange={setArtistFullName}
             noMargin
@@ -312,47 +269,15 @@ const contractTemplateEditorFunc = () => {
             noMargin
           />
         </div>
-        {!hasPerformerRequisites && (
-          <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            Заполните реквизиты исполнителя. В шаблоне по умолчанию используются
-            ваши реквизиты.
-          </div>
-        )}
-        <MutedText className="text-gray-500">
-          Используйте переменные в фигурных скобках, например: {'{ИНН}'},{' '}
-          {'{ФИО КЛИЕНТА}'}. Поддерживаются варианты и с пробелами, и с `_`.
-        </MutedText>
-        <div className="flex flex-col gap-1">
-          <div className="text-sm text-gray-700">Текст шаблона договора</div>
-          <textarea
-            value={template}
-            onChange={(event) => setTemplate(event.target.value)}
-            className="min-h-[520px] w-full resize-y rounded border border-gray-300 bg-transparent p-2 text-sm leading-6 outline-none focus:border-[#c9a86a]"
-          />
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <MutedText className="text-gray-500">
-            Переменные:{' '}
-            {CONTRACT_TEMPLATE_VARIABLES.map((item) => `{${item}}`).join(', ')}
-          </MutedText>
-          <AppButton
-            variant="secondary"
-            size="sm"
-            className="cursor-pointer rounded"
-            onClick={() => setTemplate(DEFAULT_CONTRACT_TEMPLATE)}
-          >
-            Сбросить шаблон
-          </AppButton>
-        </div>
       </FormWrapper>
     )
   }
 
   return {
-    title: 'Редактор шаблона договора',
+    title: 'Редактировать реквизиты артиста',
     confirmButtonName: 'Сохранить',
-    Children: ContractTemplateEditorModal,
+    Children: ArtistRequisitesEditorModal,
   }
 }
 
-export default contractTemplateEditorFunc
+export default artistRequisitesEditorFunc

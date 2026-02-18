@@ -6,7 +6,7 @@ import { DEFAULT_TARIFF } from '@helpers/constants'
 import useErrors from '@helpers/useErrors'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import tariffSelector from '@state/selectors/tariffSelector'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAtomValue } from 'jotai'
 
 const tariffFunc = (tariffId, clone = false) => {
@@ -39,7 +39,7 @@ const tariffFunc = (tariffId, clone = false) => {
 
     const [errors, checkErrors, , removeError] = useErrors()
 
-    const onClickConfirm = async () => {
+    const onClickConfirm = useCallback(async () => {
       if (!checkErrors({ title })) {
         closeModal()
         setTariff(
@@ -56,13 +56,19 @@ const tariffFunc = (tariffId, clone = false) => {
           clone
         )
       }
-    }
-
-    const onClickConfirmRef = useRef(onClickConfirm)
-
-    useEffect(() => {
-      onClickConfirmRef.current = onClickConfirm
-    }, [onClickConfirm])
+    }, [
+      allowCalendarSync,
+      allowDocuments,
+      allowStatistics,
+      checkErrors,
+      closeModal,
+      eventsPerMonth,
+      hidden,
+      price,
+      setTariff,
+      tariff?._id,
+      title,
+    ])
 
     useEffect(() => {
       const isFormChanged =
@@ -74,19 +80,28 @@ const tariffFunc = (tariffId, clone = false) => {
         tariff?.allowDocuments !== allowDocuments ||
         tariff?.hidden !== hidden
 
-      setOnConfirmFunc(
-        isFormChanged ? () => onClickConfirmRef.current() : undefined
-      )
+      setOnConfirmFunc(isFormChanged ? onClickConfirm : undefined)
       setOnShowOnCloseConfirmDialog(isFormChanged)
       setDisableConfirm(!isFormChanged)
     }, [
-      title,
-      eventsPerMonth,
-      price,
       allowCalendarSync,
-      allowStatistics,
       allowDocuments,
+      allowStatistics,
+      eventsPerMonth,
       hidden,
+      onClickConfirm,
+      price,
+      setDisableConfirm,
+      setOnConfirmFunc,
+      setOnShowOnCloseConfirmDialog,
+      tariff?.allowCalendarSync,
+      tariff?.allowDocuments,
+      tariff?.allowStatistics,
+      tariff?.eventsPerMonth,
+      tariff?.hidden,
+      tariff?.price,
+      tariff?.title,
+      title,
     ])
 
     return (
@@ -143,7 +158,7 @@ const tariffFunc = (tariffId, clone = false) => {
             <IconCheckBox
               checked={allowDocuments}
               onClick={() => setAllowDocuments((prev) => !prev)}
-              label="Счета и чеки"
+              label="Работа с документами"
               noMargin
             />
             <IconCheckBox
