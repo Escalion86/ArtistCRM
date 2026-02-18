@@ -13,8 +13,11 @@ import SectionCard from '@components/SectionCard'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
+import tariffsAtom from '@state/atoms/tariffsAtom'
+import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
+import { getUserTariffAccess } from '@helpers/tariffAccess'
 
 const normalizeTowns = (towns = []) =>
   Array.from(
@@ -47,6 +50,8 @@ const DEFAULT_ACT_TEMPLATE_DOWNLOAD_URL =
 
 const SettingsContent = () => {
   const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
+  const loggedUser = useAtomValue(loggedUserAtom)
+  const tariffs = useAtomValue(tariffsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const [darkTheme, setDarkTheme] = useState(false)
   const [defaultEventDuration, setDefaultEventDuration] = useState(60)
@@ -66,6 +71,11 @@ const SettingsContent = () => {
     [siteSettings?.towns]
   )
   const customSettings = siteSettings?.custom ?? {}
+  const tariffAccess = useMemo(
+    () => getUserTariffAccess(loggedUser, tariffs),
+    [loggedUser, tariffs]
+  )
+  const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
   const checkBoxColors = darkTheme
     ? { checked: '#f8fafc', unchecked: '#94a3b8' }
     : { checked: '#111827', unchecked: '#9ca3af' }
@@ -219,94 +229,96 @@ const SettingsContent = () => {
             </button>
           </div>
         </InputWrapper>
-        <InputWrapper label="Работа с документами" fullWidth>
-          <div className="flex w-full flex-col gap-3">
-            <div className="flex w-full flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--warning flex h-10 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
-                onClick={() => modalsFunc.settings?.artistRequisitesEditor?.()}
-              >
-                Редактировать реквизиты
-              </button>
-            </div>
-            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
-              <div className="rounded border border-gray-200 p-3">
-                <div className="text-sm font-semibold text-gray-800">
-                  DOCX-шаблон договора
+        {canUseDocuments ? (
+          <InputWrapper label="Работа с документами" fullWidth>
+            <div className="flex w-full flex-col gap-3">
+              <div className="flex w-full flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--warning flex h-10 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+                  onClick={() => modalsFunc.settings?.artistRequisitesEditor?.()}
+                >
+                  Редактировать реквизиты
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+                <div className="rounded border border-gray-200 p-3">
+                  <div className="text-sm font-semibold text-gray-800">
+                    DOCX-шаблон договора
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    Текущий:{' '}
+                    {customSettings?.contractDocxTemplateFileName ||
+                      'не загружен'}
+                  </div>
+                  <input
+                    ref={contractTemplateInputRef}
+                    type="file"
+                    accept=".docx"
+                    className="hidden"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0]
+                      await saveDocxTemplate('contract', file)
+                      event.target.value = ''
+                    }}
+                  />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="action-icon-button action-icon-button--warning flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                      onClick={() => contractTemplateInputRef.current?.click()}
+                    >
+                      Загрузить .docx
+                    </button>
+                    <a
+                      href={DEFAULT_CONTRACT_TEMPLATE_DOWNLOAD_URL}
+                      download
+                      className="action-icon-button action-icon-button--warning inline-flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                    >
+                      Скачать стандартный шаблон
+                    </a>
+                  </div>
                 </div>
-                <div className="mt-1 text-xs text-gray-500">
-                  Текущий:{' '}
-                  {customSettings?.contractDocxTemplateFileName ||
-                    'не загружен'}
-                </div>
-                <input
-                  ref={contractTemplateInputRef}
-                  type="file"
-                  accept=".docx"
-                  className="hidden"
-                  onChange={async (event) => {
-                    const file = event.target.files?.[0]
-                    await saveDocxTemplate('contract', file)
-                    event.target.value = ''
-                  }}
-                />
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="action-icon-button action-icon-button--warning flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
-                    onClick={() => contractTemplateInputRef.current?.click()}
-                  >
-                    Загрузить .docx
-                  </button>
-                  <a
-                    href={DEFAULT_CONTRACT_TEMPLATE_DOWNLOAD_URL}
-                    download
-                    className="action-icon-button action-icon-button--warning inline-flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
-                  >
-                    Скачать стандартный шаблон
-                  </a>
+                <div className="rounded border border-gray-200 p-3">
+                  <div className="text-sm font-semibold text-gray-800">
+                    DOCX-шаблон акта
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    Текущий:{' '}
+                    {customSettings?.actDocxTemplateFileName || 'не загружен'}
+                  </div>
+                  <input
+                    ref={actTemplateInputRef}
+                    type="file"
+                    accept=".docx"
+                    className="hidden"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0]
+                      await saveDocxTemplate('act', file)
+                      event.target.value = ''
+                    }}
+                  />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="action-icon-button action-icon-button--warning flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                      onClick={() => actTemplateInputRef.current?.click()}
+                    >
+                      Загрузить .docx
+                    </button>
+                    <a
+                      href={DEFAULT_ACT_TEMPLATE_DOWNLOAD_URL}
+                      download
+                      className="action-icon-button action-icon-button--warning inline-flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                    >
+                      Скачать стандартный шаблон
+                    </a>
+                  </div>
                 </div>
               </div>
-              <div className="rounded border border-gray-200 p-3">
-                <div className="text-sm font-semibold text-gray-800">
-                  DOCX-шаблон акта
-                </div>
-                <div className="mt-1 text-xs text-gray-500">
-                  Текущий:{' '}
-                  {customSettings?.actDocxTemplateFileName || 'не загружен'}
-                </div>
-                <input
-                  ref={actTemplateInputRef}
-                  type="file"
-                  accept=".docx"
-                  className="hidden"
-                  onChange={async (event) => {
-                    const file = event.target.files?.[0]
-                    await saveDocxTemplate('act', file)
-                    event.target.value = ''
-                  }}
-                />
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="action-icon-button action-icon-button--warning flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
-                    onClick={() => actTemplateInputRef.current?.click()}
-                  >
-                    Загрузить .docx
-                  </button>
-                  <a
-                    href={DEFAULT_ACT_TEMPLATE_DOWNLOAD_URL}
-                    download
-                    className="action-icon-button action-icon-button--warning inline-flex h-9 min-w-[168px] cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
-                  >
-                    Скачать стандартный шаблон
-                  </a>
-                </div>
-              </div>
             </div>
-          </div>
-        </InputWrapper>
+          </InputWrapper>
+        ) : null}
       </SectionCard>
     </div>
   )

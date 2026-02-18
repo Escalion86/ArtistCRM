@@ -21,7 +21,9 @@ import TabContext from '@components/Tabs/TabContext'
 import TabPanel from '@components/Tabs/TabPanel'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
+import tariffsAtom from '@state/atoms/tariffsAtom'
 import { deleteData, postData } from '@helpers/CRUD'
+import { getUserTariffAccess } from '@helpers/tariffAccess'
 import useErrors from '@helpers/useErrors'
 import clientsAtom from '@state/atoms/clientsAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
@@ -146,6 +148,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     )
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const transactions = useAtomValue(transactionsAtom)
+    const tariffs = useAtomValue(tariffsAtom)
     const services = useAtomValue(servicesAtom)
     const events = useAtomValue(eventsAtom)
     const setTransactions = useSetAtom(transactionsAtom)
@@ -646,13 +649,15 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           isByContract,
           description: description?.trim() ?? '',
           financeComment: financeComment?.trim() ?? '',
-          invoiceLinks: normalizedInvoiceLinks,
-          receiptLinks: normalizedReceiptLinks,
-          actLinks: normalizedActLinks,
-          contractLinks: normalizedContractLinks,
           calendarImportChecked,
           servicesIds,
           otherContacts: normalizedOtherContacts,
+        }
+        if (canUseDocuments) {
+          payload.invoiceLinks = normalizedInvoiceLinks
+          payload.receiptLinks = normalizedReceiptLinks
+          payload.actLinks = normalizedActLinks
+          payload.contractLinks = normalizedContractLinks
         }
         setEvent(payload, clone)
       }
@@ -704,6 +709,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       dateRangeError,
       status,
       hasDepositTransaction,
+      canUseDocuments,
     ])
 
     const onClickConfirmRef = useRef(onClickConfirm)
@@ -754,6 +760,11 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           .filter(Boolean),
       [services, servicesIds]
     )
+    const tariffAccess = useMemo(
+      () => getUserTariffAccess(loggedUser, tariffs),
+      [loggedUser, tariffs]
+    )
+    const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
     const hasDoneAdditionalEvents = useMemo(
       () => (additionalEvents ?? []).some((item) => Boolean(item?.done)),
       [additionalEvents]
@@ -1964,7 +1975,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               checkedIconColor="#2563EB"
               noMargin
             />
-            {isByContract && (
+            {isByContract && canUseDocuments && (
               <div className="flex flex-wrap items-center gap-2">
                 <AppButton
                   variant="secondary"
@@ -1989,7 +2000,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 {`Для заявки финансы, транзакции и документы недоступны. Переведите статус в "Активно"`}
               </div>
             ) : null}
-            {isByContract && !isDraft && (
+            {isByContract && !isDraft && canUseDocuments && (
               <div className="flex flex-col gap-3 mt-3">
                 <LinksListEditor
                   label="Ссылки на договора"
