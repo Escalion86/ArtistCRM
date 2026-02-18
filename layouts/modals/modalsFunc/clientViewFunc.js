@@ -8,6 +8,16 @@ import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import getPersonFullName from '@helpers/getPersonFullName'
 
+const SectionBlock = ({ title, action, children }) => (
+  <div className="client-view-section rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+    <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</div>
+      {action}
+    </div>
+    {children}
+  </div>
+)
+
 const CardButtonsComponent = ({ client, onEdit }) => (
   <CardButtons
     item={client}
@@ -107,11 +117,29 @@ const clientViewFunc = (clientId) => {
         </div>
       )
 
+    const fullName = getPersonFullName(client, { fallback: 'Без имени' })
+    const initials = fullName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || '')
+      .join('')
+
     return (
-      <div className="flex flex-col gap-4 text-sm text-gray-800">
-        <div className="relative p-4 bg-white border border-gray-200 rounded-lg">
-          <div className="text-lg font-semibold text-gray-900">
-            {getPersonFullName(client, { fallback: 'Без имени' })}
+      <div className="flex flex-col gap-3 text-sm text-gray-800">
+        <div className="client-view-header relative rounded-xl border p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="client-view-avatar flex h-12 w-12 shrink-0 items-center justify-center rounded-full border bg-white text-base font-bold">
+              {initials || 'К'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-lg font-semibold text-gray-900">
+                {fullName}
+              </div>
+              <div className="mt-0.5 text-gray-600">
+                {client.phone ? `+${client.phone}` : 'Телефон не указан'}
+              </div>
+            </div>
           </div>
           {!setTopLeftComponent && (
             <div className="absolute right-4 top-4">
@@ -121,83 +149,80 @@ const clientViewFunc = (clientId) => {
               />
             </div>
           )}
-          <div className="mt-1 text-gray-600">
-            {client.phone ? `+${client.phone}` : 'Телефон не указан'}
-          </div>
           <div className="mt-2">
             <ContactsIconsButtons user={client} />
           </div>
         </div>
 
-        <div className="p-4 bg-white border border-gray-200 rounded-lg">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-sm font-semibold text-gray-900">
-              Мероприятия
-            </div>
+        <SectionBlock
+          title="Мероприятия"
+          action={
             <button
               type="button"
-              className="px-3 py-1 text-xs font-semibold text-blue-600 transition border border-blue-600 rounded cursor-pointer bg-blue-50 hover:bg-blue-100"
+              className="client-view-action-btn cursor-pointer rounded border px-3 py-1 text-xs font-semibold transition"
               onClick={() => modalsFunc.client?.events(clientId)}
             >
-              Посмотреть мероприятия
+              Посмотреть
             </button>
+          }
+        >
+          <div className="grid grid-cols-1 gap-2 tablet:grid-cols-3">
+            <div className="client-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2">
+              <div className="text-[11px] text-gray-500">Прошли</div>
+              <div className="text-base font-semibold text-gray-900">{passedCount}</div>
+            </div>
+            <div className="client-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2">
+              <div className="text-[11px] text-gray-500">Будут</div>
+              <div className="text-base font-semibold text-gray-900">{upcomingCount}</div>
+            </div>
+            <div className="client-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2">
+              <div className="text-[11px] text-gray-500">Отменены</div>
+              <div className="text-base font-semibold text-gray-900">{canceledCount}</div>
+            </div>
           </div>
-          <div className="grid gap-2 mt-2 text-sm text-gray-700 tablet:grid-cols-3">
-            <div>
-              Прошли: <span className="font-semibold">{passedCount}</span>
-            </div>
-            <div>
-              Будут: <span className="font-semibold">{upcomingCount}</span>
-            </div>
-            <div>
-              Отменены: <span className="font-semibold">{canceledCount}</span>
-            </div>
-          </div>
-        </div>
+        </SectionBlock>
 
-        <div className="p-4 bg-white border border-gray-200 rounded-lg">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-sm font-semibold text-gray-900">
-              Финансы по транзакциям
-            </div>
+        <SectionBlock
+          title="Финансы по транзакциям"
+          action={
             <button
               type="button"
-              className="px-3 py-1 text-xs font-semibold text-blue-600 transition border border-blue-600 rounded cursor-pointer bg-blue-50 hover:bg-blue-100"
+              className="client-view-action-btn cursor-pointer rounded border px-3 py-1 text-xs font-semibold transition"
               onClick={() => modalsFunc.client?.transactions(clientId)}
             >
-              Показать транзакции
+              Показать
             </button>
-          </div>
-          <div className="grid gap-2 mt-2 text-sm text-gray-700 tablet:grid-cols-3">
-            <div>
-              Доходы:{' '}
-              <span className="font-semibold text-emerald-700">
+          }
+        >
+          <div className="grid grid-cols-1 gap-2 tablet:grid-cols-3">
+            <div className="client-view-kpi-income rounded-lg border border-emerald-200 bg-emerald-50 p-2">
+              <div className="text-[11px] text-emerald-700">Доходы</div>
+              <div className="text-base font-semibold text-emerald-700">
                 {incomeTotal.toLocaleString()} ₽
-              </span>
+              </div>
             </div>
-            <div>
-              Расходы:{' '}
-              <span className="font-semibold text-red-700">
+            <div className="client-view-kpi-expense rounded-lg border border-red-200 bg-red-50 p-2">
+              <div className="text-[11px] text-red-700">Расходы</div>
+              <div className="text-base font-semibold text-red-700">
                 {expenseTotal.toLocaleString()} ₽
-              </span>
+              </div>
             </div>
-            <div>
-              Итог:{' '}
-              <span className="font-semibold text-gray-900">
+            <div className="client-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2">
+              <div className="text-[11px] text-gray-500">Итог</div>
+              <div className="text-base font-semibold text-gray-900">
                 {balanceTotal.toLocaleString()} ₽
-              </span>
+              </div>
             </div>
           </div>
-        </div>
+        </SectionBlock>
         {requisitesLines.length > 0 && (
-          <div className="p-4 bg-white border border-gray-200 rounded-lg">
-            <div className="text-sm font-semibold text-gray-900">Реквизиты</div>
-            <div className="mt-2 space-y-1 text-sm text-gray-700">
+          <SectionBlock title="Реквизиты">
+            <div className="space-y-1 text-sm text-gray-700">
               {requisitesLines.map((line) => (
                 <div key={line}>{line}</div>
               ))}
             </div>
-          </div>
+          </SectionBlock>
         )}
       </div>
     )

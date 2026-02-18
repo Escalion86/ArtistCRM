@@ -1,4 +1,4 @@
-import InputWrapper from '@components/InputWrapper'
+import LabeledContainer from '@components/LabeledContainer'
 import AddIconButton from '@components/AddIconButton'
 import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import IconActionButton from '@components/IconActionButton'
@@ -19,7 +19,7 @@ const LinksListEditor = ({ label, links = [], onChange, noMargin = false }) => {
   }
 
   return (
-    <InputWrapper label={label} noMargin={noMargin}>
+    <LabeledContainer label={label} noMargin={noMargin}>
       <div className="flex flex-col gap-2">
         {safeLinks.map((link, index) => (
           <div key={`${label}-link-${index}`} className="flex items-center gap-2">
@@ -45,7 +45,7 @@ const LinksListEditor = ({ label, links = [], onChange, noMargin = false }) => {
           size="xs"
         />
       </div>
-    </InputWrapper>
+    </LabeledContainer>
   )
 }
 

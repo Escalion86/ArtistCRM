@@ -54,10 +54,10 @@ const InputWrapper = forwardRef(
           paddingY === 'small'
             ? 'pt-1.5 pb-1'
             : paddingY === 'big'
-            ? 'pt-2.5 pb-2'
-            : paddingY
-            ? 'pt-2 pb-1.5'
-            : '',
+              ? 'pt-2.5 pb-2'
+              : paddingY
+                ? 'pt-2 pb-1.5'
+                : '',
           disabled ? 'cursor-not-allowed' : '',
           hidden ? 'hidden' : '',
           (error && showErrorText) || comment ? 'mb-4' : '',
@@ -97,7 +97,7 @@ const InputWrapper = forwardRef(
               {postfix}
               {disabled && showDisabledIcon && (
                 <FontAwesomeIcon
-                  className="text-disabled h-4 w-4"
+                  className="w-4 h-4 text-disabled"
                   icon={faBan}
                   size="1x"
                 />

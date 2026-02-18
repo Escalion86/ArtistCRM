@@ -19,15 +19,23 @@ const UserKeyValueItem = ({ objKey, value }) =>
       'secondName',
       'thirdName',
       'email',
-      'about',
-      'soctag',
-      'custag',
-      'personalStatus',
+      'telegram',
+      'instagram',
+      'vk',
+      'registrationType',
+      'billingStatus',
     ].includes(objKey) ? (
     value
   ) : ['phone', 'whatsapp', 'viber'].includes(objKey) ? (
     `+${value}`
-  ) : ['birthday', 'lastActivityAt', 'prevActivityAt'].includes(objKey) ? (
+  ) : [
+      'lastActivityAt',
+      'prevActivityAt',
+      'trialActivatedAt',
+      'trialEndsAt',
+      'tariffActiveUntil',
+      'nextChargeAt',
+    ].includes(objKey) ? (
     formatDateTime(value)
   ) : objKey === 'password' ? (
     value ? (
@@ -39,12 +47,6 @@ const UserKeyValueItem = ({ objKey, value }) =>
     USERS_ROLES.find((item) => item.value === value)?.name
   ) : objKey === 'status' ? (
     USERS_STATUSES.find((item) => item.value === value)?.name
-  ) : objKey === 'gender' ? (
-    value === 'famale' ? (
-      'Женщина'
-    ) : (
-      'Мужчина'
-    )
   ) : objKey === 'images' ? (
     <InputImages
       images={value}
@@ -53,43 +55,6 @@ const UserKeyValueItem = ({ objKey, value }) =>
       paddingY={false}
       paddingX={false}
     />
-  ) : objKey === 'security' ? (
-    <div className="flex flex-col gap-y-1">
-      <Item
-        title="Показывать фамилию"
-        text={value.fullSecondName ? 'Полностью' : 'Только первую букву'}
-      />
-      <Item
-        title="Показывать отчество"
-        text={value.fullThirdName ? 'Полностью' : 'Только первую букву'}
-      />
-      <Item
-        title="Показывать дату рождения"
-        text={
-          value.showBirthday === 'full'
-            ? 'Показывать (в том числе возраст)'
-            : value.showBirthday === 'noYear'
-              ? 'Только день и месяц (скрыть возраст)'
-              : 'Не показывать'
-        }
-      />
-      <Item title="Показывать телефон" text={value.showPhone ? 'Да' : 'Нет'} />
-      <Item
-        title="Показывать Whatsapp"
-        text={value.showWhatsapp ? 'Да' : 'Нет'}
-      />
-      <Item title="Показывать Viber" text={value.showViber ? 'Да' : 'Нет'} />
-      <Item
-        title="Показывать Телеграм"
-        text={value.showTelegram ? 'Да' : 'Нет'}
-      />
-      <Item
-        title="Показывать Instagram"
-        text={value.showInstagram ? 'Да' : 'Нет'}
-      />
-      <Item title="Показывать ВКонтакте" text={value.showVk ? 'Да' : 'Нет'} />
-      <Item title="Показывать eMail" text={value.showEmail ? 'Да' : 'Нет'} />
-    </div>
   ) : objKey === 'notifications' ? (
     <div className="flex flex-col gap-y-1">
       <Item
@@ -101,6 +66,8 @@ const UserKeyValueItem = ({ objKey, value }) =>
         text={value.telegram?.id ? 'Да' : 'Нет'}
       />
     </div>
+  ) : objKey === 'balance' ? (
+    `${Number(value || 0).toLocaleString('ru-RU')} ₽`
   ) : typeof value === 'object' ? (
     <pre>{JSON.stringify(value)}</pre>
   ) : typeof value === 'boolean' ? (

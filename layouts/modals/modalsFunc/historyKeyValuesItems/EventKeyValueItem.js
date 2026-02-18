@@ -1,6 +1,5 @@
 import Chip from '@components/Chips/Chip'
 import InputImages from '@components/InputImages'
-import UserNameById from '@components/UserNameById'
 import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
 import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
@@ -27,8 +26,6 @@ const EventKeyValueItem = ({ objKey, value }) =>
     ) : (
       '[не указано]'
     )
-  ) : objKey === 'organizerId' ? (
-    <UserNameById userId={value} thin trunc={1} />
   ) : ['eventDate', 'dateEnd', 'createdAt', 'updatedAt'].includes(
       objKey
     ) ? (

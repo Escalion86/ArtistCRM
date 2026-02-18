@@ -73,8 +73,6 @@ const useErrors = () => {
           ? setError({ image: 'Введите имя и фамилию руководителя' })
           : null,
       quote: (data) => (!data ? setError({ image: 'Введите цитату' }) : null),
-      organizerId: (data) =>
-        !data ? setError({ organizerId: 'Выберите организатора' }) : null,
       date: (data) => (!data ? setError({ date: 'Введите дату' }) : null),
       dateEnd: (data) =>
         !data ? setError({ dateEnd: 'Введите дату завершения' }) : null,
@@ -153,23 +151,6 @@ const useErrors = () => {
                 birthday: 'Возраст не может быть менее 18 лет',
               })
             : null,
-      security: (data) =>
-        typeof data.fullSecondName !== 'boolean' ||
-        typeof data.fullThirdName !== 'boolean' ||
-        !data.showBirthday ||
-        typeof data.showBirthday !== 'string'
-          ? //  ||
-            // typeof data.showAge !== 'boolean'
-            //  ||
-            // typeof data.showContacts !== 'boolean'
-            setError({
-              security: `Вы не заполнили поля конфиденциальности:${typeof data.fullSecondName !== 'boolean' ? '\n - "Показывать фамилию пользователям"' : ''}${typeof data.fullThirdName !== 'boolean' ? '\n - "Показывать отчество пользователям"' : ''}${
-                !data.showBirthday || typeof data.showBirthday !== 'string'
-                  ? '\n - "Показывать дату рождения пользователям"'
-                  : ''
-              }`,
-            })
-          : null,
     }
 
     for (const [key, value] of Object.entries(object)) {

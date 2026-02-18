@@ -64,21 +64,6 @@ const ContactsIconsButtons = ({
 }) => {
   const Btn = withTitle ? ContactIconBtnWithTitle : ContactIconBtn
 
-  const canSeeAllContacts = true
-
-  if (
-    !canSeeAllContacts &&
-    user.security?.showContacts === false &&
-    !user.security?.showPhone &&
-    !user.security?.showWhatsapp &&
-    !user.security?.showViber &&
-    !user.security?.showTelegram &&
-    !user.security?.showInstagram &&
-    !user.security?.showVk &&
-    !user.security?.showEmail
-  )
-    return null
-
   const encodedMessage =
     message !== undefined || message !== null
       ? encodeURIComponent(message)
@@ -95,10 +80,7 @@ const ContactsIconsButtons = ({
         className
       )}
     >
-      {user?.phone &&
-        (user.security?.showContacts ||
-          user.security?.showPhone ||
-          canSeeAllContacts) && (
+      {user?.phone && (
           <Btn
             icon={message || smsViaPhone ? faSms : faPhone}
             className="text-yellow-600"
@@ -113,9 +95,7 @@ const ContactsIconsButtons = ({
           />
         )}
       {user?.whatsapp
-        ? (user.security?.showContacts ||
-            user.security?.showWhatsapp ||
-            canSeeAllContacts) && (
+        ? (
             <Btn
               icon={faWhatsapp}
               className="text-green-600"
@@ -136,10 +116,7 @@ const ContactsIconsButtons = ({
             />
           )}
       {!message &&
-        user?.viber &&
-        (user.security?.showContacts ||
-          user.security?.showViber ||
-          canSeeAllContacts) && (
+        user?.viber && (
           <Btn
             icon={faViber}
             className="text-purple-600"
@@ -149,10 +126,7 @@ const ContactsIconsButtons = ({
         )}
 
       {!message &&
-        user?.telegram &&
-        (user.security?.showContacts ||
-          user.security?.showTelegram ||
-          canSeeAllContacts) && (
+        user?.telegram && (
           <Btn
             icon={faTelegramPlane}
             className="text-blue-600"
@@ -161,10 +135,7 @@ const ContactsIconsButtons = ({
           />
         )}
       {!message &&
-        user?.instagram &&
-        (user.security?.showContacts ||
-          user.security?.showInstagram ||
-          canSeeAllContacts) && (
+        user?.instagram && (
           <Btn
             icon={faInstagram}
             className="text-yellow-700"
@@ -173,10 +144,7 @@ const ContactsIconsButtons = ({
           />
         )}
       {!message &&
-        user?.vk &&
-        (user.security?.showContacts ||
-          user.security?.showVk ||
-          canSeeAllContacts) && (
+        user?.vk && (
           <Btn
             icon={faVk}
             url={'https://vk.com/' + user.vk}
@@ -185,10 +153,7 @@ const ContactsIconsButtons = ({
           />
         )}
       {!message &&
-        user?.email &&
-        (user.security?.showContacts ||
-          user.security?.showEmail ||
-          canSeeAllContacts) && (
+        user?.email && (
           <Btn
             icon={faEnvelope}
             className="text-red-400"

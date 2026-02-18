@@ -3,7 +3,7 @@ import { useAtom, useAtomValue } from 'jotai'
 import FormWrapper from '@components/FormWrapper'
 import AppButton from '@components/AppButton'
 import Input from '@components/Input'
-import InputWrapper from '@components/InputWrapper'
+import LabeledContainer from '@components/LabeledContainer'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { postData } from '@helpers/CRUD'
@@ -199,8 +199,8 @@ const artistRequisitesEditorFunc = () => {
             onChange={setArtistName}
             noMargin
           />
-          <InputWrapper label="Юр. статус артиста" noMargin>
-            <div className="flex items-center gap-2">
+          <LabeledContainer label="Юр. статус артиста" noMargin>
+            <div className="flex flex-wrap items-center gap-2">
               <AppButton
                 variant={
                   artistStatus === 'individual_entrepreneur'
@@ -224,7 +224,7 @@ const artistRequisitesEditorFunc = () => {
                 Самозанятый
               </AppButton>
             </div>
-          </InputWrapper>
+          </LabeledContainer>
           <Input
             label="ОГРНИП артиста"
             value={artistOgrnip}

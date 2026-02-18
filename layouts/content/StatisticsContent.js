@@ -15,7 +15,7 @@ import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import { MONTHS_FULL_1 } from '@helpers/constants'
+import { MONTHS_FULL_1, TRANSACTION_CATEGORIES } from '@helpers/constants'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { useRouter } from 'next/navigation'
 import formatAddress from '@helpers/formatAddress'
@@ -25,6 +25,39 @@ const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
 
 const getMonthKey = (date, year) =>
   `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+const isValidDate = (value) => {
+  if (!value) return false
+  const date = new Date(value)
+  return !Number.isNaN(date.getTime())
+}
+
+const EVENT_STATUS_LABELS = Object.freeze({
+  draft: 'Заявка',
+  active: 'Активно',
+  canceled: 'Отменено',
+  finished: 'Завершено',
+  closed: 'Закрыто',
+})
+
+const getEventStatusLabel = (status) =>
+  EVENT_STATUS_LABELS[status] || status || 'Без статуса'
+
+const getEventComputedStatus = (event) => {
+  if (!event) return 'active'
+  if (event.status === 'draft') return 'draft'
+  if (event.status === 'canceled') return 'canceled'
+  if (event.status === 'closed') return 'closed'
+
+  const dateRaw = event.dateEnd ?? event.eventDate
+  if (!isValidDate(dateRaw)) return event.status || 'active'
+
+  const now = Date.now()
+  return new Date(dateRaw).getTime() < now ? 'finished' : 'active'
+}
+
+const formatCurrency = (value) =>
+  `${Number(value || 0).toLocaleString('ru-RU')} ₽`
 
 const StatisticsContent = () => {
   const transactions = useAtomValue(transactionsAtom)
@@ -76,11 +109,101 @@ const StatisticsContent = () => {
   }, [events])
 
   const [selectedYear, setSelectedYear] = useState(null)
+  const [selectedTown, setSelectedTown] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('all')
 
   useEffect(() => {
     if (selectedYear !== null) return
     if (availableYears.length > 0) setSelectedYear(availableYears[0])
   }, [availableYears, selectedYear])
+
+  const townsOptions = useMemo(() => {
+    const set = new Set()
+    events.forEach((event) => {
+      if (!event?.eventDate || !isValidDate(event.eventDate)) return
+      const date = new Date(event.eventDate)
+      if (selectedYear && date.getFullYear() !== selectedYear) return
+      const town = event?.address?.town
+      if (typeof town === 'string' && town.trim()) set.add(town.trim())
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'))
+  }, [events, selectedYear])
+
+  useEffect(() => {
+    if (!selectedTown) return
+    if (townsOptions.includes(selectedTown)) return
+    setSelectedTown('')
+  }, [selectedTown, townsOptions])
+
+  const statusOptions = useMemo(
+    () => [
+      { value: 'all', name: 'Все статусы' },
+      { value: 'draft', name: 'Заявки' },
+      { value: 'active', name: 'Активные' },
+      { value: 'finished', name: 'Завершенные' },
+      { value: 'closed', name: 'Закрытые' },
+      { value: 'canceled', name: 'Отмененные' },
+    ],
+    []
+  )
+
+  const filteredEvents = useMemo(() => {
+    return events.filter((event) => {
+      if (!isValidDate(event?.eventDate)) return false
+      const eventDate = new Date(event.eventDate)
+      if (selectedYear && eventDate.getFullYear() !== selectedYear) return false
+      if (selectedTown && (event?.address?.town ?? '') !== selectedTown)
+        return false
+      if (selectedStatus !== 'all') {
+        const eventStatus = getEventComputedStatus(event)
+        if (eventStatus !== selectedStatus) return false
+      }
+      return true
+    })
+  }, [events, selectedStatus, selectedTown, selectedYear])
+
+  const filteredEventIds = useMemo(
+    () => new Set(filteredEvents.map((event) => event?._id).filter(Boolean)),
+    [filteredEvents]
+  )
+
+  const filteredTransactions = useMemo(
+    () =>
+      transactions.filter((tx) => tx?.eventId && filteredEventIds.has(tx.eventId)),
+    [transactions, filteredEventIds]
+  )
+
+  const filteredRequests = useMemo(
+    () =>
+      requests.filter((request) => {
+        const dateRaw = request?.eventDate ?? request?.createdAt
+        if (selectedYear && !isValidDate(dateRaw)) return false
+        if (selectedYear && new Date(dateRaw).getFullYear() !== selectedYear)
+          return false
+        if (selectedTown && (request?.address?.town ?? '') !== selectedTown)
+          return false
+        if (selectedStatus !== 'all' && selectedStatus !== 'draft') return false
+        return true
+      }),
+    [requests, selectedYear, selectedTown, selectedStatus]
+  )
+
+  const eventFinanceMap = useMemo(() => {
+    const map = new Map()
+    filteredEvents.forEach((event) => {
+      if (event?._id) {
+        map.set(event._id, { income: 0, expense: 0 })
+      }
+    })
+    filteredTransactions.forEach((tx) => {
+      if (!tx?.eventId || !map.has(tx.eventId)) return
+      const item = map.get(tx.eventId)
+      const amount = Number(tx.amount ?? 0)
+      if (tx.type === 'income') item.income += amount
+      if (tx.type === 'expense') item.expense += amount
+    })
+    return map
+  }, [filteredEvents, filteredTransactions])
 
   const stats = useMemo(() => {
     if (!selectedYear) return []
@@ -88,17 +211,13 @@ const StatisticsContent = () => {
     const now = new Date()
     const currentYear = now.getFullYear()
     const currentMonth = now.getMonth()
-
     const isFutureMonth = (monthIndex) =>
       selectedYear > currentYear ||
       (selectedYear === currentYear && monthIndex > currentMonth)
 
-    events.forEach((event) => {
-      if (event?.status === 'canceled') return
-      if (!event?.eventDate) return
+    filteredEvents.forEach((event) => {
+      if (!event?.eventDate || !isValidDate(event.eventDate)) return
       const date = new Date(event.eventDate)
-      if (Number.isNaN(date.getTime())) return
-      if (date.getFullYear() !== selectedYear) return
 
       const key = getMonthKey(date, selectedYear)
       const label = buildMonthLabel(date)
@@ -119,15 +238,11 @@ const StatisticsContent = () => {
       }
     })
 
-    transactions.forEach((transaction) => {
+    filteredTransactions.forEach((transaction) => {
       if (!transaction?.eventId) return
-      const dateRaw =
-        transaction.date ?? eventsMap.get(transaction.eventId)?.eventDate
-      if (!dateRaw) return
-      const date = new Date(dateRaw)
-      if (Number.isNaN(date.getTime())) return
-
-      if (date.getFullYear() !== selectedYear) return
+      const event = eventsMap.get(transaction.eventId)
+      if (!event?.eventDate || !isValidDate(event.eventDate)) return
+      const date = new Date(event.eventDate)
       const key = getMonthKey(date, selectedYear)
       const label = buildMonthLabel(date)
       if (!byMonth.has(key)) {
@@ -160,7 +275,81 @@ const StatisticsContent = () => {
         }
         return value
       })
-  }, [events, eventsMap, selectedYear, transactions])
+  }, [eventsMap, filteredEvents, filteredTransactions, selectedYear])
+
+  const financeSummary = useMemo(() => {
+    const totalIncome = filteredTransactions
+      .filter((tx) => tx?.type === 'income')
+      .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0)
+    const totalExpense = filteredTransactions
+      .filter((tx) => tx?.type === 'expense')
+      .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0)
+    const taxes = filteredTransactions
+      .filter((tx) => tx?.type === 'expense' && tx?.category === 'taxes')
+      .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0)
+    const commissions = filteredTransactions
+      .filter(
+        (tx) =>
+          tx?.type === 'expense' &&
+          (tx?.category === 'referral_out' || tx?.category === 'organizer')
+      )
+      .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0)
+    const netProfit = totalIncome - totalExpense
+    const margin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0
+
+    return {
+      totalIncome,
+      totalExpense,
+      taxes,
+      commissions,
+      netProfit,
+      margin,
+    }
+  }, [filteredTransactions])
+
+  const expenseCategoryLabels = useMemo(() => {
+    const map = new Map()
+    TRANSACTION_CATEGORIES.forEach((item) => {
+      map.set(item.value, item.name)
+    })
+    return map
+  }, [])
+
+  const topExpenseCategories = useMemo(() => {
+    const map = new Map()
+    filteredTransactions.forEach((tx) => {
+      if (tx?.type !== 'expense') return
+      const key = tx?.category || 'other'
+      const current = map.get(key) || 0
+      map.set(key, current + Number(tx.amount ?? 0))
+    })
+    return Array.from(map.entries())
+      .map(([category, amount]) => ({
+        category,
+        label: expenseCategoryLabels.get(category) || category,
+        amount,
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5)
+  }, [expenseCategoryLabels, filteredTransactions])
+
+  const topProfitableEvents = useMemo(() => {
+    return filteredEvents
+      .map((event) => {
+        const finance = eventFinanceMap.get(event?._id) || {
+          income: 0,
+          expense: 0,
+        }
+        return {
+          event,
+          income: finance.income,
+          expense: finance.expense,
+          profit: finance.income - finance.expense,
+        }
+      })
+      .sort((a, b) => b.profit - a.profit)
+      .slice(0, 5)
+  }, [eventFinanceMap, filteredEvents])
 
   const formatDateTime = (value) => {
     if (!value) return ''
@@ -203,23 +392,6 @@ const StatisticsContent = () => {
     return [servicesTitle, addressLine].filter(Boolean).join(' • ')
   }
 
-  const buildEventFinanceMap = useMemo(() => {
-    const map = new Map()
-    events.forEach((event) => {
-      const eventId = event?._id
-      if (!eventId) return
-      map.set(eventId, { income: 0, expense: 0 })
-    })
-    transactions.forEach((tx) => {
-      if (!tx?.eventId) return
-      const existing = map.get(tx.eventId)
-      if (!existing) return
-      if (tx.type === 'income') existing.income += Number(tx.amount ?? 0)
-      if (tx.type === 'expense') existing.expense += Number(tx.amount ?? 0)
-    })
-    return map
-  }, [events, transactions])
-
   const buildCsv = (headers, rows, delimiter = ';') => {
     const escapeValue = (value) => {
       if (value === null || value === undefined) return ''
@@ -253,15 +425,6 @@ const StatisticsContent = () => {
   }
 
   const handleExport = () => {
-    const yearFilter = selectedYear
-    const isInYear = (value) => {
-      if (!yearFilter) return true
-      if (!value) return false
-      const date = new Date(value)
-      if (Number.isNaN(date.getTime())) return false
-      return date.getFullYear() === Number(yearFilter)
-    }
-
     const eventsHeaders = [
       'ID',
       'Дата начала',
@@ -276,13 +439,11 @@ const StatisticsContent = () => {
       'Расход',
       'Прибыль',
     ]
-    const eventsRows = events
-      .filter((event) => isInYear(event?.eventDate))
-      .map((event) => {
-        const finance = buildEventFinanceMap.get(event._id) || {
-          income: 0,
-          expense: 0,
-        }
+    const eventsRows = filteredEvents.map((event) => {
+      const finance = eventFinanceMap.get(event._id) || {
+        income: 0,
+        expense: 0,
+      }
         const profit = finance.income - finance.expense
         return {
           ID: event._id,
@@ -292,7 +453,7 @@ const StatisticsContent = () => {
           Город: event?.address?.town ?? '',
           Адрес: formatAddress(event.address, ''),
           Услуги: resolveServicesTitles(event.servicesIds),
-          Статус: event.status ?? '',
+          Статус: getEventStatusLabel(getEventComputedStatus(event)),
           'Договорная сумма': Number(event.contractSum ?? 0),
           Доход: finance.income,
           Расход: finance.expense,
@@ -313,9 +474,7 @@ const StatisticsContent = () => {
       'Договорная сумма',
       'Связано с мероприятием',
     ]
-    const requestsRows = requests
-      .filter((request) => isInYear(request?.eventDate ?? request?.createdAt))
-      .map((request) => ({
+    const requestsRows = filteredRequests.map((request) => ({
         ID: request._id,
         'Дата заявки': formatDateTime(request.createdAt),
         'Дата мероприятия': formatDateTime(request.eventDate),
@@ -339,9 +498,7 @@ const StatisticsContent = () => {
       'Мероприятие',
       'Комментарий',
     ]
-    const transactionsRows = transactions
-      .filter((tx) => isInYear(tx?.date))
-      .map((tx) => {
+    const transactionsRows = filteredTransactions.map((tx) => {
         const event = eventsMap.get(tx.eventId)
         return {
           ID: tx._id,
@@ -355,7 +512,10 @@ const StatisticsContent = () => {
         }
       })
 
-    const fileSuffix = yearFilter ? String(yearFilter) : 'all'
+    const suffixYear = selectedYear ? String(selectedYear) : 'all'
+    const suffixTown = selectedTown ? selectedTown.replace(/\s+/g, '_') : 'all'
+    const suffixStatus = selectedStatus || 'all'
+    const fileSuffix = `${suffixYear}-${suffixTown}-${suffixStatus}`
     downloadCsv(`artistcrm-events-${fileSuffix}.csv`, eventsHeaders, eventsRows)
     downloadCsv(
       `artistcrm-requests-${fileSuffix}.csv`,
@@ -393,25 +553,87 @@ const StatisticsContent = () => {
           <ContentHeader>
             <HeaderActions
               left={
-                <div className="mt-2 w-52">
-                  <ComboBox
-                    label="Год"
-                    items={availableYears}
-                    value={selectedYear}
-                    onChange={(value) =>
-                      setSelectedYear(value !== null ? Number(value) : null)
-                    }
-                    placeholder="Выберите год"
-                    fullWidth
-                    noMargin
-                  />
+                <div className="mt-2 flex flex-wrap items-end gap-2">
+                  <div className="w-36">
+                    <ComboBox
+                      label="Год"
+                      items={availableYears}
+                      value={selectedYear}
+                      onChange={(value) =>
+                        setSelectedYear(value !== null ? Number(value) : null)
+                      }
+                      placeholder="Выберите год"
+                      fullWidth
+                      noMargin
+                    />
+                  </div>
+                  <div className="w-44">
+                    <ComboBox
+                      label="Город"
+                      items={townsOptions}
+                      value={selectedTown}
+                      onChange={(value) => setSelectedTown(value ?? '')}
+                      placeholder="Все города"
+                      fullWidth
+                      noMargin
+                    />
+                  </div>
+                  <div className="w-48">
+                    <ComboBox
+                      label="Статус"
+                      items={statusOptions}
+                      value={selectedStatus}
+                      onChange={(value) => setSelectedStatus(value ?? 'all')}
+                      fullWidth
+                      noMargin
+                    />
+                  </div>
                 </div>
               }
               right={<Button name="Экспорт CSV" onClick={handleExport} />}
             />
           </ContentHeader>
 
-          <SectionCard className="flex-1 min-h-0 p-4 overflow-hidden">
+          <SectionCard className="flex-1 min-h-0 p-4 overflow-y-auto">
+            <div className="grid grid-cols-1 gap-2 mb-4 tablet:grid-cols-2 desktop:grid-cols-3">
+              <div className="p-3 border rounded border-gray-200 bg-white/70">
+                <div className="text-xs text-gray-500">Выручка</div>
+                <div className="text-lg font-semibold text-green-700">
+                  {formatCurrency(financeSummary.totalIncome)}
+                </div>
+              </div>
+              <div className="p-3 border rounded border-gray-200 bg-white/70">
+                <div className="text-xs text-gray-500">Расходы</div>
+                <div className="text-lg font-semibold text-red-700">
+                  {formatCurrency(financeSummary.totalExpense)}
+                </div>
+              </div>
+              <div className="p-3 border rounded border-gray-200 bg-white/70">
+                <div className="text-xs text-gray-500">Чистая прибыль</div>
+                <div className="text-lg font-semibold text-blue-700">
+                  {formatCurrency(financeSummary.netProfit)}
+                </div>
+              </div>
+              <div className="p-3 border rounded border-gray-200 bg-white/70">
+                <div className="text-xs text-gray-500">Маржа</div>
+                <div className="text-lg font-semibold text-gray-800">
+                  {financeSummary.margin.toFixed(1)}%
+                </div>
+              </div>
+              <div className="p-3 border rounded border-gray-200 bg-white/70">
+                <div className="text-xs text-gray-500">Налоги</div>
+                <div className="text-lg font-semibold text-orange-700">
+                  {formatCurrency(financeSummary.taxes)}
+                </div>
+              </div>
+              <div className="p-3 border rounded border-gray-200 bg-white/70">
+                <div className="text-xs text-gray-500">Комиссии/реферальные</div>
+                <div className="text-lg font-semibold text-purple-700">
+                  {formatCurrency(financeSummary.commissions)}
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-wrap items-center gap-4 mb-3 text-sm text-gray-700">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-blue-600 rounded" />
@@ -423,12 +645,12 @@ const StatisticsContent = () => {
                 bordered={false}
                 text={
                   selectedYear
-                    ? 'Нет данных для статистики'
-                    : 'Нет данных для выбранного года'
+                    ? 'Нет данных для выбранных фильтров'
+                    : 'Нет данных для статистики'
                 }
               />
             ) : (
-              <div className="h-full min-h-[320px]">
+              <div className="h-[320px]">
                 <ResponsiveBar
                   data={stats}
                   keys={['profit']}
@@ -492,6 +714,59 @@ const StatisticsContent = () => {
                 />
               </div>
             )}
+
+            <div className="grid grid-cols-1 gap-3 mt-4 desktop:grid-cols-2">
+              <div className="p-3 border rounded border-gray-200 bg-white/70">
+                <div className="mb-2 text-sm font-semibold text-gray-700">
+                  Топ расходов по категориям
+                </div>
+                {topExpenseCategories.length === 0 ? (
+                  <div className="text-sm text-gray-500">Нет расходов</div>
+                ) : (
+                  <div className="space-y-1 text-sm">
+                    {topExpenseCategories.map((item) => (
+                      <div
+                        key={item.category}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <span className="truncate">{item.label}</span>
+                        <span className="font-semibold">
+                          {formatCurrency(item.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 border rounded border-gray-200 bg-white/70">
+                <div className="mb-2 text-sm font-semibold text-gray-700">
+                  Самые прибыльные мероприятия
+                </div>
+                {topProfitableEvents.length === 0 ? (
+                  <div className="text-sm text-gray-500">Нет мероприятий</div>
+                ) : (
+                  <div className="space-y-2 text-sm">
+                    {topProfitableEvents.map(({ event, profit }) => (
+                      <div key={event?._id} className="pb-2 border-b border-gray-100 last:border-b-0">
+                        <div className="font-medium">
+                          {resolveEventTitle(event) || 'Мероприятие без названия'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {formatDateTime(event?.eventDate)} •{' '}
+                          {getEventStatusLabel(getEventComputedStatus(event))}
+                        </div>
+                        <div
+                          className={`font-semibold ${profit >= 0 ? 'text-green-700' : 'text-red-700'}`}
+                        >
+                          {formatCurrency(profit)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </SectionCard>
         </>
       )}

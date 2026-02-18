@@ -2,6 +2,7 @@ import ErrorsList from '@components/ErrorsList'
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
+import LabeledContainer from '@components/LabeledContainer'
 import PhoneInput from '@components/PhoneInput'
 import { CLIENT_TYPES, DEFAULT_CLIENT } from '@helpers/constants'
 import getPersonFullName from '@helpers/getPersonFullName'
@@ -368,7 +369,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             ))}
           </div>
         </InputWrapper>
-        <InputWrapper label="Реквизиты для договора" paddingY>
+        <LabeledContainer label="Реквизиты для договора">
           <div className="grid gap-0 sm:grid-cols-2">
             <Input
               label="Наименование / ФИО"
@@ -434,7 +435,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
               smallMargin
             />
           </div>
-        </InputWrapper>
+        </LabeledContainer>
         <ErrorsList errors={errors} />
       </FormWrapper>
     )
