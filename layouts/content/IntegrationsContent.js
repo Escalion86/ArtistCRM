@@ -7,6 +7,7 @@ import HeaderActions from '@components/HeaderActions'
 import Input from '@components/Input'
 import IconCheckBox from '@components/IconCheckBox'
 import SectionCard from '@components/SectionCard'
+import LabeledContainer from '@components/LabeledContainer'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
@@ -138,74 +139,75 @@ const IntegrationsContent = () => {
       </ContentHeader>
 
       <SectionCard className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <div className="text-base font-semibold text-gray-900">
-          Интеграция входящих заявок
-        </div>
-        <div className="text-sm text-gray-600">
-          Используйте этот API key для отправки лидов в CRM через endpoint
-          ` /api/public/lead`.
-        </div>
+        <LabeledContainer label="Интеграция входящих заявок API" noMargin>
+          <div className="flex flex-col gap-3">
+            <div className="text-sm text-gray-600">
+              Используйте этот API key для отправки лидов в CRM через endpoint
+              ` /api/public/lead`.
+            </div>
 
-        <IconCheckBox
-          label="Принимать заявки через API"
-          checked={isEnabled}
-          onClick={() => saveCustom({ publicLeadEnabled: !isEnabled })}
-          noMargin
-        />
+            <IconCheckBox
+              label="Принимать заявки через API"
+              checked={isEnabled}
+              onClick={() => saveCustom({ publicLeadEnabled: !isEnabled })}
+              noMargin
+            />
 
-        <Input
-          label="API key для входящих заявок"
-          value={apiKey}
-          onChange={() => {}}
-          disabled
-          noMargin
-          fullWidth
-        />
+            <Input
+              label="API key для входящих заявок"
+              value={apiKey}
+              onChange={() => {}}
+              disabled
+              noMargin
+              fullWidth
+            />
 
-        <Input
-          label="Endpoint"
-          value={endpointUrl}
-          onChange={() => {}}
-          disabled
-          noMargin
-          fullWidth
-        />
+            <Input
+              label="Endpoint"
+              value={endpointUrl}
+              onChange={() => {}}
+              disabled
+              noMargin
+              fullWidth
+            />
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="action-icon-button action-icon-button--warning flex h-10 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
-            onClick={() => saveCustom({ publicLeadApiKey: generateApiKey() })}
-            disabled={isSaving}
-          >
-            Сгенерировать ключ
-          </button>
-          <button
-            type="button"
-            className="action-icon-button action-icon-button--success flex h-10 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
-            onClick={() => {
-              if (!apiKey || !navigator?.clipboard) return
-              navigator.clipboard.writeText(apiKey)
-            }}
-            disabled={!apiKey}
-          >
-            Копировать ключ
-          </button>
-          <button
-            type="button"
-            className="action-icon-button action-icon-button--warning flex h-10 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
-            onClick={() =>
-              modalsFunc.add({
-                title: 'Инструкция API',
-                showDecline: true,
-                declineButtonName: 'Закрыть',
-                Children: IntegrationsApiGuide,
-              })
-            }
-          >
-            Открыть инструкцию API
-          </button>
-        </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--warning flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold tablet:w-auto"
+                onClick={() => saveCustom({ publicLeadApiKey: generateApiKey() })}
+                disabled={isSaving}
+              >
+                Сгенерировать ключ
+              </button>
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--success flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold tablet:w-auto"
+                onClick={() => {
+                  if (!apiKey || !navigator?.clipboard) return
+                  navigator.clipboard.writeText(apiKey)
+                }}
+                disabled={!apiKey}
+              >
+                Копировать ключ
+              </button>
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--warning flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold tablet:w-auto"
+                onClick={() =>
+                  modalsFunc.add({
+                    title: 'Инструкция API',
+                    showDecline: true,
+                    declineButtonName: 'Закрыть',
+                    Children: IntegrationsApiGuide,
+                  })
+                }
+              >
+                Открыть инструкцию API
+              </button>
+            </div>
+          </div>
+        </LabeledContainer>
       </SectionCard>
     </div>
   )

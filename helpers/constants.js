@@ -332,21 +332,6 @@ export const EVENT_TYPES = [
 
 export const SPECTATORS = ['1-15', '15-30', '30-70', '70-200', '200+']
 
-export const DEFAULT_USERS_SECURITY = Object.freeze({
-  fullSecondName: true,
-  fullThirdName: true,
-  showBirthday: true,
-  // showAge: null,
-  // showContacts: null,
-  showPhone: true,
-  showWhatsapp: true,
-  showViber: true,
-  showTelegram: true,
-  showInstagram: true,
-  showVk: true,
-  showEmail: true,
-})
-
 export const DEFAULT_USERS_NOTIFICATIONS = Object.freeze({
   telegram: { active: false, userName: null, id: null },
 })
@@ -371,8 +356,6 @@ export const DEFAULT_USER = Object.freeze({
   telegram: '',
   vk: '',
   instagram: '',
-  birthday: null,
-  gender: null,
   images: [],
   tariffId: null,
   trialActivatedAt: null,
@@ -383,7 +366,6 @@ export const DEFAULT_USER = Object.freeze({
   tariffActiveUntil: null,
   nextChargeAt: null,
   role: 'user',
-  town: '',
   lastActivityAt: null,
   prevActivityAt: null,
   archive: false,
@@ -406,7 +388,6 @@ export const DEFAULT_ADDRESS = Object.freeze({
 })
 
 export const DEFAULT_EVENT = Object.freeze({
-  organizerId: null,
   clientId: null,
   description: '',
   financeComment: '',

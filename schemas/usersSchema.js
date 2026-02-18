@@ -1,7 +1,6 @@
 import {
   DEFAULT_GOOGLE_CALENDAR_REMINDERS,
   DEFAULT_USERS_NOTIFICATIONS,
-  DEFAULT_USERS_SECURITY,
 } from '@helpers/constants'
 import { Schema } from 'mongoose'
 

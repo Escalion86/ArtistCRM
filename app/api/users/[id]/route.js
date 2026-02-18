@@ -194,8 +194,6 @@ export const PUT = async (req, { params }) => {
     'telegram',
     'vk',
     'instagram',
-    'birthday',
-    'gender',
     'images',
     'tariffId',
   ]

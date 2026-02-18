@@ -212,7 +212,7 @@ const Modal = ({
       <motion.div
         className={
           cn(
-            'laptop:w-9/12 relative flex h-[100dvh] min-h-[100dvh] w-full min-w-84 flex-col overflow-hidden border-l border-primary bg-white pb-1 duration-300 tablet:my-auto tablet:h-auto tablet:min-h-0 tablet:max-h-[calc(100dvh-2.5rem)] tablet:w-[95%] tablet:min-w-156 tablet:rounded-lg tablet:pb-2 tablet:overflow-visible',
+            'laptop:w-9/12 relative flex h-[100dvh] min-h-[100dvh] w-full min-w-0 flex-col overflow-hidden border-l border-primary bg-white pb-1 duration-300 tablet:my-auto tablet:h-auto tablet:min-h-0 tablet:max-h-[calc(100dvh-2.5rem)] tablet:w-[95%] tablet:min-w-156 tablet:rounded-lg tablet:pb-2 tablet:overflow-visible',
             titleState ? 'pt-3' : 'pt-12'
           )
           // + (rendered ? '' : ' scale-50')

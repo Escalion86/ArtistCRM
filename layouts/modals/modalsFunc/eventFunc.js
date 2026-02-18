@@ -35,6 +35,7 @@ import Input from '@components/Input'
 import AppButton from '@components/AppButton'
 import AddressPicker from '@components/AddressPicker'
 import InputWrapper from '@components/InputWrapper'
+import LabeledContainer from '@components/LabeledContainer'
 import OtherContactsPicker from '@components/OtherContactsPicker'
 import LinksListEditor from '@components/LinksListEditor'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
@@ -575,6 +576,11 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
 
       return count
     }, [buildRange, dateEnd, eventDate, events])
+    const tariffAccess = useMemo(
+      () => getUserTariffAccess(loggedUser, tariffs),
+      [loggedUser, tariffs]
+    )
+    const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
 
     const onClickConfirm = useCallback(() => {
       clearErrorsRef.current()
@@ -760,11 +766,6 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           .filter(Boolean),
       [services, servicesIds]
     )
-    const tariffAccess = useMemo(
-      () => getUserTariffAccess(loggedUser, tariffs),
-      [loggedUser, tariffs]
-    )
-    const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
     const hasDoneAdditionalEvents = useMemo(
       () => (additionalEvents ?? []).some((item) => Boolean(item?.done)),
       [additionalEvents]
@@ -786,13 +787,13 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           : 'individual_entrepreneur'
       const hasCommonFields = Boolean(
         String(custom?.contractArtistFullName ?? '').trim() &&
-          String(custom?.contractArtistName ?? '').trim() &&
-          String(custom?.contractArtistInn ?? '').trim() &&
-          String(custom?.contractArtistBankName ?? '').trim() &&
-          String(custom?.contractArtistBik ?? '').trim() &&
-          String(custom?.contractArtistCheckingAccount ?? '').trim() &&
-          String(custom?.contractArtistCorrespondentAccount ?? '').trim() &&
-          String(custom?.contractArtistLegalAddress ?? '').trim()
+        String(custom?.contractArtistName ?? '').trim() &&
+        String(custom?.contractArtistInn ?? '').trim() &&
+        String(custom?.contractArtistBankName ?? '').trim() &&
+        String(custom?.contractArtistBik ?? '').trim() &&
+        String(custom?.contractArtistCheckingAccount ?? '').trim() &&
+        String(custom?.contractArtistCorrespondentAccount ?? '').trim() &&
+        String(custom?.contractArtistLegalAddress ?? '').trim()
       )
       if (!hasCommonFields) return false
       if (artistStatus === 'self_employed') return true
@@ -802,16 +803,16 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       if (!client) return false
       const hasName = Boolean(
         String(client?.legalName ?? '').trim() ||
-          getPersonFullName(client, { fallback: '' }).trim()
+        getPersonFullName(client, { fallback: '' }).trim()
       )
       return Boolean(
         hasName &&
-          String(client?.inn ?? '').trim() &&
-          String(client?.bankName ?? '').trim() &&
-          String(client?.bik ?? '').trim() &&
-          String(client?.checkingAccount ?? '').trim() &&
-          String(client?.correspondentAccount ?? '').trim() &&
-          String(client?.legalAddress ?? '').trim()
+        String(client?.inn ?? '').trim() &&
+        String(client?.bankName ?? '').trim() &&
+        String(client?.bik ?? '').trim() &&
+        String(client?.checkingAccount ?? '').trim() &&
+        String(client?.correspondentAccount ?? '').trim() &&
+        String(client?.legalAddress ?? '').trim()
       )
     }
     const buildContractTemplateVariables = useCallback(
@@ -1367,14 +1368,17 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         useEffect(() => {
           clientRef.current = liveSelectedClient
         }, [liveSelectedClient])
-        const hasArtistRequisites = hasRequiredArtistRequisites(liveSiteSettings)
-        const hasClientRequisites = hasRequiredClientRequisites(liveSelectedClient)
-        const showRequisitesWarning = !hasArtistRequisites || !hasClientRequisites
+        const hasArtistRequisites =
+          hasRequiredArtistRequisites(liveSiteSettings)
+        const hasClientRequisites =
+          hasRequiredClientRequisites(liveSelectedClient)
+        const showRequisitesWarning =
+          !hasArtistRequisites || !hasClientRequisites
 
         return (
           <div className="flex flex-col gap-2">
             {showRequisitesWarning ? (
-              <div className="flex flex-col gap-2 rounded border border-red-200 bg-red-50/80 px-3 py-2">
+              <div className="flex flex-col gap-2 px-3 py-2 border border-red-200 rounded bg-red-50/80">
                 {!hasArtistRequisites ? (
                   <div className="text-xs text-red-700">
                     Необходимо заполнить реквизиты артиста
@@ -1391,7 +1395,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                       variant="danger"
                       size="sm"
                       className="rounded"
-                      onClick={() => modalsFunc.settings?.artistRequisitesEditor?.()}
+                      onClick={() =>
+                        modalsFunc.settings?.artistRequisitesEditor?.()
+                      }
                     >
                       Редактировать реквизиты
                     </AppButton>
@@ -1533,14 +1539,17 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         useEffect(() => {
           clientRef.current = liveSelectedClient
         }, [liveSelectedClient])
-        const hasArtistRequisites = hasRequiredArtistRequisites(liveSiteSettings)
-        const hasClientRequisites = hasRequiredClientRequisites(liveSelectedClient)
-        const showRequisitesWarning = !hasArtistRequisites || !hasClientRequisites
+        const hasArtistRequisites =
+          hasRequiredArtistRequisites(liveSiteSettings)
+        const hasClientRequisites =
+          hasRequiredClientRequisites(liveSelectedClient)
+        const showRequisitesWarning =
+          !hasArtistRequisites || !hasClientRequisites
 
         return (
           <div className="flex flex-col gap-2">
             {showRequisitesWarning ? (
-              <div className="flex flex-col gap-2 rounded border border-red-200 bg-red-50/80 px-3 py-2">
+              <div className="flex flex-col gap-2 px-3 py-2 border border-red-200 rounded bg-red-50/80">
                 {!hasArtistRequisites ? (
                   <div className="text-xs text-red-700">
                     Необходимо заполнить реквизиты артиста
@@ -1557,7 +1566,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                       variant="danger"
                       size="sm"
                       className="rounded"
-                      onClick={() => modalsFunc.settings?.artistRequisitesEditor?.()}
+                      onClick={() =>
+                        modalsFunc.settings?.artistRequisitesEditor?.()
+                      }
                     >
                       Редактировать реквизиты
                     </AppButton>
@@ -1799,7 +1810,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               }}
               onAddContact={handleOtherContactAdd}
             />
-            <InputWrapper label="Доп. события">
+            <LabeledContainer label="Доп. события">
               <div className="flex flex-col w-full gap-2">
                 <div className="flex justify-end w-full">
                   <AddIconButton
@@ -1864,7 +1875,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                               </div>
                             ) : null}
                           </div>
-                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                          <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
                             <AppButton
                               variant={item?.done ? 'secondary' : 'primary'}
                               size="sm"
@@ -1898,7 +1909,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   </div>
                 )}
               </div>
-            </InputWrapper>
+            </LabeledContainer>
           </FormWrapper>
         </TabPanel>
 
@@ -1925,7 +1936,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                         setDepositExpectedAmount(null)
                       } else if (!depositDueAt) {
                         setDepositDueAt(
-                          new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                          new Date(
+                            Date.now() + 24 * 60 * 60 * 1000
+                          ).toISOString()
                         )
                       }
                       return next
@@ -1937,7 +1950,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   noMargin
                 />
                 {waitDeposit ? (
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+                  <div className="flex flex-col gap-2 tablet:flex-row tablet:flex-wrap tablet:items-center tablet:gap-x-2 tablet:gap-y-3">
                     <Input
                       label="Сумма задатка"
                       type="number"
