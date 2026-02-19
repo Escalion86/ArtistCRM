@@ -6,16 +6,17 @@ import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
+import SurfaceCard from '@components/SurfaceCard'
 import getPersonFullName from '@helpers/getPersonFullName'
 
 const SectionBlock = ({ title, action, children }) => (
-  <div className="client-view-section rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+  <SurfaceCard>
     <div className="mb-2 flex items-center justify-between gap-2">
       <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</div>
       {action}
     </div>
     {children}
-  </div>
+  </SurfaceCard>
 )
 
 const CardButtonsComponent = ({ client, onEdit }) => (
