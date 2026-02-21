@@ -1,10 +1,12 @@
 import CardButtons from '@components/CardButtons'
 import Chip from '@components/Chips/Chip'
+import IconActionButton from '@components/IconActionButton'
 import cn from 'classnames'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import ImageGallery from '@components/ImageGallery'
 import SurfaceCard from '@components/SurfaceCard'
 import TextLine from '@components/TextLine'
+import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
 import formatMinutes from '@helpers/formatMinutes'
@@ -141,6 +143,23 @@ const eventViewFunc = (eventId) => {
       const nextItems = sourceItems.map((item, idx) =>
         idx === index ? { ...item, done: !Boolean(item?.done) } : item
       )
+      await itemsFunc?.event?.set(
+        {
+          _id: event._id,
+          additionalEvents: nextItems,
+        },
+        false,
+        true
+      )
+    }
+
+    const deleteAdditionalEvent = async (index) => {
+      if (!event?._id) return
+      const sourceItems = Array.isArray(event?.additionalEvents)
+        ? event.additionalEvents
+        : []
+      if (!sourceItems[index]) return
+      const nextItems = sourceItems.filter((_, idx) => idx !== index)
       await itemsFunc?.event?.set(
         {
           _id: event._id,
@@ -288,42 +307,66 @@ const eventViewFunc = (eventId) => {
                           declineButtonName: 'Закрыть',
                           showDecline: true,
                           onConfirm: () => toggleAdditionalEventDone(index),
-                          Children: () => (
-                            <div className="flex flex-col gap-3 text-sm text-gray-800">
-                              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                                <div className="text-xs uppercase tracking-wide text-gray-500">
-                                  Статус
-                                </div>
-                                <div
-                                  className={`mt-1 text-sm font-semibold ${
-                                    item?.done
-                                      ? 'text-emerald-700'
-                                      : 'text-blue-700'
-                                  }`}
-                                >
-                                  {item?.done ? 'Выполнено' : 'Активно'}
-                                </div>
-                              </div>
-                              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                                <div className="text-xs uppercase tracking-wide text-gray-500">
-                                  Дата и время
-                                </div>
-                                <div className="mt-1 font-semibold text-gray-900">
-                                  {formatDateTime(item?.date)}
-                                </div>
-                              </div>
-                              {item?.description ? (
+                          Children: ({ closeModal, setTopLeftComponent }) => {
+                            useEffect(() => {
+                              if (!setTopLeftComponent) return
+                              setTopLeftComponent(
+                                <IconActionButton
+                                  icon={faTrashAlt}
+                                  size="sm"
+                                  variant="danger"
+                                  title="Удалить доп. событие"
+                                  onClick={() =>
+                                    modalsFunc.confirm({
+                                      title: 'Удаление доп. события',
+                                      text: 'Удалить это доп. событие?',
+                                      onConfirm: async () => {
+                                        await deleteAdditionalEvent(index)
+                                        closeModal?.()
+                                      },
+                                    })
+                                  }
+                                />
+                              )
+                            }, [closeModal, setTopLeftComponent])
+
+                            return (
+                              <div className="flex flex-col gap-3 text-sm text-gray-800">
                                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                                   <div className="text-xs uppercase tracking-wide text-gray-500">
-                                    Описание
+                                    Статус
                                   </div>
-                                  <div className="mt-1 whitespace-pre-wrap text-gray-700">
-                                    {item.description}
+                                  <div
+                                    className={`mt-1 text-sm font-semibold ${
+                                      item?.done
+                                        ? 'text-emerald-700'
+                                        : 'text-blue-700'
+                                    }`}
+                                  >
+                                    {item?.done ? 'Выполнено' : 'Активно'}
                                   </div>
                                 </div>
-                              ) : null}
-                            </div>
-                          ),
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                                    Дата и время
+                                  </div>
+                                  <div className="mt-1 font-semibold text-gray-900">
+                                    {formatDateTime(item?.date)}
+                                  </div>
+                                </div>
+                                {item?.description ? (
+                                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                    <div className="text-xs uppercase tracking-wide text-gray-500">
+                                      Описание
+                                    </div>
+                                    <div className="mt-1 whitespace-pre-wrap text-gray-700">
+                                      {item.description}
+                                    </div>
+                                  </div>
+                                ) : null}
+                              </div>
+                            )
+                          },
                         })
                       }
                     >

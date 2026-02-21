@@ -331,6 +331,7 @@ const SettingsContent = () => {
                     custom: {
                       ...(siteSettings?.custom ?? {}),
                       releaseOnboardingCompleted: false,
+                      releaseOnboardingShowToken: Date.now(),
                     },
                   },
                   (data) => setSiteSettings(data),
@@ -456,3 +457,4 @@ const SettingsContent = () => {
 }
 
 export default SettingsContent
+

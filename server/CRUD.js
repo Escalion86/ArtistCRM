@@ -325,6 +325,8 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   const extraDescriptionLines = []
   let clientName = ''
   let clientContactLines = []
+  let colleagueName = ''
+  let colleagueContactLines = []
   if (event?.clientId) {
     await dbConnect()
     const client = await Clients.findById(event.clientId)
@@ -335,6 +337,24 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
     clientContactLines = buildClientContactsLines(client)
     if (clientContactLines.length) {
       extraDescriptionLines.push(clientContactLines.join('\n'))
+    }
+  }
+  if (event?.isTransferred && event?.colleagueId) {
+    await dbConnect()
+    const colleague = await Clients.findById(event.colleagueId)
+      .select('firstName secondName phone whatsapp viber telegram instagram vk email')
+      .lean()
+    colleagueName = [colleague?.firstName, colleague?.secondName]
+      .filter(Boolean)
+      .join(' ')
+    colleagueContactLines = buildClientContactsLines(colleague)
+    if (colleagueName || colleagueContactLines.length) {
+      extraDescriptionLines.push(
+        `Передано: ${colleagueName || 'Контакт не указан'}`
+      )
+      if (colleagueContactLines.length) {
+        extraDescriptionLines.push(colleagueContactLines.join('\n'))
+      }
     }
   }
   if (Array.isArray(event?.otherContacts) && event.otherContacts.length) {
@@ -521,11 +541,14 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
     ? { useDefault: true }
     : { useDefault: false, overrides: reminders.overrides ?? [] }
 
-  const statusPrefix =
-    event.status === 'draft'
-      ? '(Заявка) '
-      : event.status === 'canceled'
-        ? '(Отменено) '
+  const isCanceled = event.status === 'canceled'
+  const isTransferred = Boolean(event?.isTransferred)
+  const statusPrefix = isCanceled
+    ? '[ОТМЕНЕНО] '
+    : isTransferred
+      ? '[ПЕРЕДАНО] '
+      : event.status === 'draft'
+        ? '[ЗАЯВКА] '
         : ''
   const calendarEvent = {
     summary: `${statusPrefix}${calendarTitle}`,
@@ -579,6 +602,13 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         clientContactLines.length ? `\n${clientContactLines.join('\n')}` : ''
       }`
     : ''
+  const colleagueBlock = isTransferred
+    ? `Передано: ${colleagueName || 'Контакт не указан'}${
+        colleagueContactLines.length
+          ? `\n${colleagueContactLines.join('\n')}`
+          : ''
+      }`
+    : ''
   const additionalBaseDescriptionLines = [
     'Доп. событие по мероприятию',
     `Мероприятие: ${calendarTitle}`,
@@ -593,6 +623,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
             : 'Активно'
     }`,
     clientBlock,
+    colleagueBlock,
     `Ссылка на мероприятие:\n${eventLink}`,
   ].filter(Boolean)
 

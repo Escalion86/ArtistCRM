@@ -16,7 +16,10 @@ const getCustomValue = (custom, key) => {
 }
 
 const hasAdditionalEvents = (events = []) =>
-  events.some((event) => Array.isArray(event?.additionalEvents) && event.additionalEvents.length > 0)
+  events.some(
+    (event) =>
+      Array.isArray(event?.additionalEvents) && event.additionalEvents.length > 0
+  )
 
 const ReleaseOnboardingCoach = () => {
   const router = useRouter()
@@ -28,6 +31,7 @@ const ReleaseOnboardingCoach = () => {
   const [collapsed, setCollapsed] = useState(false)
   const [showPreviousSteps, setShowPreviousSteps] = useState(false)
   const [selectedStepIndex, setSelectedStepIndex] = useState(null)
+  const [forceShow, setForceShow] = useState(false)
   const saveInProgressRef = useRef(false)
 
   const firstName = loggedUser?.firstName?.trim() ?? ''
@@ -44,7 +48,9 @@ const ReleaseOnboardingCoach = () => {
     timeZoneConfirmed
 
   const custom = siteSettings?.custom ?? {}
-  const isCompleted = getCustomValue(custom, 'releaseOnboardingCompleted') === true
+  const isCompleted =
+    getCustomValue(custom, 'releaseOnboardingCompleted') === true
+  const forceShowToken = getCustomValue(custom, 'releaseOnboardingShowToken')
   const hasActiveEvent = Array.isArray(events)
     ? events.some((event) => event?.status === 'active')
     : false
@@ -54,7 +60,8 @@ const ReleaseOnboardingCoach = () => {
       {
         id: 'services',
         title: 'Создайте услугу',
-        description: 'Добавьте хотя бы одну услугу, чтобы использовать ее в заявках.',
+        description:
+          'Добавьте хотя бы одну услугу, чтобы использовать ее в заявках.',
         done: Array.isArray(services) && services.length > 0,
         actionText: 'Добавить услугу',
         onAction: () => modalsFunc?.service?.add?.(),
@@ -93,6 +100,7 @@ const ReleaseOnboardingCoach = () => {
     () => steps.findIndex((step) => !step.done),
     [steps]
   )
+  const isAllStepsDone = currentStepIndex === -1
   const currentStep =
     currentStepIndex >= 0 && currentStepIndex < steps.length
       ? steps[currentStepIndex]
@@ -103,16 +111,24 @@ const ReleaseOnboardingCoach = () => {
     selectedStepIndex < steps.length
       ? selectedStepIndex
       : null
+  const fallbackStepIndex = isAllStepsDone ? steps.length - 1 : currentStepIndex
   const viewedStepIndex =
     normalizedSelectedStepIndex !== null
       ? normalizedSelectedStepIndex
-      : currentStepIndex
+      : fallbackStepIndex
   const viewedStep =
     viewedStepIndex >= 0 && viewedStepIndex < steps.length
       ? steps[viewedStepIndex]
-      : currentStep
+      : null
   const previousSteps =
     currentStepIndex > 0 ? steps.slice(0, currentStepIndex) : []
+
+  useEffect(() => {
+    if (forceShowToken) {
+      setForceShow(true)
+      setCollapsed(false)
+    }
+  }, [forceShowToken])
 
   useEffect(() => {
     if (currentStepIndex >= 0) {
@@ -121,13 +137,13 @@ const ReleaseOnboardingCoach = () => {
   }, [currentStepIndex])
 
   useEffect(() => {
-    if (currentStepIndex < 0) return
+    if (fallbackStepIndex < 0) return
     setSelectedStepIndex((prev) => {
-      if (prev === null) return currentStepIndex
-      if (prev < 0 || prev >= steps.length) return currentStepIndex
+      if (prev === null) return fallbackStepIndex
+      if (prev < 0 || prev >= steps.length) return fallbackStepIndex
       return prev
     })
-  }, [currentStepIndex, steps.length])
+  }, [fallbackStepIndex, steps.length])
 
   useEffect(() => {
     if (currentStepIndex <= 0) {
@@ -136,7 +152,7 @@ const ReleaseOnboardingCoach = () => {
   }, [currentStepIndex])
 
   useEffect(() => {
-    if (!profileReady || isCompleted || currentStepIndex !== -1) return
+    if (!profileReady || forceShow || isCompleted || !isAllStepsDone) return
     if (saveInProgressRef.current) return
     saveInProgressRef.current = true
     postData(
@@ -155,14 +171,35 @@ const ReleaseOnboardingCoach = () => {
       saveInProgressRef.current = false
     })
   }, [
-    currentStepIndex,
+    forceShow,
+    isAllStepsDone,
     isCompleted,
     profileReady,
     setSiteSettings,
     siteSettings?.custom,
   ])
 
-  if (!profileReady || isCompleted || !currentStep) return null
+  const hideForcedMode = () => {
+    setForceShow(false)
+    postData(
+      '/api/site',
+      {
+        custom: {
+          ...(siteSettings?.custom ?? {}),
+          releaseOnboardingCompleted: true,
+          releaseOnboardingShowToken: null,
+        },
+      },
+      (data) => setSiteSettings(data),
+      null,
+      false,
+      null
+    )
+  }
+
+  if (!profileReady) return null
+  if (!forceShow && (isCompleted || !currentStep)) return null
+  if (!viewedStep) return null
 
   if (collapsed) {
     return (
@@ -181,7 +218,9 @@ const ReleaseOnboardingCoach = () => {
       <div className="surface-card rounded-xl border border-gray-200 px-3 py-3 shadow-xl">
         <div className="mb-1 flex items-center justify-between gap-2">
           <div className="text-sm font-semibold text-gray-900">
-            Шаг {viewedStepIndex + 1} из {steps.length}
+            {isAllStepsDone
+              ? `Все шаги выполнены (${steps.length}/${steps.length})`
+              : `Шаг ${viewedStepIndex + 1} из ${steps.length}`}
           </div>
           <button
             type="button"
@@ -191,9 +230,10 @@ const ReleaseOnboardingCoach = () => {
             Свернуть
           </button>
         </div>
+
         <div className="text-sm font-semibold text-gray-900">
           {viewedStep.title}
-          {viewedStepIndex === currentStepIndex ? (
+          {!isAllStepsDone && viewedStepIndex === currentStepIndex ? (
             <span className="ml-2 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
               текущий
             </span>
@@ -209,6 +249,15 @@ const ReleaseOnboardingCoach = () => {
           >
             {viewedStep.actionText}
           </button>
+          {forceShow && isAllStepsDone ? (
+            <button
+              type="button"
+              onClick={hideForcedMode}
+              className="action-icon-button action-icon-button--neutral inline-flex h-9 items-center justify-center rounded px-3 text-sm font-semibold"
+            >
+              Скрыть до следующего запуска
+            </button>
+          ) : null}
           <div className="flex gap-1">
             {steps.map((step, idx) => (
               <button
@@ -217,14 +266,12 @@ const ReleaseOnboardingCoach = () => {
                 onClick={() => setSelectedStepIndex(idx)}
                 className={cn(
                   'h-1.5 w-6 rounded-full transition hover:opacity-90',
-                  idx < currentStepIndex
+                  idx < currentStepIndex || isAllStepsDone
                     ? 'bg-emerald-500'
                     : idx === currentStepIndex
                     ? 'bg-orange-500'
                     : 'bg-gray-300',
-                  idx === viewedStepIndex
-                    ? 'ring-2 ring-blue-500 ring-offset-1'
-                    : ''
+                  idx === viewedStepIndex ? 'ring-2 ring-blue-500 ring-offset-1' : ''
                 )}
                 title={`Шаг ${idx + 1}: ${step.title}`}
               />
@@ -232,7 +279,7 @@ const ReleaseOnboardingCoach = () => {
           </div>
         </div>
 
-        {previousSteps.length > 0 && (
+        {previousSteps.length > 0 && !isAllStepsDone && (
           <div className="mt-3 border-t border-gray-200 pt-2">
             <button
               type="button"
