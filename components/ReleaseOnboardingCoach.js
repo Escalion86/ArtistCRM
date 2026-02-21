@@ -255,7 +255,7 @@ const ReleaseOnboardingCoach = () => {
               onClick={hideForcedMode}
               className="action-icon-button action-icon-button--neutral inline-flex h-9 items-center justify-center rounded px-3 text-sm font-semibold"
             >
-              Скрыть до следующего запуска
+              Завершить мастера запуска
             </button>
           ) : null}
           <div className="flex gap-1">
