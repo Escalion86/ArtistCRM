@@ -10,6 +10,7 @@ import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
 import formatMinutes from '@helpers/formatMinutes'
+import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getEventDuration from '@helpers/getEventDuration'
 import getPersonFullName from '@helpers/getPersonFullName'
 import Image from 'next/image'
@@ -74,12 +75,7 @@ const eventViewFunc = (eventId) => {
     const statusMeta = EVENT_STATUS_META[event?.status] || EVENT_STATUS_META.active
 
     const calendarLink = useMemo(() => {
-      if (!event?.description) return null
-      const match = event.description.match(
-        /https?:\/\/(?:www\.)?google\.com\/calendar\/event\?eid=\S+|https?:\/\/calendar\.google\.com\/calendar\/\S+/i
-      )
-      if (!match?.[0]) return null
-      return match[0].replace(/[),.]+$/, '')
+      return getGoogleCalendarLinkFromText(event?.description)
     }, [event?.description])
     const serviceTitles = (event?.servicesIds ?? [])
       .map((serviceId) => services.find((item) => item._id === serviceId))

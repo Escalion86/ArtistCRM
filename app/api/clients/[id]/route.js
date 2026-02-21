@@ -20,7 +20,7 @@ export const PUT = async (req, { params }) => {
     { _id: id, tenantId },
     body,
     {
-      new: true,
+      returnDocument: 'after',
     }
   )
   if (!client)

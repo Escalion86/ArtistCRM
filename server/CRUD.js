@@ -708,7 +708,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         googleCalendarCalendarId: effectiveCalendarId,
       },
       {
-        new: true,
+        returnDocument: 'after',
         runValidators: true,
       }
     ).lean()
@@ -969,7 +969,7 @@ export default async function handler(Schema, req, res, params = null) {
           }
 
           data = await Schema.findByIdAndUpdate(id, body.data, {
-            new: true,
+            returnDocument: 'after',
             runValidators: true,
           }).lean()
 

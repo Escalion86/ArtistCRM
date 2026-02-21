@@ -287,7 +287,9 @@ export const PUT = async (req, { params }) => {
   }
 
   console.log('[users][PUT] update', { query, updateKeys: Object.keys(update) })
-  const updated = await Users.findOneAndUpdate(query, update, { new: true })
+  const updated = await Users.findOneAndUpdate(query, update, {
+    returnDocument: 'after',
+  })
   if (!updated) {
     console.log('[users][PUT] update failed', { query })
   }

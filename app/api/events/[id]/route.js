@@ -7,6 +7,13 @@ import { deleteEventFromCalendar, updateEventInCalendar } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
+import {
+  hasDocuments,
+  normalizeAdditionalEvents,
+  normalizeDepositExpectedAmount,
+  normalizeWaitDeposit,
+  parseDateValue,
+} from '@server/eventApiNormalization'
 
 const EVENT_STATUSES = new Set(['draft', 'canceled', 'active', 'closed'])
 
@@ -40,48 +47,8 @@ const normalizeAddress = (rawAddress, legacyLocation) => {
   return normalized
 }
 
-const parseDateValue = (value) => {
-  if (!value) return null
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
-const normalizeWaitDeposit = (value) => Boolean(value)
-const normalizeDepositExpectedAmount = (value) => {
-  if (value === null || value === undefined || value === '') return null
-  const number = Number(value)
-  if (!Number.isFinite(number) || number < 0) return null
-  return Math.floor(number)
-}
-
 const normalizeCancelReason = (value) =>
   typeof value === 'string' ? value.trim() : ''
-
-const normalizeAdditionalEvents = (items) => {
-  if (!Array.isArray(items)) return []
-  return items
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const title = typeof item.title === 'string' ? item.title.trim() : ''
-      const description =
-        typeof item.description === 'string' ? item.description.trim() : ''
-      const date = parseDateValue(item.date)
-      if (!title && !description && !date) return null
-      const googleCalendarEventId =
-        typeof item.googleCalendarEventId === 'string'
-          ? item.googleCalendarEventId.trim()
-          : ''
-      const done = Boolean(item.done)
-      return {
-        title,
-        description,
-        date,
-        done,
-        googleCalendarEventId,
-      }
-    })
-    .filter(Boolean)
-}
 
 const normalizeOtherContacts = (contacts) => {
   if (!Array.isArray(contacts)) return []
@@ -97,27 +64,6 @@ const normalizeOtherContacts = (contacts) => {
     })
     .filter(Boolean)
 }
-
-
-const hasDocuments = (payload) => {
-  const invoiceLinks = Array.isArray(payload?.invoiceLinks)
-    ? payload.invoiceLinks
-    : []
-  const receiptLinks = Array.isArray(payload?.receiptLinks)
-    ? payload.receiptLinks
-    : []
-  const actLinks = Array.isArray(payload?.actLinks) ? payload.actLinks : []
-  const contractLinks = Array.isArray(payload?.contractLinks)
-    ? payload.contractLinks
-    : []
-  return (
-    invoiceLinks.some((item) => Boolean(item)) ||
-    receiptLinks.some((item) => Boolean(item)) ||
-    actLinks.some((item) => Boolean(item)) ||
-    contractLinks.some((item) => Boolean(item))
-  )
-}
-
 const getNextStatus = (current, body) => {
   const next = body?.status
   if (next && EVENT_STATUSES.has(next)) return next
@@ -251,7 +197,7 @@ export const PUT = async (req, { params }) => {
     update.status = body.status
 
   const event = await Events.findOneAndUpdate({ _id: id, tenantId }, update, {
-    new: true,
+    returnDocument: 'after',
   })
   if (!event)
     return NextResponse.json(
@@ -275,7 +221,7 @@ export const PUT = async (req, { params }) => {
     responseEvent = await Events.findByIdAndUpdate(
       event._id,
       { calendarSyncError: 'calendar_sync_unavailable' },
-      { new: true }
+      { returnDocument: 'after' }
     )
   } else if (event.calendarImportChecked && access?.allowCalendarSync) {
     try {
@@ -283,14 +229,14 @@ export const PUT = async (req, { params }) => {
       responseEvent = await Events.findByIdAndUpdate(
         event._id,
         { calendarSyncError: '' },
-        { new: true }
+        { returnDocument: 'after' }
       )
     } catch (error) {
       console.log('Google Calendar update error', error)
       responseEvent = await Events.findByIdAndUpdate(
         event._id,
         { calendarSyncError: 'calendar_sync_failed' },
-        { new: true }
+        { returnDocument: 'after' }
       )
     }
   }

@@ -11,7 +11,6 @@ module.exports = {
     './layouts/**/*.{js,jsx}',
     './blocks/**/*.{js,jsx}',
     // './public/**/*.{svg}',
-    'node_modules/preline/dist/*.js',
   ],
   theme: {
     extend: {

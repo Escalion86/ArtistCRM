@@ -17,7 +17,7 @@ export const PUT = async (req, { params }) => {
   const body = await req.json()
   await dbConnect()
   const tariff = await Tariffs.findOneAndUpdate({ _id: id }, body, {
-    new: true,
+    returnDocument: 'after',
   })
   if (!tariff) {
     return NextResponse.json(

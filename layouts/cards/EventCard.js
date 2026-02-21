@@ -31,6 +31,7 @@ import CardOverlay from '@components/CardOverlay'
 import CardActions from '@components/CardActions'
 import CardWrapper from '@components/CardWrapper'
 import { getSoonNoDepositEvents } from '@helpers/additionalEvents'
+import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getPersonFullName from '@helpers/getPersonFullName'
 
 const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
@@ -53,12 +54,7 @@ const EventCard = ({ eventId, style }) => {
   const siteSettings = useAtomValue(siteSettingsAtom)
 
   const calendarLink = useMemo(() => {
-    if (!event?.description) return null
-    const match = event.description.match(
-      /https?:\/\/(?:www\.)?google\.com\/calendar\/event\?eid=\S+|https?:\/\/calendar\.google\.com\/calendar\/\S+/i
-    )
-    if (!match?.[0]) return null
-    return match[0].replace(/[),.]+$/, '')
+    return getGoogleCalendarLinkFromText(event?.description)
   }, [event?.description])
 
   const servicesTitle = useMemo(() => {

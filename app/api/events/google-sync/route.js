@@ -374,7 +374,7 @@ export const POST = async (req) => {
       { googleCalendarId: item.id, tenantId },
       update,
       {
-        new: true,
+        returnDocument: 'after',
         upsert: true,
         setDefaultsOnInsert: true,
         rawResult: true,
@@ -513,7 +513,7 @@ const ensureDepositTransaction = async ({
       return Transactions.findByIdAndUpdate(
         existing._id,
         { amount, date: normalizedDate, category: 'deposit' },
-        { new: true }
+        { returnDocument: 'after' }
       )
     }
 
@@ -570,7 +570,7 @@ const ensureFinalPaymentTransaction = async ({
       return Transactions.findByIdAndUpdate(
         existing._id,
         { amount: remaining, date: normalizedDate, category: 'final_payment' },
-        { new: true }
+        { returnDocument: 'after' }
       )
     }
 
