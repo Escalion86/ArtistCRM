@@ -316,6 +316,35 @@ const SettingsContent = () => {
             </button>
           </div>
         </LabeledContainer>
+        <LabeledContainer label="Мастер запуска" noMargin>
+          <div className="flex w-full items-center justify-between gap-3">
+            <MutedText className="text-gray-500">
+              Сбросьте прогресс, чтобы снова пройти шаги первичной настройки.
+            </MutedText>
+            <button
+              type="button"
+              className="action-icon-button action-icon-button--warning flex h-10 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+              onClick={() =>
+                postData(
+                  '/api/site',
+                  {
+                    custom: {
+                      ...(siteSettings?.custom ?? {}),
+                      releaseOnboardingCompleted: false,
+                      releaseOnboardingShowToken: Date.now(),
+                    },
+                  },
+                  (data) => setSiteSettings(data),
+                  null,
+                  false,
+                  null
+                )
+              }
+            >
+              Запустить заново
+            </button>
+          </div>
+        </LabeledContainer>
         {canUseDocuments ? (
           <LabeledContainer label="Работа с документами" noMargin>
             <div className="flex w-full flex-col gap-3">
@@ -428,3 +457,4 @@ const SettingsContent = () => {
 }
 
 export default SettingsContent
+

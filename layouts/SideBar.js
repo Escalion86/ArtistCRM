@@ -33,8 +33,8 @@ const menuCfg = (role) => {
     .reduce((totalGroups, group) => {
       const pagesItems = pages.reduce((totalPages, page) => {
         if (
-          page.group === group.id
-          && isPageAllowedForRole(page.accessRoles, role)
+          page.group === group.id &&
+          isPageAllowedForRole(page.accessRoles, role)
           //  &&
           // page.roleAccess(userActiveRole, userActiveStatusName)
           // page.accessRoles.includes(userActiveRole) &&
@@ -72,21 +72,21 @@ const MenuItem = ({ item, active = false, badge }) => {
       href={`/cabinet/${item.href}`}
       onClick={() => setMenuOpen(false)}
       className={cn(
-        'mb-1 flex cursor-pointer flex-nowrap items-center justify-between rounded-lg ',
-        active ? 'bg-general text-white menu-item-active' : '',
+        'mb-1 flex cursor-pointer flex-nowrap items-center justify-between rounded-lg',
+        active ? 'bg-general menu-item-active text-white' : '',
         'hover:bg-general hover:text-white'
       )}
     >
-      <div className={cn('flex w-full items-center gap-x-2 px-3 py-1 ')}>
-        <FontAwesomeIcon icon={item.icon} className="h-5 w-5 min-w-5" />
-        <span className={'whitespace-nowrap text-sm font-medium'}>
+      <div className={cn('flex w-full items-center gap-x-2 px-3 py-1')}>
+        <FontAwesomeIcon icon={item.icon} className="w-5 h-5 min-w-5" />
+        <span className={'text-sm font-medium whitespace-nowrap'}>
           {item.name}
         </span>
         {item.num !== null && (
           <span className="text-xs font-semibold text-general">{item.num}</span>
         )}
         {typeof badge === 'number' && badge > 0 && (
-          <div className="flex h-5 min-h-5 w-5 min-w-5 items-center justify-center rounded-full bg-danger text-xs text-white">
+          <div className="flex items-center justify-center w-5 h-5 text-xs text-white rounded-full bg-danger min-h-5 min-w-5">
             {badge <= 99 ? badge : '!'}
           </div>
         )}
@@ -114,7 +114,7 @@ const Menu = ({ menuCfg, activePage }) => {
     item.items.find((item) => item.href === activePage)
   )
   return (
-    <nav className="mt-1 flex h-full w-full flex-col gap-y-2 px-2 py-3">
+    <nav className="flex flex-col w-full h-full px-2 py-3 mt-1 gap-y-2">
       {menuCfg &&
         menuCfg.length > 0 &&
         menuCfg
@@ -139,8 +139,8 @@ const Menu = ({ menuCfg, activePage }) => {
                   className={cn(
                     'group rounded-lg duration-300',
                     groupIsActive
-                      ? 'bg-white text-general'
-                      : 'text-white hover:bg-white hover:text-general'
+                      ? 'text-general bg-white'
+                      : 'hover:text-general text-white hover:bg-white'
                   )}
                   key={'groupMenu' + index}
                 >
@@ -157,7 +157,7 @@ const Menu = ({ menuCfg, activePage }) => {
                     >
                       <div
                         className={cn(
-                          'relative flex max-h-8 min-h-8 min-w-8 max-w-8 justify-center'
+                          'relative flex max-h-8 min-h-8 max-w-8 min-w-8 justify-center'
                           // groupIsActive ? 'text-ganeral' : 'text-white'
                         )}
                       >
@@ -172,7 +172,7 @@ const Menu = ({ menuCfg, activePage }) => {
                             </div>
                           )} */}
                       </div>
-                      <h3 className="ml-3 flex-1 whitespace-nowrap text-left font-semibold uppercase tracking-wide">
+                      <h3 className="flex-1 ml-3 font-semibold tracking-wide text-left uppercase whitespace-nowrap">
                         {item.items[0].name}
                       </h3>
                     </Link>
@@ -191,7 +191,7 @@ const Menu = ({ menuCfg, activePage }) => {
                     >
                       <div
                         className={cn(
-                          'relative flex max-h-8 min-h-8 min-w-8 max-w-8 justify-center'
+                          'relative flex max-h-8 min-h-8 max-w-8 min-w-8 justify-center'
                           // groupIsActive ? 'text-ganeral' : 'text-white'
                         )}
                       >
@@ -206,11 +206,11 @@ const Menu = ({ menuCfg, activePage }) => {
                             </div>
                           )} */}
                       </div>
-                      <h3 className="ml-3 flex-1 whitespace-nowrap text-left font-semibold uppercase tracking-wide">
+                      <h3 className="flex-1 ml-3 font-semibold tracking-wide text-left uppercase whitespace-nowrap">
                         {item.name}
                       </h3>
                       <div
-                        className={cn('w-4 transition-transform duration-300', {
+                        className={cn('w-5 transition-transform duration-300', {
                           'rotate-180': openedMenuIndex === index,
                         })}
                       >
@@ -314,10 +314,10 @@ const SideBar = ({ page }) => {
   return (
     <motion.div
       className={cn(
-        'sidebar-root bottom-0 top-0 z-50 flex max-h-full flex-col',
+        'sidebar-root top-0 bottom-0 z-50 flex max-h-full flex-col',
         isMobile
-          ? 'fixed bottom-0 left-0 top-16 max-h-[calc(100dvh-4rem)] min-w-0 max-w-[320px] overflow-hidden bg-transparent'
-          : 'relative w-0 min-w-16 sidebar-bg tablet:w-16 tablet:min-w-16'
+          ? 'fixed top-16 bottom-0 left-0 max-h-[calc(100dvh-4rem)] max-w-[320px] min-w-0 overflow-hidden bg-transparent'
+          : 'sidebar-bg tablet:w-16 tablet:min-w-16 relative w-0 min-w-16'
       )}
       // style={{ gridArea: 'sidebar' }}
       ref={wrapperRef}
@@ -331,7 +331,7 @@ const SideBar = ({ page }) => {
         ref={menuRef}
         className={cn(
           'absolute top-0 z-10 h-full max-h-full w-full items-start overflow-y-hidden',
-          isMobile ? 'sidebar-bg shadow-2xl' : 'sidebar-bg'
+          isMobile ? 'sidebar-bg max-w-full shadow-2xl' : 'sidebar-bg'
         )}
         style={{ scrollBehavior: 'smooth' }}
         variants={motionVariants}
@@ -340,7 +340,7 @@ const SideBar = ({ page }) => {
         initial={'min'}
         layout
       >
-        <div className="flex w-full flex-col overflow-x-hidden">
+        <div className="flex flex-col w-full overflow-x-hidden">
           <Menu menuCfg={menuCfg(role)} activePage={page} />
         </div>
       </motion.div>
@@ -351,7 +351,7 @@ const SideBar = ({ page }) => {
         initial={'min'}
         layout
         className={cn(
-          'pointer-events-none absolute bottom-0 top-0',
+          'pointer-events-none absolute top-0 bottom-0',
           isMobile ? 'bg-transparent' : 'sidebar-bg'
         )}
       />
@@ -360,12 +360,12 @@ const SideBar = ({ page }) => {
           {scrollPos > 0 && (
             <div
               onClick={() => handleScrollPosition(-120)}
-              className="absolute left-0 right-0 top-0 z-50 h-10 w-full cursor-pointer rounded-b-2xl border-t sidebar-bg"
+              className="absolute top-0 left-0 right-0 z-50 w-full h-10 border-t cursor-pointer sidebar-bg rounded-b-2xl"
             >
-              <div className="flex h-full w-full items-center justify-center rounded-2xl border-b border-white">
+              <div className="flex items-center justify-center w-full h-full border-b border-white rounded-2xl">
                 <FontAwesomeIcon
                   icon={faAngleUp}
-                  className="h-6 w-6 text-white"
+                  className="w-6 h-6 text-white"
                 />
               </div>
             </div>
@@ -375,12 +375,12 @@ const SideBar = ({ page }) => {
             scrollPos && (
             <div
               onClick={() => handleScrollPosition(120)}
-              className="absolute bottom-0 left-0 right-0 z-50 h-10 w-full cursor-pointer rounded-t-2xl border-b sidebar-bg"
+              className="absolute bottom-0 left-0 right-0 z-50 w-full h-10 border-b cursor-pointer sidebar-bg rounded-t-2xl"
             >
-              <div className="flex h-full w-full items-center justify-center rounded-2xl border-t border-white">
+              <div className="flex items-center justify-center w-full h-full border-t border-white rounded-2xl">
                 <FontAwesomeIcon
                   icon={faAngleDown}
-                  className="h-6 w-6 text-white"
+                  className="w-6 h-6 text-white"
                 />
               </div>
             </div>

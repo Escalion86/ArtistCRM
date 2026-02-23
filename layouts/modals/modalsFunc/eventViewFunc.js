@@ -1,12 +1,16 @@
 import CardButtons from '@components/CardButtons'
 import Chip from '@components/Chips/Chip'
+import IconActionButton from '@components/IconActionButton'
 import cn from 'classnames'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import ImageGallery from '@components/ImageGallery'
+import SurfaceCard from '@components/SurfaceCard'
 import TextLine from '@components/TextLine'
+import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
 import formatMinutes from '@helpers/formatMinutes'
+import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getEventDuration from '@helpers/getEventDuration'
 import getPersonFullName from '@helpers/getPersonFullName'
 import Image from 'next/image'
@@ -18,6 +22,7 @@ import servicesAtom from '@state/atoms/servicesAtom'
 import clientsAtom from '@state/atoms/clientsAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { modalsFuncAtom } from '@state/atoms'
+import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 
 const EVENT_STATUS_META = Object.freeze({
   draft: { label: 'Заявка', className: 'event-view-status event-view-status--draft' },
@@ -28,10 +33,10 @@ const EVENT_STATUS_META = Object.freeze({
 })
 
 const SectionBlock = ({ title, children }) => (
-  <div className="event-view-section rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+  <SurfaceCard>
     {title ? <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</div> : null}
     {children}
-  </div>
+  </SurfaceCard>
 )
 
 const CardButtonsComponent = ({ event, calendarLink }) => (
@@ -61,6 +66,7 @@ const eventViewFunc = (eventId) => {
     const clients = useAtomValue(clientsAtom)
     const siteSettings = useAtomValue(siteSettingsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
+    const itemsFunc = useAtomValue(itemsFuncAtom)
 
     const duration = getEventDuration(event)
     const additionalEvents = Array.isArray(event?.additionalEvents)
@@ -69,12 +75,7 @@ const eventViewFunc = (eventId) => {
     const statusMeta = EVENT_STATUS_META[event?.status] || EVENT_STATUS_META.active
 
     const calendarLink = useMemo(() => {
-      if (!event?.description) return null
-      const match = event.description.match(
-        /https?:\/\/(?:www\.)?google\.com\/calendar\/event\?eid=\S+|https?:\/\/calendar\.google\.com\/calendar\/\S+/i
-      )
-      if (!match?.[0]) return null
-      return match[0].replace(/[),.]+$/, '')
+      return getGoogleCalendarLinkFromText(event?.description)
     }, [event?.description])
     const serviceTitles = (event?.servicesIds ?? [])
       .map((serviceId) => services.find((item) => item._id === serviceId))
@@ -127,6 +128,43 @@ const eventViewFunc = (eventId) => {
       if (normalizedTown !== normalizedDefaultTown) return address
       return { ...address, town: '' }
     }, [event?.address, siteSettings?.defaultTown])
+
+    const toggleAdditionalEventDone = async (index) => {
+      if (!event?._id) return
+      const sourceItems = Array.isArray(event?.additionalEvents)
+        ? event.additionalEvents
+        : []
+      const target = sourceItems[index]
+      if (!target) return
+      const nextItems = sourceItems.map((item, idx) =>
+        idx === index ? { ...item, done: !Boolean(item?.done) } : item
+      )
+      await itemsFunc?.event?.set(
+        {
+          _id: event._id,
+          additionalEvents: nextItems,
+        },
+        false,
+        true
+      )
+    }
+
+    const deleteAdditionalEvent = async (index) => {
+      if (!event?._id) return
+      const sourceItems = Array.isArray(event?.additionalEvents)
+        ? event.additionalEvents
+        : []
+      if (!sourceItems[index]) return
+      const nextItems = sourceItems.filter((_, idx) => idx !== index)
+      await itemsFunc?.event?.set(
+        {
+          _id: event._id,
+          additionalEvents: nextItems,
+        },
+        false,
+        true
+      )
+    }
 
     useEffect(() => {
       if (setTopLeftComponent) {
@@ -259,29 +297,72 @@ const eventViewFunc = (eventId) => {
                       onClick={() =>
                         modalsFunc.add({
                           title: item?.title || `Событие #${index + 1}`,
-                          confirmButtonName: 'Закрыть',
-                          onConfirm: true,
-                          showDecline: false,
-                          Children: () => (
-                            <div className="flex flex-col gap-2 text-sm text-gray-800">
-                              <div>
-                                <span className="font-semibold">Статус: </span>
-                                {item?.done ? 'Выполнено' : 'Активно'}
-                              </div>
-                              <div>
-                                <span className="font-semibold">Дата и время: </span>
-                                {formatDateTime(item?.date)}
-                              </div>
-                              {item?.description ? (
-                                <div>
-                                  <div className="font-semibold">Описание:</div>
-                                  <div className="mt-1 whitespace-pre-wrap text-gray-700">
-                                    {item.description}
+                          confirmButtonName: item?.done
+                            ? 'Возобновить'
+                            : 'Выполнено',
+                          declineButtonName: 'Закрыть',
+                          showDecline: true,
+                          onConfirm: () => toggleAdditionalEventDone(index),
+                          Children: ({ closeModal, setTopLeftComponent }) => {
+                            useEffect(() => {
+                              if (!setTopLeftComponent) return
+                              setTopLeftComponent(
+                                <IconActionButton
+                                  icon={faTrashAlt}
+                                  size="sm"
+                                  variant="danger"
+                                  title="Удалить доп. событие"
+                                  onClick={() =>
+                                    modalsFunc.confirm({
+                                      title: 'Удаление доп. события',
+                                      text: 'Удалить это доп. событие?',
+                                      onConfirm: async () => {
+                                        await deleteAdditionalEvent(index)
+                                        closeModal?.()
+                                      },
+                                    })
+                                  }
+                                />
+                              )
+                            }, [closeModal, setTopLeftComponent])
+
+                            return (
+                              <div className="flex flex-col gap-3 text-sm text-gray-800">
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                                    Статус
+                                  </div>
+                                  <div
+                                    className={`mt-1 text-sm font-semibold ${
+                                      item?.done
+                                        ? 'text-emerald-700'
+                                        : 'text-blue-700'
+                                    }`}
+                                  >
+                                    {item?.done ? 'Выполнено' : 'Активно'}
                                   </div>
                                 </div>
-                              ) : null}
-                            </div>
-                          ),
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                                    Дата и время
+                                  </div>
+                                  <div className="mt-1 font-semibold text-gray-900">
+                                    {formatDateTime(item?.date)}
+                                  </div>
+                                </div>
+                                {item?.description ? (
+                                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                    <div className="text-xs uppercase tracking-wide text-gray-500">
+                                      Описание
+                                    </div>
+                                    <div className="mt-1 whitespace-pre-wrap text-gray-700">
+                                      {item.description}
+                                    </div>
+                                  </div>
+                                ) : null}
+                              </div>
+                            )
+                          },
                         })
                       }
                     >

@@ -1950,7 +1950,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                   noMargin
                 />
                 {waitDeposit ? (
-                  <div className="flex flex-col gap-2 tablet:flex-row tablet:flex-wrap tablet:items-center tablet:gap-x-2 tablet:gap-y-3">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
                     <Input
                       label="Сумма задатка"
                       type="number"

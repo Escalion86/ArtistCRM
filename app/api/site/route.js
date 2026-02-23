@@ -67,7 +67,7 @@ export const POST = async (req) => {
   const siteSettings = await SiteSettings.findOneAndUpdate(
     { tenantId },
     { $set: { ...update, tenantId } },
-    { new: true, upsert: true }
+    { returnDocument: 'after', upsert: true }
   )
 
   return NextResponse.json(

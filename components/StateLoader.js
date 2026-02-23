@@ -10,6 +10,7 @@ import usersAtom from '@state/atoms/usersAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import { useEffect, useRef } from 'react'
 import LoadingSpinner from '@components/LoadingSpinner'
+import ReleaseOnboardingCoach from '@components/ReleaseOnboardingCoach'
 import ModalsPortal from '@layouts/modals/ModalsPortal'
 import isSiteLoadingAtom from '@state/atoms/isSiteLoadingAtom'
 import cn from 'classnames'
@@ -185,6 +186,7 @@ const StateLoader = (props) => {
       ) : (
         <div className="relative w-full bg-white">{props.children}</div>
       )}
+      <ReleaseOnboardingCoach />
       <ModalsPortal />
     </div>
   )

@@ -1,116 +1,20 @@
 import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
-import SiteSettings from '@models/SiteSettings'
-import Clients from '@models/Clients'
-import Events from '@models/Events'
-import Histories from '@models/Histories'
-import getUserTariffAccess from '@server/getUserTariffAccess'
+import {
+  createPublicLeadDraftEvent,
+  getPublicLeadApiKey,
+  normalizePhone,
+  normalizeServicesIds,
+  normalizeText,
+  parseDateValue,
+  resolvePublicLeadTenant,
+  upsertPublicLeadClient,
+} from '@server/publicLeadService'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key, X-Public-Api-Key',
-}
-
-const readCustomValue = (custom, key) => {
-  if (!custom) return undefined
-  if (typeof custom.get === 'function') return custom.get(key)
-  return custom[key]
-}
-
-const normalizeText = (value, maxLength = 500) => {
-  if (value === null || value === undefined) return ''
-  const text = String(value).trim()
-  if (!text) return ''
-  return text.slice(0, maxLength)
-}
-
-const normalizePhone = (value) => String(value ?? '').replace(/\D/g, '')
-
-const parseDateValue = (value) => {
-  if (!value) return null
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
-const normalizeServicesIds = (value) => {
-  if (!Array.isArray(value)) return []
-  return value
-    .map((item) => normalizeText(item, 64))
-    .filter(Boolean)
-    .slice(0, 20)
-}
-
-const getApiKey = (req, body) =>
-  normalizeText(
-    req.headers.get('x-public-api-key') ||
-      req.headers.get('x-api-key') ||
-      body?.apiKey,
-    256
-  )
-
-const buildAddress = ({ town, address, comment }) => ({
-  town: normalizeText(town, 120),
-  street: '',
-  house: '',
-  entrance: '',
-  floor: '',
-  flat: '',
-  comment: normalizeText(address || comment, 500),
-  latitude: '',
-  longitude: '',
-  link2Gis: '',
-  linkYandexNavigator: '',
-  link2GisShow: true,
-  linkYandexShow: true,
-})
-
-const upsertClient = async ({ tenantId, name, phone, whatsapp, telegram }) => {
-  const phoneDigits = normalizePhone(phone)
-  const phoneNumber =
-    phoneDigits.length >= 10 ? Number(phoneDigits.slice(-15)) : null
-
-  let client = null
-  if (phoneNumber) {
-    client = await Clients.findOne({ tenantId, phone: phoneNumber })
-  }
-
-  if (!client) {
-    client = await Clients.create({
-      tenantId,
-      firstName: normalizeText(name, 120),
-      phone: phoneNumber,
-      whatsapp: normalizePhone(whatsapp)
-        ? Number(normalizePhone(whatsapp).slice(-15))
-        : null,
-      telegram: normalizeText(telegram, 120),
-      clientType: 'none',
-    })
-    return client
-  }
-
-  const nextName = normalizeText(name, 120)
-  const nextTelegram = normalizeText(telegram, 120)
-  const nextWhatsapp = normalizePhone(whatsapp)
-    ? Number(normalizePhone(whatsapp).slice(-15))
-    : null
-
-  let hasChanges = false
-  if (nextName && !client.firstName) {
-    client.firstName = nextName
-    hasChanges = true
-  }
-  if (nextTelegram && !client.telegram) {
-    client.telegram = nextTelegram
-    hasChanges = true
-  }
-  if (nextWhatsapp && !client.whatsapp) {
-    client.whatsapp = nextWhatsapp
-    hasChanges = true
-  }
-  if (hasChanges) await client.save()
-
-  return client
 }
 
 export const OPTIONS = async () =>
@@ -119,49 +23,17 @@ export const OPTIONS = async () =>
 export const POST = async (req) => {
   try {
     const body = await req.json().catch(() => ({}))
-    const apiKey = getApiKey(req, body)
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { success: false, error: 'API key обязателен' },
-        { status: 401, headers: CORS_HEADERS }
-      )
-    }
+    const apiKey = getPublicLeadApiKey(req, body)
 
     await dbConnect()
-
-    const siteSettings = await SiteSettings.findOne({
-      'custom.publicLeadApiKey': apiKey,
-    })
-      .select('tenantId custom')
-      .lean()
-
-    if (!siteSettings?.tenantId) {
+    const accessData = await resolvePublicLeadTenant(apiKey)
+    if (!accessData.ok) {
       return NextResponse.json(
-        { success: false, error: 'Неверный API key' },
-        { status: 403, headers: CORS_HEADERS }
+        { success: false, error: accessData.error },
+        { status: accessData.status, headers: CORS_HEADERS }
       )
     }
-
-    const publicLeadEnabled = readCustomValue(
-      siteSettings.custom,
-      'publicLeadEnabled'
-    )
-    if (publicLeadEnabled !== true) {
-      return NextResponse.json(
-        { success: false, error: 'Прием заявок через API отключен' },
-        { status: 403, headers: CORS_HEADERS }
-      )
-    }
-
-    const tenantId = siteSettings.tenantId
-    const access = await getUserTariffAccess(tenantId)
-    if (!access?.trialActive && !access?.hasTariff) {
-      return NextResponse.json(
-        { success: false, error: 'Не выбран тариф' },
-        { status: 403, headers: CORS_HEADERS }
-      )
-    }
+    const tenantId = accessData.tenantId
 
     const name = normalizeText(body?.name || body?.clientName, 120)
     const phone = normalizePhone(body?.phone || body?.clientPhone)
@@ -199,7 +71,7 @@ export const POST = async (req) => {
       )
     }
 
-    const client = await upsertClient({
+    const client = await upsertPublicLeadClient({
       tenantId,
       name,
       phone,
@@ -207,37 +79,25 @@ export const POST = async (req) => {
       telegram,
     })
 
-    const event = await Events.create({
+    const event = await createPublicLeadDraftEvent({
       tenantId,
       clientId: client?._id ?? null,
-      status: 'draft',
-      requestCreatedAt: new Date(),
-      eventDate,
-      dateEnd,
-      address: buildAddress({ town, address, comment }),
-      servicesIds,
-      contractSum: contractSum > 0 ? contractSum : 0,
-      description: comment,
-      calendarImportChecked: true,
-      importedFromCalendar: false,
-      additionalEvents: [],
-      clientData: {
+      normalizedData: {
+        name,
+        phone,
+        telegram,
+        whatsapp,
+        comment,
+        eventDate,
+        dateEnd,
+        town,
+        address,
+        servicesIds,
+        contractSum,
         source,
-        lead: {
-          name,
-          phone,
-          telegram,
-          whatsapp,
-          raw: body,
-        },
       },
-    })
-
-    await Histories.create({
-      schema: Events.collection.collectionName,
-      action: 'add',
-      data: [event.toJSON()],
-      userId: 'public-api',
+      rawPayload: body,
+      historyUserId: 'public-api',
     })
 
     return NextResponse.json(

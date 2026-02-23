@@ -78,7 +78,7 @@ export const PUT = async (req, { params }) => {
     { _id: id, tenantId },
     update,
     {
-      new: true,
+      returnDocument: 'after',
     }
   )
 

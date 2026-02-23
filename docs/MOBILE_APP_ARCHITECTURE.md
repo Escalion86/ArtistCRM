@@ -232,5 +232,5 @@ mobile/
 ---
 
 ## Связанные документы
-- `docs/PRODUCT_ROADMAP_AND_CHECKLIST.md`
+- `docs/ROADMAP.md`
 - `docs/TELEFONIP_PORTING_GUIDE.md`

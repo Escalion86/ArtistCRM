@@ -9,6 +9,7 @@ import Button from '@components/Button'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import SectionCard from '@components/SectionCard'
+import SurfaceCard from '@components/SurfaceCard'
 import clientsAtom from '@state/atoms/clientsAtom'
 import servicesAtom from '@state/atoms/servicesAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
@@ -60,15 +61,22 @@ const formatCurrency = (value) =>
   `${Number(value || 0).toLocaleString('ru-RU')} ₽`
 
 const StatisticsContent = () => {
-  const transactions = useAtomValue(transactionsAtom)
-  const events = useAtomValue(eventsAtom)
-  const requests = useAtomValue(eventsAtom).filter(
-    (event) => event?.status === 'draft'
-  )
-  const clients = useAtomValue(clientsAtom)
-  const services = useAtomValue(servicesAtom)
-  const tariffs = useAtomValue(tariffsAtom)
+  const transactionsRaw = useAtomValue(transactionsAtom)
+  const eventsRaw = useAtomValue(eventsAtom)
+  const clientsRaw = useAtomValue(clientsAtom)
+  const servicesRaw = useAtomValue(servicesAtom)
+  const tariffsRaw = useAtomValue(tariffsAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
+
+  const transactions = Array.isArray(transactionsRaw) ? transactionsRaw : []
+  const events = Array.isArray(eventsRaw) ? eventsRaw : []
+  const clients = Array.isArray(clientsRaw) ? clientsRaw : []
+  const services = Array.isArray(servicesRaw) ? servicesRaw : []
+  const tariffs = Array.isArray(tariffsRaw) ? tariffsRaw : []
+  const requests = useMemo(
+    () => events.filter((event) => event?.status === 'draft'),
+    [events]
+  )
   const access = getUserTariffAccess(loggedUser, tariffs)
   const router = useRouter()
   const canShowStatistics = access.allowStatistics
@@ -596,42 +604,42 @@ const StatisticsContent = () => {
 
           <SectionCard className="flex-1 min-h-0 p-4 overflow-y-auto">
             <div className="grid grid-cols-1 gap-2 mb-4 tablet:grid-cols-2 desktop:grid-cols-3">
-              <div className="p-3 border rounded border-gray-200 bg-white/70">
+              <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="text-xs text-gray-500">Выручка</div>
                 <div className="text-lg font-semibold text-green-700">
                   {formatCurrency(financeSummary.totalIncome)}
                 </div>
-              </div>
-              <div className="p-3 border rounded border-gray-200 bg-white/70">
+              </SurfaceCard>
+              <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="text-xs text-gray-500">Расходы</div>
                 <div className="text-lg font-semibold text-red-700">
                   {formatCurrency(financeSummary.totalExpense)}
                 </div>
-              </div>
-              <div className="p-3 border rounded border-gray-200 bg-white/70">
+              </SurfaceCard>
+              <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="text-xs text-gray-500">Чистая прибыль</div>
                 <div className="text-lg font-semibold text-blue-700">
                   {formatCurrency(financeSummary.netProfit)}
                 </div>
-              </div>
-              <div className="p-3 border rounded border-gray-200 bg-white/70">
+              </SurfaceCard>
+              <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="text-xs text-gray-500">Маржа</div>
                 <div className="text-lg font-semibold text-gray-800">
                   {financeSummary.margin.toFixed(1)}%
                 </div>
-              </div>
-              <div className="p-3 border rounded border-gray-200 bg-white/70">
+              </SurfaceCard>
+              <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="text-xs text-gray-500">Налоги</div>
                 <div className="text-lg font-semibold text-orange-700">
                   {formatCurrency(financeSummary.taxes)}
                 </div>
-              </div>
-              <div className="p-3 border rounded border-gray-200 bg-white/70">
+              </SurfaceCard>
+              <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="text-xs text-gray-500">Комиссии/реферальные</div>
                 <div className="text-lg font-semibold text-purple-700">
                   {formatCurrency(financeSummary.commissions)}
                 </div>
-              </div>
+              </SurfaceCard>
             </div>
 
             <div className="flex flex-wrap items-center gap-4 mb-3 text-sm text-gray-700">
@@ -691,7 +699,7 @@ const StatisticsContent = () => {
                   groupMode="grouped"
                   valueFormat={(value) => value.toLocaleString('ru-RU')}
                   tooltip={({ id, value, indexValue }) => (
-                    <div className="px-2 py-1 text-xs text-gray-700 bg-white border border-gray-200 rounded shadow">
+                    <div className="statistics-tooltip px-2 py-1 text-xs text-gray-700 border border-gray-200 rounded shadow">
                       <div className="font-semibold">{indexValue}</div>
                       <div>
                         {id === 'profit' ? 'Прибыль' : id}:{' '}
@@ -716,7 +724,7 @@ const StatisticsContent = () => {
             )}
 
             <div className="grid grid-cols-1 gap-3 mt-4 desktop:grid-cols-2">
-              <div className="p-3 border rounded border-gray-200 bg-white/70">
+              <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="mb-2 text-sm font-semibold text-gray-700">
                   Топ расходов по категориям
                 </div>
@@ -737,9 +745,9 @@ const StatisticsContent = () => {
                     ))}
                   </div>
                 )}
-              </div>
+              </SurfaceCard>
 
-              <div className="p-3 border rounded border-gray-200 bg-white/70">
+              <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="mb-2 text-sm font-semibold text-gray-700">
                   Самые прибыльные мероприятия
                 </div>
@@ -765,7 +773,7 @@ const StatisticsContent = () => {
                     ))}
                   </div>
                 )}
-              </div>
+              </SurfaceCard>
             </div>
           </SectionCard>
         </>
