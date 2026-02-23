@@ -84,6 +84,8 @@ const eventStatusEditFunc = (eventId) => {
       [cancelReason]
     )
     const needsCancelReason = status === 'canceled'
+    const isClosing = status === 'closed'
+    const canApplySelectedStatus = !isClosing || canClose
     const hasReasonChanged =
       normalizedCancelReason !== (event?.cancelReason ?? '')
 
@@ -130,7 +132,9 @@ const eventStatusEditFunc = (eventId) => {
         hasReasonChanged ||
         (!needsCancelReason && Boolean(event?.cancelReason))
       setDisableConfirm(
-        !isFormChanged || (needsCancelReason && !normalizedCancelReason)
+        !isFormChanged ||
+          !canApplySelectedStatus ||
+          (needsCancelReason && !normalizedCancelReason)
       )
       setOnConfirmFunc(
         isFormChanged ? () => onClickConfirmRef.current() : undefined
@@ -138,6 +142,7 @@ const eventStatusEditFunc = (eventId) => {
     }, [
       event?.cancelReason,
       event?.status,
+      canApplySelectedStatus,
       hasEvent,
       hasReasonChanged,
       needsCancelReason,
@@ -173,7 +178,7 @@ const eventStatusEditFunc = (eventId) => {
             noMargin
           />
         )}
-        {!canClose && (
+        {isClosing && !canClose && (
           <div className="text-xs text-gray-500">
             {event?.isByContract && !hasTaxes
               ? 'Закрытие недоступно: добавьте транзакцию Налоги.'
