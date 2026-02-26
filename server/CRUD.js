@@ -179,6 +179,36 @@ const buildNavigationLinks = (address) => {
 const isValidDateValue = (value) =>
   value instanceof Date && !Number.isNaN(value.getTime())
 
+const formatAdditionalEventsForMainDescription = (additionalEvents = []) => {
+  if (!Array.isArray(additionalEvents) || additionalEvents.length === 0) return ''
+
+  const lines = additionalEvents
+    .map((item) => {
+      if (!item || typeof item !== 'object') return ''
+      const title = typeof item.title === 'string' ? item.title.trim() : ''
+      const description =
+        typeof item.description === 'string' ? item.description.trim() : ''
+      const rawDate = item.date ? new Date(item.date) : null
+      const dateLabel = isValidDateValue(rawDate)
+        ? rawDate.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : 'без даты'
+      const statusPrefix = item.done ? '[выполнено]' : '[в работе]'
+      const parts = [title || 'Доп. событие']
+      if (description) parts.push(description)
+      return `- ${statusPrefix} ${dateLabel}: ${parts.join(' — ')}`
+    })
+    .filter(Boolean)
+
+  if (lines.length === 0) return ''
+  return `Доп. события:\n${lines.join('\n')}`
+}
+
 const getCalendarContext = async (user) => {
   if (!user) return null
   const settings = normalizeCalendarSettings(user)
@@ -439,6 +469,15 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   }
   if (financeLines.length) {
     preparedText = [preparedText, financeLines.join('\n')]
+      .filter(Boolean)
+      .join('\n\n')
+  }
+
+  const additionalEventsDescription = formatAdditionalEventsForMainDescription(
+    event?.additionalEvents
+  )
+  if (additionalEventsDescription) {
+    preparedText = [preparedText, additionalEventsDescription]
       .filter(Boolean)
       .join('\n\n')
   }

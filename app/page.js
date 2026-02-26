@@ -9,10 +9,62 @@ import ThemeToggleButton from '@components/ThemeToggleButton'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCloudArrowUp } from '@fortawesome/free-solid-svg-icons/faCloudArrowUp'
 
+const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
+const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
+const normalizedSiteUrl = siteUrl.replace(/\/$/, '')
+const homeUrl = `${normalizedSiteUrl}/`
+const ogImageUrl = `${normalizedSiteUrl}/icons/AppImages/android/android-launchericon-512-512.png`
+
 export const metadata = {
-  title: 'ArtistCRM - CRM для артистов',
+  title: 'ArtistCRM - CRM для артистов, ведущих и музыкантов',
   description:
-    'Управляйте заявками, финансами, клиентами и календарем в одной системе для артистов.',
+    'ArtistCRM: CRM-система для артистов. Заявки, клиенты, финансы, Google Календарь, договоры и акты в одном кабинете.',
+  keywords: [
+    'crm для артистов',
+    'crm для ведущих',
+    'crm для музыкантов',
+    'учет заявок',
+    'google календарь для мероприятий',
+    'учет клиентов и оплат',
+  ],
+  alternates: {
+    canonical: homeUrl,
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'ru_RU',
+    url: homeUrl,
+    siteName: 'ArtistCRM',
+    title: 'ArtistCRM - CRM для артистов, ведущих и музыкантов',
+    description:
+      'Соберите заявки, клиентов, финансы и документы в одном месте. Контроль сроков и синхронизация с Google Календарем.',
+    images: [
+      {
+        url: ogImageUrl,
+        width: 512,
+        height: 512,
+        alt: 'ArtistCRM — CRM для артистов',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ArtistCRM - CRM для артистов',
+    description:
+      'Управляйте заявками, мероприятиями, оплатами и документами из одного кабинета.',
+    images: [ogImageUrl],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
 }
 
 export const dynamic = 'force-dynamic'
@@ -28,6 +80,34 @@ const formatEventsLimit = (limit) => {
   }
   return `До ${limit} мероприятий в месяц`
 }
+
+const faqItems = [
+  {
+    question: 'Для кого подходит ArtistCRM?',
+    answer:
+      'ArtistCRM подходит соло-артистам, ведущим, музыкантам и небольшим командам, которым важно не терять заявки и контролировать сроки мероприятий.',
+  },
+  {
+    question: 'Есть ли синхронизация с Google Календарем?',
+    answer:
+      'Да, ArtistCRM поддерживает синхронизацию мероприятий и дополнительных событий с Google Календарем.',
+  },
+  {
+    question: 'Можно ли вести финансы по мероприятиям?',
+    answer:
+      'Да, в системе доступен учет оплат и расходов, контроль задатков, а также базовая аналитика по финансовым результатам мероприятий.',
+  },
+  {
+    question: 'Можно ли формировать документы по мероприятию?',
+    answer:
+      'Да, в ArtistCRM доступны шаблоны договоров и актов с автоподстановкой данных из карточки мероприятия.',
+  },
+  {
+    question: 'Работает ли CRM с телефона?',
+    answer:
+      'Да, веб-интерфейс адаптирован под мобильные устройства, чтобы ключевые действия были удобны на смартфоне.',
+  },
+]
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions)
@@ -45,8 +125,68 @@ export default async function HomePage() {
   }
 
   const publicTariffs = tariffs ?? []
+
+  const softwareApplicationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'ArtistCRM',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    inLanguage: 'ru-RU',
+    url: homeUrl,
+    description:
+      'CRM-система для артистов: управление заявками, клиентами, финансами, календарем и документами.',
+    offers:
+      publicTariffs.length > 0
+        ? publicTariffs.map((tariff) => ({
+            '@type': 'Offer',
+            name: tariff?.title || 'Тариф',
+            price: Number(tariff?.price ?? 0),
+            priceCurrency: 'RUB',
+          }))
+        : [
+            {
+              '@type': 'Offer',
+              price: 0,
+              priceCurrency: 'RUB',
+              name: 'Бесплатный тариф',
+            },
+          ],
+  }
+
+  const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'ArtistCRM',
+    url: homeUrl,
+    logo: `${normalizedSiteUrl}/img/logo.png`,
+  }
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqItems.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  }
+
   return (
     <main className="relative overflow-hidden home-page">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            organizationSchema,
+            softwareApplicationSchema,
+            faqSchema,
+          ]),
+        }}
+      />
       <div className="relative z-20 flex items-center justify-between w-full max-w-6xl px-6 pt-6 mx-auto">
         <Link href="/" className="flex items-center gap-3 cursor-pointer">
           <Image
@@ -334,6 +474,95 @@ export default async function HomePage() {
               Тарифы пока не настроены. Скоро здесь появятся варианты подписки.
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="relative max-w-6xl px-6 pb-16 mx-auto">
+        <div className="p-8 border shadow-lg home-panel rounded-3xl border-white/70 bg-white/80 backdrop-blur">
+          <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
+            FAQ
+          </p>
+          <h2 className="mt-4 text-3xl font-semibold text-black font-futuraPT">
+            Частые вопросы об ArtistCRM
+          </h2>
+          <div className="mt-6 space-y-4">
+            {faqItems.map((item) => (
+              <article
+                key={item.question}
+                className="p-5 bg-white border rounded-2xl border-gray-200/70"
+              >
+                <h3 className="text-lg font-semibold text-black">
+                  {item.question}
+                </h3>
+                <p className="mt-2 text-sm text-gray-700">{item.answer}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative max-w-6xl px-6 pb-16 mx-auto">
+        <div className="p-8 border shadow-lg home-panel rounded-3xl border-white/70 bg-white">
+          <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
+            Сравнение
+          </p>
+          <h2 className="mt-4 text-3xl font-semibold text-black font-futuraPT">
+            Почему ArtistCRM удобнее таблиц и чатов
+          </h2>
+          <p className="mt-3 text-sm text-gray-600">
+            Когда заявки ведутся в заметках, мессенджерах и Excel, легко
+            пропустить клиента или платеж. В ArtistCRM все ключевые данные
+            хранятся в одной системе.
+          </p>
+          <div className="grid gap-4 mt-6 sm:grid-cols-2">
+            {[
+              {
+                title: 'Контроль заявок и сроков',
+                oldWay:
+                  'Статусы и перезвоны теряются в переписках и отдельных файлах.',
+                crmWay:
+                  'По каждой заявке видно этап, ближайший контакт и историю действий.',
+              },
+              {
+                title: 'Финансы по мероприятиям',
+                oldWay:
+                  'Сложно понять фактическую прибыль и состояние оплат в реальном времени.',
+                crmWay:
+                  'Доходы, расходы, задатки и комментарии по финансам собираются в карточке события.',
+              },
+              {
+                title: 'Документы и договоренности',
+                oldWay:
+                  'Шаблоны и финальные версии документов хранятся в разных местах.',
+                crmWay:
+                  'Договоры и акты формируются из данных мероприятия и остаются в едином контуре.',
+              },
+              {
+                title: 'Календарь и напоминания',
+                oldWay:
+                  'Напоминания создаются вручную и легко дублируются или пропадают.',
+                crmWay:
+                  'Синхронизация с Google Календарем и дополнительные события помогают не пропускать важное.',
+              },
+            ].map((item) => (
+              <article
+                key={item.title}
+                className="p-5 border rounded-2xl border-gray-200/70 bg-gray-50/50"
+              >
+                <h3 className="text-lg font-semibold text-black">{item.title}</h3>
+                <p className="mt-3 text-sm text-gray-600">
+                  <span className="font-semibold text-gray-800">
+                    Таблицы/чаты:
+                  </span>{' '}
+                  {item.oldWay}
+                </p>
+                <p className="mt-2 text-sm text-gray-700">
+                  <span className="font-semibold text-general">ArtistCRM:</span>{' '}
+                  {item.crmWay}
+                </p>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 

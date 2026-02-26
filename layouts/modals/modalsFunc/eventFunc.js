@@ -2010,7 +2010,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             )}
             {isDraft ? (
               <div className="px-3 py-2 text-sm border rounded-md border-amber-200 bg-amber-50 text-amber-800">
-                {`Для заявки финансы, транзакции и документы недоступны. Переведите статус в "Активно"`}
+                {`Для заявки финансы, транзакции и документы недоступны. Переведите статус в "Мероприятие"`}
               </div>
             ) : null}
             {isByContract && !isDraft && canUseDocuments && (
