@@ -24,6 +24,17 @@ import useSnackbar from '@helpers/useSnackbar'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { pages } from '@helpers/constants'
 import isPageAllowedForRole from '@helpers/pageAccess'
+import {
+  readServerSyncDisabledFromStorage,
+  resolveServerSyncDisabled,
+} from '@helpers/serverSyncMode'
+import {
+  appendServerSyncQueueItem,
+  readServerSyncQueue,
+  replaceServerSyncQueue,
+  SERVER_SYNC_FLUSH_NOW_EVENT,
+  shiftServerSyncQueue,
+} from '@helpers/serverSyncQueue'
 
 const StateLoader = (props) => {
   if (props.error && Object.keys(props.error).length > 0)
@@ -57,22 +68,33 @@ const StateLoader = (props) => {
   // const setServerSettingsState = useSetAtom(serverSettingsAtom)
 
   const setItemsFunc = useSetAtom(itemsFuncAtom)
+  const serverSyncDisabled = resolveServerSyncDisabled(siteSettingsState)
 
   useWindowDimensionsRecoil()
 
   useEffect(() => {
-    const itemsFunc = itemsFuncGenerator(snackbar, loggedUser)
+    const itemsFunc = itemsFuncGenerator(snackbar, loggedUser, {
+      disableServerSync: serverSyncDisabled,
+    })
     setItemsFunc(itemsFunc)
     setModalsFunc(
       modalsFuncGenerator(
         router,
         itemsFunc,
-        loggedUser
+        loggedUser,
+        { disableServerSync: serverSyncDisabled }
         // loggedUser,
         // siteSettingsState,
       )
     )
-  }, [loggedUser, router, setItemsFunc, setModalsFunc, snackbar])
+  }, [
+    loggedUser,
+    router,
+    serverSyncDisabled,
+    setItemsFunc,
+    setModalsFunc,
+    snackbar,
+  ])
 
   useEffect(() => {
     setLoggedUser(props.loggedUser)
@@ -122,6 +144,197 @@ const StateLoader = (props) => {
   ])
 
   const onboardingShownRef = useRef(false)
+  const privacyWarningShownRef = useRef(false)
+  const syncFlushInProgressRef = useRef(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const nativeFetch = window.fetch.bind(window)
+
+    const getMethod = (input, init) =>
+      String(
+        init?.method ??
+          (typeof input === 'object' && input ? input.method : 'GET') ??
+          'GET'
+      ).toUpperCase()
+
+    const normalizeBody = (body) => {
+      if (!body) return ''
+      if (typeof body === 'string') return body
+      if (body instanceof URLSearchParams) return body.toString()
+      if (body instanceof FormData) return '[form-data]'
+      if (body instanceof Blob || body instanceof ArrayBuffer) return '[binary]'
+      try {
+        return JSON.stringify(body)
+      } catch (error) {
+        return '[unserializable]'
+      }
+    }
+
+    const normalizeHeaders = (headersValue) => {
+      if (!headersValue) return {}
+      if (headersValue instanceof Headers) {
+        return Object.fromEntries(headersValue.entries())
+      }
+      if (Array.isArray(headersValue)) {
+        return Object.fromEntries(headersValue)
+      }
+      if (typeof headersValue === 'object') {
+        return { ...headersValue }
+      }
+      return {}
+    }
+
+    const shouldBlock = (input, init) => {
+      const disabledFromStorage = readServerSyncDisabledFromStorage()
+      const disabled = typeof disabledFromStorage === 'boolean'
+        ? disabledFromStorage
+        : serverSyncDisabled
+      if (!disabled) return false
+
+      const method = getMethod(input, init)
+      if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return false
+
+      const inputUrl =
+        typeof input === 'string'
+          ? input
+          : typeof input?.url === 'string'
+            ? input.url
+            : ''
+      if (!inputUrl) return false
+
+      const url = new URL(inputUrl, window.location.origin)
+      const isSameOriginApi =
+        url.origin === window.location.origin && url.pathname.startsWith('/api/')
+      if (!isSameOriginApi) return false
+
+      if (url.pathname.startsWith('/api/auth/')) return false
+
+      return true
+    }
+
+    window.fetch = async (input, init = {}) => {
+      if (!shouldBlock(input, init)) {
+        return nativeFetch(input, init)
+      }
+
+      const method = getMethod(input, init)
+      const inputUrl =
+        typeof input === 'string'
+          ? input
+          : typeof input?.url === 'string'
+            ? input.url
+            : ''
+      const url = new URL(inputUrl, window.location.origin)
+
+      appendServerSyncQueueItem({
+        id: `queue-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        url: `${url.pathname}${url.search}`,
+        method,
+        body: normalizeBody(init?.body),
+        headers: normalizeHeaders(init?.headers),
+        createdAt: new Date().toISOString(),
+      })
+
+      if (!privacyWarningShownRef.current) {
+        snackbar.warning(
+          'Серверная синхронизация отключена: запрос сохранен локально'
+        )
+        privacyWarningShownRef.current = true
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: null,
+          localOnly: true,
+          queued: true,
+        }),
+        {
+          status: 202,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    return () => {
+      window.fetch = nativeFetch
+    }
+  }, [serverSyncDisabled, snackbar])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const flushQueue = async () => {
+      if (syncFlushInProgressRef.current) return
+      if (serverSyncDisabled) return
+      if (!navigator.onLine) return
+
+      const queue = readServerSyncQueue()
+      if (queue.length === 0) return
+
+      syncFlushInProgressRef.current = true
+      try {
+        let processed = 0
+        for (const item of queue) {
+          const method = String(item?.method || 'POST').toUpperCase()
+          const body =
+            typeof item?.body === 'string' && item.body !== '[form-data]' && item.body !== '[binary]'
+              ? item.body
+              : undefined
+          const headers =
+            item?.headers && typeof item.headers === 'object'
+              ? item.headers
+              : { 'Content-Type': 'application/json' }
+
+          const response = await fetch(item.url, {
+            method,
+            headers,
+            body,
+          })
+          if (!response.ok) break
+          processed += 1
+        }
+
+        if (processed > 0) {
+          shiftServerSyncQueue(processed)
+          snackbar.success(`Синхронизировано локальных изменений: ${processed}`)
+        }
+
+        const left = readServerSyncQueue()
+        if (left.length > 0 && processed === 0) {
+          snackbar.warning(
+            'Не удалось синхронизировать очередь. Проверьте подключение и повторите.'
+          )
+        } else if (left.length > 0 && processed > 0) {
+          replaceServerSyncQueue(left)
+        }
+      } catch (error) {
+        snackbar.warning('Синхронизация очереди прервана')
+      } finally {
+        syncFlushInProgressRef.current = false
+      }
+    }
+
+    const handleOnline = () => {
+      flushQueue()
+    }
+    const handleManualFlush = () => {
+      flushQueue()
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener(SERVER_SYNC_FLUSH_NOW_EVENT, handleManualFlush)
+
+    flushQueue()
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener(SERVER_SYNC_FLUSH_NOW_EVENT, handleManualFlush)
+    }
+  }, [serverSyncDisabled, snackbar])
 
   useEffect(() => {
     if (!loggedUser?._id || onboardingShownRef.current) return

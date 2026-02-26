@@ -15,7 +15,11 @@ import {
 const isExpired = (expiresAt) =>
   !expiresAt || new Date(expiresAt).getTime() <= Date.now()
 
-const createRegisterUser = async (phone, hashedPassword) => {
+const createRegisterUser = async (
+  phone,
+  hashedPassword,
+  { consentPrivacyPolicy = false, consentPersonalData = false } = {}
+) => {
   const cheapestTariff = await Tariffs.findOne({
     hidden: { $ne: true },
   })
@@ -34,6 +38,10 @@ const createRegisterUser = async (phone, hashedPassword) => {
     trialActivatedAt: now,
     trialEndsAt,
     trialUsed: true,
+    consentPrivacyPolicyAccepted: Boolean(consentPrivacyPolicy),
+    consentPersonalDataAccepted: Boolean(consentPersonalData),
+    privacyPolicyAcceptedAt: consentPrivacyPolicy ? now : null,
+    personalDataProcessingAcceptedAt: consentPersonalData ? now : null,
   })
 
   if (!user.tenantId) {
@@ -47,6 +55,12 @@ export const POST = async (req) => {
   const phone = normalizePhone(body.phone)
   const password = body.password ?? ''
   const flow = body.flow
+  const legacyTermsAccepted =
+    body?.registerTermsAccepted === true || body?.termsAccepted === true
+  const consentPrivacyPolicy =
+    body?.consentPrivacyPolicy === true || legacyTermsAccepted
+  const consentPersonalData =
+    body?.consentPersonalData === true || legacyTermsAccepted
 
   if (!validateFlow(flow)) {
     return NextResponse.json(
@@ -86,6 +100,16 @@ export const POST = async (req) => {
   const user = await findUserByPhone(phone)
 
   if (flow === 'register') {
+    if (!consentPrivacyPolicy || !consentPersonalData) {
+      return NextResponse.json(
+        safeApiError(
+          'CONSENT_REQUIRED',
+          'Для регистрации требуется согласие с Политикой конфиденциальности и обработкой персональных данных'
+        ),
+        { status: 400 }
+      )
+    }
+
     if (user?.password) {
       return NextResponse.json(
         safeApiError(
@@ -98,11 +122,19 @@ export const POST = async (req) => {
     }
 
     if (user && !user.password) {
+      const now = new Date()
       user.password = hashedPassword
       if (!user.tenantId) user.tenantId = user._id
+      user.consentPrivacyPolicyAccepted = true
+      user.consentPersonalDataAccepted = true
+      user.privacyPolicyAcceptedAt = now
+      user.personalDataProcessingAcceptedAt = now
       await user.save()
     } else {
-      await createRegisterUser(phone, hashedPassword)
+      await createRegisterUser(phone, hashedPassword, {
+        consentPrivacyPolicy,
+        consentPersonalData,
+      })
     }
   }
 

@@ -19,6 +19,16 @@ import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
+import {
+  resolveServerSyncDisabled,
+  writeServerSyncDisabledToStorage,
+} from '@helpers/serverSyncMode'
+import {
+  clearServerSyncQueue,
+  getServerSyncQueueCount,
+  SERVER_SYNC_FLUSH_NOW_EVENT,
+  SERVER_SYNC_QUEUE_CHANGED_EVENT,
+} from '@helpers/serverSyncQueue'
 
 const normalizeTowns = (towns = []) =>
   Array.from(
@@ -144,6 +154,7 @@ const SettingsContent = () => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const [darkTheme, setDarkTheme] = useState(false)
   const [defaultEventDuration, setDefaultEventDuration] = useState(60)
+  const [queuedChangesCount, setQueuedChangesCount] = useState(0)
   const durationTimeoutRef = useRef(null)
   const contractTemplateInputRef = useRef(null)
   const actTemplateInputRef = useRef(null)
@@ -165,9 +176,54 @@ const SettingsContent = () => {
     [loggedUser, tariffs]
   )
   const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
+  const serverSyncDisabled = resolveServerSyncDisabled(siteSettings)
   const checkBoxColors = darkTheme
     ? { checked: '#f8fafc', unchecked: '#94a3b8' }
     : { checked: '#111827', unchecked: '#9ca3af' }
+
+  const mergeSiteSettingsPatch = (currentSettings, patch) => {
+    const current = currentSettings ?? {}
+    const next = { ...current, ...patch }
+    if (patch?.custom !== undefined) {
+      next.custom = {
+        ...(current?.custom ?? {}),
+        ...(patch.custom ?? {}),
+      }
+    }
+    return next
+  }
+
+  const saveSiteSettingsPatch = async (patch, forceServerSync = false) => {
+    const merged = mergeSiteSettingsPatch(siteSettings, patch)
+    setSiteSettings(merged)
+
+    if (serverSyncDisabled && !forceServerSync) return merged
+
+    await postData(
+      '/api/site',
+      patch,
+      (data) => setSiteSettings(data),
+      null,
+      false,
+      null
+    )
+    return merged
+  }
+
+  useEffect(() => {
+    setQueuedChangesCount(getServerSyncQueueCount())
+    if (typeof window === 'undefined') return undefined
+    const handleQueueChanged = () => {
+      setQueuedChangesCount(getServerSyncQueueCount())
+    }
+    window.addEventListener(SERVER_SYNC_QUEUE_CHANGED_EVENT, handleQueueChanged)
+    return () => {
+      window.removeEventListener(
+        SERVER_SYNC_QUEUE_CHANGED_EVENT,
+        handleQueueChanged
+      )
+    }
+  }, [])
 
   useEffect(() => {
     const value = Number(customSettings?.defaultEventDurationMinutes ?? 60)
@@ -178,22 +234,21 @@ const SettingsContent = () => {
     if (!siteSettings?._id) return
     if (!Number.isFinite(defaultEventDuration)) return
     if (defaultEventDuration <= 0) return
+    const currentDuration = Number(
+      siteSettings?.custom?.defaultEventDurationMinutes ?? 60
+    )
+    if (currentDuration === defaultEventDuration) return
     if (durationTimeoutRef.current) {
       clearTimeout(durationTimeoutRef.current)
     }
     durationTimeoutRef.current = setTimeout(() => {
-      postData(
-        '/api/site',
+      saveSiteSettingsPatch(
         {
           custom: {
-            ...(siteSettings?.custom ?? {}),
             defaultEventDurationMinutes: defaultEventDuration,
           },
         },
-        (data) => setSiteSettings(data),
-        null,
-        false,
-        null
+        false
       )
     }, 400)
     return () => {
@@ -201,7 +256,7 @@ const SettingsContent = () => {
         clearTimeout(durationTimeoutRef.current)
       }
     }
-  }, [defaultEventDuration, setSiteSettings, siteSettings])
+  }, [defaultEventDuration, setSiteSettings, siteSettings, serverSyncDisabled])
 
   const readFileAsBase64 = (file) =>
     new Promise((resolve, reject) => {
@@ -235,14 +290,7 @@ const SettingsContent = () => {
       nextCustom.actDocxTemplateBase64 = base64
       nextCustom.actDocxTemplateFileName = file.name
     }
-    await postData(
-      '/api/site',
-      { custom: nextCustom },
-      (data) => setSiteSettings(data),
-      null,
-      false,
-      null
-    )
+    await saveSiteSettingsPatch({ custom: nextCustom })
   }
 
   return (
@@ -265,20 +313,77 @@ const SettingsContent = () => {
           uncheckedIconColor={checkBoxColors.unchecked}
           noMargin
         />
+        <LabeledContainer label="Конфиденциальность" noMargin>
+          <div className="flex w-full flex-col gap-3">
+            <IconCheckBox
+              label="Отключить синхронизацию с сервером"
+              checked={serverSyncDisabled}
+              onClick={async () => {
+                const nextValue = !serverSyncDisabled
+                writeServerSyncDisabledToStorage(nextValue)
+                const patch = {
+                  custom: {
+                    ...(siteSettings?.custom ?? {}),
+                    disableServerSync: nextValue,
+                  },
+                }
+                if (nextValue) {
+                  setSiteSettings(mergeSiteSettingsPatch(siteSettings, patch))
+                  return
+                }
+                await saveSiteSettingsPatch(patch, true)
+              }}
+              checkedIconColor={checkBoxColors.checked}
+              uncheckedIconColor={checkBoxColors.unchecked}
+              noMargin
+            />
+            <MutedText className="text-gray-500">
+              {serverSyncDisabled
+                ? 'Серверная синхронизация отключена: изменения сохраняются только локально на этом устройстве.'
+                : 'Серверная синхронизация включена: изменения сохраняются в облаке и доступны на других устройствах.'}
+            </MutedText>
+            {serverSyncDisabled ? (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <MutedText className="text-gray-500">
+                  Локальная очередь запросов: {queuedChangesCount}
+                </MutedText>
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--warning flex h-9 cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                  onClick={() => {
+                    clearServerSyncQueue()
+                  }}
+                >
+                  Очистить очередь
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <MutedText className="text-gray-500">
+                  В очереди к синхронизации: {queuedChangesCount}
+                </MutedText>
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--warning flex h-9 cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                  onClick={() => {
+                    if (typeof window === 'undefined') return
+                    window.dispatchEvent(
+                      new CustomEvent(SERVER_SYNC_FLUSH_NOW_EVENT)
+                    )
+                  }}
+                  disabled={queuedChangesCount === 0}
+                >
+                  Синхронизировать сейчас
+                </button>
+              </div>
+            )}
+          </div>
+        </LabeledContainer>
         <ComboBox
           label="Часовой пояс"
           items={TIME_ZONE_OPTIONS}
           value={siteSettings?.timeZone ?? 'Asia/Krasnoyarsk'}
-          onChange={(value) =>
-            postData(
-              '/api/site',
-              { timeZone: value },
-              (data) => setSiteSettings(data),
-              null,
-              false,
-              null
-            )
-          }
+          onChange={(value) => saveSiteSettingsPatch({ timeZone: value })}
           fullWidth
         />
         <Input
@@ -325,20 +430,13 @@ const SettingsContent = () => {
               type="button"
               className="action-icon-button action-icon-button--warning flex h-10 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
               onClick={() =>
-                postData(
-                  '/api/site',
-                  {
-                    custom: {
-                      ...(siteSettings?.custom ?? {}),
-                      releaseOnboardingCompleted: false,
-                      releaseOnboardingShowToken: Date.now(),
-                    },
+                saveSiteSettingsPatch({
+                  custom: {
+                    ...(siteSettings?.custom ?? {}),
+                    releaseOnboardingCompleted: false,
+                    releaseOnboardingShowToken: Date.now(),
                   },
-                  (data) => setSiteSettings(data),
-                  null,
-                  false,
-                  null
-                )
+                })
               }
             >
               Запустить заново

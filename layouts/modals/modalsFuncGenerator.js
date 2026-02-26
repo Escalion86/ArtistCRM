@@ -57,10 +57,11 @@ import clientEventsFunc from './modalsFunc/clientEventsFunc'
 // import eventAfterSignUpMessageFunc from './modalsFunc/eventAfterSignUpMessageFunc'
 // import subEventFunc from './modalsFunc/subEventFunc'
 
-const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
+const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
   const addModal = (value) => setAtomValue(addModalSelector, value)
   // const itemsFunc = getRecoil(itemsFuncAtom)
   const canManageUsers = ['dev', 'admin'].includes(loggedUser?.role)
+  const disableServerSync = Boolean(options?.disableServerSync)
 
   return {
     add: addModal,
@@ -211,6 +212,14 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
           onConfirm: async () => itemsFunc.event.uncancel(eventId),
         }),
       delete: async (eventId) => {
+        if (disableServerSync) {
+          addModal({
+            title: 'Удаление события',
+            text: 'Серверная синхронизация отключена. Событие будет удалено только локально на этом устройстве.',
+            onConfirm: async () => itemsFunc.event.delete(eventId),
+          })
+          return
+        }
         try {
           const response = await fetch(`/api/events/${eventId}/delete-check`)
           const result = await response.json()
@@ -307,6 +316,14 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
       edit: (serviceId) => addModal(serviceFunc(serviceId)),
       view: (serviceId) => addModal(serviceViewFunc(serviceId)),
       delete: async (serviceId) => {
+        if (disableServerSync) {
+          addModal({
+            title: 'Удаление услуги',
+            text: 'Серверная синхронизация отключена. Услуга будет удалена только локально на этом устройстве.',
+            onConfirm: async () => itemsFunc.service.delete(serviceId),
+          })
+          return
+        }
         try {
           const response = await fetch(
             `/api/services/${serviceId}/delete-check`
@@ -381,6 +398,14 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
       transactions: (clientId) => addModal(clientTransactionsFunc(clientId)),
       events: (clientId) => addModal(clientEventsFunc(clientId)),
       delete: async (clientId) => {
+        if (disableServerSync) {
+          addModal({
+            title: 'Удаление клиента',
+            text: 'Серверная синхронизация отключена. Клиент будет удален только локально на этом устройстве.',
+            onConfirm: async () => itemsFunc.client.delete(clientId),
+          })
+          return
+        }
         try {
           const response = await fetch(
             `/api/clients/${clientId}/delete-check`

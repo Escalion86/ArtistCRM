@@ -14,6 +14,12 @@ export const POST = async (req) => {
   const body = await req.json().catch(() => ({}))
   const phone = normalizePhone(body.phone)
   const password = body.password ?? ''
+  const legacyTermsAccepted =
+    body?.registerTermsAccepted === true || body?.termsAccepted === true
+  const consentPrivacyPolicy =
+    body?.consentPrivacyPolicy === true || legacyTermsAccepted
+  const consentPersonalData =
+    body?.consentPersonalData === true || legacyTermsAccepted
 
   if (!phone || !password) {
     return NextResponse.json(
@@ -30,6 +36,17 @@ export const POST = async (req) => {
   if (phone.length !== 11) {
     return NextResponse.json(
       { success: false, error: 'INVALID_PHONE_LENGTH' },
+      { status: 400 }
+    )
+  }
+
+  if (!consentPrivacyPolicy || !consentPersonalData) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          'Для регистрации требуется согласие с Политикой конфиденциальности и обработкой персональных данных',
+      },
       { status: 400 }
     )
   }
@@ -78,6 +95,10 @@ export const POST = async (req) => {
       trialActivatedAt: now,
       trialEndsAt,
       trialUsed: true,
+      consentPrivacyPolicyAccepted: true,
+      consentPersonalDataAccepted: true,
+      privacyPolicyAcceptedAt: now,
+      personalDataProcessingAcceptedAt: now,
     })
 
     if (!user.tenantId) {

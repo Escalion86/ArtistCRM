@@ -1,7 +1,7 @@
 import { postData, putData, deleteData } from '@helpers/CRUD'
 import isSiteLoadingAtom from './atoms/isSiteLoadingAtom'
 
-import { setAtomValue } from '@state/storeHelpers'
+import { getAtomValue, setAtomValue } from '@state/storeHelpers'
 import addErrorModalSelector from './selectors/addErrorModalSelector'
 import setLoadingSelector from './selectors/setLoadingSelector'
 import setNotLoadingSelector from './selectors/setNotLoadingSelector'
@@ -12,10 +12,16 @@ import eventDeleteSelector from './selectors/eventDeleteSelector'
 import userDeleteSelector from './selectors/userDeleteSelector'
 import userEditSelector from './selectors/userEditSelector'
 import clientEditSelector from './selectors/clientEditSelector'
+import clientDeleteSelector from './selectors/clientDeleteSelector'
 import serviceEditSelector from './selectors/serviceEditSelector'
 import serviceDeleteSelector from './selectors/serviceDeleteSelector'
 import tariffEditSelector from './selectors/tariffEditSelector'
 import tariffDeleteSelector from './selectors/tariffDeleteSelector'
+import eventsAtom from './atoms/eventsAtom'
+import clientsAtom from './atoms/clientsAtom'
+import servicesAtom from './atoms/servicesAtom'
+import usersAtom from './atoms/usersAtom'
+import tariffsAtom from './atoms/tariffsAtom'
 // import siteSettingsAtom from './atoms/siteSettingsAtom'
 // import questionnaireEditSelector from './selectors/questionnaireEditSelector'
 // import questionnaireDeleteSelector from './selectors/questionnaireDeleteSelector'
@@ -139,6 +145,25 @@ const messages = {
 
 const setFunc = (atom) => (value) => setAtomValue(atom, value)
 
+const createLocalId = (itemName) =>
+  `local-${itemName}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+
+const atomByItemName = {
+  event: eventsAtom,
+  client: clientsAtom,
+  service: servicesAtom,
+  user: usersAtom,
+  tariff: tariffsAtom,
+}
+
+const getCurrentItemById = (itemName, itemId) => {
+  const sourceAtom = atomByItemName[itemName]
+  if (!sourceAtom || !itemId) return null
+  const list = getAtomValue(sourceAtom)
+  if (!Array.isArray(list)) return null
+  return list.find((item) => item?._id === itemId) ?? null
+}
+
 // const setFamilyFunc = (selector) => (id, value) =>
 //   setRecoil(selector(id), value)
 
@@ -152,6 +177,7 @@ const props = {
   setEvent: setFunc(eventEditSelector),
   deleteEvent: setFunc(eventDeleteSelector),
   setClient: setFunc(clientEditSelector),
+  deleteClient: setFunc(clientDeleteSelector),
   setUser: setFunc(userEditSelector),
   setTariff: setFunc(tariffEditSelector),
 
@@ -178,6 +204,7 @@ const props = {
 const itemsFuncGenerator = (
   snackbar,
   loggedUser,
+  options = {},
   array = [
     'event',
     'client',
@@ -194,6 +221,7 @@ const itemsFuncGenerator = (
     // 'eventsTag',
   ]
 ) => {
+  const disableServerSync = Boolean(options?.disableServerSync)
   const {
     setLoadingCard,
     setNotLoadingCard,
@@ -207,6 +235,29 @@ const itemsFuncGenerator = (
     array.forEach((itemName) => {
       obj[itemName] = {
         set: async (item, clone, noSnackbar) => {
+          if (disableServerSync) {
+            const localId = item?._id && !clone ? item._id : createLocalId(itemName)
+            const prevItem =
+              item?._id && !clone ? getCurrentItemById(itemName, item._id) : null
+            const localItem = {
+              ...(prevItem ?? {}),
+              ...item,
+              _id: localId,
+              _localOnly: true,
+              _localUpdatedAt: new Date().toISOString(),
+            }
+            if (item?._id && !clone) setLoadingCard(itemName + item._id)
+            props['set' + capitalizeFirstLetter(itemName)](localItem)
+            if (item?._id && !clone) setNotLoadingCard(itemName + item._id)
+            if (!noSnackbar) {
+              const message = item?._id && !clone
+                ? `${messages[itemName]?.update?.success || 'Изменение сохранено'} (локально)`
+                : `${messages[itemName]?.add?.success || 'Элемент создан'} (локально)`
+              snackbar.success(message)
+            }
+            return localItem
+          }
+
           if (item?._id && !clone) {
             setLoadingCard(itemName + item._id)
             return await putData(
@@ -265,6 +316,14 @@ const itemsFuncGenerator = (
           }
         },
         delete: async (itemId) => {
+          if (disableServerSync) {
+            setLoadingCard(itemName + itemId)
+            props['delete' + capitalizeFirstLetter(itemName)](itemId)
+            setNotLoadingCard(itemName + itemId)
+            if (messages[itemName]?.delete?.success)
+              snackbar.success(`${messages[itemName].delete.success} (локально)`)
+            return true
+          }
           setLoadingCard(itemName + itemId)
           return await deleteData(
             `/api/${itemName.toLowerCase()}s/${itemId}`,
@@ -296,6 +355,21 @@ const itemsFuncGenerator = (
 
 
   obj.event.cancel = async (eventId) => {
+    if (disableServerSync) {
+      const prevEvent = getCurrentItemById('event', eventId) ?? {}
+      setLoadingCard('event' + eventId)
+      props.setEvent({
+        ...prevEvent,
+        _id: prevEvent?._id || eventId,
+        status: 'canceled',
+        _localOnly: true,
+        _localUpdatedAt: new Date().toISOString(),
+      })
+      setNotLoadingCard('event' + eventId)
+      snackbar.success('Мероприятие отменено (локально)')
+      return true
+    }
+
     setLoadingCard('event' + eventId)
     return await putData(
       `/api/events/${eventId}`,
@@ -318,6 +392,21 @@ const itemsFuncGenerator = (
   }
 
   obj.event.close = async (eventId) => {
+    if (disableServerSync) {
+      const prevEvent = getCurrentItemById('event', eventId) ?? {}
+      setLoadingCard('event' + eventId)
+      props.setEvent({
+        ...prevEvent,
+        _id: prevEvent?._id || eventId,
+        status: 'close',
+        _localOnly: true,
+        _localUpdatedAt: new Date().toISOString(),
+      })
+      setNotLoadingCard('event' + eventId)
+      snackbar.success('Мероприятие закрыто (локально)')
+      return true
+    }
+
     setLoadingCard('event' + eventId)
     return await putData(
       `/api/events/${eventId}`,
@@ -359,6 +448,21 @@ const itemsFuncGenerator = (
   // }
 
   obj.event.uncancel = async (eventId) => {
+    if (disableServerSync) {
+      const prevEvent = getCurrentItemById('event', eventId) ?? {}
+      setLoadingCard('event' + eventId)
+      props.setEvent({
+        ...prevEvent,
+        _id: prevEvent?._id || eventId,
+        status: 'active',
+        _localOnly: true,
+        _localUpdatedAt: new Date().toISOString(),
+      })
+      setNotLoadingCard('event' + eventId)
+      snackbar.success('Мероприятие активировано (локально)')
+      return true
+    }
+
     setLoadingCard('event' + eventId)
     return await putData(
       `/api/events/${eventId}`,

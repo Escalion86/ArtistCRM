@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { signIn } from 'next-auth/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Input from '@components/Input'
 
 const normalizePhone = (value) => {
@@ -104,6 +104,9 @@ function validate_login(
 }
 
 const LoginInputs = () => {
+  const vkAuthEnabled = process.env.NEXT_PUBLIC_VK_AUTH_ENABLED === 'true'
+  const vkOneTapContainerRef = useRef(null)
+  const [vkLoading, setVkLoading] = useState(false)
   const [mode, setMode] = useState('login')
   const [loginPhone, setLoginPhone] = useState(null)
   const [loginPassword, setLoginPassword] = useState('')
@@ -118,7 +121,9 @@ const LoginInputs = () => {
   const [registerPassword, setRegisterPassword] = useState('')
   const [registerPasswordRepeat, setRegisterPasswordRepeat] = useState('')
   const [isRegisterLoading, setIsRegisterLoading] = useState(false)
-  const [registerTermsAccepted, setRegisterTermsAccepted] = useState(false)
+  const [registerPrivacyAccepted, setRegisterPrivacyAccepted] = useState(false)
+  const [registerPersonalDataAccepted, setRegisterPersonalDataAccepted] =
+    useState(false)
   const [registerVerify, setRegisterVerify] = useState(createVerifyState)
 
   const [loginPhoneHint, setLoginPhoneHint] = useState(false)
@@ -355,8 +360,13 @@ const LoginInputs = () => {
 
     if (!registerPassword || !registerPasswordRepeat) return
 
-    if (!registerTermsAccepted) {
-      alert('Необходимо принять Политику и Соглашение')
+    if (!registerPrivacyAccepted) {
+      alert('Необходимо принять Политику конфиденциальности')
+      return
+    }
+
+    if (!registerPersonalDataAccepted) {
+      alert('Необходимо дать согласие на обработку персональных данных')
       return
     }
 
@@ -377,6 +387,8 @@ const LoginInputs = () => {
         phone: registerPhoneNormalized,
         password: registerPassword,
         flow: 'register',
+        consentPrivacyPolicy: registerPrivacyAccepted,
+        consentPersonalData: registerPersonalDataAccepted,
         consentToMailing: false,
       })
 
@@ -396,7 +408,8 @@ const LoginInputs = () => {
         setRegisterPhone(null)
         setRegisterPassword('')
         setRegisterPasswordRepeat('')
-        setRegisterTermsAccepted(false)
+        setRegisterPrivacyAccepted(false)
+        setRegisterPersonalDataAccepted(false)
         setRegisterVerify(createVerifyState())
         setMode('login')
         return
@@ -589,6 +602,106 @@ const LoginInputs = () => {
     </div>
   )
 
+  useEffect(() => {
+    if (!vkAuthEnabled || mode !== 'login') return
+    if (typeof window === 'undefined') return
+    const appId = Number(process.env.NEXT_PUBLIC_VK_APP_ID || 0)
+    if (!Number.isFinite(appId) || appId <= 0) return
+    const redirectUrl =
+      process.env.NEXT_PUBLIC_VK_REDIRECT_URL ||
+      `${window.location.origin}/api/vk-id/callback`
+    const container = vkOneTapContainerRef.current
+    if (!container) return
+
+    let isMounted = true
+    const scriptId = 'vkid-sdk-script'
+
+    const bootstrapVkOneTap = () => {
+      if (!isMounted || !('VKIDSDK' in window)) return
+      const VKID = window.VKIDSDK
+
+      try {
+        VKID.Config.init({
+          app: appId,
+          redirectUrl,
+          responseMode: VKID.ConfigResponseMode.Callback,
+          source: VKID.ConfigSource.LOWCODE,
+          scope: '',
+        })
+
+        const oneTap = new VKID.OneTap()
+        oneTap
+          .render({
+            container,
+            showAlternativeLogin: true,
+          })
+          .on(VKID.WidgetEvents.ERROR, (error) => {
+            console.error('[VK One Tap] render error', error)
+          })
+          .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, async (payload) => {
+            try {
+              setVkLoading(true)
+              const code = payload?.code
+              const deviceId = payload?.device_id
+              if (!code || !deviceId) {
+                throw new Error('VKID payload is missing code/device_id')
+              }
+
+              const exchangeData = await VKID.Auth.exchangeCode(code, deviceId)
+              const authResponse = await fetch('/api/vk-id/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(exchangeData),
+              })
+              const authJson = await authResponse.json().catch(() => ({}))
+              if (!authResponse.ok || authJson?.success === false) {
+                throw new Error(authJson?.error || 'VK ID auth failed')
+              }
+
+              const token = authJson?.data?.authToken
+              if (!token) throw new Error('VK ID token missing')
+
+              const result = await signIn('vkid', {
+                token,
+                redirect: false,
+              })
+              if (result?.error) throw new Error(result.error)
+              window.location.replace('/cabinet')
+            } catch (error) {
+              console.error('[VK One Tap] auth error', error)
+              alert('Не удалось войти через VK ID')
+            } finally {
+              if (isMounted) setVkLoading(false)
+            }
+          })
+      } catch (error) {
+        console.error('[VK One Tap] bootstrap error', error)
+      }
+    }
+
+    const existingScript = document.getElementById(scriptId)
+    if (existingScript) {
+      bootstrapVkOneTap()
+      return () => {
+        isMounted = false
+      }
+    }
+
+    const script = document.createElement('script')
+    script.id = scriptId
+    script.src = 'https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js'
+    script.async = true
+    script.onload = () => bootstrapVkOneTap()
+    script.onerror = () => {
+      console.error('[VK One Tap] sdk load failed')
+    }
+    document.head.appendChild(script)
+
+    return () => {
+      isMounted = false
+    }
+  }, [mode, vkAuthEnabled])
+
   return (
     <div className="relative flex min-h-[100dvh] w-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#f7efe1] via-[#ebd3a5] to-[#d8ba86] px-4 py-10">
       <div className="pointer-events-none absolute top-12 -left-28 h-64 w-64 rounded-full bg-[#ebd3a5]/30 blur-3xl" />
@@ -661,6 +774,17 @@ const LoginInputs = () => {
             >
               {isSubmitting ? 'Вход...' : 'Войти'}
             </button>
+
+            {vkAuthEnabled ? (
+              <div className="flex flex-col gap-2">
+                <div ref={vkOneTapContainerRef} className="w-full" />
+                {vkLoading ? (
+                  <div className="text-center text-xs text-gray-500">
+                    Авторизация VK ID...
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </form>
         ) : mode === 'reset' ? (
           <form onSubmit={submitReset} className="flex flex-col gap-4">
@@ -771,9 +895,9 @@ const LoginInputs = () => {
                   <input
                     type="checkbox"
                     className="mt-1 h-4 w-4 cursor-pointer"
-                    checked={registerTermsAccepted}
+                    checked={registerPrivacyAccepted}
                     onChange={(event) =>
-                      setRegisterTermsAccepted(event.target.checked)
+                      setRegisterPrivacyAccepted(event.target.checked)
                     }
                   />
                   <span>
@@ -785,15 +909,30 @@ const LoginInputs = () => {
                       rel="noreferrer"
                     >
                       Политику конфиденциальности
-                    </Link>{' '}
-                    и{' '}
+                    </Link>
+                    .
+                  </span>
+                </label>
+
+                <label className="flex cursor-pointer items-start gap-2 text-xs text-gray-600">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 cursor-pointer"
+                    checked={registerPersonalDataAccepted}
+                    onChange={(event) =>
+                      setRegisterPersonalDataAccepted(event.target.checked)
+                    }
+                  />
+                  <span>
+                    Даю согласие на обработку персональных данных в соответствии
+                    с{' '}
                     <Link
-                      href="/terms"
+                      href="/privacy"
                       className="text-general"
                       target="_blank"
                       rel="noreferrer"
                     >
-                      Пользовательское соглашение
+                      Политикой конфиденциальности
                     </Link>
                     .
                   </span>
@@ -812,7 +951,8 @@ const LoginInputs = () => {
                   (registerVerify.verified &&
                     (!registerPassword ||
                       !registerPasswordRepeat ||
-                      !registerTermsAccepted))
+                      !registerPrivacyAccepted ||
+                      !registerPersonalDataAccepted))
                 }
               >
                 {!registerVerify.verified

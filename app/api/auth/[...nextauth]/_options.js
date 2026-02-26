@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import dbConnect from '@server/dbConnect'
 import Users from '@models/Users'
+import { verifyVkIdAuthToken } from '@server/vkidAuthToken'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -106,6 +107,44 @@ const authOptions = {
           return {
             id: user._id.toString(),
             phone,
+            role: user.role ?? 'user',
+            tenantId: user.tenantId?.toString() ?? user._id.toString(),
+            firstName: user.firstName ?? '',
+            secondName: user.secondName ?? '',
+            tariffId: user.tariffId?.toString() ?? null,
+          }
+        } catch (error) {
+          console.log({ error })
+          return null
+        }
+      },
+    }),
+    CredentialsProvider({
+      id: 'vkid',
+      name: 'VK ID',
+      credentials: {
+        token: {
+          label: 'Token',
+          type: 'text',
+        },
+      },
+      async authorize(credentials) {
+        try {
+          const token = credentials?.token ?? ''
+          const payload = verifyVkIdAuthToken(token, authSecret)
+          if (!payload?.uid) return null
+
+          await dbConnect()
+          const user = await Users.findById(payload.uid)
+          if (!user) return null
+
+          if (!user.tenantId) {
+            await Users.findByIdAndUpdate(user._id, { tenantId: user._id })
+          }
+
+          return {
+            id: user._id.toString(),
+            phone: user.phone ?? '',
             role: user.role ?? 'user',
             tenantId: user.tenantId?.toString() ?? user._id.toString(),
             firstName: user.firstName ?? '',

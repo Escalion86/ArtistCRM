@@ -43,6 +43,22 @@ const usersSchema = {
     type: String,
     default: '',
   },
+  consentPrivacyPolicyAccepted: {
+    type: Boolean,
+    default: false,
+  },
+  consentPersonalDataAccepted: {
+    type: Boolean,
+    default: false,
+  },
+  privacyPolicyAcceptedAt: {
+    type: Date,
+    default: null,
+  },
+  personalDataProcessingAcceptedAt: {
+    type: Date,
+    default: null,
+  },
   images: {
     type: Array,
     default: [],
@@ -72,6 +88,10 @@ const usersSchema = {
     default: '',
   },
   vk: {
+    type: String,
+    default: '',
+  },
+  vkId: {
     type: String,
     default: '',
   },
