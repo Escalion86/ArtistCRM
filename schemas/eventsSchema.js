@@ -15,6 +15,10 @@ const eventsSchema = {
     type: String,
     default: 'Описание мероприятия',
   },
+  eventType: {
+    type: String,
+    default: '',
+  },
   requestCreatedAt: {
     type: Date,
     default: () => new Date(),

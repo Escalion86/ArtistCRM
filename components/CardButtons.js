@@ -120,7 +120,7 @@ const CardButtons = ({
         cloneBtn: typeOfItem !== 'user' && typeOfItem !== 'tariff',
         openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
         historyBtn: typeOfItem === 'event',
-        statusBtn: typeOfItem !== 'client',
+        statusBtn: typeOfItem !== 'client' && typeOfItem !== 'service',
         deleteBtn:
           showDeleteButton && canManageItem && item.status !== 'closed',
         userBilling: typeOfItem === 'user' && canManageUsers,
@@ -141,7 +141,7 @@ const CardButtons = ({
         editBtn: showEditButton && canManageItem,
         cloneBtn: typeOfItem !== 'user' && typeOfItem !== 'tariff',
         showOnSiteBtn: showOnSiteOnClick,
-        statusBtn: typeOfItem !== 'client',
+        statusBtn: typeOfItem !== 'client' && typeOfItem !== 'service',
         deleteBtn:
           showDeleteButton && canManageItem && item.status !== 'closed',
         userEvents: typeOfItem === 'client',

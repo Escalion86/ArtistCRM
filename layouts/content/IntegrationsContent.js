@@ -8,6 +8,7 @@ import Input from '@components/Input'
 import IconCheckBox from '@components/IconCheckBox'
 import SectionCard from '@components/SectionCard'
 import LabeledContainer from '@components/LabeledContainer'
+import GoogleCalendarSettings from '@components/GoogleCalendarSettings'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
@@ -139,6 +140,10 @@ const IntegrationsContent = () => {
       </ContentHeader>
 
       <SectionCard className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+        <LabeledContainer label="Google Calendar" noMargin>
+          <GoogleCalendarSettings redirectPath="/cabinet/integrations" />
+        </LabeledContainer>
+
         <LabeledContainer label="Интеграция входящих заявок API" noMargin>
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-600">

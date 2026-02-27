@@ -11,6 +11,7 @@ import {
   hasDocuments,
   normalizeAdditionalEvents,
   normalizeDepositExpectedAmount,
+  normalizeEventType,
   normalizeWaitDeposit,
   parseDateValue,
 } from '@server/eventApiNormalization'
@@ -161,6 +162,8 @@ export const PUT = async (req, { params }) => {
     )
   if (body.description !== undefined)
     update.description = body.description ?? ''
+  if (body.eventType !== undefined)
+    update.eventType = normalizeEventType(body.eventType)
   if (body.financeComment !== undefined)
     update.financeComment = body.financeComment ?? ''
   if (body.invoiceLinks !== undefined)

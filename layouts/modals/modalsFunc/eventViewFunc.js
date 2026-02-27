@@ -25,16 +25,35 @@ import { modalsFuncAtom } from '@state/atoms'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 
 const EVENT_STATUS_META = Object.freeze({
-  draft: { label: 'Заявка', className: 'event-view-status event-view-status--draft' },
-  active: { label: 'Активно', className: 'event-view-status event-view-status--active' },
-  canceled: { label: 'Отменено', className: 'event-view-status event-view-status--canceled' },
-  finished: { label: 'Завершено', className: 'event-view-status event-view-status--finished' },
-  closed: { label: 'Закрыто', className: 'event-view-status event-view-status--closed' },
+  draft: {
+    label: 'Заявка',
+    className: 'event-view-status event-view-status--draft',
+  },
+  active: {
+    label: 'Активно',
+    className: 'event-view-status event-view-status--active',
+  },
+  canceled: {
+    label: 'Отменено',
+    className: 'event-view-status event-view-status--canceled',
+  },
+  finished: {
+    label: 'Завершено',
+    className: 'event-view-status event-view-status--finished',
+  },
+  closed: {
+    label: 'Закрыто',
+    className: 'event-view-status event-view-status--closed',
+  },
 })
 
 const SectionBlock = ({ title, children }) => (
   <SurfaceCard>
-    {title ? <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</div> : null}
+    {title ? (
+      <div className="mb-2 text-xs font-semibold tracking-wide text-gray-500 uppercase">
+        {title}
+      </div>
+    ) : null}
     {children}
   </SurfaceCard>
 )
@@ -72,7 +91,8 @@ const eventViewFunc = (eventId) => {
     const additionalEvents = Array.isArray(event?.additionalEvents)
       ? event.additionalEvents
       : []
-    const statusMeta = EVENT_STATUS_META[event?.status] || EVENT_STATUS_META.active
+    const statusMeta =
+      EVENT_STATUS_META[event?.status] || EVENT_STATUS_META.active
 
     const calendarLink = useMemo(() => {
       return getGoogleCalendarLinkFromText(event?.description)
@@ -88,9 +108,7 @@ const eventViewFunc = (eventId) => {
       return contacts
         .map((contact) => {
           if (!contact?.clientId && !contact?.comment) return null
-          const client = clients.find(
-            (item) => item._id === contact?.clientId
-          )
+          const client = clients.find((item) => item._id === contact?.clientId)
           const name = getPersonFullName(client)
           return {
             client,
@@ -176,7 +194,7 @@ const eventViewFunc = (eventId) => {
 
     if (!event || !eventId)
       return (
-        <div className="flex w-full justify-center text-lg ">
+        <div className="flex justify-center w-full text-lg">
           ОШИБКА! Мероприятие не найдено!
         </div>
       )
@@ -184,9 +202,9 @@ const eventViewFunc = (eventId) => {
     return (
       <div className="flex flex-col gap-y-3">
         <ImageGallery images={event?.images} />
-        <div className="flex flex-1 flex-col">
-          <div className="flex w-full max-w-full flex-1 flex-col gap-y-3 px-2 py-2">
-            <div className="flex w-full items-center gap-x-1">
+        <div className="flex flex-col flex-1">
+          <div className="flex flex-col flex-1 w-full max-w-full px-2 py-2 gap-y-3">
+            <div className="flex items-center w-full gap-x-1">
               {tagItems.length > 0 && (
                 <div className={cn('flex flex-wrap gap-2', 'flex-1')}>
                   {tagItems.map((tag) => (
@@ -195,39 +213,47 @@ const eventViewFunc = (eventId) => {
                 </div>
               )}
               {!setTopLeftComponent && (
-                <div className="flex flex-1 justify-end">
-                  <CardButtonsComponent event={event} calendarLink={calendarLink} />
+                <div className="flex justify-end flex-1">
+                  <CardButtonsComponent
+                    event={event}
+                    calendarLink={calendarLink}
+                  />
                 </div>
               )}
             </div>
             <SectionBlock>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex-1">
-                  <div className="break-words text-left text-lg font-bold text-gray-900 tablet:text-2xl">
+                  <div className="text-lg font-bold text-left text-gray-900 break-words tablet:text-2xl">
                     {formatAddress(displayAddress, 'Мероприятие')}
                   </div>
                   <div className="mt-1 text-xs text-gray-500">
-                    Создано: {formatDateTime(event?.requestCreatedAt ?? event?.createdAt)}
+                    Создано:{' '}
+                    {formatDateTime(
+                      event?.requestCreatedAt ?? event?.createdAt
+                    )}
                   </div>
                 </div>
-                <div className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusMeta.className}`}>
+                <div
+                  className={`rounded-full border px-2 py-1 text-xs font-semibold ${statusMeta.className}`}
+                >
                   {statusMeta.label}
                 </div>
               </div>
-              <div className="mt-3 grid grid-cols-1 gap-2 text-sm tablet:grid-cols-3">
-                <div className="event-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2">
+              <div className="grid grid-cols-1 gap-2 mt-3 text-sm tablet:grid-cols-3">
+                <div className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50">
                   <div className="text-[11px] text-gray-500">Начало</div>
                   <div className="font-semibold text-gray-900">
                     {formatDateTime(event?.eventDate)}
                   </div>
                 </div>
-                <div className="event-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2">
+                <div className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50">
                   <div className="text-[11px] text-gray-500">Завершение</div>
                   <div className="font-semibold text-gray-900">
                     {formatDateTime(event?.dateEnd)}
                   </div>
                 </div>
-                <div className="event-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2">
+                <div className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50">
                   <div className="text-[11px] text-gray-500">Длительность</div>
                   <div className="font-semibold text-gray-900">
                     {formatMinutes(duration ?? 60)}
@@ -239,7 +265,7 @@ const eventViewFunc = (eventId) => {
             {event?.description ? (
               <SectionBlock title="Описание">
                 <div
-                  className="textarea ql w-full max-w-full list-disc overflow-hidden"
+                  className="w-full max-w-full overflow-hidden list-disc textarea ql"
                   dangerouslySetInnerHTML={{
                     __html: DOMPurify.sanitize(event?.description),
                   }}
@@ -265,13 +291,15 @@ const eventViewFunc = (eventId) => {
                   {otherContacts.map((contact, index) => (
                     <div
                       key={`${contact.label}-${index}`}
-                      className="event-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2"
+                      className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50"
                     >
                       <div className="text-sm font-semibold text-gray-800">
                         {contact.label}
                       </div>
                       {contact.comment ? (
-                        <div className="mb-1 text-xs text-gray-600">{contact.comment}</div>
+                        <div className="mb-1 text-xs text-gray-600">
+                          {contact.comment}
+                        </div>
                       ) : null}
                       {contact.client && (
                         <div className="mt-1">
@@ -285,7 +313,7 @@ const eventViewFunc = (eventId) => {
             )}
             {additionalEvents.length > 0 && (
               <SectionBlock title="Доп. события">
-                <div className="tablet:grid-cols-2 laptop:grid-cols-3 grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
                   {additionalEvents.map((item, index) => (
                     <div
                       key={`additional-event-view-${index}`}
@@ -328,8 +356,8 @@ const eventViewFunc = (eventId) => {
 
                             return (
                               <div className="flex flex-col gap-3 text-sm text-gray-800">
-                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                                <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                                  <div className="text-xs tracking-wide text-gray-500 uppercase">
                                     Статус
                                   </div>
                                   <div
@@ -342,8 +370,8 @@ const eventViewFunc = (eventId) => {
                                     {item?.done ? 'Выполнено' : 'Активно'}
                                   </div>
                                 </div>
-                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                                <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                                  <div className="text-xs tracking-wide text-gray-500 uppercase">
                                     Дата и время
                                   </div>
                                   <div className="mt-1 font-semibold text-gray-900">
@@ -351,11 +379,11 @@ const eventViewFunc = (eventId) => {
                                   </div>
                                 </div>
                                 {item?.description ? (
-                                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                                    <div className="text-xs uppercase tracking-wide text-gray-500">
+                                  <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                                    <div className="text-xs tracking-wide text-gray-500 uppercase">
                                       Описание
                                     </div>
-                                    <div className="mt-1 whitespace-pre-wrap text-gray-700">
+                                    <div className="mt-1 text-gray-700 whitespace-pre-wrap">
                                       {item.description}
                                     </div>
                                   </div>
@@ -397,7 +425,7 @@ const eventViewFunc = (eventId) => {
                     }%20${event.address.house.replaceAll('/', '%2F')}`}
                   >
                     <Image
-                      className="h-6 min-h-6 w-6 min-w-6 object-contain"
+                      className="object-contain w-6 h-6 min-h-6 min-w-6"
                       src="/img/navigators/2gis.png"
                       alt="2gis"
                       width={24}
@@ -413,7 +441,7 @@ const eventViewFunc = (eventId) => {
                     }%20${event.address.house.replaceAll('/', '%2F')}`}
                   >
                     <Image
-                      className="h-6 min-h-6 w-6 min-w-6 object-contain"
+                      className="object-contain w-6 h-6 min-h-6 min-w-6"
                       src="/img/navigators/yandex.png"
                       alt="2gis"
                       width={24}

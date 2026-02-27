@@ -32,6 +32,7 @@ import eventSelector from '@state/selectors/eventSelector'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import Input from '@components/Input'
+import ComboBox from '@components/ComboBox'
 import AppButton from '@components/AppButton'
 import AddressPicker from '@components/AddressPicker'
 import InputWrapper from '@components/InputWrapper'
@@ -222,6 +223,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     const [description, setDescription] = useState(
       event?.description ?? event?.comment ?? DEFAULT_EVENT.description ?? ''
     )
+    const [eventType, setEventType] = useState(
+      event?.eventType ?? DEFAULT_EVENT.eventType ?? ''
+    )
     const [financeComment, setFinanceComment] = useState(
       event?.financeComment ?? DEFAULT_EVENT.financeComment ?? ''
     )
@@ -299,6 +303,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         isByContract: event?.isByContract ?? DEFAULT_EVENT.isByContract,
         description:
           event?.description ?? event?.comment ?? DEFAULT_EVENT.description,
+        eventType: event?.eventType ?? DEFAULT_EVENT.eventType,
         financeComment: event?.financeComment ?? DEFAULT_EVENT.financeComment,
         dateEnd: event?.dateEnd ?? DEFAULT_EVENT.dateEnd,
         invoiceLinks: event?.invoiceLinks ?? DEFAULT_EVENT.invoiceLinks ?? [],
@@ -333,6 +338,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       event?.depositDueAt,
       event?.depositExpectedAmount,
       event?.description,
+      event?.eventType,
       event?.isByContract,
       event?.financeComment,
       event?.comment,
@@ -378,6 +384,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         initialEventValues.isTransferred !== isTransferred ||
         initialEventValues.colleagueId !== colleagueId ||
         initialEventValues.description !== description ||
+        initialEventValues.eventType !== eventType ||
         initialEventValues.financeComment !== financeComment ||
         initialEventValues.status !== status ||
         initialEventValues.requestCreatedAt !== requestCreatedAt ||
@@ -410,6 +417,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         isTransferred,
         colleagueId,
         description,
+        eventType,
         financeComment,
         invoiceLinks,
         receiptLinks,
@@ -654,6 +662,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               : (depositExpectedAmount ?? null),
           isByContract,
           description: description?.trim() ?? '',
+          eventType: eventType?.trim() ?? '',
           financeComment: financeComment?.trim() ?? '',
           calendarImportChecked,
           servicesIds,
@@ -690,6 +699,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       clientId,
       colleagueId,
       description,
+      eventType,
       financeComment,
       contractSum,
       isByContract,
@@ -971,6 +981,47 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       await postData(
         '/api/site',
         { towns: nextTowns },
+        (data) => setSiteSettings(data),
+        null,
+        false,
+        loggedUser?._id
+      )
+    }
+
+    const eventTypeOptions = useMemo(() => {
+      const rawEventTypes = Array.isArray(siteSettings?.custom?.eventTypes)
+        ? siteSettings.custom.eventTypes
+        : []
+      const eventTypesSet = new Set(
+        rawEventTypes
+          .map((item) => (typeof item === 'string' ? item.trim() : ''))
+          .filter(Boolean)
+      )
+      if (eventType && typeof eventType === 'string')
+        eventTypesSet.add(eventType.trim())
+      return Array.from(eventTypesSet).sort((a, b) => a.localeCompare(b, 'ru'))
+    }, [eventType, siteSettings?.custom?.eventTypes])
+
+    const handleCreateEventType = async () => {
+      const rawEventType = window.prompt('Новый тип события')
+      const normalizedEventType =
+        typeof rawEventType === 'string' ? rawEventType.trim() : ''
+      if (!normalizedEventType) return
+      setEventType(normalizedEventType)
+      const currentEventTypes = Array.isArray(siteSettings?.custom?.eventTypes)
+        ? siteSettings.custom.eventTypes
+        : []
+      const nextEventTypes = Array.from(
+        new Set([...currentEventTypes, normalizedEventType])
+      )
+      await postData(
+        '/api/site',
+        {
+          custom: {
+            ...(siteSettings?.custom ?? {}),
+            eventTypes: nextEventTypes,
+          },
+        },
         (data) => setSiteSettings(data),
         null,
         false,
@@ -1691,6 +1742,23 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               required
               onClearError={() => removeError('servicesIds')}
             />
+            <div className="flex items-end mt-4 gap-x-1">
+              <ComboBox
+                label="Что за событие?"
+                items={eventTypeOptions}
+                value={eventType}
+                onChange={(value) => setEventType(value ?? '')}
+                placeholder="Выберите тип события"
+                fullWidth
+                noMargin
+                className="flex-1 min-w-38"
+              />
+              <AddIconButton
+                onClick={handleCreateEventType}
+                title="Добавить тип события"
+                size="md"
+              />
+            </div>
 
             <div className="flex flex-wrap items-center gap-x-1">
               <DateTimePicker
@@ -1727,7 +1795,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               onCreateTown={handleCreateTown}
             />
             <Textarea
-              label="Комментарий"
+              label="Описание"
               onChange={setDescription}
               value={description}
               rows={3}

@@ -57,7 +57,7 @@ export const CONTENTS = Object.freeze({
   },
   services: {
     Component: ServicesContent,
-    name: 'Услуги',
+    name: 'Мои услуги',
   },
   statistics: {
     Component: StatisticsContent,

@@ -390,6 +390,7 @@ export const DEFAULT_ADDRESS = Object.freeze({
 export const DEFAULT_EVENT = Object.freeze({
   clientId: null,
   description: '',
+  eventType: '',
   financeComment: '',
   requestCreatedAt: null,
   additionalEvents: [],
@@ -703,8 +704,8 @@ export const pages = [
   },
   {
     id: 6,
-    group: 3,
-    name: 'Услуги',
+    group: 6,
+    name: 'Мои услуги',
     href: 'services',
     icon: faWandMagicSparkles,
   },

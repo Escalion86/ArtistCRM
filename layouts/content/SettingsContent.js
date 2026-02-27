@@ -314,7 +314,7 @@ const SettingsContent = () => {
           noMargin
         />
         <LabeledContainer label="Конфиденциальность" noMargin>
-          <div className="flex w-full flex-col gap-3">
+          <div className="flex flex-col w-full gap-3">
             <IconCheckBox
               label="Отключить синхронизацию с сервером"
               checked={serverSyncDisabled}
@@ -349,7 +349,7 @@ const SettingsContent = () => {
                 </MutedText>
                 <button
                   type="button"
-                  className="action-icon-button action-icon-button--warning flex h-9 cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                  className="flex items-center justify-center px-3 text-xs font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning h-9"
                   onClick={() => {
                     clearServerSyncQueue()
                   }}
@@ -364,7 +364,7 @@ const SettingsContent = () => {
                 </MutedText>
                 <button
                   type="button"
-                  className="action-icon-button action-icon-button--warning flex h-9 cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                  className="flex items-center justify-center px-3 text-xs font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning h-9"
                   onClick={() => {
                     if (typeof window === 'undefined') return
                     window.dispatchEvent(
@@ -385,6 +385,7 @@ const SettingsContent = () => {
           value={siteSettings?.timeZone ?? 'Asia/Krasnoyarsk'}
           onChange={(value) => saveSiteSettingsPatch({ timeZone: value })}
           fullWidth
+          noMargin
         />
         <Input
           label="Стандартная длительность мероприятия, мин"
@@ -422,13 +423,13 @@ const SettingsContent = () => {
           </div>
         </LabeledContainer>
         <LabeledContainer label="Мастер запуска" noMargin>
-          <div className="flex w-full items-center justify-between gap-3">
+          <div className="flex items-center justify-between w-full gap-3">
             <MutedText className="text-gray-500">
               Сбросьте прогресс, чтобы снова пройти шаги первичной настройки.
             </MutedText>
             <button
               type="button"
-              className="action-icon-button action-icon-button--warning flex h-10 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+              className="flex items-center justify-center h-10 px-3 text-sm font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning"
               onClick={() =>
                 saveSiteSettingsPatch({
                   custom: {
@@ -445,7 +446,7 @@ const SettingsContent = () => {
         </LabeledContainer>
         {canUseDocuments ? (
           <LabeledContainer label="Работа с документами" noMargin>
-            <div className="flex w-full flex-col gap-3">
+            <div className="flex flex-col w-full gap-3">
               <div className="flex flex-wrap items-center justify-end w-full gap-2">
                 <button
                   type="button"
@@ -555,4 +556,3 @@ const SettingsContent = () => {
 }
 
 export default SettingsContent
-

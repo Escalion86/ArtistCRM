@@ -10,6 +10,7 @@ import {
   hasDocuments,
   normalizeAdditionalEvents,
   normalizeDepositExpectedAmount,
+  normalizeEventType,
   normalizeWaitDeposit,
   parseDateValue,
 } from '@server/eventApiNormalization'
@@ -98,6 +99,7 @@ export const POST = async (req) => {
       ? new Date(body.requestCreatedAt)
       : new Date(),
     additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
+    eventType: normalizeEventType(body.eventType),
     waitDeposit: normalizeWaitDeposit(body.waitDeposit),
     depositDueAt: parseDateValue(body.depositDueAt),
     depositExpectedAmount: normalizeDepositExpectedAmount(

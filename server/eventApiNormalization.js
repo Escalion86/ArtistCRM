@@ -25,6 +25,9 @@ const parseDateValue = (value) => {
 
 const normalizeWaitDeposit = (value) => Boolean(value)
 
+const normalizeEventType = (value) =>
+  typeof value === 'string' ? value.trim() : ''
+
 const normalizeDepositExpectedAmount = (value) => {
   if (value === null || value === undefined || value === '') return null
   const number = Number(value)
@@ -62,6 +65,7 @@ export {
   hasDocuments,
   parseDateValue,
   normalizeWaitDeposit,
+  normalizeEventType,
   normalizeDepositExpectedAmount,
   normalizeAdditionalEvents,
 }
