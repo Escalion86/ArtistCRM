@@ -1344,7 +1344,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         setFinanceError('Транзакции недоступны для заявки')
         return
       }
-      if (!sourceEventId || !event?.clientId) {
+      if (!sourceEventId || !clientId) {
         setFinanceError('Сначала сохраните мероприятие и выберите клиента')
         return
       }
@@ -2123,7 +2123,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                       clone ||
                       financeLoading ||
                       !sourceEventId ||
-                      !event?.clientId
+                      !clientId
                     }
                     title="Добавить транзакцию"
                     size="sm"

@@ -85,7 +85,7 @@ const ReleaseOnboardingCoach = () => {
       },
       {
         id: 'activeStatus',
-        title: 'Переведите заявку в статус "Активно"',
+        title: 'Переведите заявку в тип "Мероприятие"',
         description:
           'Статус "Активно" означает, что клиент подтвердил мероприятие и вы берете его в работу.',
         done: hasActiveEvent,

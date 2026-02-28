@@ -108,6 +108,7 @@ const LoginInputs = () => {
   const vkOneTapContainerRef = useRef(null)
   const [vkLoading, setVkLoading] = useState(false)
   const [mode, setMode] = useState('login')
+  const canUseVkOneTap = mode === 'login' || mode === 'register'
   const [loginPhone, setLoginPhone] = useState(null)
   const [loginPassword, setLoginPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -603,7 +604,7 @@ const LoginInputs = () => {
   )
 
   useEffect(() => {
-    if (!vkAuthEnabled || mode !== 'login') return
+    if (!vkAuthEnabled || !canUseVkOneTap) return
     if (typeof window === 'undefined') return
     const appId = Number(process.env.NEXT_PUBLIC_VK_APP_ID || 0)
     if (!Number.isFinite(appId) || appId <= 0) return
@@ -669,7 +670,7 @@ const LoginInputs = () => {
               window.location.replace('/cabinet')
             } catch (error) {
               console.error('[VK One Tap] auth error', error)
-              alert('Не удалось войти через VK ID')
+              alert('Не удалось авторизоваться через VK ID')
             } finally {
               if (isMounted) setVkLoading(false)
             }
@@ -700,7 +701,7 @@ const LoginInputs = () => {
     return () => {
       isMounted = false
     }
-  }, [mode, vkAuthEnabled])
+  }, [canUseVkOneTap, mode, vkAuthEnabled])
 
   return (
     <div className="relative flex min-h-[100dvh] w-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#f7efe1] via-[#ebd3a5] to-[#d8ba86] px-4 py-10">
@@ -777,6 +778,9 @@ const LoginInputs = () => {
 
             {vkAuthEnabled ? (
               <div className="flex flex-col gap-2">
+                <div className="text-center text-xs text-gray-500">
+                  Войти или зарегистрироваться через VK ID
+                </div>
                 <div ref={vkOneTapContainerRef} className="w-full" />
                 {vkLoading ? (
                   <div className="text-center text-xs text-gray-500">
@@ -964,6 +968,19 @@ const LoginInputs = () => {
                   : 'Создать аккаунт'}
               </button>
             )}
+            {vkAuthEnabled ? (
+              <div className="flex flex-col gap-2">
+                <div className="text-center text-xs text-gray-500">
+                  Или зарегистрируйтесь через VK ID
+                </div>
+                <div ref={vkOneTapContainerRef} className="w-full" />
+                {vkLoading ? (
+                  <div className="text-center text-xs text-gray-500">
+                    Авторизация VK ID...
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </form>
         )}
 
