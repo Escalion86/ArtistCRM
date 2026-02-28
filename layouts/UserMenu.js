@@ -76,6 +76,7 @@ const UserMenu = () => {
   const setMenuOpen = useSetAtom(menuOpenAtom)
   const [isUserMenuOpened, setIsUserMenuOpened] = useState(false)
   const [turnOnHandleMouseOver, setTurnOnHandleMouseOver] = useState(true)
+  const [nowTs] = useState(() => Date.now())
   const loggedUser = useAtomValue(loggedUserAtom)
   const tariffs = useAtomValue(tariffsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -123,14 +124,14 @@ const UserMenu = () => {
     if (!missingAmount) return null
     const endDate = new Date(loggedUser.tariffActiveUntil)
     if (Number.isNaN(endDate.getTime())) return null
-    const diffMs = endDate.getTime() - Date.now()
+    const diffMs = endDate.getTime() - nowTs
     const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
     if (daysLeft > 5) return null
     return {
       daysLeft,
       missingAmount,
     }
-  }, [loggedUser?.balance, loggedUser?.tariffActiveUntil, selectedTariff])
+  }, [loggedUser?.balance, loggedUser?.tariffActiveUntil, nowTs, selectedTariff])
   const fullName = getPersonFullName(loggedUser, { fallback: '-' })
   const [firstLine, ...restLines] = fullName.split(' ')
   const secondLine = restLines.join(' ')

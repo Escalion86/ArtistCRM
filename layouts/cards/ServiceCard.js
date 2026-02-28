@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import loadingAtom from '@state/atoms/loadingAtom'
@@ -90,3 +91,4 @@ ServiceCard.defaultProps = {
 }
 
 export default ServiceCard
+

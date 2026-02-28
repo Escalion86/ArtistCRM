@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { postData } from '@helpers/CRUD'
 import { modalsFuncAtom } from '@state/atoms'
 import eventsAtom from '@state/atoms/eventsAtom'

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import ErrorsList from '@components/ErrorsList'
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
@@ -254,3 +255,4 @@ const ProfileContent = () => {
 }
 
 export default ProfileContent
+

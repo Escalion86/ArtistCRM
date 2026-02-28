@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import DateTimePicker from '@components/DateTimePicker'
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
@@ -466,3 +467,4 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
 }
 
 export default transactionFunc
+

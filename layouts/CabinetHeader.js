@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 // import DevSwitch from '@components/DevSwitch'
 import Link from 'next/link'
 import UserMenu from './UserMenu'
@@ -41,3 +42,4 @@ const CabinetHeader = ({ title = '', titleLink, icon }) => {
 }
 
 export default CabinetHeader
+

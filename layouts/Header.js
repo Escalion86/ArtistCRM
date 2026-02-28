@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Burger from '@components/Burger'
 import { faSignInAlt } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -135,3 +136,4 @@ const Header = ({ noMenu }) => {
 }
 
 export default Header
+

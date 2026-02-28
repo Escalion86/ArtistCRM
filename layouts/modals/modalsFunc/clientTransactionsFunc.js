@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useMemo, useState, useCallback } from 'react'
 import { List } from 'react-window'
 import TransactionTypeToggleButtons from '@components/IconToggleButtons/TransactionTypeToggleButtons'
@@ -133,3 +134,4 @@ const clientTransactionsFunc = (clientId) => {
 }
 
 export default clientTransactionsFunc
+

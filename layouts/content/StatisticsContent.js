@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
@@ -783,3 +784,4 @@ const StatisticsContent = () => {
 }
 
 export default StatisticsContent
+

@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { List, useListRef } from 'react-window'

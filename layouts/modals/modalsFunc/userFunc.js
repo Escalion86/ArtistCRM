@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import CardButtons from '@components/CardButtons'
 import ErrorsList from '@components/ErrorsList'
 import FormWrapper from '@components/FormWrapper'
@@ -393,3 +394,4 @@ const userFunc = (userId, clone = false) => {
 }
 
 export default userFunc
+

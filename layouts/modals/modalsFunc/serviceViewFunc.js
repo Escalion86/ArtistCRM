@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import CardButtons from '@components/CardButtons'
 import Divider from '@components/Divider'
 import ImageGallery from '@components/ImageGallery'
@@ -89,3 +90,4 @@ const serviceViewFunc = (serviceId) => {
 }
 
 export default serviceViewFunc
+

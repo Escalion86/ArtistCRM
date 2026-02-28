@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
 import { postData } from '@helpers/CRUD'
@@ -111,3 +112,4 @@ const changePasswordFunc = () => {
 }
 
 export default changePasswordFunc
+

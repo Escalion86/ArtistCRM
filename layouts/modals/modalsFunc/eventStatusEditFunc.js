@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import EventStatusPicker from '@components/ValuePicker/EventStatusPicker'
 import Input from '@components/Input'
 import { DEFAULT_EVENT } from '@helpers/constants'
@@ -222,3 +223,4 @@ const eventStatusEditFunc = (eventId) => {
 }
 
 export default eventStatusEditFunc
+

@@ -374,7 +374,7 @@ const DevContent = () => {
         </div>
         <div className="flex flex-col gap-3 rounded border border-violet-200 bg-violet-50 p-3">
           <div className="text-sm text-violet-800">
-            Преобразовать все заявки из коллекции requests в мероприятия со статусом "draft".
+            Преобразовать все заявки из коллекции requests в мероприятия со статусом &quot;draft&quot;.
           </div>
           <Button
             name="Преобразовать заявки в мероприятия"

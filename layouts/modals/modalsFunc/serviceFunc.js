@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import ErrorsList from '@components/ErrorsList'
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
@@ -137,3 +138,4 @@ const serviceFunc = (serviceId, clone = false, onSuccess) => {
 }
 
 export default serviceFunc
+

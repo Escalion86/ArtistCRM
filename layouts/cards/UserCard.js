@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import CardButtons from '@components/CardButtons'
@@ -129,3 +130,4 @@ const UserCard = ({ userId, hidden = false, style }) => {
 }
 
 export default UserCard
+

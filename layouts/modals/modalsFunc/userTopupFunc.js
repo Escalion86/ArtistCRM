@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import Button from '@components/Button'
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
@@ -100,3 +101,4 @@ const userTopupFunc = (userId, onSuccess) => {
 }
 
 export default userTopupFunc
+

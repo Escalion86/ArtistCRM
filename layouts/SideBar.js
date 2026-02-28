@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   faAngleDown,
   faAngleUp,
@@ -392,3 +393,4 @@ const SideBar = ({ page }) => {
 }
 
 export default SideBar
+

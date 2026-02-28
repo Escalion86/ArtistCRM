@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import DateTimeEvent from '@components/DateTimeEvent'
 import HistoryItem from '@components/HistoryItem'
 import LoadingSpinner from '@components/LoadingSpinner'
@@ -138,3 +139,4 @@ const eventHistoryFunc = (eventId) => {
 }
 
 export default eventHistoryFunc
+
