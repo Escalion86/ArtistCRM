@@ -2,7 +2,6 @@ import formatAddress from '@helpers/formatAddress'
 import Events from '@models/Events'
 import Histories from '@models/Histories'
 import SiteSettings from '@models/SiteSettings'
-import Services from '@models/Services'
 import Clients from '@models/Clients'
 import Transactions from '@models/Transactions'
 import dbConnect from './dbConnect'
@@ -553,23 +552,12 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   const addressLine =
     addressParts || event?.address?.comment || (event.location ?? '')
 
-  let servicesTitle = ''
-  if (Array.isArray(event?.servicesIds) && event.servicesIds.length > 0) {
-    const services = await Services.find({
-      _id: { $in: event.servicesIds },
-      tenantId: event?.tenantId,
-    })
-      .select('title')
-      .lean()
-    servicesTitle = services
-      .map((item) => item?.title)
-      .filter(Boolean)
-      .join(', ')
-  }
+  const eventTypeTitle =
+    typeof event?.eventType === 'string' ? event.eventType.trim() : ''
 
   const titleParts = []
   if (showTown) titleParts.push(addressTown)
-  if (servicesTitle) titleParts.push(servicesTitle)
+  if (eventTypeTitle) titleParts.push(eventTypeTitle)
   if (addressLine) titleParts.push(addressLine)
   const calendarTitle =
     titleParts.length > 0 ? titleParts.join(' • ') : 'Адрес не указан'
@@ -659,7 +647,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
           ? 'Отменено'
           : event.status === 'closed'
           ? 'Закрыто'
-            : 'Активно'
+            : 'Мероприятие'
     }`,
     clientBlock,
     colleagueBlock,

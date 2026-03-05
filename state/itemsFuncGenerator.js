@@ -398,7 +398,7 @@ const itemsFuncGenerator = (
       props.setEvent({
         ...prevEvent,
         _id: prevEvent?._id || eventId,
-        status: 'close',
+        status: 'closed',
         _localOnly: true,
         _localUpdatedAt: new Date().toISOString(),
       })
@@ -410,7 +410,7 @@ const itemsFuncGenerator = (
     setLoadingCard('event' + eventId)
     return await putData(
       `/api/events/${eventId}`,
-      { status: 'close' },
+      { status: 'closed' },
       (data) => {
         snackbar.success('Мероприятие закрыто')
         setNotLoadingCard('event' + eventId)

@@ -136,6 +136,15 @@ export const PUT = async (req, { params }) => {
       )
     }
   }
+  if (
+    body.eventType !== undefined &&
+    !normalizeEventType(body.eventType)
+  ) {
+    return NextResponse.json(
+      { success: false, error: 'Поле "Что за событие" обязательно' },
+      { status: 400 }
+    )
+  }
 
   const update = {}
   if (body.eventDate !== undefined)

@@ -485,10 +485,18 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       const fields = []
       if (!clientId) fields.push('Клиент')
       if (!eventDate) fields.push('Дата начала')
+      if (!eventType?.trim()) fields.push('Что за событие')
       if (!servicesIds || servicesIds.length === 0) fields.push('Услуги')
       if (isTransferred && !colleagueId) fields.push('Коллега')
       return fields
-    }, [clientId, eventDate, servicesIds, isTransferred, colleagueId])
+    }, [
+      clientId,
+      eventDate,
+      eventType,
+      servicesIds,
+      isTransferred,
+      colleagueId,
+    ])
     const requiredMissing = missingFields.length > 0
 
     const dateRangeError = useMemo(() => {
@@ -604,6 +612,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       }
       if (!servicesIds || servicesIds.length === 0) {
         addErrorRef.current({ servicesIds: 'Выберите услугу' })
+        hasError = true
+      }
+      if (!eventType?.trim()) {
+        addErrorRef.current({ eventType: 'Укажите, что за событие' })
         hasError = true
       }
       if (isTransferred && !colleagueId) {
@@ -1747,11 +1759,16 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 label="Что за событие?"
                 items={eventTypeOptions}
                 value={eventType}
-                onChange={(value) => setEventType(value ?? '')}
+                onChange={(value) => {
+                  removeError('eventType')
+                  setEventType(value ?? '')
+                }}
                 placeholder="Выберите тип события"
                 fullWidth
                 noMargin
                 className="flex-1 min-w-38"
+                error={errors.eventType}
+                required
               />
               <AddIconButton
                 onClick={handleCreateEventType}

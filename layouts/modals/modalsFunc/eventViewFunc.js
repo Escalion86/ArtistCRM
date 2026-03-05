@@ -30,7 +30,7 @@ const EVENT_STATUS_META = Object.freeze({
     className: 'event-view-status event-view-status--draft',
   },
   active: {
-    label: 'Активно',
+    label: 'Мероприятие',
     className: 'event-view-status event-view-status--active',
   },
   canceled: {
@@ -46,6 +46,19 @@ const EVENT_STATUS_META = Object.freeze({
     className: 'event-view-status event-view-status--closed',
   },
 })
+
+const formatClientContactLines = (client) => {
+  if (!client || typeof client !== 'object') return []
+  const lines = []
+  if (client?.phone) lines.push(`Телефон: ${client.phone}`)
+  if (client?.whatsapp) lines.push(`WhatsApp: ${client.whatsapp}`)
+  if (client?.viber) lines.push(`Viber: ${client.viber}`)
+  if (client?.telegram) lines.push(`Telegram: ${client.telegram}`)
+  if (client?.instagram) lines.push(`Instagram: ${client.instagram}`)
+  if (client?.vk) lines.push(`VK: ${client.vk}`)
+  if (client?.email) lines.push(`Email: ${client.email}`)
+  return lines
+}
 
 const SectionBlock = ({ title, children }) => (
   <SurfaceCard>
@@ -101,6 +114,10 @@ const eventViewFunc = (eventId) => {
       .map((serviceId) => services.find((item) => item._id === serviceId))
       .filter(Boolean)
       .map((service) => service.title)
+    const mainClient = useMemo(
+      () => clients.find((item) => item._id === event?.clientId) ?? null,
+      [clients, event?.clientId]
+    )
     const otherContacts = useMemo(() => {
       const contacts = Array.isArray(event?.otherContacts)
         ? event.otherContacts
@@ -285,32 +302,68 @@ const eventViewFunc = (eventId) => {
               )}
             </SectionBlock>
 
-            {otherContacts.length > 0 && (
-              <SectionBlock title="Прочие контакты">
-                <div className="flex flex-col gap-2">
-                  {otherContacts.map((contact, index) => (
-                    <div
-                      key={`${contact.label}-${index}`}
-                      className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50"
-                    >
-                      <div className="text-sm font-semibold text-gray-800">
-                        {contact.label}
-                      </div>
-                      {contact.comment ? (
-                        <div className="mb-1 text-xs text-gray-600">
-                          {contact.comment}
-                        </div>
-                      ) : null}
-                      {contact.client && (
-                        <div className="mt-1">
-                          <ContactsIconsButtons user={contact.client} />
-                        </div>
-                      )}
+            {(mainClient || otherContacts.length > 0) && (
+              <SectionBlock title="Контакты">
+                {mainClient ? (
+                  <div className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50">
+                    <div className="text-sm font-semibold text-gray-800">
+                      Клиент:{' '}
+                      {getPersonFullName(mainClient, {
+                        fallback: 'Не указан',
+                      })}
                     </div>
-                  ))}
-                </div>
+                    {formatClientContactLines(mainClient).map((line) => (
+                      <div key={line} className="text-xs text-gray-600">
+                        {line}
+                      </div>
+                    ))}
+                    <div className="mt-1">
+                      <ContactsIconsButtons user={mainClient} />
+                    </div>
+                  </div>
+                ) : (
+                  <TextLine label="Клиент">Не указан</TextLine>
+                )}
+                {otherContacts.length > 0 && (
+                  <div className="mt-2">
+                    <div className="mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                      Доп. контакты
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {otherContacts.map((contact, index) => (
+                        <div
+                          key={`${contact.label}-${index}`}
+                          className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50"
+                        >
+                          <div className="text-sm font-semibold text-gray-800">
+                            {contact.label}
+                          </div>
+                          {contact.comment ? (
+                            <div className="mb-1 text-xs text-gray-600">
+                              {contact.comment}
+                            </div>
+                          ) : null}
+                          {contact.client &&
+                            formatClientContactLines(contact.client).map(
+                              (line) => (
+                                <div key={line} className="text-xs text-gray-600">
+                                  {line}
+                                </div>
+                              )
+                            )}
+                          {contact.client && (
+                            <div className="mt-1">
+                              <ContactsIconsButtons user={contact.client} />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </SectionBlock>
             )}
+
             {additionalEvents.length > 0 && (
               <SectionBlock title="Доп. события">
                 <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">

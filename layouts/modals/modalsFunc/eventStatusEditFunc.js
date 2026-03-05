@@ -7,6 +7,7 @@ import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventSelector from '@state/selectors/eventSelector'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
+import { modalsFuncAtom } from '@state/atoms'
 // import expectedIncomeOfEventSelector from '@state/selectors/expectedIncomeOfEventSelector'
 // import totalIncomeOfEventSelector from '@state/selectors/totalIncomeOfEventSelector'
 import { postData } from '@helpers/CRUD'
@@ -34,6 +35,7 @@ const eventStatusEditFunc = (eventId) => {
   }) => {
     const event = useAtomValue(eventSelector(eventId))
     const setEvent = useAtomValue(itemsFuncAtom).event.set
+    const modalsFunc = useAtomValue(modalsFuncAtom)
     const transactions = useAtomValue(transactionsAtom)
     const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
     // const isEventExpired = isEventExpiredFunc(event)
@@ -89,13 +91,47 @@ const eventStatusEditFunc = (eventId) => {
     const canApplySelectedStatus = !isClosing || canClose
     const hasReasonChanged =
       normalizedCancelReason !== (event?.cancelReason ?? '')
+    const pendingAdditionalEvents = useMemo(
+      () =>
+        (Array.isArray(event?.additionalEvents) ? event.additionalEvents : [])
+          .map((item, index) => {
+            if (!item || item.done) return null
+            const title =
+              typeof item.title === 'string' && item.title.trim()
+                ? item.title.trim()
+                : `Событие #${index + 1}`
+            const date = item?.date ? new Date(item.date) : null
+            const dateLabel =
+              date instanceof Date && !Number.isNaN(date.getTime())
+                ? date.toLocaleString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : 'без даты'
+            return { title, dateLabel }
+          })
+          .filter(Boolean),
+      [event?.additionalEvents]
+    )
 
-    const onClickConfirm = async () => {
+    const applyStatus = async (removePendingAdditionalEvents = false) => {
       closeModal()
       setEvent({
         _id: event?._id,
         status,
         cancelReason: needsCancelReason ? normalizedCancelReason : '',
+        ...(removePendingAdditionalEvents
+          ? {
+              additionalEvents: (
+                Array.isArray(event?.additionalEvents)
+                  ? event.additionalEvents
+                  : []
+              ).filter((item) => Boolean(item?.done)),
+            }
+          : {}),
       })
       if (needsCancelReason && normalizedCancelReason) {
         const nextReasons = normalizeCancelReasons([
@@ -118,6 +154,33 @@ const eventStatusEditFunc = (eventId) => {
           )
         }
       }
+    }
+    const onClickConfirm = async () => {
+      const needsAdditionalEventsConfirmation =
+        ['closed', 'canceled'].includes(status) &&
+        pendingAdditionalEvents.length > 0
+
+      if (needsAdditionalEventsConfirmation) {
+        modalsFunc.add({
+          title: 'Подтверждение закрытия/отмены',
+          text:
+            'Закрытие или отмена мероприятия приведет к отмене и удалению невыполненных доп. событий:\n' +
+            pendingAdditionalEvents
+              .map(
+                (item, index) =>
+                  `${index + 1}. ${item.title} (${item.dateLabel})`
+              )
+              .join('\n') +
+            '\n\nПродолжить?',
+          confirmButtonName: 'Да, продолжить',
+          declineButtonName: 'Нет',
+          showDecline: true,
+          onConfirm: () => applyStatus(true),
+        })
+        return
+      }
+
+      await applyStatus(false)
     }
 
     const onClickConfirmRef = useRef(onClickConfirm)

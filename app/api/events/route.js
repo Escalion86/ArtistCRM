@@ -53,9 +53,16 @@ export const POST = async (req) => {
     )
   }
   const statusValue = getStatusValue(body)
+  const eventTypeValue = normalizeEventType(body?.eventType)
   if (statusValue === 'draft' && hasDocuments(body)) {
     return NextResponse.json(
       { success: false, error: 'Документы недоступны для заявки' },
+      { status: 400 }
+    )
+  }
+  if (!eventTypeValue) {
+    return NextResponse.json(
+      { success: false, error: 'Поле "Что за событие" обязательно' },
       { status: 400 }
     )
   }
@@ -99,7 +106,7 @@ export const POST = async (req) => {
       ? new Date(body.requestCreatedAt)
       : new Date(),
     additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
-    eventType: normalizeEventType(body.eventType),
+    eventType: eventTypeValue,
     waitDeposit: normalizeWaitDeposit(body.waitDeposit),
     depositDueAt: parseDateValue(body.depositDueAt),
     depositExpectedAmount: normalizeDepositExpectedAmount(

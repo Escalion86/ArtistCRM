@@ -504,7 +504,7 @@ export const DEFAULT_IMAGE_CONSTRUCTOR_ITEM = Object.freeze({
 
 export const EVENT_STATUSES_SIMPLE = Object.freeze([
   { value: 'draft', name: 'Заявка', color: 'gray' },
-  { value: 'active', name: 'Активно', color: 'blue' },
+  { value: 'active', name: 'Мероприятие', color: 'blue' },
   { value: 'canceled', name: 'Отменено', color: 'red' },
   { value: 'closed', name: 'Закрыто', color: 'green' },
 ])
@@ -610,7 +610,7 @@ export const EVENT_RELATIONSHIP_ACCESS = [
 
 export const EVENT_STATUSES = [
   { value: 'draft', name: 'Заявка', color: 'gray-400', icon: faClock },
-  { value: 'active', name: 'Активно', color: 'blue-400', icon: faPlay },
+  { value: 'active', name: 'Мероприятие', color: 'blue-400', icon: faPlay },
   { value: 'canceled', name: 'Отменено', color: 'red-400', icon: faBan },
   { value: 'closed', name: 'Закрыто', color: 'green-400', icon: faLock },
 ]
