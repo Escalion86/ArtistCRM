@@ -11,6 +11,7 @@ import { modalsFuncAtom } from '@state/atoms'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventSelector from '@state/selectors/eventSelector'
 import clientSelector from '@state/selectors/clientSelector'
+import servicesAtom from '@state/atoms/servicesAtom'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
@@ -46,6 +47,7 @@ const EventCard = ({ eventId, style }) => {
   const event = useAtomValue(eventSelector(eventId))
   const client = useAtomValue(clientSelector(event?.clientId))
   const transactions = useAtomValue(transactionsAtom)
+  const services = useAtomValue(servicesAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loading = useAtomValue(loadingAtom('event' + eventId))
   const error = useAtomValue(errorAtom('event' + eventId))
@@ -60,6 +62,16 @@ const EventCard = ({ eventId, style }) => {
       typeof event?.eventType === 'string' ? event.eventType.trim() : ''
     return title || 'Событие не указано'
   }, [event?.eventType])
+
+  const servicesTitle = useMemo(() => {
+    const servicesIds = event?.servicesIds ?? []
+    if (!servicesIds.length) return 'Услуга не указана'
+    const titles = services
+      .filter((service) => servicesIds.includes(service._id))
+      .map((service) => service.title)
+      .filter(Boolean)
+    return titles.length > 0 ? titles.join(', ') : 'Услуга не указана'
+  }, [event?.servicesIds, services])
 
   const { contractSum, paid, leftToPay, status, expense, net, canClose } =
     useMemo(() => {
@@ -318,7 +330,7 @@ const EventCard = ({ eventId, style }) => {
             />
           )}
           <div className="flex-1 text-lg font-semibold text-gray-900 truncate">
-            {[eventTitle, formatAddress(displayAddress, '-')].join(' • ')}
+            {[eventTitle, servicesTitle].join(' • ')}
           </div>
           <CardActions className="z-10 -mt-1 -mr-3">
             <CardButtons
