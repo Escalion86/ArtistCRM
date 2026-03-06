@@ -226,7 +226,7 @@ const Modal = ({
     <motion.div
       className={
         cn(
-          'fixed inset-0 z-50 flex w-full transform justify-center overflow-y-auto bg-gray-800 bg-opacity-80 duration-200 tablet:items-center',
+          'fixed inset-0 z-50 flex w-full justify-center overflow-y-auto bg-gray-800 bg-opacity-80 duration-200 tablet:items-center',
           subModalText ? 'py-0 tablet:pb-5 tablet:pt-10' : 'py-0 tablet:py-5'
         )
         //  + (rendered ? ' opacity-100' : ' opacity-0')
@@ -244,8 +244,8 @@ const Modal = ({
           )
           // + (rendered ? '' : ' scale-50')
         }
-        initial={{ scale: 0.5 }}
-        animate={{ scale: close ? 0.5 : 1 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: close ? 0 : 1 }}
         transition={{ duration: 0.1 }}
         // onClick={(e) => e?.stopPropagation()}
         onMouseDown={(e) => e?.stopPropagation()}
