@@ -16,6 +16,8 @@ import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
 
 const ITEM_HEIGHT = 140
+const normalizeDigits = (value) =>
+  String(value ?? '').replace(/[^\d]/g, '')
 
 const ClientsContent = () => {
   const clients = useAtomValue(clientsAtom)
@@ -26,6 +28,7 @@ const ClientsContent = () => {
 
   const clientsWithStats = useMemo(() => {
     const lowerSearch = search.trim().toLowerCase()
+    const digitsSearch = normalizeDigits(search)
     return clients
       .map((client) => {
         const clientRequests = events.filter(
@@ -53,15 +56,33 @@ const ClientsContent = () => {
       })
       .filter((client) => {
         if (!lowerSearch) return true
-        return [
+        const textMatch = [
           client.firstName,
           client.secondName,
           client.thirdName,
+          client.telegram,
+          client.instagram,
+          client.vk,
           client.phone ? `+${client.phone}` : '',
         ]
           .join(' ')
           .toLowerCase()
           .includes(lowerSearch)
+
+        if (textMatch) return true
+        if (!digitsSearch) return false
+
+        const contactsDigits = [
+          client.phone,
+          client.whatsapp,
+          client.viber,
+          client.telegram,
+        ]
+          .map(normalizeDigits)
+          .filter(Boolean)
+          .join(' ')
+
+        return contactsDigits.includes(digitsSearch)
       })
       .sort((a, b) => {
         if (a.lastRequest && b.lastRequest)
