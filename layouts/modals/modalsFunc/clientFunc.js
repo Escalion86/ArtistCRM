@@ -128,13 +128,29 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     )
 
     const onClickConfirm = useCallback(async () => {
-        const hasPhoneError = checkErrors({ phone: phone, whatsapp: whatsapp })
+        const hasContactValidationError = checkErrors({
+          phoneNoRequired: phone,
+          whatsapp,
+        })
         let customError = false
         if (!firstName || !firstName.trim()) {
           addError({ firstName: 'Укажите имя' })
           customError = true
         }
-        if (!hasPhoneError && !customError) {
+        const hasAnyContact =
+          Boolean(normalizePhoneValue(phone)) ||
+          Boolean(normalizePhoneValue(whatsapp)) ||
+          Boolean(String(telegram || '').trim()) ||
+          Boolean(String(instagram || '').trim()) ||
+          Boolean(String(vk || '').trim())
+        if (!hasAnyContact) {
+          addError({
+            phone:
+              'Укажите хотя бы один контакт: телефон, WhatsApp, Telegram, Instagram или VK',
+          })
+          customError = true
+        }
+        if (!hasContactValidationError && !customError) {
           const normalizedPhone = normalizePhoneValue(phone)
           if (normalizedPhone) {
             const existedClient = clients.find(
@@ -302,7 +318,6 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
               removeError('phone')
               setPhone(value)
             }}
-            required
             error={errors.phone}
             className="w-full"
             noMargin
@@ -321,6 +336,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             label="Whatsapp"
             value={whatsapp}
             onChange={(value) => {
+              removeError('phone')
               removeError('whatsapp')
               setWhatsapp(value)
             }}
@@ -332,21 +348,30 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
           <Input
             label="Telegram"
             value={telegram}
-            onChange={setTelegram}
+            onChange={(value) => {
+              removeError('phone')
+              setTelegram(value)
+            }}
             className="w-full"
             smallMargin
           />
           <Input
             label="Instagram"
             value={instagram}
-            onChange={setInstagram}
+            onChange={(value) => {
+              removeError('phone')
+              setInstagram(value)
+            }}
             className="w-full"
             smallMargin
           />
           <Input
             label="VK"
             value={vk}
-            onChange={setVk}
+            onChange={(value) => {
+              removeError('phone')
+              setVk(value)
+            }}
             className="w-full"
             smallMargin
           />

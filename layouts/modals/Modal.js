@@ -278,7 +278,7 @@ const Modal = ({
         {/* {noPropsToChildren
           ? children
           : cloneElement(children, { onClose: closeModal, setBeforeCloseFunc })} */}
-        <div className="flex-1 overflow-y-auto px-2 tablet:px-3">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 tablet:px-3">
           {Children && (
             <Suspense fallback={<Skeleton count={12} />}>
               <Children

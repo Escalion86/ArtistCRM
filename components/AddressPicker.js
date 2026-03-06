@@ -74,7 +74,7 @@ const AddressPicker = ({
             )}
           </div>
         </FormWrapper>
-        <FormWrapper className="flex flex-wrap mt-1 mb-1 gap-x-2 gap-y-3">
+        <FormWrapper className="mt-1 mb-1 grid grid-cols-1 gap-x-2 gap-y-3 sm:grid-cols-2">
           <Input
             label="Улица"
             type="text"
@@ -82,7 +82,7 @@ const AddressPicker = ({
             onChange={(street) => onChange({ ...address, street })}
             error={errors?.address?.street}
             noMargin
-            className="flex-1 min-w-24"
+            className="w-full min-w-0"
           />
           <Input
             label="Дом"
@@ -91,10 +91,10 @@ const AddressPicker = ({
             onChange={(house) => onChange({ ...address, house })}
             error={errors?.address?.house}
             noMargin
-            className="flex-1 min-w-24"
+            className="w-full min-w-0"
           />
         </FormWrapper>
-        <FormWrapper className="flex flex-wrap mt-1 mb-1 gap-x-2 gap-y-3">
+        <FormWrapper className="mt-1 mb-1 grid grid-cols-1 gap-x-2 gap-y-3 sm:grid-cols-3">
           <Input
             label="Подъезд"
             type="text"
@@ -102,7 +102,7 @@ const AddressPicker = ({
             onChange={(entrance) => onChange({ ...address, entrance })}
             error={errors?.address?.entrance}
             noMargin
-            className="flex-1 min-w-12"
+            className="w-full min-w-0"
           />
           <Input
             label="Этаж"
@@ -111,7 +111,7 @@ const AddressPicker = ({
             onChange={(floor) => onChange({ ...address, floor })}
             error={errors?.address?.floor}
             noMargin
-            className="flex-1 min-w-12"
+            className="w-full min-w-0"
           />
           <Input
             label="Кв. / Офис"
@@ -120,7 +120,7 @@ const AddressPicker = ({
             onChange={(flat) => onChange({ ...address, flat })}
             error={errors?.address?.flat}
             noMargin
-            className="flex-1 min-w-12"
+            className="w-full min-w-0"
           />
         </FormWrapper>
         <Input
@@ -131,7 +131,7 @@ const AddressPicker = ({
           noMargin
           error={errors?.address?.comment}
         />
-        <FormWrapper className="flex flex-wrap mt-1 mb-1 gap-x-2 gap-y-3">
+        <FormWrapper className="mt-1 mb-1 grid grid-cols-1 gap-x-2 gap-y-3 sm:grid-cols-2">
           <Input
             label="Широта"
             type="text"
@@ -139,7 +139,7 @@ const AddressPicker = ({
             onChange={(latitude) => onChange({ ...address, latitude })}
             error={errors?.address?.latitude}
             noMargin
-            className="flex-1 min-w-24"
+            className="w-full min-w-0"
           />
           <Input
             label="Долгота"
@@ -148,7 +148,7 @@ const AddressPicker = ({
             onChange={(longitude) => onChange({ ...address, longitude })}
             error={errors?.address?.longitude}
             noMargin
-            className="flex-1 min-w-24"
+            className="w-full min-w-0"
           />
         </FormWrapper>
         {/* <div className="flex flex-wrap items-end justify-between gap-x-2"> */}
