@@ -61,7 +61,7 @@ const IntegrationsApiGuide = () => {
   if (error) return <div className="text-sm text-red-600">{error}</div>
 
   return (
-    <div className="max-h-[65dvh] overflow-auto text-sm leading-6 text-gray-800">
+    <div className="h-full overflow-y-auto text-sm leading-6 text-gray-800">
       <ReactMarkdown
         components={{
           h1: ({ ...props }) => (

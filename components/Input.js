@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cn from 'classnames'
 import { forwardRef } from 'react'
 import MaskedInput from 'react-text-mask'
+import { normalizeNumberInputString, toNormalizedNumber } from '@helpers/numberInput'
 import InputWrapper from './InputWrapper'
 
 const Input = forwardRef(
@@ -177,19 +178,23 @@ const Input = forwardRef(
             onChange={(e) => {
               const { value } = e.target
               if (type === 'number') {
-                if (
-                  (typeof min !== 'number' || value >= min) &&
-                  (typeof max !== 'number' || value <= max)
-                ) {
-                  if (value === '') onChange(0)
-                  else onChange(parseInt(value))
-                } else if (typeof min === 'number' && value < min) onChange(min)
-                else if (typeof max === 'number' && value > max) onChange(max)
+                if (value === '') {
+                  onChange(0)
+                  return
+                }
+
+                onChange(toNormalizedNumber(value, { fallback: 0, min, max }))
               } else {
                 if (maxLength && value?.length > maxLength)
                   onChange(value.substring(0, maxLength))
                 else onChange(value)
               }
+            }}
+            onBlur={(e) => {
+              if (type !== 'number') return
+              const normalized = normalizeNumberInputString(e.target.value)
+              if (!normalized || normalized === e.target.value) return
+              onChange(toNormalizedNumber(normalized, { fallback: 0, min, max }))
             }}
             placeholder={placeholderValue}
             autoComplete={autoComplete}

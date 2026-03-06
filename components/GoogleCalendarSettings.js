@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import IconCheckBox from '@components/IconCheckBox'
 import AddIconButton from '@components/AddIconButton'
 import IconActionButton from '@components/IconActionButton'
+import { toNormalizedNumber } from '@helpers/numberInput'
 import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 
 const DEFAULT_CALENDAR_REMINDERS = Object.freeze({
@@ -81,6 +82,11 @@ const normalizeStatusColors = (value) => {
   }
 }
 
+const serializeReminders = (value) => JSON.stringify(normalizeReminders(value))
+
+const serializeStatusColors = (value) =>
+  JSON.stringify(normalizeStatusColors(value))
+
 const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
   const [calendarStatus, setCalendarStatus] = useState({
     loading: true,
@@ -98,7 +104,22 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
     DEFAULT_CALENDAR_REMINDERS
   )
   const [statusColors, setStatusColors] = useState(DEFAULT_STATUS_COLORS)
+  const [savedReminders, setSavedReminders] = useState(
+    DEFAULT_CALENDAR_REMINDERS
+  )
+  const [savedStatusColors, setSavedStatusColors] = useState(
+    DEFAULT_STATUS_COLORS
+  )
   const [checkedSyncSummary, setCheckedSyncSummary] = useState('')
+  const [syncProgress, setSyncProgress] = useState({
+    open: false,
+    total: 0,
+    done: 0,
+  })
+  const [syncSuggestModal, setSyncSuggestModal] = useState({
+    open: false,
+    source: '',
+  })
 
   const loadCalendarStatus = async () => {
     setCalendarError('')
@@ -112,8 +133,12 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
         return
       }
       setCalendarStatus({ loading: false, ...result.data })
-      setCalendarReminders(normalizeReminders(result?.data?.reminders))
-      setStatusColors(normalizeStatusColors(result?.data?.statusColors))
+      const nextReminders = normalizeReminders(result?.data?.reminders)
+      const nextStatusColors = normalizeStatusColors(result?.data?.statusColors)
+      setCalendarReminders(nextReminders)
+      setStatusColors(nextStatusColors)
+      setSavedReminders(nextReminders)
+      setSavedStatusColors(nextStatusColors)
     } catch (error) {
       setCalendarError('Не удалось загрузить статус')
       setCalendarStatus((prev) => ({ ...prev, loading: false }))
@@ -213,6 +238,8 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       setSelectedCalendarId('')
       setCalendarReminders(DEFAULT_CALENDAR_REMINDERS)
       setStatusColors(DEFAULT_STATUS_COLORS)
+      setSavedReminders(DEFAULT_CALENDAR_REMINDERS)
+      setSavedStatusColors(DEFAULT_STATUS_COLORS)
       await loadCalendarStatus()
     } catch (error) {
       setCalendarError('Не удалось отключить календарь')
@@ -236,7 +263,9 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
         setCalendarLoading(false)
         return
       }
+      setSavedReminders(normalizeReminders(calendarReminders))
       await loadCalendarStatus()
+      setSyncSuggestModal({ open: true, source: 'reminders' })
     } catch (error) {
       setCalendarError('Не удалось сохранить уведомления')
     }
@@ -259,36 +288,74 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
         setCalendarLoading(false)
         return
       }
+      setSavedStatusColors(normalizeStatusColors(statusColors))
       await loadCalendarStatus()
+      setSyncSuggestModal({ open: true, source: 'colors' })
     } catch (error) {
       setCalendarError('Не удалось сохранить цвета')
     }
     setCalendarLoading(false)
   }
 
+  const remindersChanged =
+    serializeReminders(calendarReminders) !== serializeReminders(savedReminders)
+  const statusColorsChanged =
+    serializeStatusColors(statusColors) !==
+    serializeStatusColors(savedStatusColors)
+
   const handleSyncCheckedEvents = async () => {
     if (calendarLoading || calendarStatus.loading) return
     setCalendarLoading(true)
     setCalendarError('')
     setCheckedSyncSummary('')
+    setSyncProgress({ open: false, total: 0, done: 0 })
     try {
-      const response = await fetch('/api/events/google-sync-checked', {
-        method: 'POST',
-      })
-      const result = await response.json()
-      if (!result?.success) {
+      const listResponse = await fetch('/api/events/google-sync-checked')
+      const listResult = await listResponse.json()
+      if (!listResult?.success) {
         setCalendarError(
-          result?.error || 'Не удалось синхронизировать проверенные мероприятия'
+          listResult?.error ||
+            'Не удалось получить список проверенных мероприятий'
         )
         setCalendarLoading(false)
         return
       }
-      const { total = 0, synced = 0, failed = 0 } = result?.data ?? {}
+
+      const queue = Array.isArray(listResult?.data?.events)
+        ? listResult.data.events
+        : []
+      const total = queue.length
+      setSyncProgress({ open: true, total, done: 0 })
+
+      if (total === 0) {
+        setCheckedSyncSummary('Нет мероприятий для синхронизации.')
+        setSyncProgress({ open: false, total: 0, done: 0 })
+        setCalendarLoading(false)
+        return
+      }
+
+      let synced = 0
+      let failed = 0
+      for (let index = 0; index < queue.length; index += 1) {
+        const item = queue[index]
+        const syncResponse = await fetch('/api/events/google-sync-checked', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ eventId: item?._id }),
+        })
+        const syncResult = await syncResponse.json()
+        if (syncResult?.success) synced += 1
+        else failed += 1
+        setSyncProgress({ open: true, total, done: index + 1 })
+      }
+
       setCheckedSyncSummary(
         `Синхронизировано: ${synced} из ${total}. Ошибок: ${failed}.`
       )
+      setSyncProgress({ open: false, total: 0, done: 0 })
     } catch (error) {
       setCalendarError('Не удалось синхронизировать проверенные мероприятия')
+      setSyncProgress({ open: false, total: 0, done: 0 })
     }
     setCalendarLoading(false)
   }
@@ -296,261 +363,339 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
   if (!calendarStatus.allowCalendarSync) return null
 
   return (
-    <div className="rounded border border-gray-200 bg-white p-4">
-      <div className="text-sm font-semibold text-gray-800">Google Calendar</div>
-      <div className="mt-2 text-sm text-gray-600">
-        {calendarStatus.connected ? 'Подключен' : 'Не подключен'}
-      </div>
-      {calendarStatus.connected && calendarStatus.calendarId ? (
-        <div className="mt-1 text-xs text-gray-500">
-          Календарь:{' '}
-          {calendarStatus.calendarName ||
-            calendarItems.find((item) => item.id === calendarStatus.calendarId)
-              ?.summary ||
-            calendarStatus.calendarId}
+    <>
+      <div className="p-4 bg-white border border-gray-200 rounded">
+        <div className="text-sm font-semibold text-gray-800">
+          Google Calendar
         </div>
-      ) : null}
-      {calendarError ? (
-        <div className="mt-2 text-xs text-red-600">{calendarError}</div>
-      ) : null}
-      <div className="mt-3 flex flex-wrap gap-2">
-        {!calendarStatus.connected ? (
-          <button
-            type="button"
-            className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-            onClick={handleConnectCalendar}
-            disabled={calendarLoading || calendarStatus.loading}
-          >
-            {calendarLoading ? 'Подключение...' : 'Подключить Google Calendar'}
-          </button>
-        ) : (
-          <>
-            <button
-              type="button"
-              className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-              onClick={handleLoadCalendars}
-              disabled={calendarLoading}
-            >
-              Выбрать календарь
-            </button>
-            <button
-              type="button"
-              className="modal-action-button bg-danger px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-              onClick={handleDisconnectCalendar}
-              disabled={calendarLoading}
-            >
-              Отключить
-            </button>
-          </>
-        )}
-      </div>
-      {calendarStatus.connected ? (
-        <div className="mt-3 rounded border border-gray-200 bg-white p-3">
-          <div className="text-sm font-semibold text-gray-800">
-            Массовая синхронизация
-          </div>
+        <div className="mt-2 text-sm text-gray-600">
+          {calendarStatus.connected ? 'Подключен' : 'Не подключен'}
+        </div>
+        {calendarStatus.connected && calendarStatus.calendarId ? (
           <div className="mt-1 text-xs text-gray-500">
-            Отправляет в Google Calendar все мероприятия, у которых включена
-            метка «Импорт из календаря проверен».
+            Календарь:{' '}
+            {calendarStatus.calendarName ||
+              calendarItems.find(
+                (item) => item.id === calendarStatus.calendarId
+              )?.summary ||
+              calendarStatus.calendarId}
           </div>
-          <div className="mt-3 flex justify-end">
+        ) : null}
+        {calendarError ? (
+          <div className="mt-2 text-xs text-red-600">{calendarError}</div>
+        ) : null}
+        <div className="flex flex-wrap gap-2 mt-3">
+          {!calendarStatus.connected ? (
             <button
               type="button"
-              className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-              onClick={handleSyncCheckedEvents}
+              className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
+              onClick={handleConnectCalendar}
               disabled={calendarLoading || calendarStatus.loading}
             >
-              Синхронизировать Google Calendar
+              {calendarLoading
+                ? 'Подключение...'
+                : 'Подключить Google Calendar'}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
+                onClick={handleLoadCalendars}
+                disabled={calendarLoading}
+              >
+                Выбрать календарь
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-danger disabled:cursor-not-allowed disabled:bg-gray-300"
+                onClick={handleDisconnectCalendar}
+                disabled={calendarLoading}
+              >
+                Отключить
+              </button>
+            </>
+          )}
+        </div>
+        {calendarStatus.connected ? (
+          <div className="p-3 mt-3 bg-white border border-gray-200 rounded">
+            <div className="text-sm font-semibold text-gray-800">
+              Массовая синхронизация
+            </div>
+            <div className="mt-1 text-xs text-gray-500">
+              Отправляет/Обновляет в Google Calendar все мероприятия.
+            </div>
+            <div className="flex justify-end mt-3">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
+                onClick={handleSyncCheckedEvents}
+                disabled={calendarLoading || calendarStatus.loading}
+              >
+                Синхронизировать Google Calendar
+              </button>
+            </div>
+            {checkedSyncSummary ? (
+              <div className="mt-2 text-xs text-emerald-700">
+                {checkedSyncSummary}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {calendarItems.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            <select
+              className="px-2 text-sm border border-gray-300 rounded h-9"
+              value={selectedCalendarId}
+              onChange={(event) => setSelectedCalendarId(event.target.value)}
+            >
+              {calendarItems.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.primary ? 'Основной' : item.summary || item.id}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
+              onClick={handleSelectCalendar}
+              disabled={!selectedCalendarId || calendarLoading}
+            >
+              Сохранить
             </button>
           </div>
-          {checkedSyncSummary ? (
-            <div className="mt-2 text-xs text-emerald-700">
-              {checkedSyncSummary}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-      {calendarItems.length > 0 ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <select
-            className="h-9 rounded border border-gray-300 px-2 text-sm"
-            value={selectedCalendarId}
-            onChange={(event) => setSelectedCalendarId(event.target.value)}
-          >
-            {calendarItems.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.primary ? 'Основной' : item.summary || item.id}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-            onClick={handleSelectCalendar}
-            disabled={!selectedCalendarId || calendarLoading}
-          >
-            Сохранить
-          </button>
-        </div>
-      ) : null}
-      <div className="mt-4 rounded border border-gray-200 bg-white p-3">
-        <div className="text-sm font-semibold text-gray-800">
-          Уведомления Google Calendar
-        </div>
-        <div className="mt-2">
-          <IconCheckBox
-            checked={calendarReminders.useDefault}
-            onClick={() =>
-              setCalendarReminders((prev) => ({
-                ...prev,
-                useDefault: !prev.useDefault,
-              }))
-            }
-            label="Использовать стандартные уведомления Google"
-            small
-            noMargin
-            disabled={!calendarStatus.connected}
-          />
-        </div>
-        {!calendarReminders.useDefault && (
-          <div className="mt-2 flex flex-col gap-2">
-            {calendarReminders.overrides.map((item, index) => (
-              <div
-                key={`calendar-reminder-${index}`}
-                className="flex flex-wrap items-center gap-2"
-              >
-                <select
-                  className="h-9 rounded border border-gray-300 px-2 text-sm"
-                  value={item.method}
-                  onChange={(event) => {
-                    const method = event.target.value
-                    setCalendarReminders((prev) => ({
-                      ...prev,
-                      overrides: prev.overrides.map((row, idx) =>
-                        idx === index ? { ...row, method } : row
-                      ),
-                    }))
-                  }}
-                  disabled={!calendarStatus.connected}
-                >
-                  <option value="popup">Уведомление</option>
-                  <option value="email">Email</option>
-                </select>
-                <input
-                  type="number"
-                  min={1}
-                  className="h-9 w-24 rounded border border-gray-300 px-2 text-sm"
-                  value={item.minutes}
-                  onChange={(event) => {
-                    const minutes = Number(event.target.value)
-                    setCalendarReminders((prev) => ({
-                      ...prev,
-                      overrides: prev.overrides.map((row, idx) =>
-                        idx === index
-                          ? { ...row, minutes: Number.isNaN(minutes) ? 0 : minutes }
-                          : row
-                      ),
-                    }))
-                  }}
-                  disabled={!calendarStatus.connected}
-                />
-                <span className="text-xs text-gray-500">минут до</span>
-                <IconActionButton
-                  icon={faTrashAlt}
-                  onClick={() =>
-                    setCalendarReminders((prev) => ({
-                      ...prev,
-                      overrides: prev.overrides.filter((_, idx) => idx !== index),
-                    }))
-                  }
-                  disabled={!calendarStatus.connected}
-                  title="Удалить уведомление"
-                  variant="danger"
-                  size="xs"
-                />
-              </div>
-            ))}
-            <AddIconButton
+        ) : null}
+        <div className="p-3 mt-4 bg-white border border-gray-200 rounded">
+          <div className="text-sm font-semibold text-gray-800">
+            Уведомления Google Calendar
+          </div>
+          <div className="mt-2">
+            <IconCheckBox
+              checked={calendarReminders.useDefault}
               onClick={() =>
                 setCalendarReminders((prev) => ({
                   ...prev,
-                  overrides: [
-                    ...prev.overrides,
-                    { method: 'popup', minutes: 60 },
-                  ],
+                  useDefault: !prev.useDefault,
                 }))
               }
+              label="Использовать стандартные уведомления Google"
+              small
+              noMargin
               disabled={!calendarStatus.connected}
-              title="Добавить уведомление"
-              size="xs"
             />
           </div>
-        )}
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-            onClick={handleSaveReminders}
-            disabled={
-              calendarLoading ||
-              calendarStatus.loading ||
-              !calendarStatus.connected ||
-              (!calendarReminders.useDefault &&
-                calendarReminders.overrides.length === 0)
-            }
-          >
-            Сохранить уведомления
-          </button>
-        </div>
-      </div>
-      <div className="mt-4 rounded border border-gray-200 bg-white p-3">
-        <div className="text-sm font-semibold text-gray-800">
-          Цвета мероприятий по статусам
-        </div>
-        <div className="mt-2 text-xs text-gray-500">
-          Цвет применяется к событию в Google Calendar при синхронизации.
-        </div>
-        <div className="mt-3 flex flex-col gap-2">
-          {STATUS_COLOR_FIELDS.map((field) => (
-            <label
-              key={field.key}
-              className="flex flex-wrap items-center justify-between gap-2"
-            >
-              <span className="text-sm text-gray-700">{field.label}</span>
-              <select
-                className="h-9 min-w-[180px] rounded border border-gray-300 px-2 text-sm"
-                value={statusColors[field.key]}
-                onChange={(event) =>
-                  setStatusColors((prev) => ({
+          {!calendarReminders.useDefault && (
+            <div className="flex flex-col gap-2 mt-2">
+              {calendarReminders.overrides.map((item, index) => (
+                <div
+                  key={`calendar-reminder-${index}`}
+                  className="flex items-center gap-2"
+                >
+                  <select
+                    className="px-2 text-sm border border-gray-300 rounded h-9"
+                    value={item.method}
+                    onChange={(event) => {
+                      const method = event.target.value
+                      setCalendarReminders((prev) => ({
+                        ...prev,
+                        overrides: prev.overrides.map((row, idx) =>
+                          idx === index ? { ...row, method } : row
+                        ),
+                      }))
+                    }}
+                    disabled={!calendarStatus.connected}
+                  >
+                    <option value="popup">Уведомление</option>
+                    <option value="email">Email</option>
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    className="px-2 text-sm border border-gray-300 rounded hide-number-spin h-9 w-14"
+                    value={item.minutes}
+                    onChange={(event) => {
+                      const minutes = toNormalizedNumber(event.target.value, {
+                        fallback: 0,
+                      })
+                      setCalendarReminders((prev) => ({
+                        ...prev,
+                        overrides: prev.overrides.map((row, idx) =>
+                          idx === index
+                            ? {
+                                ...row,
+                                minutes,
+                              }
+                            : row
+                        ),
+                      }))
+                    }}
+                    disabled={!calendarStatus.connected}
+                  />
+                  <span className="text-xs leading-3 text-center text-gray-500">
+                    минут до
+                  </span>
+                  <IconActionButton
+                    icon={faTrashAlt}
+                    onClick={() =>
+                      setCalendarReminders((prev) => ({
+                        ...prev,
+                        overrides: prev.overrides.filter(
+                          (_, idx) => idx !== index
+                        ),
+                      }))
+                    }
+                    disabled={!calendarStatus.connected}
+                    title="Удалить уведомление"
+                    variant="danger"
+                    size="xs"
+                  />
+                </div>
+              ))}
+              <AddIconButton
+                onClick={() =>
+                  setCalendarReminders((prev) => ({
                     ...prev,
-                    [field.key]: event.target.value,
+                    overrides: [
+                      ...prev.overrides,
+                      { method: 'popup', minutes: 60 },
+                    ],
                   }))
                 }
                 disabled={!calendarStatus.connected}
-              >
-                {STATUS_COLOR_OPTIONS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ))}
+                title="Добавить уведомление"
+                size="xs"
+              />
+            </div>
+          )}
+          <div className="flex justify-end mt-3">
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
+              onClick={handleSaveReminders}
+              disabled={
+                calendarLoading ||
+                calendarStatus.loading ||
+                !calendarStatus.connected ||
+                !remindersChanged ||
+                (!calendarReminders.useDefault &&
+                  calendarReminders.overrides.length === 0)
+              }
+            >
+              Сохранить уведомления
+            </button>
+          </div>
         </div>
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
-            onClick={handleSaveStatusColors}
-            disabled={
-              calendarLoading || calendarStatus.loading || !calendarStatus.connected
-            }
-          >
-            Сохранить цвета
-          </button>
+        <div className="p-3 mt-4 bg-white border border-gray-200 rounded">
+          <div className="text-sm font-semibold text-gray-800">
+            Цвета мероприятий по статусам
+          </div>
+          <div className="mt-2 text-xs text-gray-500">
+            Цвет применяется к событию в Google Calendar при синхронизации.
+          </div>
+          <div className="flex flex-col gap-2 mt-3">
+            {STATUS_COLOR_FIELDS.map((field) => (
+              <label
+                key={field.key}
+                className="flex flex-wrap items-center justify-between gap-2"
+              >
+                <span className="text-sm text-gray-700">{field.label}</span>
+                <select
+                  className="h-9 min-w-[180px] rounded border border-gray-300 px-2 text-sm"
+                  value={statusColors[field.key]}
+                  onChange={(event) =>
+                    setStatusColors((prev) => ({
+                      ...prev,
+                      [field.key]: event.target.value,
+                    }))
+                  }
+                  disabled={!calendarStatus.connected}
+                >
+                  {STATUS_COLOR_OPTIONS.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end mt-3">
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
+              onClick={handleSaveStatusColors}
+              disabled={
+                calendarLoading ||
+                calendarStatus.loading ||
+                !calendarStatus.connected ||
+                !statusColorsChanged
+              }
+            >
+              Сохранить цвета
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+      {syncProgress.open ? (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-sm p-4 bg-white border border-gray-200 rounded-lg shadow-xl">
+            <div className="text-sm font-semibold text-gray-900">
+              Синхронизация Google Calendar
+            </div>
+            <div className="mt-1 text-xs text-gray-600">
+              Выполнено: {syncProgress.done} / {syncProgress.total}
+            </div>
+            <div className="w-full h-2 mt-3 overflow-hidden bg-gray-200 rounded-full">
+              <div
+                className="h-2 transition-all duration-300 rounded-full bg-general"
+                style={{
+                  width: `${
+                    syncProgress.total > 0
+                      ? Math.round(
+                          (syncProgress.done / syncProgress.total) * 100
+                        )
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {syncSuggestModal.open ? (
+        <div className="fixed inset-0 z-[1210] flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-sm p-4 bg-white border border-gray-200 rounded-lg shadow-xl">
+            <div className="text-sm font-semibold text-gray-900">
+              Настройки сохранены
+            </div>
+            <div className="mt-2 text-sm text-gray-700">
+              {syncSuggestModal.source === 'reminders'
+                ? 'Синхронизировать мероприятия, чтобы обновить уведомления в Google Calendar?'
+                : 'Синхронизировать мероприятия, чтобы обновить цвета в Google Calendar?'}
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                type="button"
+                className="px-3 py-2 text-sm font-semibold border border-gray-300 rounded hover:bg-gray-50"
+                onClick={() => setSyncSuggestModal({ open: false, source: '' })}
+              >
+                Позже
+              </button>
+              <button
+                type="button"
+                className="px-3 py-2 text-sm font-semibold text-white rounded bg-general hover:opacity-90"
+                onClick={async () => {
+                  setSyncSuggestModal({ open: false, source: '' })
+                  await handleSyncCheckedEvents()
+                }}
+              >
+                Синхронизировать
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   )
 }
 
