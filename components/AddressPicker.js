@@ -51,7 +51,7 @@ const AddressPicker = ({
       paddingX="small"
       centerLabel={true}
     >
-      <div className="mt-0.5 mb-1 flex-1">
+      <div className="mt-0.5 mb-1 min-w-0 flex-1 overflow-x-hidden">
         <FormWrapper className="flex flex-wrap mt-3 mb-1 gap-x-2 gap-y-3">
           <div className="flex items-center flex-1 gap-x-1">
             <ComboBox

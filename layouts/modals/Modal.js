@@ -7,7 +7,7 @@ import { modalsFuncAtom } from '@state/atoms'
 import cn from 'classnames'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { Suspense, useCallback, useState } from 'react'
+import { Suspense, useCallback, useRef, useState } from 'react'
 import Skeleton from 'react-loading-skeleton'
 import { useAtomValue, useSetAtom } from 'jotai'
 
@@ -75,6 +75,7 @@ const Modal = ({
   )
   const [bottomLeftComponentState, setBottomLeftComponent] =
     useState(bottomLeftComponent)
+  const contentRef = useRef(null)
 
   const setOnConfirmFuncSafe = useCallback(
     (value) => {
@@ -111,6 +112,32 @@ const Modal = ({
   const refreshPage = useCallback(() => {
     router.replace(router.asPath)
   }, [router])
+
+  const resetHorizontalScroll = useCallback(() => {
+    const contentNode = contentRef.current
+    if (contentNode) contentNode.scrollLeft = 0
+    const parentNode = contentNode?.parentElement
+    if (parentNode) parentNode.scrollLeft = 0
+    if (typeof window !== 'undefined') {
+      window.scrollTo(window.scrollX > 0 ? 0 : window.pageXOffset, window.scrollY)
+    }
+  }, [])
+
+  const handleContentFocusCapture = useCallback(
+    (event) => {
+      const target = event?.target
+      const tagName = target?.tagName?.toLowerCase?.()
+      if (!['input', 'textarea', 'select'].includes(tagName)) return
+
+      requestAnimationFrame(() => {
+        resetHorizontalScroll()
+      })
+      setTimeout(() => {
+        resetHorizontalScroll()
+      }, 80)
+    },
+    [resetHorizontalScroll]
+  )
 
   // const onConfirmClick = () => {
   //   if (onConfirmFunc) return onConfirmFunc(refreshPage)
@@ -278,7 +305,11 @@ const Modal = ({
         {/* {noPropsToChildren
           ? children
           : cloneElement(children, { onClose: closeModal, setBeforeCloseFunc })} */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 tablet:px-3">
+        <div
+          ref={contentRef}
+          className="flex-1 overflow-y-auto overflow-x-hidden px-2 tablet:px-3"
+          onFocusCapture={handleContentFocusCapture}
+        >
           {Children && (
             <Suspense fallback={<Skeleton count={12} />}>
               <Children
