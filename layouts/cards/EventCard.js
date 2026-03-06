@@ -286,56 +286,56 @@ const EventCard = ({ eventId, style }) => {
             <FontAwesomeIcon
               icon={faShare}
               className="w-4 h-4 text-amber-500"
-              title="Передано коллеге"
+              aria-label="Передано коллеге"
             />
           )}
           {needsCheck && (
             <FontAwesomeIcon
               icon={faTriangleExclamation}
               className="w-4 h-4 text-amber-500"
-              title="Проверка мероприятия не завершена"
+              aria-label="Проверка мероприятия не завершена"
             />
           )}
           {hasCalendarError && (
             <FontAwesomeIcon
               icon={faCalendarXmark}
               className="w-4 h-4 text-red-500"
-              title="Синхронизация с календарем не выполнена"
+              aria-label="Синхронизация с календарем не выполнена"
             />
           )}
           {isClosed && (
             <FontAwesomeIcon
               icon={faCircleCheck}
               className="w-4 h-4 text-green-600"
-              title="Мероприятие закрыто"
+              aria-label="Мероприятие закрыто"
             />
           )}
           {isCanceled && (
             <FontAwesomeIcon
               icon={faBan}
               className="w-4 h-4 text-red-500"
-              title="Мероприятие отменено"
+              aria-label="Мероприятие отменено"
             />
           )}
           {isFinished && (
             <FontAwesomeIcon
               icon={faCircleCheck}
               className="w-4 h-4 text-gray-400"
-              title="Мероприятие завершено"
+              aria-label="Мероприятие завершено"
             />
           )}
           {isDraft && (
             <FontAwesomeIcon
               icon={faClock}
               className="w-4 h-4 text-blue-500"
-              title="Заявка"
+              aria-label="Заявка"
             />
           )}
           {!client && (
             <FontAwesomeIcon
               icon={faUserSlash}
               className="w-4 h-4 text-red-500"
-              title="Клиент не указан"
+              aria-label="Клиент не указан"
             />
           )}
           <div className="flex-1 mr-6 text-lg truncate card-title">
