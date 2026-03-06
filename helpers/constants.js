@@ -25,7 +25,13 @@ import {
   faVk,
   faWhatsapp,
 } from '@fortawesome/free-brands-svg-icons'
-import { faChartLine, faCog, faPlug } from '@fortawesome/free-solid-svg-icons'
+import {
+  faChartLine,
+  faCog,
+  faFileLines,
+  faList,
+  faPlug,
+} from '@fortawesome/free-solid-svg-icons'
 
 const colors = [
   'border-blue-400',
@@ -758,6 +764,20 @@ export const pages = [
     name: 'Интеграции',
     href: 'integrations',
     icon: faPlug,
+  },
+  {
+    id: 23,
+    group: 6,
+    name: 'Документы',
+    href: 'documents',
+    icon: faFileLines,
+  },
+  {
+    id: 24,
+    group: 6,
+    name: 'Списки',
+    href: 'lists',
+    icon: faList,
   },
   {
     id: 21,

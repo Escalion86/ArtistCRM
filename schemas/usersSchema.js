@@ -4,6 +4,13 @@ import {
 } from '@helpers/constants'
 import { Schema } from 'mongoose'
 
+const DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS = Object.freeze({
+  draft: '8',
+  active: '9',
+  canceled: '11',
+  closed: '10',
+})
+
 const usersSchema = {
   tenantId: {
     type: Schema.Types.ObjectId,
@@ -174,6 +181,24 @@ const usersSchema = {
             DEFAULT_GOOGLE_CALENDAR_REMINDERS.overrides.map((item) => ({
               ...item,
             })),
+        },
+      },
+      statusColors: {
+        draft: {
+          type: String,
+          default: DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.draft,
+        },
+        active: {
+          type: String,
+          default: DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.active,
+        },
+        canceled: {
+          type: String,
+          default: DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.canceled,
+        },
+        closed: {
+          type: String,
+          default: DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.closed,
         },
       },
     },

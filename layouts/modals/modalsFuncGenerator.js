@@ -13,6 +13,7 @@ import upcomingEventsOverviewFunc from './modalsFunc/upcomingEventsOverviewFunc'
 import transactionFunc from './modalsFunc/transactionFunc'
 import eventsTagsFunc from './modalsFunc/eventsTagsFunc'
 import townsFunc from './modalsFunc/townsFunc'
+import eventTypesFunc from './modalsFunc/eventTypesFunc'
 import artistRequisitesEditorFunc from './modalsFunc/artistRequisitesEditorFunc'
 import jsonFunc from './modalsFunc/jsonFunc'
 // import questionnaireConstructorFunc from './modalsFunc/questionnaireConstructorFunc'
@@ -168,6 +169,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
     },
     settings: {
       towns: () => addModal(townsFunc()),
+      eventTypes: () => addModal(eventTypesFunc()),
       artistRequisitesEditor: () => addModal(artistRequisitesEditorFunc()),
     },
     transaction: {

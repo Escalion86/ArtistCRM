@@ -6,6 +6,7 @@ import getTenantContext from '@server/getTenantContext'
 import {
   getOAuthClient,
   normalizeCalendarReminders,
+  normalizeCalendarStatusColors,
 } from '@server/googleUserCalendarClient'
 
 export const runtime = 'nodejs'
@@ -86,6 +87,7 @@ export const GET = async (req) => {
   const tokenExpiry =
     tokens.expiry_date ? new Date(tokens.expiry_date) : prev.tokenExpiry || null
   const reminders = normalizeCalendarReminders(prev.reminders)
+  const statusColors = normalizeCalendarStatusColors(prev.statusColors)
 
   existing.googleCalendar = {
     enabled: true,
@@ -98,6 +100,7 @@ export const GET = async (req) => {
     connectedAt: new Date(),
     email: prev.email || '',
     reminders,
+    statusColors,
   }
 
   await existing.save()

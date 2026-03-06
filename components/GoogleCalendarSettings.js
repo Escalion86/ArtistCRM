@@ -14,6 +14,34 @@ const DEFAULT_CALENDAR_REMINDERS = Object.freeze({
   ],
 })
 
+const DEFAULT_STATUS_COLORS = Object.freeze({
+  draft: '8',
+  active: '9',
+  canceled: '11',
+  closed: '10',
+})
+
+const STATUS_COLOR_OPTIONS = Object.freeze([
+  { value: '1', name: '1 — Lavendar' },
+  { value: '2', name: '2 — Sage' },
+  { value: '3', name: '3 — Grape' },
+  { value: '4', name: '4 — Flamingo' },
+  { value: '5', name: '5 — Banana' },
+  { value: '6', name: '6 — Tangerine' },
+  { value: '7', name: '7 — Peacock' },
+  { value: '8', name: '8 — Graphite' },
+  { value: '9', name: '9 — Blueberry' },
+  { value: '10', name: '10 — Basil' },
+  { value: '11', name: '11 — Tomato' },
+])
+
+const STATUS_COLOR_FIELDS = Object.freeze([
+  { key: 'draft', label: 'Заявка' },
+  { key: 'active', label: 'Мероприятие' },
+  { key: 'canceled', label: 'Отменено' },
+  { key: 'closed', label: 'Закрыто' },
+])
+
 const normalizeReminders = (value) => {
   if (!value || typeof value !== 'object') return DEFAULT_CALENDAR_REMINDERS
   const useDefault = Boolean(value.useDefault)
@@ -39,6 +67,20 @@ const normalizeReminders = (value) => {
   }
 }
 
+const normalizeStatusColors = (value) => {
+  const source = value && typeof value === 'object' ? value : {}
+  const normalizeColor = (color, fallback) => {
+    const prepared = String(color ?? '').trim()
+    return /^(?:[1-9]|1[0-1])$/.test(prepared) ? prepared : fallback
+  }
+  return {
+    draft: normalizeColor(source.draft, DEFAULT_STATUS_COLORS.draft),
+    active: normalizeColor(source.active, DEFAULT_STATUS_COLORS.active),
+    canceled: normalizeColor(source.canceled, DEFAULT_STATUS_COLORS.canceled),
+    closed: normalizeColor(source.closed, DEFAULT_STATUS_COLORS.closed),
+  }
+}
+
 const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
   const [calendarStatus, setCalendarStatus] = useState({
     loading: true,
@@ -55,6 +97,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
   const [calendarReminders, setCalendarReminders] = useState(
     DEFAULT_CALENDAR_REMINDERS
   )
+  const [statusColors, setStatusColors] = useState(DEFAULT_STATUS_COLORS)
 
   const loadCalendarStatus = async () => {
     setCalendarError('')
@@ -69,6 +112,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       }
       setCalendarStatus({ loading: false, ...result.data })
       setCalendarReminders(normalizeReminders(result?.data?.reminders))
+      setStatusColors(normalizeStatusColors(result?.data?.statusColors))
     } catch (error) {
       setCalendarError('Не удалось загрузить статус')
       setCalendarStatus((prev) => ({ ...prev, loading: false }))
@@ -167,6 +211,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       setCalendarItems([])
       setSelectedCalendarId('')
       setCalendarReminders(DEFAULT_CALENDAR_REMINDERS)
+      setStatusColors(DEFAULT_STATUS_COLORS)
       await loadCalendarStatus()
     } catch (error) {
       setCalendarError('Не удалось отключить календарь')
@@ -193,6 +238,29 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       await loadCalendarStatus()
     } catch (error) {
       setCalendarError('Не удалось сохранить уведомления')
+    }
+    setCalendarLoading(false)
+  }
+
+  const handleSaveStatusColors = async () => {
+    if (calendarLoading || calendarStatus.loading) return
+    setCalendarLoading(true)
+    setCalendarError('')
+    try {
+      const response = await fetch('/api/google-calendar/reminders', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ statusColors, reminders: calendarReminders }),
+      })
+      const result = await response.json()
+      if (!result?.success) {
+        setCalendarError(result?.error || 'Не удалось сохранить цвета')
+        setCalendarLoading(false)
+        return
+      }
+      await loadCalendarStatus()
+    } catch (error) {
+      setCalendarError('Не удалось сохранить цвета')
     }
     setCalendarLoading(false)
   }
@@ -378,6 +446,53 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
             }
           >
             Сохранить уведомления
+          </button>
+        </div>
+      </div>
+      <div className="mt-4 rounded border border-gray-200 bg-white p-3">
+        <div className="text-sm font-semibold text-gray-800">
+          Цвета мероприятий по статусам
+        </div>
+        <div className="mt-2 text-xs text-gray-500">
+          Цвет применяется к событию в Google Calendar при синхронизации.
+        </div>
+        <div className="mt-3 flex flex-col gap-2">
+          {STATUS_COLOR_FIELDS.map((field) => (
+            <label
+              key={field.key}
+              className="flex flex-wrap items-center justify-between gap-2"
+            >
+              <span className="text-sm text-gray-700">{field.label}</span>
+              <select
+                className="h-9 min-w-[180px] rounded border border-gray-300 px-2 text-sm"
+                value={statusColors[field.key]}
+                onChange={(event) =>
+                  setStatusColors((prev) => ({
+                    ...prev,
+                    [field.key]: event.target.value,
+                  }))
+                }
+                disabled={!calendarStatus.connected}
+              >
+                {STATUS_COLOR_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+            onClick={handleSaveStatusColors}
+            disabled={
+              calendarLoading || calendarStatus.loading || !calendarStatus.connected
+            }
+          >
+            Сохранить цвета
           </button>
         </div>
       </div>
