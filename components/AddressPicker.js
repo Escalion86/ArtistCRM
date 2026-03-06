@@ -38,6 +38,12 @@ const AddressPicker = ({
     }
   }
 
+  const handleAddressScroll = () => {
+    const node = addressContentRef.current
+    if (!node) return
+    if (node.scrollLeft !== 0) node.scrollLeft = 0
+  }
+
   const handleCreateTown = () => {
     if (!allowTownCreate) return
     const newTown = window.prompt('Новый город')
@@ -62,6 +68,8 @@ const AddressPicker = ({
         ref={addressContentRef}
         className="mt-0.5 mb-1 min-w-0 flex-1 overflow-x-hidden"
         onFocusCapture={handleAddressFocusCapture}
+        onScroll={handleAddressScroll}
+        style={{ overscrollBehaviorX: 'none' }}
       >
         <FormWrapper className="flex flex-wrap mt-3 mb-1 gap-x-2 gap-y-3">
           <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1">
@@ -94,6 +102,7 @@ const AddressPicker = ({
             error={errors?.address?.street}
             noMargin
             className="w-full min-w-0"
+            fullWidth
           />
           <Input
             label="Дом"
@@ -103,6 +112,7 @@ const AddressPicker = ({
             error={errors?.address?.house}
             noMargin
             className="w-full min-w-0"
+            fullWidth
           />
         </FormWrapper>
         <FormWrapper className="mt-1 mb-1 grid grid-cols-3 gap-x-2 gap-y-3">
@@ -114,6 +124,7 @@ const AddressPicker = ({
             error={errors?.address?.entrance}
             noMargin
             className="w-full min-w-0"
+            fullWidth
           />
           <Input
             label="Этаж"
@@ -123,6 +134,7 @@ const AddressPicker = ({
             error={errors?.address?.floor}
             noMargin
             className="w-full min-w-0"
+            fullWidth
           />
           <Input
             label="Кв. / Офис"
@@ -132,6 +144,7 @@ const AddressPicker = ({
             error={errors?.address?.flat}
             noMargin
             className="w-full min-w-0"
+            fullWidth
           />
         </FormWrapper>
         <Input
@@ -141,6 +154,7 @@ const AddressPicker = ({
           onChange={(comment) => onChange({ ...address, comment })}
           noMargin
           error={errors?.address?.comment}
+          fullWidth
         />
         <FormWrapper className="mt-1 mb-1 grid grid-cols-2 gap-x-2 gap-y-3">
           <Input
@@ -151,6 +165,7 @@ const AddressPicker = ({
             error={errors?.address?.latitude}
             noMargin
             className="w-full min-w-0"
+            fullWidth
           />
           <Input
             label="Долгота"
@@ -160,6 +175,7 @@ const AddressPicker = ({
             error={errors?.address?.longitude}
             noMargin
             className="w-full min-w-0"
+            fullWidth
           />
         </FormWrapper>
         {/* <div className="flex flex-wrap items-end justify-between gap-x-2"> */}
@@ -201,6 +217,7 @@ const AddressPicker = ({
           error={errors?.address?.link2Gis}
           noMargin
           className="mt-0.5"
+          fullWidth
         />
         {/* )} */}
         {/* <div className="flex flex-wrap items-end justify-between mt-1 gap-x-2"> */}
@@ -245,6 +262,7 @@ const AddressPicker = ({
           error={errors?.address?.linkYandexNavigator}
           noMargin
           className="mt-0.5"
+          fullWidth
         />
         {/* )} */}
         {/* {(address.linkYandexShow || address.link2GisShow) && (
