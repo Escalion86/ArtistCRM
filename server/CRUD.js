@@ -216,12 +216,9 @@ const addBlankEventToCalendar = async (tenantId, user) => {
   const timeZone = await getSiteTimeZone(tenantId)
   const settings = normalizeCalendarSettings(user)
   const reminders = settings?.reminders ?? {}
-  const statusColors = settings?.statusColors ?? {}
   const calendarReminders = reminders.useDefault
     ? { useDefault: true }
     : { useDefault: false, overrides: reminders.overrides ?? [] }
-  const calendarColorId =
-    statusColors?.[event?.status] || statusColors?.active || undefined
 
   const calendarEvent = {
     summary: '[blank]',
@@ -554,9 +551,12 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
 
   const settings = normalizeCalendarSettings(user)
   const reminders = settings?.reminders ?? {}
+  const statusColors = settings?.statusColors ?? {}
   const calendarReminders = reminders.useDefault
     ? { useDefault: true }
     : { useDefault: false, overrides: reminders.overrides ?? [] }
+  const calendarColorId =
+    statusColors?.[event?.status] || statusColors?.active || undefined
 
   const isCanceled = event.status === 'canceled'
   const isTransferred = Boolean(event?.isTransferred)

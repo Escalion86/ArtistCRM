@@ -98,6 +98,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
     DEFAULT_CALENDAR_REMINDERS
   )
   const [statusColors, setStatusColors] = useState(DEFAULT_STATUS_COLORS)
+  const [checkedSyncSummary, setCheckedSyncSummary] = useState('')
 
   const loadCalendarStatus = async () => {
     setCalendarError('')
@@ -265,6 +266,33 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
     setCalendarLoading(false)
   }
 
+  const handleSyncCheckedEvents = async () => {
+    if (calendarLoading || calendarStatus.loading) return
+    setCalendarLoading(true)
+    setCalendarError('')
+    setCheckedSyncSummary('')
+    try {
+      const response = await fetch('/api/events/google-sync-checked', {
+        method: 'POST',
+      })
+      const result = await response.json()
+      if (!result?.success) {
+        setCalendarError(
+          result?.error || 'Не удалось синхронизировать проверенные мероприятия'
+        )
+        setCalendarLoading(false)
+        return
+      }
+      const { total = 0, synced = 0, failed = 0 } = result?.data ?? {}
+      setCheckedSyncSummary(
+        `Синхронизировано: ${synced} из ${total}. Ошибок: ${failed}.`
+      )
+    } catch (error) {
+      setCalendarError('Не удалось синхронизировать проверенные мероприятия')
+    }
+    setCalendarLoading(false)
+  }
+
   if (!calendarStatus.allowCalendarSync) return null
 
   return (
@@ -316,6 +344,32 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
           </>
         )}
       </div>
+      {calendarStatus.connected ? (
+        <div className="mt-3 rounded border border-gray-200 bg-white p-3">
+          <div className="text-sm font-semibold text-gray-800">
+            Массовая синхронизация
+          </div>
+          <div className="mt-1 text-xs text-gray-500">
+            Отправляет в Google Calendar все мероприятия, у которых включена
+            метка «Импорт из календаря проверен».
+          </div>
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+              onClick={handleSyncCheckedEvents}
+              disabled={calendarLoading || calendarStatus.loading}
+            >
+              Синхронизировать Google Calendar
+            </button>
+          </div>
+          {checkedSyncSummary ? (
+            <div className="mt-2 text-xs text-emerald-700">
+              {checkedSyncSummary}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {calendarItems.length > 0 ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <select
