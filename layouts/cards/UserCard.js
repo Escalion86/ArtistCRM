@@ -80,7 +80,7 @@ const UserCard = ({ userId, hidden = false, style }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && modalsFunc.user.view(user._id)}
-      className="flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
+      className="card-body-pad flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} rounded />
       <CardActions>
@@ -101,23 +101,23 @@ const UserCard = ({ userId, hidden = false, style }) => {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <UserName
               user={user}
-              className="text-base font-semibold text-gray-900"
+              className="card-title text-base"
             />
           </div>
-          <div className="text-xs font-semibold text-gray-600">
+          <div className="card-meta text-xs font-semibold">
             Тариф: {tariffTitle}
             {tariffPaidUntil ? ` (${tariffPaidUntil})` : ''}
           </div>
-          <div className="text-xs font-semibold text-gray-600">
+          <div className="card-meta text-xs font-semibold">
             Баланс: {formattedBalance} руб.
           </div>
-          <div className="text-xs font-semibold text-gray-600">
+          <div className="card-meta text-xs font-semibold">
             Создано мероприятий: {eventsCount}
           </div>
-          <div className="text-xs font-semibold text-gray-600">
+          <div className="card-meta text-xs font-semibold">
             Создано заявок: {requestsCount}
           </div>
-          <div className="text-xs font-semibold text-gray-600">
+          <div className="card-meta text-xs font-semibold">
             Дата регистрации: {registrationLabel}
           </div>
           <div className="mt-auto flex justify-end sm:absolute sm:right-0 sm:bottom-0">

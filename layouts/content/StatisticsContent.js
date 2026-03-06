@@ -24,6 +24,7 @@ import formatAddress from '@helpers/formatAddress'
 import getPersonFullName from '@helpers/getPersonFullName'
 
 const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
+const ALL_TOWNS_OPTION = 'Все города'
 
 const getMonthKey = (date, year) =>
   `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -138,6 +139,11 @@ const StatisticsContent = () => {
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'))
   }, [events, selectedYear])
 
+  const townsOptionsWithAll = useMemo(
+    () => [ALL_TOWNS_OPTION, ...townsOptions],
+    [townsOptions]
+  )
+
   useEffect(() => {
     if (!selectedTown) return
     if (townsOptions.includes(selectedTown)) return
@@ -223,6 +229,10 @@ const StatisticsContent = () => {
     const isFutureMonth = (monthIndex) =>
       selectedYear > currentYear ||
       (selectedYear === currentYear && monthIndex > currentMonth)
+    const isOpenCurrentMonth = (monthIndex) =>
+      selectedYear === currentYear && monthIndex === currentMonth
+    const isUnfinishedMonth = (monthIndex) =>
+      isFutureMonth(monthIndex) || isOpenCurrentMonth(monthIndex)
 
     filteredEvents.forEach((event) => {
       if (!event?.eventDate || !isValidDate(event.eventDate)) return
@@ -237,6 +247,8 @@ const StatisticsContent = () => {
           expense: 0,
           profit: 0,
           isFuture: isFutureMonth(date.getMonth()),
+          isOpenMonth: isOpenCurrentMonth(date.getMonth()),
+          isUnfinished: isUnfinishedMonth(date.getMonth()),
           plannedIncome: 0,
         })
       }
@@ -261,6 +273,8 @@ const StatisticsContent = () => {
           expense: 0,
           profit: 0,
           isFuture: isFutureMonth(date.getMonth()),
+          isOpenMonth: isOpenCurrentMonth(date.getMonth()),
+          isUnfinished: isUnfinishedMonth(date.getMonth()),
           plannedIncome: 0,
         })
       }
@@ -579,9 +593,13 @@ const StatisticsContent = () => {
                   <div className="w-44">
                     <ComboBox
                       label="Город"
-                      items={townsOptions}
-                      value={selectedTown}
-                      onChange={(value) => setSelectedTown(value ?? '')}
+                      items={townsOptionsWithAll}
+                      value={selectedTown || ALL_TOWNS_OPTION}
+                      onChange={(value) =>
+                        setSelectedTown(
+                          !value || value === ALL_TOWNS_OPTION ? '' : value
+                        )
+                      }
                       placeholder="Все города"
                       fullWidth
                       noMargin
@@ -648,6 +666,26 @@ const StatisticsContent = () => {
                 <span className="w-3 h-3 bg-blue-600 rounded" />
                 <span>Прибыль</span>
               </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-4 w-6 rounded-sm border border-blue-500"
+                  style={{
+                    background:
+                      'repeating-linear-gradient(135deg, #2563eb 0, #2563eb 8px, rgba(255,255,255,0.94) 8px, rgba(255,255,255,0.94) 10px)',
+                  }}
+                />
+                <span>Текущий месяц (в работе)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-4 w-6 rounded-sm border border-blue-500"
+                  style={{
+                    background:
+                      'repeating-linear-gradient(135deg, #2563eb 0, #2563eb 3px, rgba(255,255,255,0.94) 3px, rgba(255,255,255,0.94) 6px)',
+                  }}
+                />
+                <span>Будущие месяцы</span>
+              </div>
             </div>
             {stats.length === 0 ? (
               <EmptyState
@@ -672,15 +710,30 @@ const StatisticsContent = () => {
                       id: 'futurePattern',
                       type: 'patternLines',
                       background: 'inherit',
-                      color: 'rgba(0,0,0,0.25)',
+                      color: 'rgba(255,255,255,0.9)',
                       rotation: -45,
-                      lineWidth: 4,
+                      lineWidth: 3,
                       spacing: 6,
+                    },
+                    {
+                      id: 'openMonthPattern',
+                      type: 'patternLines',
+                      background: 'inherit',
+                      color: 'rgba(255,255,255,0.82)',
+                      rotation: -45,
+                      lineWidth: 2,
+                      spacing: 10,
                     },
                   ]}
                   fill={[
                     {
-                      match: (d) => d.data.isFuture === true,
+                      match: (d) =>
+                        Boolean(d?.data?.isOpenMonth ?? d?.data?.data?.isOpenMonth) &&
+                        !Boolean(d?.data?.isFuture ?? d?.data?.data?.isFuture),
+                      id: 'openMonthPattern',
+                    },
+                    {
+                      match: (d) => Boolean(d?.data?.isFuture ?? d?.data?.data?.isFuture),
                       id: 'futurePattern',
                     },
                   ]}

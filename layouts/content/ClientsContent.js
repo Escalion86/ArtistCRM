@@ -14,17 +14,19 @@ import clientsAtom from '@state/atoms/clientsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
+import useUiDensity from '@helpers/useUiDensity'
 
-const ITEM_HEIGHT = 140
 const normalizeDigits = (value) =>
   String(value ?? '').replace(/[^\d]/g, '')
 
 const ClientsContent = () => {
+  const { isCompact } = useUiDensity()
   const clients = useAtomValue(clientsAtom)
   const events = useAtomValue(eventsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
 
   const [search, setSearch] = useState('')
+  const itemHeight = isCompact ? 122 : 140
 
   const clientsWithStats = useMemo(() => {
     const lowerSearch = search.trim().toLowerCase()
@@ -140,7 +142,7 @@ const ClientsContent = () => {
         {clientsWithStats.length > 0 ? (
           <List
             rowCount={clientsWithStats.length}
-            rowHeight={ITEM_HEIGHT}
+            rowHeight={itemHeight}
             rowComponent={RowComponent}
             rowProps={{}}
             style={{ height: '100%', width: '100%' }}

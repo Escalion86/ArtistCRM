@@ -22,7 +22,7 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && onView?.()}
-      className="group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
+      className="card-body-pad group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
@@ -38,20 +38,20 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
       <div className="flex h-full w-full gap-3">
         <div className="flex flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="text-base font-semibold text-gray-900">
+            <div className="card-title text-base">
               {getPersonFullName(client, { fallback: '-' })}
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="card-muted text-sm">
               Последняя заявка: {lastRequestLabel}
             </div>
           </div>
-          <div className="grid gap-2 text-sm text-gray-700">
-            <div className="truncate font-medium text-gray-800">
+          <div className="card-meta grid gap-2 text-sm">
+            <div className="card-title truncate font-medium">
               {client.phone ? `+${client.phone}` : 'Телефон не указан'}
             </div>
           </div>
         </div>
-        <div className="mt-auto self-end text-right text-sm font-semibold whitespace-nowrap text-gray-700">
+        <div className="card-meta mt-auto self-end text-right text-sm font-semibold whitespace-nowrap">
           <div>Заявки: {client.requestsCount}</div>
           <div>Мероприятия: {client.eventsCount}</div>
           <div>Отмененные: {client.canceledEventsCount}</div>

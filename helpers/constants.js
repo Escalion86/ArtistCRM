@@ -708,13 +708,6 @@ export const pages = [
     href: 'eventsPast',
     icon: faClock,
   },
-  {
-    id: 6,
-    group: 6,
-    name: 'Мои услуги',
-    href: 'services',
-    icon: faWandMagicSparkles,
-  },
   // {
   //   id: 5,
   //   group: 3,
@@ -757,6 +750,13 @@ export const pages = [
     name: 'Настройки',
     href: 'settings',
     icon: faCog,
+  },
+  {
+    id: 6,
+    group: 6,
+    name: 'Мои услуги',
+    href: 'services',
+    icon: faWandMagicSparkles,
   },
   {
     id: 22,

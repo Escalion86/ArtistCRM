@@ -25,7 +25,7 @@ export default async function Cabinet({ params, searchParams }) {
 
   if (!session) return redirect('/login')
 
-  const fetchedProps = await fetchProps(session?.user)
+  const fetchedProps = await fetchProps(session?.user, page)
 
   return <CabinetPage {...fetchedProps} page={page} />
 }

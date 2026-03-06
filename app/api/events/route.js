@@ -21,7 +21,13 @@ const getStatusValue = (payload) => {
 }
 
 
-export const GET = async () => {
+const parsePositiveInt = (value, fallback) => {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n <= 0) return fallback
+  return Math.floor(n)
+}
+
+export const GET = async (req) => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) {
     return NextResponse.json(
@@ -30,6 +36,62 @@ export const GET = async () => {
     )
   }
   await dbConnect()
+  const { searchParams } = new URL(req.url)
+  const scope = searchParams.get('scope') || 'all'
+  const before = searchParams.get('before')
+  const limit = parsePositiveInt(searchParams.get('limit'), 120)
+
+  if (scope === 'past') {
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+
+    const baseQuery = {
+      tenantId,
+      eventDate: { $lt: startOfToday },
+    }
+    const query = {
+      ...baseQuery,
+      eventDate: { ...baseQuery.eventDate },
+    }
+    if (before) {
+      const beforeDate = new Date(before)
+      if (!Number.isNaN(beforeDate.getTime())) {
+        query.eventDate.$lt =
+          beforeDate.getTime() < startOfToday.getTime()
+            ? beforeDate
+            : startOfToday
+      }
+    }
+
+    const [totalCount, rows] = await Promise.all([
+      Events.countDocuments(baseQuery),
+      Events.find(query)
+        .sort({ eventDate: -1, createdAt: -1 })
+        .limit(limit + 1)
+        .lean(),
+    ])
+    const hasMore = rows.length > limit
+    const items = hasMore ? rows.slice(0, limit) : rows
+    const lastItem = items[items.length - 1]
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: items,
+        meta: {
+          hasMore,
+          nextBefore: lastItem?.eventDate
+            ? new Date(lastItem.eventDate).toISOString()
+            : null,
+          limit,
+          scope: 'past',
+          totalCount,
+        },
+      },
+      { status: 200 }
+    )
+  }
+
   const events = await Events.find({ tenantId })
     .sort({ eventDate: -1, createdAt: -1 })
     .lean()

@@ -4,7 +4,6 @@ import { useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
 import HeaderActions from '@components/HeaderActions'
-import LabeledContainer from '@components/LabeledContainer'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
@@ -49,50 +48,48 @@ const ListsContent = () => {
         <HeaderActions left={<div />} right={<div />} />
       </ContentHeader>
       <SectionCard className="flex flex-col flex-1 min-h-0 gap-4 p-4 overflow-y-auto">
-        <LabeledContainer label="Списки" noMargin>
-          <div className="flex flex-col w-full gap-3">
-            <div className="flex items-center justify-between w-full gap-3 p-3 border border-gray-200 rounded">
-              <div className="flex flex-col gap-1">
-                <div className="text-sm font-semibold text-gray-900">Города</div>
-                <MutedText>
-                  По умолчанию:{' '}
-                  <span className="font-semibold text-gray-900">
-                    {siteSettings?.defaultTown || 'Не выбран'}
-                  </span>
-                </MutedText>
-                <MutedText className="text-gray-500">
-                  Элементов: {townsOptions.length}
-                </MutedText>
-              </div>
-              <button
-                type="button"
-                className="flex items-center justify-center w-10 h-10 rounded cursor-pointer action-icon-button action-icon-button--warning"
-                onClick={() => modalsFunc.settings?.towns?.()}
-                title="Редактировать города"
-              >
-                <FontAwesomeIcon className="w-5 h-5" icon={faPencilAlt} />
-              </button>
+        <div className="flex flex-col w-full gap-3">
+          <div className="flex items-center justify-between w-full gap-3 p-3 border border-gray-200 rounded">
+            <div className="flex flex-col gap-1">
+              <div className="text-sm font-semibold text-gray-900">Города</div>
+              <MutedText>
+                По умолчанию:{' '}
+                <span className="font-semibold text-gray-900">
+                  {siteSettings?.defaultTown || 'Не выбран'}
+                </span>
+              </MutedText>
+              <MutedText className="text-gray-500">
+                Элементов: {townsOptions.length}
+              </MutedText>
             </div>
-            <div className="flex items-center justify-between w-full gap-3 p-3 border border-gray-200 rounded">
-              <div className="flex flex-col gap-1">
-                <div className="text-sm font-semibold text-gray-900">
-                  Что за мероприятие
-                </div>
-                <MutedText className="text-gray-500">
-                  Элементов: {eventTypes.length}
-                </MutedText>
-              </div>
-              <button
-                type="button"
-                className="flex items-center justify-center w-10 h-10 rounded cursor-pointer action-icon-button action-icon-button--warning"
-                onClick={() => modalsFunc.settings?.eventTypes?.()}
-                title="Редактировать список мероприятий"
-              >
-                <FontAwesomeIcon className="w-5 h-5" icon={faPencilAlt} />
-              </button>
-            </div>
+            <button
+              type="button"
+              className="flex items-center justify-center w-10 h-10 rounded cursor-pointer action-icon-button action-icon-button--warning"
+              onClick={() => modalsFunc.settings?.towns?.()}
+              title="Редактировать города"
+            >
+              <FontAwesomeIcon className="w-5 h-5" icon={faPencilAlt} />
+            </button>
           </div>
-        </LabeledContainer>
+          <div className="flex items-center justify-between w-full gap-3 p-3 border border-gray-200 rounded">
+            <div className="flex flex-col gap-1">
+              <div className="text-sm font-semibold text-gray-900">
+                Что за мероприятие?
+              </div>
+              <MutedText className="text-gray-500">
+                Элементов: {eventTypes.length}
+              </MutedText>
+            </div>
+            <button
+              type="button"
+              className="flex items-center justify-center w-10 h-10 rounded cursor-pointer action-icon-button action-icon-button--warning"
+              onClick={() => modalsFunc.settings?.eventTypes?.()}
+              title="Редактировать список мероприятий"
+            >
+              <FontAwesomeIcon className="w-5 h-5" icon={faPencilAlt} />
+            </button>
+          </div>
+        </div>
       </SectionCard>
     </div>
   )

@@ -8,7 +8,7 @@ const SurfaceCard = ({
 }) => (
   <div
     className={cn(
-      'surface-card rounded-xl shadow-sm',
+      'surface-card ui-surface-card rounded-xl',
       borderClassName,
       paddingClassName,
       className

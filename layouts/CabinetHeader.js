@@ -1,9 +1,18 @@
+'use client'
+
 /* eslint-disable @next/next/no-img-element */
 // import DevSwitch from '@components/DevSwitch'
 import Link from 'next/link'
 import UserMenu from './UserMenu'
+import useUiDensity from '@helpers/useUiDensity'
+import loggedUserAtom from '@state/atoms/loggedUserAtom'
+import { useAtomValue } from 'jotai'
 
 const CabinetHeader = ({ title = '', titleLink, icon }) => {
+  const { isCompact, toggleMode } = useUiDensity()
+  const loggedUser = useAtomValue(loggedUserAtom)
+  const isDev = loggedUser?.role === 'dev'
+
   return (
     <div
       className="relative z-20 flex h-16 w-full items-center justify-end gap-x-4 bg-black px-3 text-white"
@@ -36,6 +45,16 @@ const CabinetHeader = ({ title = '', titleLink, icon }) => {
         </div>
       )}
 
+      {isDev ? (
+        <button
+          type="button"
+          onClick={toggleMode}
+          className="rounded-full border border-white/30 px-3 py-1 text-xs font-semibold text-white transition hover:border-white/60 hover:bg-white/10"
+          title="Переключить плотность интерфейса"
+        >
+          {isCompact ? 'Обычно' : 'Плотно'}
+        </button>
+      ) : null}
       <UserMenu />
     </div>
   )

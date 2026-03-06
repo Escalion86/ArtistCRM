@@ -397,7 +397,7 @@ const StateLoader = (props) => {
           <LoadingSpinner size="lg" />
         </div>
       ) : (
-        <div className="relative w-full bg-white">{props.children}</div>
+        <div className="relative w-full bg-transparent">{props.children}</div>
       )}
       <ReleaseOnboardingCoach />
       <ModalsPortal />

@@ -13,13 +13,14 @@ import { modalsFuncAtom } from '@state/atoms'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import { useAtomValue } from 'jotai'
-
-const ITEM_HEIGHT = 156
+import useUiDensity from '@helpers/useUiDensity'
 
 const TariffsContent = () => {
+  const { isCompact } = useUiDensity()
   const tariffs = useAtomValue(tariffsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
+  const itemHeight = isCompact ? 136 : 156
   const canEdit =
     loggedUserActiveRole?.dev || loggedUserActiveRole?.users?.setRole
 
@@ -78,7 +79,7 @@ const TariffsContent = () => {
         {sortedTariffs.length > 0 ? (
           <List
             rowCount={sortedTariffs.length}
-            rowHeight={ITEM_HEIGHT}
+            rowHeight={itemHeight}
             rowComponent={RowComponent}
             rowProps={{}}
                                     style={{ height: '100%', width: '100%' }}

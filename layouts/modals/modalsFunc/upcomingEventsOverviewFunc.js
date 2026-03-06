@@ -1,4 +1,8 @@
 import AppButton from '@components/AppButton'
+import DateTimeApplyControl from '@components/DateTimeApplyControl'
+import ModalSection from '@components/ModalSection'
+import QuickActionButtons from '@components/QuickActionButtons'
+import StatusChip from '@components/StatusChip'
 import formatDateTime from '@helpers/formatDateTime'
 import {
   getAdditionalEventsListBySegments,
@@ -14,17 +18,17 @@ const SEGMENT_META = {
   overdue: {
     title: 'Просрочено',
     emptyText: 'Просроченных доп. событий нет',
-    titleClassName: 'text-red-700',
+    tone: 'overdue',
   },
   today: {
     title: 'Сегодня',
     emptyText: 'На сегодня доп. событий нет',
-    titleClassName: 'text-amber-700',
+    tone: 'today',
   },
   tomorrow: {
     title: 'Завтра',
     emptyText: 'На завтра доп. событий нет',
-    titleClassName: 'text-emerald-700',
+    tone: 'tomorrow',
   },
 }
 
@@ -169,10 +173,12 @@ const upcomingEventsOverviewFunc = () => {
           const meta = SEGMENT_META[key]
           const items = segmentedAdditional[key] ?? []
           return (
-            <div key={key} className="rounded-lg border border-gray-200 p-3">
-              <div className={`text-sm font-semibold ${meta.titleClassName}`}>
-                {meta.title}: {items.length}
-              </div>
+            <ModalSection
+              key={key}
+              title={meta.title}
+              titleClassName="card-title"
+              titleRight={<StatusChip tone={meta.tone}>{items.length}</StatusChip>}
+            >
               {items.length === 0 ? (
                 <div className="mt-2 text-sm text-gray-500">{meta.emptyText}</div>
               ) : (
@@ -200,86 +206,90 @@ const upcomingEventsOverviewFunc = () => {
                           {item.eventTown}
                         </div>
                       ) : null}
-                      <div className="mt-2">
-                        <AppButton
-                          size="sm"
-                          variant="secondary"
-                          className="w-full rounded tablet:w-auto"
-                          onClick={() => openEvent(item.eventId)}
-                        >
-                          Открыть мероприятие
-                        </AppButton>
-                      </div>
+                      <QuickActionButtons
+                        wrapperClassName="mt-2"
+                        actions={[
+                          {
+                            key: 'open-event',
+                            label: 'Открыть мероприятие',
+                            variant: 'secondary',
+                            className: 'w-full tablet:w-auto',
+                            onClick: () => openEvent(item.eventId),
+                          },
+                        ]}
+                      />
                       <div className="mt-2 grid grid-cols-2 items-center gap-2 tablet:flex tablet:flex-wrap">
-                        <AppButton
-                          size="sm"
-                          variant="primary"
-                          className="w-full rounded tablet:w-auto"
-                          disabled={savingKey === `${item.eventId}-${item.index}`}
-                          onClick={() =>
-                            markAdditionalEventDone(item.eventId, item.index)
-                          }
-                        >
-                          Выполнено
-                        </AppButton>
-                        <AppButton
-                          size="sm"
-                          variant="secondary"
-                          className="w-full rounded tablet:w-auto"
-                          disabled={savingKey === `${item.eventId}-${item.index}`}
-                          onClick={() =>
-                            shiftAdditionalEventDate(item.eventId, item.index, 1)
-                          }
-                        >
-                          +1 день
-                        </AppButton>
-                        <AppButton
-                          size="sm"
-                          variant="secondary"
-                          className="w-full rounded tablet:w-auto"
-                          disabled={savingKey === `${item.eventId}-${item.index}`}
-                          onClick={() =>
-                            shiftAdditionalEventDate(item.eventId, item.index, 3)
-                          }
-                        >
-                          +3 дня
-                        </AppButton>
-                        <input
-                          type="datetime-local"
-                          className="col-span-2 h-9 w-full rounded border border-gray-300 px-2 text-sm text-gray-800 outline-none focus:border-general tablet:col-span-1 tablet:w-auto"
+                        <QuickActionButtons
+                          wrapperClassName="col-span-2"
+                          actions={[
+                            {
+                              key: 'mark-done',
+                              label: 'Выполнено',
+                              variant: 'primary',
+                              className: 'w-full tablet:w-auto',
+                              disabled:
+                                savingKey === `${item.eventId}-${item.index}`,
+                              onClick: () =>
+                                markAdditionalEventDone(item.eventId, item.index),
+                            },
+                            {
+                              key: 'plus-1-day',
+                              label: '+1 день',
+                              variant: 'secondary',
+                              className: 'w-full tablet:w-auto',
+                              disabled:
+                                savingKey === `${item.eventId}-${item.index}`,
+                              onClick: () =>
+                                shiftAdditionalEventDate(
+                                  item.eventId,
+                                  item.index,
+                                  1
+                                ),
+                            },
+                            {
+                              key: 'plus-3-day',
+                              label: '+3 дня',
+                              variant: 'secondary',
+                              className: 'w-full tablet:w-auto',
+                              disabled:
+                                savingKey === `${item.eventId}-${item.index}`,
+                              onClick: () =>
+                                shiftAdditionalEventDate(
+                                  item.eventId,
+                                  item.index,
+                                  3
+                                ),
+                            },
+                          ]}
+                        />
+                        <DateTimeApplyControl
                           value={
                             customDates[`${item.eventId}-${item.index}`] ??
                             toDateTimeLocalValue(item.date)
                           }
-                          onChange={(event) =>
+                          onChange={(value) =>
                             setCustomDates((prev) => ({
                               ...prev,
-                              [`${item.eventId}-${item.index}`]: event.target.value,
+                              [`${item.eventId}-${item.index}`]: value,
                             }))
                           }
-                        />
-                        <AppButton
-                          size="sm"
-                          variant="primary"
-                          className="col-span-2 w-full rounded tablet:col-span-1 tablet:w-auto"
                           disabled={savingKey === `${item.eventId}-${item.index}`}
                           onClick={() => applyCustomDate(item.eventId, item.index)}
-                        >
-                          Применить
-                        </AppButton>
+                        />
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
+            </ModalSection>
           )
         })}
 
-        <div className="rounded-lg border border-gray-200 p-3">
-          <div className="text-sm font-semibold text-sky-700">
-            Мероприятия на 3 дня: {upcomingEvents.length}
-          </div>
+        <ModalSection
+          title="Мероприятия на 3 дня"
+          titleClassName="card-title"
+          titleRight={<StatusChip tone="upcoming">{upcomingEvents.length}</StatusChip>}
+        >
           {upcomingEvents.length === 0 ? (
             <div className="mt-2 text-sm text-gray-500">
               В ближайшие 3 дня мероприятий нет
@@ -309,21 +319,23 @@ const upcomingEventsOverviewFunc = () => {
                   <div className="text-xs text-gray-600">
                     {normalizeText(event?.description, 'Описание не указано')}
                   </div>
-                  <div className="mt-2">
-                    <AppButton
-                      size="sm"
-                      variant="secondary"
-                      className="w-full rounded tablet:w-auto"
-                      onClick={() => openEvent(event._id)}
-                    >
-                      Открыть мероприятие
-                    </AppButton>
-                  </div>
+                  <QuickActionButtons
+                    wrapperClassName="mt-2"
+                    actions={[
+                      {
+                        key: 'open-event',
+                        label: 'Открыть мероприятие',
+                        variant: 'secondary',
+                        className: 'w-full tablet:w-auto',
+                        onClick: () => openEvent(event._id),
+                      },
+                    ]}
+                  />
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </ModalSection>
       </div>
     )
   }

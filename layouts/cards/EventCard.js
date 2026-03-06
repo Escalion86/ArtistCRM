@@ -30,6 +30,7 @@ import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import CardOverlay from '@components/CardOverlay'
 import CardActions from '@components/CardActions'
 import CardWrapper from '@components/CardWrapper'
+import StatusChip from '@components/StatusChip'
 import { getSoonNoDepositEvents } from '@helpers/additionalEvents'
 import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getPersonFullName from '@helpers/getPersonFullName'
@@ -258,15 +259,16 @@ const EventCard = ({ eventId, style }) => {
     ? (nearestAdditionalEventInfo?.totalCount ?? 0)
     : (nearestAdditionalEventInfo?.remainingCount ?? 0)
 
-  const hiddenAdditionalCountClass = hasSoonNoDepositWarning
-    ? nearestAdditionalEventInfo?.isOverdue
-      ? 'border-red-300 bg-red-50 text-red-700'
-      : nearestAdditionalEventInfo?.isToday
-        ? 'border-amber-300 bg-amber-50 text-amber-700'
-        : nearestAdditionalEventInfo?.isTomorrow
-          ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-          : 'border-gray-300 bg-gray-50 text-gray-700'
-    : 'border-gray-300 bg-gray-50 text-gray-700'
+  const getAdditionalStatusTone = () => {
+    if (hasSoonNoDepositWarning || nearestAdditionalEventInfo?.isOverdue)
+      return 'overdue'
+    if (nearestAdditionalEventInfo?.isToday) return 'today'
+    if (nearestAdditionalEventInfo?.isTomorrow) return 'tomorrow'
+    if (nearestAdditionalEventInfo?.isLater) return 'upcoming'
+    return 'neutral'
+  }
+
+  const additionalStatusTone = getAdditionalStatusTone()
 
   if (!event) return null
 
@@ -275,7 +277,7 @@ const EventCard = ({ eventId, style }) => {
       style={style}
       outerClassName="px-2 py-1"
       onClick={() => !loading && modalsFunc.event?.view(event._id)}
-      className="laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg p-3"
+      className="event-card-shell card-body-pad laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg p-3"
     >
       <CardOverlay loading={loading} error={error} />
       <div className="flex items-center justify-between w-full gap-x-1">
@@ -329,7 +331,14 @@ const EventCard = ({ eventId, style }) => {
               title="Заявка"
             />
           )}
-          <div className="flex-1 text-lg font-semibold text-gray-900 truncate">
+          {!client && (
+            <FontAwesomeIcon
+              icon={faUserSlash}
+              className="w-4 h-4 text-red-500"
+              title="Клиент не указан"
+            />
+          )}
+          <div className="flex-1 mr-6 text-lg truncate card-title">
             {[eventTitle, servicesTitle].join(' • ')}
           </div>
           <CardActions className="z-10 -mt-1 -mr-3">
@@ -340,55 +349,45 @@ const EventCard = ({ eventId, style }) => {
               alwaysCompact
               calendarLink={calendarLink}
               onEdit={() => modalsFunc.event?.edit(event._id)}
+              onEditClientContacts={() =>
+                modalsFunc.event?.edit(event._id, {
+                  initialTab: 'Клиент и Контакты',
+                })
+              }
+              onEditFinanceDocs={() =>
+                modalsFunc.event?.edit(event._id, {
+                  initialTab: 'Финансы и Документы',
+                })
+              }
               showEditButton={!isClosed}
             />
           </CardActions>
         </div>
-        <div className="flex items-center gap-2">
-          {!client && (
-            <FontAwesomeIcon
-              icon={faUserSlash}
-              className="w-4 h-4 text-red-500"
-              title="Клиент не указан"
-            />
-          )}
-        </div>
       </div>
       <div className="flex gap-x-1 py-0.5">
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm text-gray-700">
-          <div className="font-semibold text-gray-800 text-general">
-            {eventDateLabel}
-          </div>
+        <div className="card-meta flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm">
+          <div className="card-title text-general">{eventDateLabel}</div>
           <div className="flex items-center h-6 gap-1 overflow-hidden">
             {hasSoonNoDepositWarning ? (
-              <div className="inline-flex max-w-full min-w-0 items-center rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+              <StatusChip tone="overdue">
                 <span className="truncate">Просрочен задаток</span>
-              </div>
+              </StatusChip>
             ) : nearestAdditionalEventInfo ? (
-              <div
-                className={
-                  nearestAdditionalEventInfo.isOverdue
-                    ? 'inline-flex max-w-full min-w-0 items-center rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700'
-                    : nearestAdditionalEventInfo.isToday
-                      ? 'inline-flex max-w-full min-w-0 items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700'
-                      : nearestAdditionalEventInfo.isTomorrow
-                        ? 'inline-flex max-w-full min-w-0 items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700'
-                        : 'inline-flex max-w-full min-w-0 items-center rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700'
-                }
-              >
+              <StatusChip tone={additionalStatusTone}>
                 <span className="truncate">{`${nearestAdditionalEventInfo.title}: ${nearestAdditionalEventInfo.label}`}</span>
-              </div>
+              </StatusChip>
             ) : null}
             {hiddenAdditionalCount > 0 ? (
-              <div
-                className={`inline-flex max-w-max shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${hiddenAdditionalCountClass}`}
+              <StatusChip
+                tone={additionalStatusTone}
+                className="max-w-max shrink-0"
               >
                 +{hiddenAdditionalCount}
-              </div>
+              </StatusChip>
             ) : null}
           </div>
           <div className="flex h-[25px] flex-nowrap items-center gap-x-3">
-            <span className="font-medium">Место:</span>
+            <span className="hidden font-medium phoneH:block">Место:</span>
             <span className="flex items-center min-w-0 gap-2 truncate">
               <span className="truncate">
                 {formatAddress(displayAddress, '-')}
@@ -413,22 +412,33 @@ const EventCard = ({ eventId, style }) => {
               )}
             </span>
           </div>
-          <div className="flex h-[25px] flex-nowrap items-center gap-x-3">
-            <span className="font-medium">Клиент:</span>
-            <span className="truncate">
+          <div className="flex min-h-[25px] flex-nowrap items-center gap-x-2">
+            <span className="hidden font-medium phoneH:block">Клиент:</span>
+            <span className="min-w-0 truncate">
               {client
                 ? getPersonFullName(client, { fallback: client._id })
                 : '-'}
             </span>
             {client && <ContactsIconsButtons user={client} />}
+            {isClosed || isCanceled ? (
+              <div
+                className={`event-profit-badge -mr-4 ml-auto flex min-w-[92px] shrink-0 items-center justify-center rounded-full border px-3 py-1.5 text-sm font-semibold ${
+                  net === 0 ? 'event-profit-card--zero' : 'event-profit-card'
+                }`}
+              >
+                <span
+                  className={
+                    net === 0 ? 'event-profit-text--zero' : 'event-profit-text'
+                  }
+                >
+                  {net.toLocaleString()}
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
 
-        {isClosed ? (
-          <div className="event-profit-card tablet:min-w-[120px] absolute right-0 bottom-0 flex min-w-[80px] items-center justify-end rounded-tl-xl px-3 py-2 text-sm font-semibold">
-            <span className="event-profit-text">{net.toLocaleString()}</span>
-          </div>
-        ) : (
+        {isClosed || isCanceled ? null : (
           <div className="laptop:min-w-[240px] laptop:self-start flex shrink-0 items-end">
             <div className="flex items-end justify-end gap-3 text-sm font-semibold">
               {paid > 0 && contractSum > 0 && paid >= contractSum ? (

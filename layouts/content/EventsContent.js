@@ -1,5 +1,4 @@
 'use client'
-/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { List, useListRef } from 'react-window'
@@ -15,7 +14,7 @@ import SectionCard from '@components/SectionCard'
 import eventsAtom from '@state/atoms/eventsAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 // import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
-import { useAtomValue } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { modalsFuncAtom, modalsAtom } from '@state/atoms'
 import EventCard from '@layouts/cards/EventCard'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
@@ -26,8 +25,9 @@ import {
   getSoonNoDepositEvents,
 } from '@helpers/additionalEvents'
 import AppButton from '@components/AppButton'
+import useUiDensity from '@helpers/useUiDensity'
+import { getData } from '@helpers/CRUD'
 
-const ITEM_HEIGHT = 170
 const getStatusFilterDefaults = (filter) => {
   if (filter === 'upcoming') {
     return {
@@ -83,8 +83,10 @@ const getEventStatusFlags = (event, now) => {
   }
 }
 
-const EventsContent = ({ filter = 'all' }) => {
+const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
+  const { isCompact } = useUiDensity()
   const events = useAtomValue(eventsAtom)
+  const setEvents = useSetAtom(eventsAtom)
   const transactions = useAtomValue(transactionsAtom)
   // const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -104,9 +106,27 @@ const EventsContent = ({ filter = 'all' }) => {
     getStatusFilterDefaults(filter)
   )
   const [additionalQuickFilter, setAdditionalQuickFilter] = useState('')
+  const [pastHasMore, setPastHasMore] = useState(false)
+  const [pastNextBefore, setPastNextBefore] = useState(null)
+  const [pastLoadingMore, setPastLoadingMore] = useState(false)
+  const [pastTotalCount, setPastTotalCount] = useState(0)
   const reminderShownRef = useRef(false)
   const noDepositReminderShownRef = useRef(false)
   const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
+  const itemHeight = isCompact ? 152 : 170
+
+  useEffect(() => {
+    if (filter !== 'past') {
+      setPastHasMore(false)
+      setPastNextBefore(null)
+      setPastLoadingMore(false)
+      setPastTotalCount(0)
+      return
+    }
+    setPastHasMore(Boolean(eventsPaging?.hasMore))
+    setPastNextBefore(eventsPaging?.nextBefore || null)
+    setPastTotalCount(Number(eventsPaging?.totalCount || 0))
+  }, [eventsPaging?.hasMore, eventsPaging?.nextBefore, eventsPaging?.totalCount, filter])
 
   const baseEvents = useMemo(() => {
     if (filter === 'all') return events
@@ -416,6 +436,21 @@ const EventsContent = ({ filter = 'all' }) => {
         ? 'Прошедшие'
         : 'Все'
 
+  const isDefaultPastFilters =
+    filter === 'past' &&
+    !selectedTown &&
+    !additionalQuickFilter &&
+    checkFilter.checked &&
+    checkFilter.unchecked &&
+    statusFilter.finished === true &&
+    statusFilter.closed === true &&
+    statusFilter.canceled === false
+
+  const displayedCount =
+    filter === 'past' && isDefaultPastFilters && pastTotalCount > 0
+      ? pastTotalCount
+      : sortedEvents.length
+
   const toggleAdditionalQuickFilter = (value) => {
     setAdditionalQuickFilter((prev) => (prev === value ? '' : value))
   }
@@ -424,17 +459,17 @@ const EventsContent = ({ filter = 'all' }) => {
     const isActive = additionalQuickFilter === segment
     if (segment === 'overdue') {
       return isActive
-        ? 'rounded border-red-700 bg-red-600 text-white hover:bg-red-700'
-        : 'rounded border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
+        ? 'rounded status-filter-btn--overdue-active hover:brightness-95'
+        : 'rounded status-filter-btn--overdue hover:brightness-95'
     }
     if (segment === 'today') {
       return isActive
-        ? 'rounded border-amber-700 bg-amber-500 text-white hover:bg-amber-600'
-        : 'rounded border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'
+        ? 'rounded status-filter-btn--today-active hover:brightness-95'
+        : 'rounded status-filter-btn--today hover:brightness-95'
     }
     return isActive
-      ? 'rounded border-emerald-700 bg-emerald-600 text-white hover:bg-emerald-700'
-      : 'rounded border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+      ? 'rounded status-filter-btn--tomorrow-active hover:brightness-95'
+      : 'rounded status-filter-btn--tomorrow hover:brightness-95'
   }
 
   useEffect(() => {
@@ -445,6 +480,65 @@ const EventsContent = ({ filter = 'all' }) => {
 
   const RowComponent = useCallback(
     ({ index, style }) => {
+      if (filter === 'past' && index >= sortedEvents.length) {
+        return (
+          <div
+            style={{ ...style, padding: '6px 8px' }}
+            className="flex items-center justify-center"
+          >
+            <AppButton
+              variant="secondary"
+              size="sm"
+              className="rounded-md px-4"
+              disabled={pastLoadingMore}
+              onClick={async () => {
+                if (pastLoadingMore || !pastHasMore) return
+                setPastLoadingMore(true)
+                try {
+                  const query = pastNextBefore
+                    ? `?scope=past&limit=120&before=${encodeURIComponent(pastNextBefore)}`
+                    : '?scope=past&limit=120'
+                  const response = await getData(
+                    `/api/events${query}`,
+                    null,
+                    null,
+                    null,
+                    true
+                  )
+                  const loadedItems = Array.isArray(response?.data)
+                    ? response.data
+                    : []
+                  const nextMeta = response?.meta ?? {}
+
+                  if (loadedItems.length > 0) {
+                    setEvents((prev) => {
+                      const prevIds = new Set(
+                        (prev ?? []).map((item) => String(item?._id))
+                      )
+                      const uniqueNew = loadedItems.filter(
+                        (item) => !prevIds.has(String(item?._id))
+                      )
+                      return uniqueNew.length > 0
+                        ? [...(prev ?? []), ...uniqueNew]
+                        : prev ?? []
+                    })
+                  }
+
+                  setPastHasMore(Boolean(nextMeta?.hasMore))
+                  setPastNextBefore(nextMeta?.nextBefore || null)
+                  setPastTotalCount(
+                    Number(nextMeta?.totalCount || loadedItems.length || 0)
+                  )
+                } finally {
+                  setPastLoadingMore(false)
+                }
+              }}
+            >
+              {pastLoadingMore ? 'Загрузка...' : 'Загрузить еще прошедшие'}
+            </AppButton>
+          </div>
+        )
+      }
       const event = sortedEvents[index]
 
       return (
@@ -454,7 +548,14 @@ const EventsContent = ({ filter = 'all' }) => {
         />
       )
     },
-    [sortedEvents]
+    [
+      filter,
+      pastHasMore,
+      pastLoadingMore,
+      pastNextBefore,
+      setEvents,
+      sortedEvents,
+    ]
   )
 
   return (
@@ -500,7 +601,7 @@ const EventsContent = ({ filter = 'all' }) => {
             <>
               <div className="flex items-center gap-2">
                 <MutedText>
-                  {filterName}: {sortedEvents.length}
+                  {filterName}: {displayedCount}
                 </MutedText>
                 <MutedText className="hidden tablet:inline">
                   Всего: {events.length}
@@ -580,8 +681,12 @@ const EventsContent = ({ filter = 'all' }) => {
         {sortedEvents.length > 0 ? (
           <List
             listRef={listRef}
-            rowCount={sortedEvents.length}
-            rowHeight={ITEM_HEIGHT}
+            rowCount={
+              filter === 'past' && pastHasMore
+                ? sortedEvents.length + 1
+                : sortedEvents.length
+            }
+            rowHeight={itemHeight}
             rowComponent={RowComponent}
             rowProps={{}}
             style={{ height: '100%', width: '100%' }}

@@ -13,8 +13,10 @@ import ProfileContent from './ProfileContent'
 import TariffsContent from './TariffsContent'
 import TariffSelectContent from './TariffSelectContent'
 
-const UpcomingEventsContent = () => <EventsContent filter="upcoming" />
-const PastEventsContent = () => <EventsContent filter="past" />
+const UpcomingEventsContent = (props) => (
+  <EventsContent filter="upcoming" {...props} />
+)
+const PastEventsContent = (props) => <EventsContent filter="past" {...props} />
 
 export const CONTENTS = Object.freeze({
   eventsUpcoming: {

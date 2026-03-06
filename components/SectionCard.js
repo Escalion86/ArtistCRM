@@ -4,7 +4,7 @@ const SectionCard = ({ as: Component = 'div', className, children, ...props }) =
   return (
     <Component
       className={cn(
-        'rounded-lg border border-gray-200 bg-white shadow-sm',
+        'ui-surface-card rounded-lg',
         className
       )}
       {...props}

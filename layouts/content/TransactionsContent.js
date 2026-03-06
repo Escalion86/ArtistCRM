@@ -20,10 +20,10 @@ import { deleteData } from '@helpers/CRUD'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
 import { setAtomValue } from '@state/storeHelpers'
-
-const ITEM_HEIGHT = 120
+import useUiDensity from '@helpers/useUiDensity'
 
 const TransactionsContent = () => {
+  const { isCompact } = useUiDensity()
   const transactions = useAtomValue(transactionsAtom)
   const setTransactions = useSetAtom(transactionsAtom)
   const clients = useAtomValue(clientsAtom)
@@ -33,6 +33,7 @@ const TransactionsContent = () => {
     income: true,
     expense: true,
   })
+  const itemHeight = isCompact ? 106 : 120
 
   const typeMap = useMemo(
     () =>
@@ -173,7 +174,7 @@ const TransactionsContent = () => {
         {filteredTransactions.length > 0 ? (
           <List
             rowCount={filteredTransactions.length}
-            rowHeight={ITEM_HEIGHT}
+            rowHeight={itemHeight}
             rowComponent={RowComponent}
             rowProps={{}}
                                     style={{ height: '100%', width: '100%' }}

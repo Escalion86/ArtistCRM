@@ -31,7 +31,7 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && onEdit?.()}
-      className="group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
+      className="card-body-pad group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
@@ -47,10 +47,10 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
       <div className="flex h-full w-full flex-col gap-3 pr-24">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-base font-semibold text-gray-900">
+            <div className="card-title text-base">
               {tariff.title || 'Без названия'}
             </div>
-            <div className="mt-1 text-sm text-gray-600">
+            <div className="card-muted mt-1 text-sm">
               {formatEventsLimit(tariff.eventsPerMonth)}
             </div>
           </div>
@@ -60,7 +60,7 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
             </span>
           )}
         </div>
-        <div className="grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
+        <div className="card-meta grid gap-2 text-sm sm:grid-cols-2">
           <IconCheckBox
             checked={tariff.allowCalendarSync}
             label="Синхронизация с календарем"
@@ -81,7 +81,7 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
           />
         </div>
       </div>
-      <div className="absolute right-4 bottom-4 text-lg font-semibold text-gray-900">
+      <div className="card-title absolute right-4 bottom-4 text-lg font-semibold">
         {formatPrice(tariff.price)}
       </div>
     </CardWrapper>

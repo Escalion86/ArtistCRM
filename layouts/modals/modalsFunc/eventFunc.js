@@ -34,6 +34,8 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import Input from '@components/Input'
 import ComboBox from '@components/ComboBox'
 import AppButton from '@components/AppButton'
+import QuickActionButtons from '@components/QuickActionButtons'
+import RequisitesWarning from '@components/RequisitesWarning'
 import AddressPicker from '@components/AddressPicker'
 import InputWrapper from '@components/InputWrapper'
 import LabeledContainer from '@components/LabeledContainer'
@@ -128,7 +130,13 @@ const arrayBufferToBase64 = (buffer) => {
   return window.btoa(binary)
 }
 
-const eventFunc = (eventId, clone = false, initialStatus = null) => {
+const eventFunc = (
+  eventId,
+  clone = false,
+  initialStatus = null,
+  options = {}
+) => {
+  const initialTab = options?.initialTab || 'Общие'
   const EventModal = ({
     closeModal,
     setOnConfirmFunc,
@@ -480,6 +488,24 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       [eventTransactions]
     )
     const canClose = contractSum <= incomeTotal && (!isByContract || hasTaxes)
+    const eventEndDateForStatus = useMemo(
+      () => dateEnd || eventDate || null,
+      [dateEnd, eventDate]
+    )
+    const isEventFinished = useMemo(() => {
+      if (!eventEndDateForStatus) return false
+      const endDate = new Date(eventEndDateForStatus)
+      if (Number.isNaN(endDate.getTime())) return false
+      return endDate.getTime() < Date.now()
+    }, [eventEndDateForStatus])
+    const canSetClosedStatus = !isDraft && isEventFinished && canClose
+    const isClosed = status === 'closed'
+    const formLockedClassName = isClosed ? 'pointer-events-none opacity-65' : ''
+    const closeStatusDisabledReason = !isEventFinished
+      ? 'Закрыть можно только после завершения мероприятия'
+      : !canClose
+        ? 'Закрыть можно только после всех поступлений и обязательных налогов'
+        : ''
 
     const missingFields = useMemo(() => {
       const fields = []
@@ -1193,32 +1219,25 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             <div className="mt-2 text-xs font-semibold text-gray-700">
               Быстрый заголовок
             </div>
-            <div className="flex flex-wrap gap-2">
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => setTitle('Узнать что решили')}
-              >
-                Узнать что решили
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => setTitle('Встреча')}
-              >
-                Встреча
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => setTitle('Жду задаток')}
-              >
-                Жду задаток
-              </AppButton>
-            </div>
+            <QuickActionButtons
+              actions={[
+                {
+                  key: 'title-follow-up',
+                  label: 'Узнать что решили',
+                  onClick: () => setTitle('Узнать что решили'),
+                },
+                {
+                  key: 'title-meeting',
+                  label: 'Встреча',
+                  onClick: () => setTitle('Встреча'),
+                },
+                {
+                  key: 'title-deposit',
+                  label: 'Жду задаток',
+                  onClick: () => setTitle('Жду задаток'),
+                },
+              ]}
+            />
             <Input
               label="Заголовок"
               value={title}
@@ -1229,56 +1248,40 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             <div className="text-xs font-semibold text-gray-700">
               Быстрая дата и время
             </div>
-            <div className="flex flex-wrap gap-2">
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetTime(11, 0)}
-              >
-                11:00
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetTime(19, 0)}
-              >
-                19:00
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetDateFromToday(0)}
-              >
-                Сегодня
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetDateFromToday(1)}
-              >
-                Завтра
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetDateFromToday(3)}
-              >
-                Через 2 дня
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetDateFromToday(7)}
-              >
-                Через неделю
-              </AppButton>
-            </div>
+            <QuickActionButtons
+              actions={[
+                {
+                  key: 'time-11',
+                  label: '11:00',
+                  onClick: () => applyPresetTime(11, 0),
+                },
+                {
+                  key: 'time-19',
+                  label: '19:00',
+                  onClick: () => applyPresetTime(19, 0),
+                },
+                {
+                  key: 'date-today',
+                  label: 'Сегодня',
+                  onClick: () => applyPresetDateFromToday(0),
+                },
+                {
+                  key: 'date-tomorrow',
+                  label: 'Завтра',
+                  onClick: () => applyPresetDateFromToday(1),
+                },
+                {
+                  key: 'date-plus-2',
+                  label: 'Через 2 дня',
+                  onClick: () => applyPresetDateFromToday(3),
+                },
+                {
+                  key: 'date-plus-7',
+                  label: 'Через неделю',
+                  onClick: () => applyPresetDateFromToday(7),
+                },
+              ]}
+            />
             <DateTimePicker
               value={date ?? null}
               onChange={(value) => setDate(value ?? null)}
@@ -1435,54 +1438,22 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           hasRequiredArtistRequisites(liveSiteSettings)
         const hasClientRequisites =
           hasRequiredClientRequisites(liveSelectedClient)
-        const showRequisitesWarning =
-          !hasArtistRequisites || !hasClientRequisites
 
         return (
           <div className="flex flex-col gap-2">
-            {showRequisitesWarning ? (
-              <div className="flex flex-col gap-2 px-3 py-2 border border-red-200 rounded bg-red-50/80">
-                {!hasArtistRequisites ? (
-                  <div className="text-xs text-red-700">
-                    Необходимо заполнить реквизиты артиста
-                  </div>
-                ) : null}
-                {!hasClientRequisites ? (
-                  <div className="text-xs text-red-700">
-                    Необходимо заполнить реквизиты в карточке клиента
-                  </div>
-                ) : null}
-                <div className="flex flex-wrap items-center gap-2">
-                  {!hasArtistRequisites ? (
-                    <AppButton
-                      variant="danger"
-                      size="sm"
-                      className="rounded"
-                      onClick={() =>
-                        modalsFunc.settings?.artistRequisitesEditor?.()
-                      }
-                    >
-                      Редактировать реквизиты
-                    </AppButton>
-                  ) : null}
-                  {!hasClientRequisites ? (
-                    <AppButton
-                      variant="danger"
-                      size="sm"
-                      className="rounded"
-                      disabled={!liveSelectedClient?._id}
-                      onClick={() =>
-                        liveSelectedClient?._id
-                          ? modalsFunc.client?.edit(liveSelectedClient._id)
-                          : null
-                      }
-                    >
-                      Редактировать клиента
-                    </AppButton>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
+            <RequisitesWarning
+              missingArtistRequisites={!hasArtistRequisites}
+              missingClientRequisites={!hasClientRequisites}
+              canEditClient={Boolean(liveSelectedClient?._id)}
+              onEditArtistRequisites={() =>
+                modalsFunc.settings?.artistRequisitesEditor?.()
+              }
+              onEditClient={() =>
+                liveSelectedClient?._id
+                  ? modalsFunc.client?.edit(liveSelectedClient._id)
+                  : null
+              }
+            />
             <div className="flex items-end justify-between gap-2">
               <div className="mt-1.5 flex items-end gap-2">
                 <Input
@@ -1606,54 +1577,22 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           hasRequiredArtistRequisites(liveSiteSettings)
         const hasClientRequisites =
           hasRequiredClientRequisites(liveSelectedClient)
-        const showRequisitesWarning =
-          !hasArtistRequisites || !hasClientRequisites
 
         return (
           <div className="flex flex-col gap-2">
-            {showRequisitesWarning ? (
-              <div className="flex flex-col gap-2 px-3 py-2 border border-red-200 rounded bg-red-50/80">
-                {!hasArtistRequisites ? (
-                  <div className="text-xs text-red-700">
-                    Необходимо заполнить реквизиты артиста
-                  </div>
-                ) : null}
-                {!hasClientRequisites ? (
-                  <div className="text-xs text-red-700">
-                    Необходимо заполнить реквизиты в карточке клиента
-                  </div>
-                ) : null}
-                <div className="flex flex-wrap items-center gap-2">
-                  {!hasArtistRequisites ? (
-                    <AppButton
-                      variant="danger"
-                      size="sm"
-                      className="rounded"
-                      onClick={() =>
-                        modalsFunc.settings?.artistRequisitesEditor?.()
-                      }
-                    >
-                      Редактировать реквизиты
-                    </AppButton>
-                  ) : null}
-                  {!hasClientRequisites ? (
-                    <AppButton
-                      variant="danger"
-                      size="sm"
-                      className="rounded"
-                      disabled={!liveSelectedClient?._id}
-                      onClick={() =>
-                        liveSelectedClient?._id
-                          ? modalsFunc.client?.edit(liveSelectedClient._id)
-                          : null
-                      }
-                    >
-                      Редактировать клиента
-                    </AppButton>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
+            <RequisitesWarning
+              missingArtistRequisites={!hasArtistRequisites}
+              missingClientRequisites={!hasClientRequisites}
+              canEditClient={Boolean(liveSelectedClient?._id)}
+              onEditArtistRequisites={() =>
+                modalsFunc.settings?.artistRequisitesEditor?.()
+              }
+              onEditClient={() =>
+                liveSelectedClient?._id
+                  ? modalsFunc.client?.edit(liveSelectedClient._id)
+                  : null
+              }
+            />
             <div className="flex items-end justify-between gap-2">
               <div className="mt-1.5 flex items-end gap-2">
                 <Input
@@ -1714,47 +1653,68 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
 
     return (
       <TabContext
-        value="Общие"
+        value={initialTab}
         variant="fullWidth"
         scrollButtons={false}
         allowScrollButtonsMobile={false}
       >
         <TabPanel tabName="Общие">
           <FormWrapper>
-            {!eventId && (
-              <InputWrapper label="Тип" paddingY fitWidth>
+            <InputWrapper label="Статус" paddingY fitWidth>
+              <div className="flex w-full flex-col">
                 <div className="flex flex-wrap gap-2">
                   {[
                     { value: 'draft', label: 'Заявка' },
                     { value: 'active', label: 'Мероприятие' },
+                    { value: 'canceled', label: 'Отменено' },
+                    { value: 'closed', label: 'Закрыто' },
                   ].map((item) => {
                     const isActive = status === item.value
+                    const isClosedOption = item.value === 'closed'
+                    const disabled =
+                      isClosedOption && !canSetClosedStatus && !isClosed
                     return (
                       <button
                         key={item.value}
                         type="button"
+                        disabled={disabled}
+                        title={disabled ? closeStatusDisabledReason : ''}
                         className={`focus-visible:ring-general inline-flex min-h-[32px] items-center rounded border px-3 py-1 text-sm font-medium transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none ${getEventStatusButtonClasses(
                           item.value,
                           isActive
-                        )} ${isActive ? 'shadow' : 'shadow-sm'} cursor-pointer`}
-                        onClick={() => setStatus(item.value)}
+                        )} ${isActive ? 'shadow' : 'shadow-sm'} ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                        onClick={() => {
+                          if (disabled) return
+                          setStatus(item.value)
+                        }}
                       >
                         {item.label}
                       </button>
                     )
                   })}
                 </div>
-              </InputWrapper>
-            )}
-            <ServiceMultiSelect
-              value={servicesIds}
-              onChange={setServicesIds}
-              onCreate={openServiceCreateModal}
-              error={errors.servicesIds}
-              required
-              onClearError={() => removeError('servicesIds')}
-            />
-            <div className="flex items-end mt-4 gap-x-1">
+                {status !== 'closed' && !canSetClosedStatus ? (
+                  <div className="mt-2 text-xs text-amber-700">
+                    {closeStatusDisabledReason}
+                  </div>
+                ) : null}
+                {isClosed ? (
+                  <div className="mt-2 text-xs text-red-700">
+                    Статус «Закрыто»: редактирование полей мероприятия недоступно.
+                  </div>
+                ) : null}
+              </div>
+            </InputWrapper>
+            <div className={formLockedClassName}>
+              <ServiceMultiSelect
+                value={servicesIds}
+                onChange={setServicesIds}
+                onCreate={openServiceCreateModal}
+                error={errors.servicesIds}
+                required
+                onClearError={() => removeError('servicesIds')}
+              />
+              <div className="flex items-end mt-4 gap-x-1">
               <ComboBox
                 label="Что за событие?"
                 items={eventTypeOptions}
@@ -1859,147 +1819,150 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               label="Дата заявки"
             />
             <ErrorsList errors={errors} />
+            </div>
           </FormWrapper>
         </TabPanel>
 
         <TabPanel tabName="Клиент и Контакты">
           <FormWrapper>
-            <ClientPicker
-              selectedClient={selectedClient}
-              selectedClientId={clientId}
-              onSelectClick={openClientSelectModal}
-              onViewClick={() => modalsFunc.client?.view(clientId)}
-              onCreateClick={() =>
-                modalsFunc.client?.add((newClient) => {
-                  if (!newClient?._id) return
-                  setClientId(newClient._id)
-                  removeError('clientId')
-                })
-              }
-              label="Клиент"
-              required
-              error={errors.clientId}
-              paddingY
-              fullWidth
-              compact
-            />
-            <OtherContactsPicker
-              contacts={otherContacts}
-              clients={clients}
-              onSelectContact={handleOtherContactSelect}
-              onChangeComment={handleOtherContactCommentChange}
-              onRemoveContact={handleOtherContactRemove}
-              onEditContact={(index) => {
-                const contact = otherContacts[index]
-                if (contact?.clientId) modalsFunc.client?.edit(contact.clientId)
-              }}
-              onAddContact={handleOtherContactAdd}
-            />
-            <LabeledContainer label="Доп. события">
-              <div className="flex flex-col w-full gap-2">
-                <div className="flex justify-end w-full">
-                  <AddIconButton
-                    onClick={() => handleAdditionalEventAdd()}
-                    title="Добавить событие"
-                    size="sm"
-                  />
-                </div>
-                {hasDoneAdditionalEvents ? (
-                  <IconCheckBox
-                    checked={showDoneAdditionalEvents}
-                    onClick={() => setShowDoneAdditionalEvents((prev) => !prev)}
-                    label="Показывать выполненные"
-                    checkedIcon={faCircleCheck}
-                    checkedIconColor="#16A34A"
-                    noMargin
-                  />
-                ) : null}
-
-                {additionalEvents.length ===
-                0 ? null : filteredAdditionalEvents.length === 0 ? (
-                  <div className="text-sm text-gray-500">
-                    Нет событий для выбранного фильтра
+            <div className={formLockedClassName}>
+              <ClientPicker
+                selectedClient={selectedClient}
+                selectedClientId={clientId}
+                onSelectClick={openClientSelectModal}
+                onViewClick={() => modalsFunc.client?.view(clientId)}
+                onCreateClick={() =>
+                  modalsFunc.client?.add((newClient) => {
+                    if (!newClient?._id) return
+                    setClientId(newClient._id)
+                    removeError('clientId')
+                  })
+                }
+                label="Клиент"
+                required
+                error={errors.clientId}
+                paddingY
+                fullWidth
+                compact
+              />
+              <OtherContactsPicker
+                contacts={otherContacts}
+                clients={clients}
+                onSelectContact={handleOtherContactSelect}
+                onChangeComment={handleOtherContactCommentChange}
+                onRemoveContact={handleOtherContactRemove}
+                onEditContact={(index) => {
+                  const contact = otherContacts[index]
+                  if (contact?.clientId) modalsFunc.client?.edit(contact.clientId)
+                }}
+                onAddContact={handleOtherContactAdd}
+              />
+              <LabeledContainer label="Доп. события">
+                <div className="flex flex-col w-full gap-2">
+                  <div className="flex justify-end w-full">
+                    <AddIconButton
+                      onClick={() => handleAdditionalEventAdd()}
+                      title="Добавить событие"
+                      size="sm"
+                    />
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
-                    {filteredAdditionalEvents.map(({ item, index }) => (
-                      <div
-                        key={`additional-event-${index}`}
-                        className={`w-full rounded border p-2 ${
-                          item?.done
-                            ? 'border-emerald-200 bg-emerald-50/70'
-                            : 'border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div
-                              className={`truncate text-sm font-semibold ${
-                                item?.done
-                                  ? 'text-emerald-700'
-                                  : 'text-gray-900'
-                              }`}
-                            >
-                              {item?.done ? '✓ ' : ''}
-                              {item?.title || `Событие #${index + 1}`}
-                            </div>
-                            <div className="text-xs text-gray-600">
-                              {item?.date
-                                ? new Date(item.date).toLocaleString('ru-RU', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
-                                : 'Дата не указана'}
-                            </div>
-                            {item?.description ? (
-                              <div className="text-xs text-gray-700">
-                                {item.description}
+                  {hasDoneAdditionalEvents ? (
+                    <IconCheckBox
+                      checked={showDoneAdditionalEvents}
+                      onClick={() => setShowDoneAdditionalEvents((prev) => !prev)}
+                      label="Показывать выполненные"
+                      checkedIcon={faCircleCheck}
+                      checkedIconColor="#16A34A"
+                      noMargin
+                    />
+                  ) : null}
+
+                  {additionalEvents.length ===
+                  0 ? null : filteredAdditionalEvents.length === 0 ? (
+                    <div className="text-sm text-gray-500">
+                      Нет событий для выбранного фильтра
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
+                      {filteredAdditionalEvents.map(({ item, index }) => (
+                        <div
+                          key={`additional-event-${index}`}
+                          className={`w-full rounded border p-2 ${
+                            item?.done
+                              ? 'border-emerald-200 bg-emerald-50/70'
+                              : 'border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div
+                                className={`truncate text-sm font-semibold ${
+                                  item?.done
+                                    ? 'text-emerald-700'
+                                    : 'text-gray-900'
+                                }`}
+                              >
+                                {item?.done ? '✓ ' : ''}
+                                {item?.title || `Событие #${index + 1}`}
                               </div>
-                            ) : null}
-                          </div>
-                          <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
-                            <AppButton
-                              variant={item?.done ? 'secondary' : 'primary'}
-                              size="sm"
-                              className="rounded tablet:w-auto"
-                              onClick={() =>
-                                handleAdditionalEventToggleDone(index)
-                              }
-                            >
-                              {item?.done ? 'Вернуть' : 'Сделано'}
-                            </AppButton>
-                            <IconActionButton
-                              icon={faPencilAlt}
-                              onClick={() => handleAdditionalEventEdit(index)}
-                              title="Редактировать событие"
-                              variant="warning"
-                              size="xs"
-                              className="min-h-8 min-w-8"
-                            />
-                            <IconActionButton
-                              icon={faTrashAlt}
-                              onClick={() => handleAdditionalEventRemove(index)}
-                              title="Удалить событие"
-                              variant="danger"
-                              size="xs"
-                              className="min-h-8 min-w-8"
-                            />
+                              <div className="text-xs text-gray-600">
+                                {item?.date
+                                  ? new Date(item.date).toLocaleString('ru-RU', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })
+                                  : 'Дата не указана'}
+                              </div>
+                              {item?.description ? (
+                                <div className="text-xs text-gray-700">
+                                  {item.description}
+                                </div>
+                              ) : null}
+                            </div>
+                            <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
+                              <AppButton
+                                variant={item?.done ? 'secondary' : 'primary'}
+                                size="sm"
+                                className="rounded tablet:w-auto"
+                                onClick={() =>
+                                  handleAdditionalEventToggleDone(index)
+                                }
+                              >
+                                {item?.done ? 'Вернуть' : 'Сделано'}
+                              </AppButton>
+                              <IconActionButton
+                                icon={faPencilAlt}
+                                onClick={() => handleAdditionalEventEdit(index)}
+                                title="Редактировать событие"
+                                variant="warning"
+                                size="xs"
+                                className="min-h-8 min-w-8"
+                              />
+                              <IconActionButton
+                                icon={faTrashAlt}
+                                onClick={() => handleAdditionalEventRemove(index)}
+                                title="Удалить событие"
+                                variant="danger"
+                                size="xs"
+                                className="min-h-8 min-w-8"
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </LabeledContainer>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </LabeledContainer>
+            </div>
           </FormWrapper>
         </TabPanel>
 
         <TabPanel tabName="Финансы и Документы">
-          <div className="flex flex-col gap-2">
+          <div className={`flex flex-col gap-2 ${formLockedClassName}`}>
             <Input
               label="Договорная сумма"
               type="number"

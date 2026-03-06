@@ -12,12 +12,13 @@ import ServiceCard from '@layouts/cards/ServiceCard'
 import servicesAtom from '@state/atoms/servicesAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useAtomValue } from 'jotai'
-
-const ITEM_HEIGHT = 160
+import useUiDensity from '@helpers/useUiDensity'
 
 const ServicesContent = () => {
+  const { isCompact } = useUiDensity()
   const services = useAtomValue(servicesAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const itemHeight = isCompact ? 138 : 160
 
   const sortedServices = useMemo(
     () =>
@@ -58,7 +59,7 @@ const ServicesContent = () => {
         {sortedServices.length > 0 ? (
           <List
             rowCount={sortedServices.length}
-            rowHeight={ITEM_HEIGHT}
+            rowHeight={itemHeight}
             rowComponent={RowComponent}
             rowProps={{}}
                                     style={{ height: '100%', width: '100%' }}
