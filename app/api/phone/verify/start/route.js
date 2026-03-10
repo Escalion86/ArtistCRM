@@ -37,7 +37,7 @@ export const POST = async (req) => {
   await dbConnect()
 
   const user = await findUserByPhone(phone)
-  if (flow === 'register' && user) {
+  if (flow === 'register' && user?.password) {
     return NextResponse.json(
       safeApiError('PHONE_ALREADY_USED', 'Пользователь с таким номером уже существует', 'phone'),
       { status: 409 }
