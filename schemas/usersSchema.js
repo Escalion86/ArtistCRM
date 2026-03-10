@@ -100,7 +100,7 @@ const usersSchema = {
   },
   vkId: {
     type: String,
-    default: '',
+    default: undefined,
   },
   tariffId: {
     type: Schema.Types.ObjectId,

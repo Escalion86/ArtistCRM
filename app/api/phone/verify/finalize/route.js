@@ -15,6 +15,15 @@ import {
 const isExpired = (expiresAt) =>
   !expiresAt || new Date(expiresAt).getTime() <= Date.now()
 
+const getDuplicateKeyField = (error) => {
+  if (!error || error.code !== 11000) return ''
+  const keyValueField = Object.keys(error?.keyValue || {})[0]
+  if (keyValueField) return keyValueField
+  const keyPatternField = Object.keys(error?.keyPattern || {})[0]
+  if (keyPatternField) return keyPatternField
+  return ''
+}
+
 const createRegisterUser = async (
   phone,
   hashedPassword,
@@ -156,11 +165,33 @@ export const POST = async (req) => {
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error) {
     if (error?.code === 11000) {
+      const duplicateField = getDuplicateKeyField(error)
+      if (duplicateField === 'phone') {
+        return NextResponse.json(
+          safeApiError(
+            'PHONE_ALREADY_USED',
+            'Пользователь с таким номером уже существует',
+            'phone'
+          ),
+          { status: 409 }
+        )
+      }
+
+      if (duplicateField === 'vkId') {
+        return NextResponse.json(
+          safeApiError(
+            'VK_ID_ALREADY_USED',
+            'Конфликт уникальности VK ID при создании аккаунта. Обратитесь в поддержку.',
+            'vkId'
+          ),
+          { status: 409 }
+        )
+      }
+
       return NextResponse.json(
         safeApiError(
-          'PHONE_ALREADY_USED',
-          'Пользователь с таким номером уже существует',
-          'phone'
+          'DUPLICATE_CONSTRAINT',
+          'Обнаружен конфликт уникальности данных при регистрации'
         ),
         { status: 409 }
       )
