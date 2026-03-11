@@ -79,15 +79,15 @@ const MenuItem = ({ item, active = false, badge }) => {
       )}
     >
       <div className={cn('flex w-full items-center gap-x-2 px-3 py-1')}>
-        <FontAwesomeIcon icon={item.icon} className="w-5 h-5 min-w-5" />
+        <FontAwesomeIcon icon={item.icon} className="h-5 w-5 min-w-5" />
         <span className={'text-sm font-medium whitespace-nowrap'}>
           {item.name}
         </span>
         {item.num !== null && (
-          <span className="text-xs font-semibold text-general">{item.num}</span>
+          <span className="text-general text-xs font-semibold">{item.num}</span>
         )}
         {typeof badge === 'number' && badge > 0 && (
-          <div className="flex items-center justify-center w-5 h-5 text-xs text-white rounded-full bg-danger min-h-5 min-w-5">
+          <div className="bg-danger flex h-5 min-h-5 w-5 min-w-5 items-center justify-center rounded-full text-xs text-white">
             {badge <= 99 ? badge : '!'}
           </div>
         )}
@@ -115,7 +115,7 @@ const Menu = ({ menuCfg, activePage }) => {
     item.items.find((item) => item.href === activePage)
   )
   return (
-    <nav className="flex flex-col w-full h-full px-2 py-3 mt-1 gap-y-2">
+    <nav className="mt-1 flex h-full w-full flex-col gap-y-2 px-2 py-3">
       {menuCfg &&
         menuCfg.length > 0 &&
         menuCfg
@@ -139,9 +139,8 @@ const Menu = ({ menuCfg, activePage }) => {
                 <div
                   className={cn(
                     'group rounded-lg duration-300',
-                    groupIsActive
-                      ? 'text-general bg-white'
-                      : 'hover:text-general text-white hover:bg-white'
+                    groupIsActive ? 'text-general bg-white' : 'text-white'
+                    // : 'hover:text-general text-white hover:bg-white'
                   )}
                   key={'groupMenu' + index}
                 >
@@ -173,7 +172,7 @@ const Menu = ({ menuCfg, activePage }) => {
                             </div>
                           )} */}
                       </div>
-                      <h3 className="flex-1 ml-3 font-semibold tracking-wide text-left uppercase whitespace-nowrap">
+                      <h3 className="ml-3 flex-1 text-left font-semibold tracking-wide whitespace-nowrap uppercase">
                         {item.items[0].name}
                       </h3>
                     </Link>
@@ -207,7 +206,7 @@ const Menu = ({ menuCfg, activePage }) => {
                             </div>
                           )} */}
                       </div>
-                      <h3 className="flex-1 ml-3 font-semibold tracking-wide text-left uppercase whitespace-nowrap">
+                      <h3 className="ml-3 flex-1 text-left font-semibold tracking-wide whitespace-nowrap uppercase">
                         {item.name}
                       </h3>
                       <div
@@ -224,7 +223,7 @@ const Menu = ({ menuCfg, activePage }) => {
                       variants={variants}
                       initial="hide"
                       animate={openedMenuIndex === index ? 'show' : 'hide'}
-                      className="ml-3 mr-2 overflow-hidden"
+                      className="mr-2 ml-3 overflow-hidden"
                     >
                       {item.items.map((subitem, index) => (
                         <MenuItem
@@ -341,7 +340,7 @@ const SideBar = ({ page }) => {
         initial={'min'}
         layout
       >
-        <div className="flex flex-col w-full overflow-x-hidden">
+        <div className="flex w-full flex-col overflow-x-hidden">
           <Menu menuCfg={menuCfg(role)} activePage={page} />
         </div>
       </motion.div>
@@ -361,12 +360,12 @@ const SideBar = ({ page }) => {
           {scrollPos > 0 && (
             <div
               onClick={() => handleScrollPosition(-120)}
-              className="absolute top-0 left-0 right-0 z-50 w-full h-10 border-t cursor-pointer sidebar-bg rounded-b-2xl"
+              className="sidebar-bg absolute top-0 right-0 left-0 z-50 h-10 w-full cursor-pointer rounded-b-2xl border-t"
             >
-              <div className="flex items-center justify-center w-full h-full border-b border-white rounded-2xl">
+              <div className="flex h-full w-full items-center justify-center rounded-2xl border-b border-white">
                 <FontAwesomeIcon
                   icon={faAngleUp}
-                  className="w-6 h-6 text-white"
+                  className="h-6 w-6 text-white"
                 />
               </div>
             </div>
@@ -376,12 +375,12 @@ const SideBar = ({ page }) => {
             scrollPos && (
             <div
               onClick={() => handleScrollPosition(120)}
-              className="absolute bottom-0 left-0 right-0 z-50 w-full h-10 border-b cursor-pointer sidebar-bg rounded-t-2xl"
+              className="sidebar-bg absolute right-0 bottom-0 left-0 z-50 h-10 w-full cursor-pointer rounded-t-2xl border-b"
             >
-              <div className="flex items-center justify-center w-full h-full border-t border-white rounded-2xl">
+              <div className="flex h-full w-full items-center justify-center rounded-2xl border-t border-white">
                 <FontAwesomeIcon
                   icon={faAngleDown}
-                  className="w-6 h-6 text-white"
+                  className="h-6 w-6 text-white"
                 />
               </div>
             </div>
@@ -393,4 +392,3 @@ const SideBar = ({ page }) => {
 }
 
 export default SideBar
-
