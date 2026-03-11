@@ -27,6 +27,43 @@ const parsePositiveInt = (value, fallback) => {
   return Math.floor(n)
 }
 
+const parseBooleanParam = (value) => {
+  if (value === '1' || value === 'true') return true
+  if (value === '0' || value === 'false') return false
+  return null
+}
+
+const getPastAdditionalEventsMatch = (segment, now) => {
+  if (!segment) return null
+
+  const startOfToday = new Date(now)
+  startOfToday.setHours(0, 0, 0, 0)
+  const startOfTomorrow = new Date(startOfToday)
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
+  const startOfDayAfterTomorrow = new Date(startOfTomorrow)
+  startOfDayAfterTomorrow.setDate(startOfDayAfterTomorrow.getDate() + 1)
+
+  if (segment === 'overdue') {
+    return {
+      done: { $ne: true },
+      date: { $lt: now },
+    }
+  }
+  if (segment === 'today') {
+    return {
+      done: { $ne: true },
+      date: { $gte: startOfToday, $lt: startOfTomorrow },
+    }
+  }
+  if (segment === 'tomorrow') {
+    return {
+      done: { $ne: true },
+      date: { $gte: startOfTomorrow, $lt: startOfDayAfterTomorrow },
+    }
+  }
+  return null
+}
+
 export const GET = async (req) => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) {
@@ -40,6 +77,7 @@ export const GET = async (req) => {
   const scope = searchParams.get('scope') || 'all'
   const before = searchParams.get('before')
   const limit = parsePositiveInt(searchParams.get('limit'), 120)
+  const countOnly = searchParams.get('countOnly') === '1'
 
   if (scope === 'past') {
     const startOfToday = new Date()
@@ -49,6 +87,85 @@ export const GET = async (req) => {
       tenantId,
       eventDate: { $lt: startOfToday },
     }
+    const town = (searchParams.get('town') || '').trim()
+    if (town) baseQuery['address.town'] = town
+
+    const calendarChecked = parseBooleanParam(searchParams.get('calendarChecked'))
+    if (calendarChecked !== null) {
+      baseQuery.calendarImportChecked = calendarChecked
+    }
+
+    const statusFinished = parseBooleanParam(
+      searchParams.get('statusFinished')
+    )
+    const statusClosed = parseBooleanParam(searchParams.get('statusClosed'))
+    const statusCanceled = parseBooleanParam(searchParams.get('statusCanceled'))
+
+    if (
+      statusFinished !== null ||
+      statusClosed !== null ||
+      statusCanceled !== null
+    ) {
+      const statusConditions = []
+      if (statusClosed === true) statusConditions.push({ status: 'closed' })
+      if (statusCanceled === true) statusConditions.push({ status: 'canceled' })
+      if (statusFinished === true) {
+        statusConditions.push({
+          $or: [
+            { status: { $exists: false } },
+            { status: null },
+            { status: { $nin: ['draft', 'closed', 'canceled'] } },
+          ],
+        })
+      }
+
+      if (statusConditions.length === 0) {
+        return NextResponse.json(
+          {
+            success: true,
+            data: [],
+            meta: {
+              hasMore: false,
+              nextBefore: null,
+              limit,
+              scope: 'past',
+              totalCount: 0,
+            },
+          },
+          { status: 200 }
+        )
+      }
+
+      baseQuery.$or = statusConditions
+    }
+
+    const additionalQuick = searchParams.get('additionalQuick')
+    const additionalEventsMatch = getPastAdditionalEventsMatch(
+      additionalQuick,
+      new Date()
+    )
+    if (additionalEventsMatch) {
+      baseQuery.additionalEvents = { $elemMatch: additionalEventsMatch }
+    }
+
+    if (countOnly) {
+      const totalCount = await Events.countDocuments(baseQuery)
+      return NextResponse.json(
+        {
+          success: true,
+          data: [],
+          meta: {
+            hasMore: false,
+            nextBefore: null,
+            limit: 0,
+            scope: 'past',
+            totalCount,
+          },
+        },
+        { status: 200 }
+      )
+    }
+
     const query = {
       ...baseQuery,
       eventDate: { ...baseQuery.eventDate },

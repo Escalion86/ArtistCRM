@@ -58,6 +58,12 @@ const getStatusFilterKeys = (filter) => {
   return ['request', 'active', 'finished', 'closed', 'canceled']
 }
 
+const parseBooleanSearchParam = (value) => {
+  if (value === '1' || value === 'true') return true
+  if (value === '0' || value === 'false') return false
+  return null
+}
+
 const getEventStatusFlags = (event, now) => {
   const status = event?.status
   const isRequest = status === 'draft'
@@ -110,6 +116,8 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const [pastNextBefore, setPastNextBefore] = useState(null)
   const [pastLoadingMore, setPastLoadingMore] = useState(false)
   const [pastTotalCount, setPastTotalCount] = useState(0)
+  const [serverFilteredCount, setServerFilteredCount] = useState(null)
+  const [pastActiveClosableCount, setPastActiveClosableCount] = useState(0)
   const reminderShownRef = useRef(false)
   const noDepositReminderShownRef = useRef(false)
   const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
@@ -121,12 +129,18 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       setPastNextBefore(null)
       setPastLoadingMore(false)
       setPastTotalCount(0)
+      setServerFilteredCount(null)
       return
     }
     setPastHasMore(Boolean(eventsPaging?.hasMore))
     setPastNextBefore(eventsPaging?.nextBefore || null)
     setPastTotalCount(Number(eventsPaging?.totalCount || 0))
-  }, [eventsPaging?.hasMore, eventsPaging?.nextBefore, eventsPaging?.totalCount, filter])
+  }, [
+    eventsPaging?.hasMore,
+    eventsPaging?.nextBefore,
+    eventsPaging?.totalCount,
+    filter,
+  ])
 
   const baseEvents = useMemo(() => {
     if (filter === 'all') return events
@@ -184,6 +198,43 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     setStatusFilter(getStatusFilterDefaults(filter))
     setAdditionalQuickFilter('')
   }, [filter])
+
+  useEffect(() => {
+    if (filter !== 'past') return
+
+    const finishedParam = parseBooleanSearchParam(
+      searchParams?.get('statusFinished')
+    )
+    const closedParam = parseBooleanSearchParam(
+      searchParams?.get('statusClosed')
+    )
+    const canceledParam = parseBooleanSearchParam(
+      searchParams?.get('statusCanceled')
+    )
+
+    if (
+      finishedParam === null &&
+      closedParam === null &&
+      canceledParam === null
+    ) {
+      return
+    }
+
+    setStatusFilter({
+      finished:
+        finishedParam === null
+          ? getStatusFilterDefaults('past').finished
+          : finishedParam,
+      closed:
+        closedParam === null
+          ? getStatusFilterDefaults('past').closed
+          : closedParam,
+      canceled:
+        canceledParam === null
+          ? getStatusFilterDefaults('past').canceled
+          : canceledParam,
+    })
+  }, [filter, searchParams])
 
   const filteredByCheck = useMemo(() => {
     if (checkFilter.checked && checkFilter.unchecked) return filteredEvents
@@ -429,6 +480,34 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     })
   }, [filter, modals.length, modalsFunc, soonNoDepositEvents])
 
+  useEffect(() => {
+    if (filter !== 'upcoming') return
+
+    let isActive = true
+
+    ;(async () => {
+      try {
+        const response = await getData(
+          '/api/events?scope=past&countOnly=1&statusFinished=true&statusClosed=false&statusCanceled=false',
+          null,
+          null,
+          null,
+          true
+        )
+        const totalCount = Number(response?.meta?.totalCount)
+        if (!isActive) return
+        setPastActiveClosableCount(Number.isFinite(totalCount) ? totalCount : 0)
+      } catch (error) {
+        if (!isActive) return
+        setPastActiveClosableCount(0)
+      }
+    })()
+
+    return () => {
+      isActive = false
+    }
+  }, [filter])
+
   const filterName =
     filter === 'upcoming'
       ? 'Предстоящие'
@@ -446,9 +525,76 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     statusFilter.closed === true &&
     statusFilter.canceled === false
 
+  useEffect(() => {
+    if (filter !== 'past') return
+
+    if (!pastHasMore) {
+      setServerFilteredCount(sortedEvents.length)
+      return
+    }
+
+    if (isDefaultPastFilters && pastTotalCount > 0) {
+      setServerFilteredCount(pastTotalCount)
+      return
+    }
+
+    let isActive = true
+    const search = new URLSearchParams({
+      scope: 'past',
+      countOnly: '1',
+      statusFinished: String(Boolean(statusFilter.finished)),
+      statusClosed: String(Boolean(statusFilter.closed)),
+      statusCanceled: String(Boolean(statusFilter.canceled)),
+    })
+
+    if (selectedTown) search.set('town', selectedTown)
+    if (additionalQuickFilter)
+      search.set('additionalQuick', additionalQuickFilter)
+    if (checkFilter.checked !== checkFilter.unchecked) {
+      search.set('calendarChecked', String(Boolean(checkFilter.checked)))
+    }
+
+    ;(async () => {
+      try {
+        const response = await getData(
+          `/api/events?${search.toString()}`,
+          null,
+          null,
+          null,
+          true
+        )
+        const totalCount = Number(response?.meta?.totalCount)
+        if (!isActive) return
+        setServerFilteredCount(
+          Number.isFinite(totalCount) ? totalCount : sortedEvents.length
+        )
+      } catch (error) {
+        if (!isActive) return
+        setServerFilteredCount(sortedEvents.length)
+      }
+    })()
+
+    return () => {
+      isActive = false
+    }
+  }, [
+    additionalQuickFilter,
+    checkFilter.checked,
+    checkFilter.unchecked,
+    filter,
+    isDefaultPastFilters,
+    pastHasMore,
+    pastTotalCount,
+    selectedTown,
+    sortedEvents.length,
+    statusFilter.canceled,
+    statusFilter.closed,
+    statusFilter.finished,
+  ])
+
   const displayedCount =
-    filter === 'past' && isDefaultPastFilters && pastTotalCount > 0
-      ? pastTotalCount
+    filter === 'past'
+      ? (serverFilteredCount ?? sortedEvents.length)
       : sortedEvents.length
 
   const toggleAdditionalQuickFilter = (value) => {
@@ -520,7 +666,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                       )
                       return uniqueNew.length > 0
                         ? [...(prev ?? []), ...uniqueNew]
-                        : prev ?? []
+                        : (prev ?? [])
                     })
                   }
 
@@ -559,21 +705,22 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   )
 
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex h-full flex-col gap-4">
       <ContentHeader>
         <HeaderActions
-          className="w-full tablet:flex-nowrap gap-y-2"
+          className="tablet:flex-nowrap w-full gap-y-2"
           leftClassName="min-w-0"
           bottomClassName="w-full tablet:w-auto"
           rightClassName="ml-auto"
           left={
-            <div className="tablet:w-52 w-[min(56vw,220px)]">
+            <div className="tablet:w-52 w-[min(56vw,160px)]">
               <ComboBox
                 label="Город"
                 items={townsOptions}
                 value={selectedTown}
                 onChange={(value) => setSelectedTown(value ?? '')}
                 placeholder="Все города"
+                activePlaceholder
                 fullWidth
                 noMargin
                 className="mt-1.5"
@@ -582,7 +729,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
           }
           bottom={
             filter !== 'all' ? (
-              <div className="flex flex-wrap items-center justify-center w-full gap-2 tablet:w-auto tablet:flex-nowrap tablet:justify-start tablet:gap-3">
+              <div className="tablet:w-auto tablet:flex-nowrap tablet:justify-start tablet:gap-3 flex w-full flex-wrap items-center justify-center gap-2">
                 {hasUncheckedEvents && (
                   <EventCheckToggleButtons
                     value={checkFilter}
@@ -603,7 +750,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 <MutedText>
                   {filterName}: {displayedCount}
                 </MutedText>
-                <MutedText className="hidden tablet:inline">
+                <MutedText className="tablet:inline hidden">
                   Всего: {events.length}
                 </MutedText>
                 <AddIconButton
@@ -619,7 +766,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         />
       </ContentHeader>
       {filter === 'upcoming' || filter === 'past' ? (
-        <SectionCard className="p-3 border border-gray-200 shadow-sm bg-white/95">
+        <SectionCard className="border border-gray-200 bg-white/95 p-3 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             {additionalSummary.overdue > 0 ? (
               <AppButton
@@ -661,23 +808,44 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 Просрочен задаток: {soonNoDepositEvents.length}
               </AppButton>
             ) : null}
-            <div className="flex w-full items-center justify-start tablet:w-auto tablet:flex-1 tablet:justify-end">
-              <AppButton
-                variant="primary"
-                size="sm"
-                className="w-full rounded-md px-4 font-semibold shadow-md tablet:w-auto"
-                onClick={() => modalsFunc.event?.upcomingOverview?.()}
-              >
-                Ближайшие события
-                {inAppReminderSummary.soon2h > 0
-                  ? ` • 2ч: ${inAppReminderSummary.soon2h}`
-                  : ''}
-              </AppButton>
+            <div className="tablet:w-auto tablet:flex-1 tablet:justify-end flex w-full items-center justify-start">
+              <div className="phoneH:flex-row tablet:w-auto flex w-full flex-col gap-2">
+                <AppButton
+                  variant="primary"
+                  size="sm"
+                  className="phoneH:w-auto w-full rounded-md px-4 font-semibold shadow-md"
+                  onClick={() => modalsFunc.event?.upcomingOverview?.()}
+                >
+                  Ближайшие события
+                  {inAppReminderSummary.soon2h > 0
+                    ? ` • 2ч: ${inAppReminderSummary.soon2h}`
+                    : ''}
+                </AppButton>
+                {filter === 'upcoming' ? (
+                  <AppButton
+                    variant="secondary"
+                    size="sm"
+                    className="phoneH:w-auto w-full rounded-md px-4 font-semibold"
+                    onClick={() =>
+                      router.push(
+                        '/cabinet/eventsPast?statusFinished=true&statusClosed=false&statusCanceled=false'
+                      )
+                    }
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      Закрыть прошедшие мероприятия
+                      <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm">
+                        {pastActiveClosableCount}
+                      </span>
+                    </span>
+                  </AppButton>
+                ) : null}
+              </div>
             </div>
           </div>
         </SectionCard>
       ) : null}
-      <SectionCard className="flex-1 min-h-0 overflow-hidden bg-transparent border-0 shadow-none">
+      <SectionCard className="min-h-0 flex-1 overflow-hidden border-0 bg-transparent shadow-none">
         {sortedEvents.length > 0 ? (
           <List
             listRef={listRef}

@@ -75,92 +75,87 @@ const ContactsIconsButtons = ({
         'my-1 items-center gap-y-2',
         grid
           ? 'laptop:grid-cols-3 tablet:grid-cols-2 grid grid-cols-1'
-          : 'flex flex-wrap',
+          : 'flex',
         withTitle ? 'gap-x-3' : 'gap-x-2',
         className
       )}
     >
       {user?.phone && (
-          <Btn
-            icon={message || smsViaPhone ? faSms : faPhone}
-            className="text-yellow-600"
-            url={
-              message
-                ? `sms:+${user.phone}?body=${encodedMessage}`
-                : smsViaPhone
+        <Btn
+          icon={message || smsViaPhone ? faSms : faPhone}
+          className="text-yellow-600"
+          url={
+            message
+              ? `sms:+${user.phone}?body=${encodedMessage}`
+              : smsViaPhone
                 ? `sms:+${user.phone}`
                 : `tel:+${user.phone}`
-            }
+          }
+          title={'+' + user.phone}
+        />
+      )}
+      {user?.whatsapp ? (
+        <Btn
+          icon={faWhatsapp}
+          className="text-green-600"
+          url={`https://wa.me/${user.whatsapp}${
+            message ? `?text=${encodedMessage}` : ''
+          }`}
+          title={'+' + user.whatsapp}
+        />
+      ) : (
+        forceWhatsApp && (
+          <Btn
+            icon={faWhatsapp}
+            className="text-red-400"
+            url={`https://wa.me/${user.phone}${
+              message ? `?text=${encodedMessage}` : ''
+            }`}
             title={'+' + user.phone}
           />
-        )}
-      {user?.whatsapp
-        ? (
-            <Btn
-              icon={faWhatsapp}
-              className="text-green-600"
-              url={`https://wa.me/${user.whatsapp}${
-                message ? `?text=${encodedMessage}` : ''
-              }`}
-              title={'+' + user.whatsapp}
-            />
-          )
-        : forceWhatsApp && (
-            <Btn
-              icon={faWhatsapp}
-              className="text-red-400"
-              url={`https://wa.me/${user.phone}${
-                message ? `?text=${encodedMessage}` : ''
-              }`}
-              title={'+' + user.phone}
-            />
-          )}
-      {!message &&
-        user?.viber && (
-          <Btn
-            icon={faViber}
-            className="text-purple-600"
-            url={'viber://chat?number=' + user.viber}
-            title={'+' + user.viber}
-          />
-        )}
+        )
+      )}
+      {!message && user?.viber && (
+        <Btn
+          icon={faViber}
+          className="text-purple-600"
+          url={'viber://chat?number=' + user.viber}
+          title={'+' + user.viber}
+        />
+      )}
 
-      {!message &&
-        user?.telegram && (
-          <Btn
-            icon={faTelegramPlane}
-            className="text-blue-600"
-            url={`https://t.me/${user.telegram}`}
-            title={'@' + user.telegram}
-          />
-        )}
-      {!message &&
-        user?.instagram && (
-          <Btn
-            icon={faInstagram}
-            className="text-yellow-700"
-            url={'https://instagram.com/' + user.instagram}
-            title={'@' + user.instagram}
-          />
-        )}
-      {!message &&
-        user?.vk && (
-          <Btn
-            icon={faVk}
-            url={'https://vk.com/' + user.vk}
-            className="text-blue-600"
-            title={'@' + user.vk}
-          />
-        )}
-      {!message &&
-        user?.email && (
-          <Btn
-            icon={faEnvelope}
-            className="text-red-400"
-            url={'mailto:' + user.email}
-            title={user.email}
-          />
-        )}
+      {!message && user?.telegram && (
+        <Btn
+          icon={faTelegramPlane}
+          className="text-blue-600"
+          url={`https://t.me/${user.telegram}`}
+          title={'@' + user.telegram}
+        />
+      )}
+      {!message && user?.instagram && (
+        <Btn
+          icon={faInstagram}
+          className="text-yellow-700"
+          url={'https://instagram.com/' + user.instagram}
+          title={'@' + user.instagram}
+        />
+      )}
+      {!message && user?.vk && (
+        <Btn
+          icon={faVk}
+          url={'https://vk.com/' + user.vk}
+          className="text-blue-600"
+          title={'@' + user.vk}
+        />
+      )}
+      {!message && user?.email && (
+        <Btn
+          icon={faEnvelope}
+          className="text-red-400"
+          url={'mailto:' + user.email}
+          title={user.email}
+        />
+      )}
     </div>
   )
 }
