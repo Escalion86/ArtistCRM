@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
-import { ResponsiveBar } from '@nivo/bar'
+import { useMemo, useState, useEffect, useRef } from 'react'
+import { Bar } from '@nivo/bar'
 import { useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
 import ComboBox from '@components/ComboBox'
@@ -121,6 +121,29 @@ const StatisticsContent = () => {
   const [selectedYear, setSelectedYear] = useState(null)
   const [selectedTown, setSelectedTown] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const chartContainerRef = useRef(null)
+  const [chartWidth, setChartWidth] = useState(0)
+
+  useEffect(() => {
+    const element = chartContainerRef.current
+    if (!element) return
+
+    const updateWidth = () => {
+      const nextWidth = Math.max(0, Math.floor(element.clientWidth))
+      setChartWidth(nextWidth)
+    }
+
+    updateWidth()
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => updateWidth())
+      observer.observe(element)
+      return () => observer.disconnect()
+    }
+
+    window.addEventListener('resize', updateWidth)
+    return () => window.removeEventListener('resize', updateWidth)
+  }, [])
 
   useEffect(() => {
     if (selectedYear !== null) return
@@ -697,83 +720,90 @@ const StatisticsContent = () => {
                 }
               />
             ) : (
-              <div className="h-[320px]">
-                <ResponsiveBar
-                  data={stats}
-                  keys={['profit']}
-                  indexBy="month"
-                  margin={{ top: 20, right: 20, bottom: 60, left: 70 }}
-                  padding={0.2}
-                  colors={['#2563eb']}
-                  defs={[
-                    {
-                      id: 'futurePattern',
-                      type: 'patternLines',
-                      background: 'inherit',
-                      color: 'rgba(255,255,255,0.9)',
-                      rotation: -45,
-                      lineWidth: 3,
-                      spacing: 6,
-                    },
-                    {
-                      id: 'openMonthPattern',
-                      type: 'patternLines',
-                      background: 'inherit',
-                      color: 'rgba(255,255,255,0.82)',
-                      rotation: -45,
-                      lineWidth: 2,
-                      spacing: 10,
-                    },
-                  ]}
-                  fill={[
-                    {
-                      match: (d) =>
-                        Boolean(d?.data?.isOpenMonth ?? d?.data?.data?.isOpenMonth) &&
-                        !Boolean(d?.data?.isFuture ?? d?.data?.data?.isFuture),
-                      id: 'openMonthPattern',
-                    },
-                    {
-                      match: (d) => Boolean(d?.data?.isFuture ?? d?.data?.data?.isFuture),
-                      id: 'futurePattern',
-                    },
-                  ]}
-                  axisBottom={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: -20,
-                  }}
-                  axisLeft={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    legend: 'Сумма, руб.',
-                    legendPosition: 'middle',
-                    legendOffset: -55,
-                  }}
-                  enableLabel={false}
-                  groupMode="grouped"
-                  valueFormat={(value) => value.toLocaleString('ru-RU')}
-                  tooltip={({ id, value, indexValue }) => (
-                    <div className="statistics-tooltip px-2 py-1 text-xs text-gray-700 border border-gray-200 rounded shadow">
-                      <div className="font-semibold">{indexValue}</div>
-                      <div>
-                        {id === 'profit' ? 'Прибыль' : id}:{' '}
-                        {Number(value).toLocaleString('ru-RU')} ₽
-                      </div>
-                    </div>
-                  )}
-                  theme={{
-                    text: { fontSize: 12, fill: '#374151' },
-                    axis: {
-                      legend: { text: { fontSize: 12, fill: '#374151' } },
-                      ticks: {
-                        text: { fontSize: 11, fill: '#6b7280' },
+              <div ref={chartContainerRef} className="h-[320px]">
+                {chartWidth > 0 ? (
+                  <Bar
+                    width={chartWidth}
+                    height={320}
+                    data={stats}
+                    keys={['profit']}
+                    indexBy="month"
+                    margin={{ top: 20, right: 20, bottom: 60, left: 70 }}
+                    padding={0.2}
+                    colors={['#2563eb']}
+                    defs={[
+                      {
+                        id: 'futurePattern',
+                        type: 'patternLines',
+                        background: 'inherit',
+                        color: 'rgba(255,255,255,0.9)',
+                        rotation: -45,
+                        lineWidth: 3,
+                        spacing: 6,
                       },
-                    },
-                    grid: {
-                      line: { stroke: '#e5e7eb', strokeWidth: 1 },
-                    },
-                  }}
-                />
+                      {
+                        id: 'openMonthPattern',
+                        type: 'patternLines',
+                        background: 'inherit',
+                        color: 'rgba(255,255,255,0.82)',
+                        rotation: -45,
+                        lineWidth: 2,
+                        spacing: 10,
+                      },
+                    ]}
+                    fill={[
+                      {
+                        match: (d) =>
+                          Boolean(
+                            d?.data?.isOpenMonth ?? d?.data?.data?.isOpenMonth
+                          ) &&
+                          !Boolean(d?.data?.isFuture ?? d?.data?.data?.isFuture),
+                        id: 'openMonthPattern',
+                      },
+                      {
+                        match: (d) =>
+                          Boolean(d?.data?.isFuture ?? d?.data?.data?.isFuture),
+                        id: 'futurePattern',
+                      },
+                    ]}
+                    axisBottom={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: -20,
+                    }}
+                    axisLeft={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      legend: 'Сумма, руб.',
+                      legendPosition: 'middle',
+                      legendOffset: -55,
+                    }}
+                    enableLabel={false}
+                    groupMode="grouped"
+                    valueFormat={(value) => value.toLocaleString('ru-RU')}
+                    tooltip={({ id, value, indexValue }) => (
+                      <div className="statistics-tooltip px-2 py-1 text-xs text-gray-700 border border-gray-200 rounded shadow">
+                        <div className="font-semibold">{indexValue}</div>
+                        <div>
+                          {id === 'profit' ? 'Прибыль' : id}:{' '}
+                          {Number(value).toLocaleString('ru-RU')} ₽
+                        </div>
+                      </div>
+                    )}
+                    theme={{
+                      text: { fontSize: 12, fill: '#374151' },
+                      axis: {
+                        legend: { text: { fontSize: 12, fill: '#374151' } },
+                        ticks: {
+                          text: { fontSize: 11, fill: '#6b7280' },
+                        },
+                      },
+                      grid: {
+                        line: { stroke: '#e5e7eb', strokeWidth: 1 },
+                      },
+                    }}
+                  />
+                ) : null}
               </div>
             )}
 
