@@ -64,6 +64,13 @@ const parseBooleanSearchParam = (value) => {
   return null
 }
 
+const getEventCompletionTime = (event) => {
+  const raw = event?.dateEnd ?? event?.eventDate ?? null
+  if (!raw) return null
+  const time = new Date(raw).getTime()
+  return Number.isNaN(time) ? null : time
+}
+
 const getEventStatusFlags = (event, now) => {
   const status = event?.status
   const isRequest = status === 'draft'
@@ -145,19 +152,14 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const baseEvents = useMemo(() => {
     if (filter === 'all') return events
 
-    const now = new Date()
-    const startOfToday = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    ).getTime()
+    const nowTime = Date.now()
 
     return events.filter((event) => {
-      if (!event?.eventDate) return filter === 'upcoming'
-      const eventDate = new Date(event.eventDate).getTime()
+      const completionTime = getEventCompletionTime(event)
+      if (completionTime === null) return filter === 'upcoming'
       return filter === 'upcoming'
-        ? eventDate >= startOfToday
-        : eventDate < startOfToday
+        ? completionTime >= nowTime
+        : completionTime < nowTime
     })
   }, [events, filter])
 
@@ -338,14 +340,10 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       if (indexInAll === -1) return scheduleRetry()
 
       const event = events[indexInAll]
-      const eventDate = event?.eventDate ? new Date(event.eventDate) : null
-      const now = new Date()
-      const startOfToday = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate()
-      ).getTime()
-      const shouldBeUpcoming = !eventDate || eventDate.getTime() >= startOfToday
+      const completionTime = getEventCompletionTime(event)
+      const nowTime = Date.now()
+      const shouldBeUpcoming =
+        completionTime === null || completionTime >= nowTime
       const expectedPage = shouldBeUpcoming ? 'eventsUpcoming' : 'eventsPast'
 
       if (
@@ -378,6 +376,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         Boolean(statusFilter[key])
       )
       if (!allStatusSelected) {
+        const now = new Date()
         const flags = getEventStatusFlags(event, now)
         const isVisible = statusFilterKeys.some(
           (key) => Boolean(statusFilter[key]) && Boolean(flags[key])

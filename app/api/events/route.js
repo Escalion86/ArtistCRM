@@ -33,6 +33,18 @@ const parseBooleanParam = (value) => {
   return null
 }
 
+const buildPastCompletionQuery = (cutoffDate) => ({
+  $or: [
+    { dateEnd: { $lt: cutoffDate } },
+    {
+      $and: [
+        { $or: [{ dateEnd: null }, { dateEnd: { $exists: false } }] },
+        { eventDate: { $lt: cutoffDate } },
+      ],
+    },
+  ],
+})
+
 const getPastAdditionalEventsMatch = (segment, now) => {
   if (!segment) return null
 
@@ -80,12 +92,18 @@ export const GET = async (req) => {
   const countOnly = searchParams.get('countOnly') === '1'
 
   if (scope === 'past') {
-    const startOfToday = new Date()
-    startOfToday.setHours(0, 0, 0, 0)
+    const now = new Date()
+    let beforeCutoff = now
+    if (before) {
+      const beforeDate = new Date(before)
+      if (!Number.isNaN(beforeDate.getTime()) && beforeDate.getTime() < now.getTime()) {
+        beforeCutoff = beforeDate
+      }
+    }
 
     const baseQuery = {
       tenantId,
-      eventDate: { $lt: startOfToday },
+      ...buildPastCompletionQuery(now),
     }
     const town = (searchParams.get('town') || '').trim()
     if (town) baseQuery['address.town'] = town
@@ -168,22 +186,13 @@ export const GET = async (req) => {
 
     const query = {
       ...baseQuery,
-      eventDate: { ...baseQuery.eventDate },
-    }
-    if (before) {
-      const beforeDate = new Date(before)
-      if (!Number.isNaN(beforeDate.getTime())) {
-        query.eventDate.$lt =
-          beforeDate.getTime() < startOfToday.getTime()
-            ? beforeDate
-            : startOfToday
-      }
+      ...buildPastCompletionQuery(beforeCutoff),
     }
 
     const [totalCount, rows] = await Promise.all([
       Events.countDocuments(baseQuery),
       Events.find(query)
-        .sort({ eventDate: -1, createdAt: -1 })
+        .sort({ dateEnd: -1, eventDate: -1, createdAt: -1 })
         .limit(limit + 1)
         .lean(),
     ])
@@ -197,8 +206,8 @@ export const GET = async (req) => {
         data: items,
         meta: {
           hasMore,
-          nextBefore: lastItem?.eventDate
-            ? new Date(lastItem.eventDate).toISOString()
+          nextBefore: lastItem?.dateEnd || lastItem?.eventDate
+            ? new Date(lastItem.dateEnd ?? lastItem.eventDate).toISOString()
             : null,
           limit,
           scope: 'past',

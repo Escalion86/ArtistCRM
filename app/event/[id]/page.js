@@ -6,15 +6,12 @@ import EventRedirectClient from './EventRedirectClient'
 export const runtime = 'nodejs'
 
 const getTargetPage = (eventDate) => {
-  if (!eventDate) return 'eventsUpcoming'
+  if (!eventDate?.eventDate && !eventDate?.dateEnd) return 'eventsUpcoming'
   const now = new Date()
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  ).getTime()
-  const eventTime = new Date(eventDate).getTime()
-  return eventTime < startOfToday ? 'eventsPast' : 'eventsUpcoming'
+  const completionRaw = eventDate?.dateEnd ?? eventDate?.eventDate ?? null
+  const completionTime = completionRaw ? new Date(completionRaw).getTime() : NaN
+  if (Number.isNaN(completionTime)) return 'eventsUpcoming'
+  return completionTime < now.getTime() ? 'eventsPast' : 'eventsUpcoming'
 }
 
 export default async function EventRedirectPage({ params }) {
@@ -22,8 +19,8 @@ export default async function EventRedirectPage({ params }) {
   const id = typeof resolvedParams?.id === 'string' ? resolvedParams.id : null
   if (!id) return redirect('/cabinet/eventsUpcoming')
   await dbConnect()
-  const event = await Events.findById(id).select('eventDate').lean()
+  const event = await Events.findById(id).select('eventDate dateEnd').lean()
   if (!event) return redirect('/cabinet/eventsUpcoming')
-  const targetPage = getTargetPage(event.eventDate)
+  const targetPage = getTargetPage(event)
   return <EventRedirectClient id={id} targetPage={targetPage} />
 }

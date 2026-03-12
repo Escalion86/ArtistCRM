@@ -40,19 +40,48 @@ const ensureLegacyTenantBackfill = async (tenantObjectId) => {
 
 const PAST_EVENTS_INITIAL_LIMIT = 120
 
+const buildPastCompletionQuery = (cutoffDate) => ({
+  $or: [
+    { dateEnd: { $lt: cutoffDate } },
+    {
+      $and: [
+        { $or: [{ dateEnd: null }, { dateEnd: { $exists: false } }] },
+        { eventDate: { $lt: cutoffDate } },
+      ],
+    },
+  ],
+})
+
+const buildUpcomingCompletionQuery = (nowDate) => ({
+  $or: [
+    { dateEnd: { $gte: nowDate } },
+    {
+      $and: [
+        { $or: [{ dateEnd: null }, { dateEnd: { $exists: false } }] },
+        { eventDate: { $gte: nowDate } },
+      ],
+    },
+    {
+      $and: [
+        { $or: [{ dateEnd: null }, { dateEnd: { $exists: false } }] },
+        { $or: [{ eventDate: null }, { eventDate: { $exists: false } }] },
+      ],
+    },
+  ],
+})
+
 const buildEventsPayload = async (tenantId, page) => {
-  const startOfToday = new Date()
-  startOfToday.setHours(0, 0, 0, 0)
+  const now = new Date()
 
   if (page === 'eventsPast') {
     const pastBaseQuery = {
       tenantId,
-      eventDate: { $lt: startOfToday },
+      ...buildPastCompletionQuery(now),
     }
     const [totalCount, rows] = await Promise.all([
       Events.countDocuments(pastBaseQuery),
       Events.find(pastBaseQuery)
-        .sort({ eventDate: -1, createdAt: -1 })
+        .sort({ dateEnd: -1, eventDate: -1, createdAt: -1 })
         .limit(PAST_EVENTS_INITIAL_LIMIT + 1)
         .lean(),
     ])
@@ -64,8 +93,8 @@ const buildEventsPayload = async (tenantId, page) => {
       paging: {
         scope: 'past',
         hasMore,
-        nextBefore: lastItem?.eventDate
-          ? new Date(lastItem.eventDate).toISOString()
+        nextBefore: lastItem?.dateEnd || lastItem?.eventDate
+          ? new Date(lastItem.dateEnd ?? lastItem.eventDate).toISOString()
           : null,
         limit: PAST_EVENTS_INITIAL_LIMIT,
         totalCount,
@@ -76,11 +105,7 @@ const buildEventsPayload = async (tenantId, page) => {
   if (page === 'eventsUpcoming') {
     const items = await Events.find({
       tenantId,
-      $or: [
-        { eventDate: { $gte: startOfToday } },
-        { eventDate: null },
-        { eventDate: { $exists: false } },
-      ],
+      ...buildUpcomingCompletionQuery(now),
     })
       .sort({ eventDate: -1, createdAt: -1 })
       .lean()
