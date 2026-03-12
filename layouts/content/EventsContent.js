@@ -272,6 +272,13 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     () => getSoonNoDepositEvents(filteredByStatus, transactions, new Date(), 3),
     [filteredByStatus, transactions]
   )
+  const upcomingOverviewBadgeCount = useMemo(
+    () =>
+      Number(additionalSummary?.overdue || 0) +
+      Number(additionalSummary?.today || 0) +
+      Number(additionalSummary?.tomorrow || 0),
+    [additionalSummary]
+  )
 
   const filteredByAdditionalQuick = useMemo(() => {
     if (!additionalQuickFilter) return filteredByStatus
@@ -816,10 +823,14 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   className="phoneH:w-auto w-full rounded-md px-4 font-semibold shadow-md"
                   onClick={() => modalsFunc.event?.upcomingOverview?.()}
                 >
-                  Ближайшие события
-                  {inAppReminderSummary.soon2h > 0
-                    ? ` • 2ч: ${inAppReminderSummary.soon2h}`
-                    : ''}
+                  <span className="inline-flex items-center gap-2">
+                    Ближайшие события
+                    {upcomingOverviewBadgeCount > 0 ? (
+                      <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm">
+                        {upcomingOverviewBadgeCount}
+                      </span>
+                    ) : null}
+                  </span>
                 </AppButton>
                 {filter === 'upcoming' ? (
                   <AppButton

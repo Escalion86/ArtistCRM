@@ -7,6 +7,7 @@ import '../fonts/FuturaPT.css'
 
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter'
 import ClientErrorLogger from '@components/ClientErrorLogger'
+import AppSnackbarProvider from '@components/AppSnackbarProvider'
 // import { Suspense } from 'react'
 // import Metrika from './components/metrika'
 // import Script from 'next/script'
@@ -76,7 +77,7 @@ export default function RootLayout({ children }) {
               </Suspense>
             </>
           )} */}
-          {children}
+          <AppSnackbarProvider>{children}</AppSnackbarProvider>
         </AppRouterCacheProvider>
       </body>
     </html>

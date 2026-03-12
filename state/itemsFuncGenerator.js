@@ -42,6 +42,19 @@ function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1)
 }
 
+const getErrorText = (error) => {
+  if (!error) return ''
+  if (typeof error === 'string') return error
+  if (typeof error?.message === 'string') return error.message
+  return ''
+}
+
+const buildErrorToast = (baseText, error) => {
+  const details = getErrorText(error)
+  if (!details || details.startsWith('HTTP ')) return baseText
+  return `${baseText}: ${details}`
+}
+
 const messages = {
   event: {
     update: {
@@ -272,7 +285,9 @@ const itemsFuncGenerator = (
               },
               (error) => {
                 if (!noSnackbar && messages[itemName]?.update?.error)
-                  snackbar.error(messages[itemName].update.error)
+                  snackbar.error(
+                    buildErrorToast(messages[itemName].update.error, error)
+                  )
                 setErrorCard(itemName + item._id)
                 const data = {
                   errorPlace: 'UPDATE ERROR',
@@ -299,7 +314,9 @@ const itemsFuncGenerator = (
               },
               (error) => {
                 if (!noSnackbar && messages[itemName]?.add?.error)
-                  snackbar.error(messages[itemName].add.error)
+                  snackbar.error(
+                    buildErrorToast(messages[itemName].add.error, error)
+                  )
                 setErrorCard(itemName + item._id)
                 const data = {
                   errorPlace: 'CREATE ERROR',
@@ -334,7 +351,9 @@ const itemsFuncGenerator = (
             },
             (error) => {
               if (messages[itemName]?.delete?.error)
-                snackbar.error(messages[itemName].delete.error)
+                snackbar.error(
+                  buildErrorToast(messages[itemName].delete.error, error)
+                )
               setErrorCard(itemName + itemId)
               const data = {
                 errorPlace: 'DELETE ERROR',
@@ -380,7 +399,7 @@ const itemsFuncGenerator = (
         props.setEvent(data)
       },
       (error) => {
-        snackbar.error('Не удалось отменить мероприятие')
+        snackbar.error(buildErrorToast('Не удалось отменить мероприятие', error))
         setErrorCard('event' + eventId)
         const data = { errorPlace: 'EVENT CANCEL ERROR', eventId, error }
         addErrorModal(data)
@@ -417,7 +436,7 @@ const itemsFuncGenerator = (
         props.setEvent(data)
       },
       (error) => {
-        snackbar.error('Не удалось закрыть мероприятие')
+        snackbar.error(buildErrorToast('Не удалось закрыть мероприятие', error))
         setErrorCard('event' + eventId)
         const data = { errorPlace: 'EVENT CLOSE ERROR', eventId, error }
         addErrorModal(data)
@@ -473,7 +492,9 @@ const itemsFuncGenerator = (
         props.setEvent(data)
       },
       (error) => {
-        snackbar.error('не удалось активировать мероприятие')
+        snackbar.error(
+          buildErrorToast('Не удалось активировать мероприятие', error)
+        )
         setErrorCard('event' + eventId)
         const data = { errorPlace: 'EVENT ACTIVE ERROR', eventId, error }
         addErrorModal(data)

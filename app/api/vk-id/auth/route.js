@@ -6,6 +6,18 @@ import getAuthSecret from '@server/getAuthSecret'
 
 const VK_API_VERSION = '5.199'
 
+const buildError = (code, status, message) =>
+  NextResponse.json(
+    {
+      success: false,
+      error: {
+        code,
+        message,
+      },
+    },
+    { status }
+  )
+
 const normalizeEmail = (value) => {
   if (!value) return ''
   return String(value).trim().toLowerCase()
@@ -37,19 +49,21 @@ export const POST = async (req) => {
   const email = normalizeEmail(body?.email)
 
   if (!accessToken || !vkUserId) {
-    return NextResponse.json(
-      { success: false, error: 'INVALID_VK_PAYLOAD' },
-      { status: 400 }
+    return buildError(
+      'INVALID_VK_PAYLOAD',
+      400,
+      'Некорректные данные VK ID'
     )
   }
 
   try {
     const vkProfile = await fetchVkProfile(accessToken, vkUserId)
     if (!vkProfile?.vkId) {
-      return NextResponse.json(
-        { success: false, error: 'VK_PROFILE_NOT_FOUND' },
-        { status: 401 }
-      )
+      console.error('[vk-id/auth] profile not found', {
+        vkUserId,
+        hasEmail: Boolean(email),
+      })
+      return buildError('VK_PROFILE_NOT_FOUND', 401, 'Профиль VK не найден')
     }
 
     await dbConnect()
@@ -58,9 +72,14 @@ export const POST = async (req) => {
       email,
     })
     if (!user?._id) {
-      return NextResponse.json(
-        { success: false, error: 'VK_USER_CREATE_FAILED' },
-        { status: 500 }
+      console.error('[vk-id/auth] ensureVkUser returned empty user', {
+        vkId: vkProfile.vkId,
+        hasEmail: Boolean(email),
+      })
+      return buildError(
+        'VK_USER_CREATE_FAILED',
+        500,
+        'Не удалось создать или найти пользователя'
       )
     }
 
@@ -77,10 +96,24 @@ export const POST = async (req) => {
       { status: 200 }
     )
   } catch (error) {
-    console.error('[vk-id/auth] error', error)
-    return NextResponse.json(
-      { success: false, error: 'VK_ID_AUTH_FAILED' },
-      { status: 500 }
+    const errorCode =
+      error?.code === 11000
+        ? 'VK_USER_DUPLICATE_CONFLICT'
+        : error?.message?.includes('NEXTAUTH_SECRET')
+          ? 'AUTH_SECRET_NOT_SET'
+          : 'VK_ID_AUTH_FAILED'
+
+    console.error('[vk-id/auth] error', {
+      errorCode,
+      message: error?.message,
+      name: error?.name,
+      code: error?.code,
+    })
+
+    return buildError(
+      errorCode,
+      500,
+      'Не удалось авторизоваться через VK ID'
     )
   }
 }

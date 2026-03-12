@@ -130,6 +130,26 @@ const arrayBufferToBase64 = (buffer) => {
   return window.btoa(binary)
 }
 
+const getSuggestedDecisionAdditionalEventDate = (eventDateValue) => {
+  const now = new Date()
+  const suggested = new Date(now)
+  suggested.setDate(suggested.getDate() + 3)
+  suggested.setSeconds(0, 0)
+
+  if (!eventDateValue) return suggested.toISOString()
+  const eventDate = new Date(eventDateValue)
+  if (Number.isNaN(eventDate.getTime())) return suggested.toISOString()
+
+  const latestAllowed = new Date(eventDate)
+  latestAllowed.setDate(latestAllowed.getDate() - 1)
+  latestAllowed.setSeconds(0, 0)
+
+  return (suggested.getTime() > latestAllowed.getTime()
+    ? latestAllowed
+    : suggested
+  ).toISOString()
+}
+
 const eventFunc = (
   eventId,
   clone = false,
@@ -624,7 +644,7 @@ const eventFunc = (
     )
     const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
 
-    const onClickConfirm = useCallback(() => {
+    const onClickConfirm = () => {
       clearErrorsRef.current()
       let hasError = false
 
@@ -652,8 +672,7 @@ const eventFunc = (
         hasError = true
       }
 
-      const proceedSave = () => {
-        closeModalRef.current()
+      const proceedSave = async () => {
         const normalizedContractSum =
           typeof contractSum === 'number' && !Number.isNaN(contractSum)
             ? contractSum
@@ -712,7 +731,66 @@ const eventFunc = (
           payload.actLinks = normalizedActLinks
           payload.contractLinks = normalizedContractLinks
         }
-        setEvent(payload, clone)
+        const isCreatingDraftRequest =
+          !payload?._id && !clone && payload.status === 'draft'
+        const hasAdditionalEvents =
+          (payload?.additionalEvents?.length ?? 0) > 0
+        const savedEvent = await setEvent(payload, clone)
+
+        if (
+          !isCreatingDraftRequest ||
+          hasAdditionalEvents ||
+          !savedEvent?._id
+        ) {
+          closeModalRef.current()
+          return
+        }
+
+        const suggestedDate = getSuggestedDecisionAdditionalEventDate(
+          savedEvent?.eventDate ?? payload?.eventDate
+        )
+        const suggestedLabel = new Date(suggestedDate).toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        openAdditionalEventModal(null, {
+          title: 'Добавить доп. событие',
+          introText: `Рекомендуется добавить напоминание "Что решили клиенты" на ${suggestedLabel}. Вы можете изменить детали ниже.`,
+          sourceItem: {
+            title: 'Что решили клиенты',
+            description: '',
+            date: suggestedDate,
+            done: false,
+            googleCalendarEventId: '',
+          },
+          confirmButtonName: 'Добавить',
+          declineButtonName: 'Позже',
+          onConfirm: async (nextItem) => {
+            const currentEvent = (events ?? []).find(
+              (item) => String(item?._id) === String(savedEvent._id)
+            )
+            const currentAdditionalEvents = Array.isArray(
+              currentEvent?.additionalEvents
+            )
+              ? currentEvent.additionalEvents
+              : Array.isArray(savedEvent?.additionalEvents)
+                ? savedEvent.additionalEvents
+                : []
+
+            await setEvent(
+              {
+                _id: savedEvent._id,
+                additionalEvents: [...currentAdditionalEvents, nextItem],
+              },
+              false,
+              true
+            )
+          },
+        })
+        closeModalRef.current()
       }
 
       if (!hasError) {
@@ -730,47 +808,10 @@ const eventFunc = (
         }
         proceedSave()
       }
-    }, [
-      addErrorRef,
-      calendarImportChecked,
-      clearErrorsRef,
-      clientId,
-      colleagueId,
-      description,
-      eventType,
-      financeComment,
-      contractSum,
-      isByContract,
-      waitDeposit,
-      depositDueAt,
-      depositExpectedAmount,
-      dateEnd,
-      event?._id,
-      eventDate,
-      getConflictsCount,
-      isTransferred,
-      invoiceLinks,
-      receiptLinks,
-      actLinks,
-      contractLinks,
-      address,
-      modalsFunc,
-      requestCreatedAt,
-      additionalEvents,
-      setEvent,
-      servicesIds,
-      otherContacts,
-      dateRangeError,
-      status,
-      hasDepositTransaction,
-      canUseDocuments,
-    ])
+    }
 
     const onClickConfirmRef = useRef(onClickConfirm)
-
-    useEffect(() => {
-      onClickConfirmRef.current = onClickConfirm
-    }, [onClickConfirm])
+    onClickConfirmRef.current = onClickConfirm
 
     useEffect(() => {
       setOnShowOnCloseConfirmDialog(isFormChanged)
@@ -1157,9 +1198,10 @@ const eventFunc = (
       setAdditionalEvents((prev) => prev.filter((_, idx) => idx !== index))
     }
 
-    const openAdditionalEventModal = (index = null) => {
-      const sourceItem =
-        index !== null
+    function openAdditionalEventModal(index = null, options = {}) {
+      const sourceItem = options?.sourceItem
+        ? { ...options.sourceItem }
+        : index !== null
           ? additionalEvents[index]
           : {
               title: '',
@@ -1216,6 +1258,11 @@ const eventFunc = (
 
         return (
           <div className="mt-2 flex flex-col gap-y-2.5">
+            {options?.introText ? (
+              <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                {options.introText}
+              </div>
+            ) : null}
             <div className="mt-2 text-xs font-semibold text-gray-700">
               Быстрый заголовок
             </div>
@@ -1308,17 +1355,23 @@ const eventFunc = (
       }
 
       modalsFunc.add({
-        title: `${index !== null ? 'Редактирование' : 'Создание'} доп. события`,
-        confirmButtonName: 'Сохранить',
-        declineButtonName: 'Отмена',
+        title:
+          options?.title ??
+          `${index !== null ? 'Редактирование' : 'Создание'} доп. события`,
+        confirmButtonName: options?.confirmButtonName ?? 'Сохранить',
+        declineButtonName: options?.declineButtonName ?? 'Отмена',
         showDecline: true,
-        onConfirm: () => {
+        onConfirm: async () => {
           const nextItem = {
             title: stateRef.current.title?.trim() ?? '',
             description: stateRef.current.description?.trim() ?? '',
             date: stateRef.current.date ?? null,
             done: Boolean(stateRef.current.done),
             googleCalendarEventId: stateRef.current.googleCalendarEventId ?? '',
+          }
+          if (typeof options?.onConfirm === 'function') {
+            await options.onConfirm(nextItem)
+            return
           }
           if (index !== null) {
             setAdditionalEvents((prev) =>

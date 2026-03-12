@@ -55,6 +55,22 @@ const createVerifyState = () => ({
 const getErrorMessage = (json, fallback) =>
   json?.error?.message || json?.error || fallback
 
+const getVkAuthErrorCode = (json) =>
+  json?.error?.code || (typeof json?.error === 'string' ? json.error : '')
+
+const getVkAuthErrorMessage = (json) => {
+  const code = getVkAuthErrorCode(json)
+  if (code === 'VK_PROFILE_NOT_FOUND') return 'Профиль VK не найден'
+  if (code === 'VK_USER_CREATE_FAILED')
+    return 'Не удалось создать аккаунт через VK ID'
+  if (code === 'VK_USER_DUPLICATE_CONFLICT')
+    return 'Конфликт данных аккаунта. Обратитесь в поддержку'
+  if (code === 'AUTH_SECRET_NOT_SET')
+    return 'Ошибка конфигурации авторизации на сервере'
+  if (code === 'INVALID_VK_PAYLOAD') return 'Некорректные данные VK ID'
+  return getErrorMessage(json, 'VK ID auth failed')
+}
+
 async function postJson(url, body) {
   const res = await fetch(url, {
     method: 'POST',
@@ -656,7 +672,9 @@ const LoginInputs = () => {
               })
               const authJson = await authResponse.json().catch(() => ({}))
               if (!authResponse.ok || authJson?.success === false) {
-                throw new Error(authJson?.error || 'VK ID auth failed')
+                const message = getVkAuthErrorMessage(authJson)
+                const code = getVkAuthErrorCode(authJson)
+                throw new Error(code ? `${message} (${code})` : message)
               }
 
               const token = authJson?.data?.authToken
