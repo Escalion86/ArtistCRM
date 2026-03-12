@@ -1,9 +1,9 @@
 import CredentialsProvider from 'next-auth/providers/credentials'
-import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import dbConnect from '@server/dbConnect'
 import Users from '@models/Users'
 import { verifyVkIdAuthToken } from '@server/vkidAuthToken'
+import getAuthSecret from '@server/getAuthSecret'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -11,43 +11,6 @@ const normalizePhone = (phone) => {
 }
 
 const isHash = (value) => typeof value === 'string' && value.startsWith('$2')
-
-const getAuthSecret = () => {
-  const existingSecret = process.env.NEXTAUTH_SECRET
-
-  if (existingSecret) {
-    return existingSecret
-  }
-
-  const login = process.env.LOGIN
-  const password = process.env.PASSWORD
-
-  if (!login || !password) {
-    const message =
-      'NEXTAUTH_SECRET не задан. Укажите переменную окружения или задайте LOGIN и PASSWORD.'
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn(message)
-    }
-
-    throw new Error(message)
-  }
-
-  const fallbackSecret = crypto
-    .createHash('sha256')
-    .update(`${login}:${password}`)
-    .digest('hex')
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn(
-      'NEXTAUTH_SECRET не найден. Используется детерминированный секрет, сформированный из LOGIN и PASSWORD.'
-    )
-  }
-
-  process.env.NEXTAUTH_SECRET = fallbackSecret
-
-  return fallbackSecret
-}
 
 const authSecret = getAuthSecret()
 

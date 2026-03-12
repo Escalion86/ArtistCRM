@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
 import { ensureVkUser } from '@server/ensureVkUser'
 import { createVkIdAuthToken } from '@server/vkidAuthToken'
+import getAuthSecret from '@server/getAuthSecret'
 
 const VK_API_VERSION = '5.199'
 
@@ -63,13 +64,7 @@ export const POST = async (req) => {
       )
     }
 
-    const authSecret = process.env.NEXTAUTH_SECRET
-    if (!authSecret) {
-      return NextResponse.json(
-        { success: false, error: 'AUTH_SECRET_NOT_SET' },
-        { status: 500 }
-      )
-    }
+    const authSecret = getAuthSecret()
 
     const authToken = createVkIdAuthToken(user._id, authSecret)
     return NextResponse.json(
@@ -89,4 +84,3 @@ export const POST = async (req) => {
     )
   }
 }
-
