@@ -3,7 +3,7 @@ import { faArrowUp } from '@fortawesome/free-solid-svg-icons/faArrowUp'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cn from 'classnames'
 import { forwardRef } from 'react'
-import MaskedInput from 'react-text-mask'
+import { MaskedInput } from '@thaborach/react-text-mask'
 import { normalizeNumberInputString, toNormalizedNumber } from '@helpers/numberInput'
 import InputWrapper from './InputWrapper'
 
