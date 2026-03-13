@@ -99,8 +99,7 @@ export const sendImage = async (
     formData.append('fileName', imageName)
 
     return await fetch(
-      // 'https://api.cloudinary.com/v1_1/escalion-ru/image/upload',
-      'https://api.escalioncloud.ru/api',
+      '/api/cloud',
       {
         method: 'POST',
         body: formData,
@@ -148,8 +147,7 @@ export const sendFile = async (
     formData.append('fileName', fileName)
 
     return await fetch(
-      // 'https://api.cloudinary.com/v1_1/escalion-ru/image/upload',
-      'https://api.escalioncloud.ru/api',
+      '/api/cloud',
       {
         method: 'POST',
         body: formData,
