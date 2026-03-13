@@ -6,6 +6,11 @@ import LabeledContainer from '@components/LabeledContainer'
 import PhoneInput from '@components/PhoneInput'
 import { CLIENT_TYPES, DEFAULT_CLIENT } from '@helpers/constants'
 import getPersonFullName from '@helpers/getPersonFullName'
+import {
+  normalizeInstagramInput,
+  normalizeTelegramInput,
+  normalizeVkInput,
+} from '@helpers/socialInput'
 import useErrors from '@helpers/useErrors'
 import clientSelector from '@state/selectors/clientSelector'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
@@ -354,6 +359,8 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             }}
             className="w-full"
             smallMargin
+            copyPasteButtons
+            normalizePastedValue={normalizeTelegramInput}
           />
           <Input
             label="Instagram"
@@ -364,6 +371,8 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             }}
             className="w-full"
             smallMargin
+            copyPasteButtons
+            normalizePastedValue={normalizeInstagramInput}
           />
           <Input
             label="VK"
@@ -374,6 +383,8 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             }}
             className="w-full"
             smallMargin
+            copyPasteButtons
+            normalizePastedValue={normalizeVkInput}
           />
         </div>
         <InputWrapper label="Тип клиента" paddingY fitWidth>

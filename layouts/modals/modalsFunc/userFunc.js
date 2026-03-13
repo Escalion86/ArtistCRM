@@ -8,6 +8,12 @@ import PhoneInput from '@components/PhoneInput'
 import UserRolePicker from '@components/ValuePicker/UserRolePicker'
 import compareArrays from '@helpers/compareArrays'
 import { DEFAULT_USER } from '@helpers/constants'
+import {
+  normalizeEmailInput,
+  normalizeInstagramInput,
+  normalizeTelegramInput,
+  normalizeVkInput,
+} from '@helpers/socialInput'
 import useErrors from '@helpers/useErrors'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
@@ -61,7 +67,6 @@ const userFunc = (userId, clone = false) => {
     const [whatsapp, setWhatsapp] = useState(
       user?.whatsapp ?? DEFAULT_USER.whatsapp
     )
-    const [viber, setViber] = useState(user?.viber ?? DEFAULT_USER.viber)
     const [telegram, setTelegram] = useState(
       user?.telegram ?? DEFAULT_USER.telegram
     )
@@ -103,7 +108,6 @@ const userFunc = (userId, clone = false) => {
       if (
         !checkErrors({
           phone,
-          viber,
           whatsapp,
           email,
         })
@@ -123,7 +127,6 @@ const userFunc = (userId, clone = false) => {
             email,
             phone,
             whatsapp,
-            viber,
             telegram,
             instagram,
             vk,
@@ -205,7 +208,6 @@ const userFunc = (userId, clone = false) => {
         user?.email !== email ||
         user?.phone !== phone ||
         user?.whatsapp !== whatsapp ||
-        user?.viber !== viber ||
         user?.telegram !== telegram ||
         user?.instagram !== instagram ||
         user?.vk !== vk ||
@@ -229,7 +231,6 @@ const userFunc = (userId, clone = false) => {
       email,
       phone,
       whatsapp,
-      viber,
       telegram,
       instagram,
       vk,
@@ -335,19 +336,13 @@ const userFunc = (userId, clone = false) => {
           />
         </FormWrapper>
         <FormWrapper twoColumns>
-          <PhoneInput
-            label="Viber"
-            value={viber}
-            onChange={setViber}
-            error={errors.viber}
-            copyPasteButtons
-          />
           <Input
             prefix="@"
             label="Telegram"
             value={telegram}
             onChange={setTelegram}
             copyPasteButtons
+            normalizePastedValue={normalizeTelegramInput}
           />
         </FormWrapper>
         <FormWrapper twoColumns>
@@ -357,6 +352,7 @@ const userFunc = (userId, clone = false) => {
             value={instagram}
             onChange={setInstagram}
             copyPasteButtons
+            normalizePastedValue={normalizeInstagramInput}
           />
           <Input
             prefix="@"
@@ -364,6 +360,7 @@ const userFunc = (userId, clone = false) => {
             value={vk}
             onChange={setVk}
             copyPasteButtons
+            normalizePastedValue={normalizeVkInput}
           />
         </FormWrapper>
         <Input
@@ -372,6 +369,7 @@ const userFunc = (userId, clone = false) => {
           onChange={setEmail}
           error={errors.email}
           copyPasteButtons
+          normalizePastedValue={normalizeEmailInput}
         />
         {canSetRole && (
           <UserRolePicker

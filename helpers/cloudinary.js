@@ -39,11 +39,7 @@ export const deleteImages = async (arrayOfImagesUrls, callback = null) => {
   if (callback) callback()
 }
 
-export const getImages = async (
-  directory,
-  callback,
-  project = 'polovinka_uspeha'
-) => {
+export const getImages = async (directory, callback, project = 'artistcrm') => {
   if (directory) {
     const query = {
       directory,
@@ -89,12 +85,12 @@ export const sendImage = async (
   callback,
   folder,
   imageName = null,
-  project = 'polovinka_uspeha'
+  project = 'artistcrm'
 ) => {
   if (isObject(image)) {
     const formData = new FormData()
     // console.log('folder', folder)
-    formData.append('project', project ?? 'polovinka_uspeha')
+    formData.append('project', project ?? 'artistcrm')
 
     formData.append('folder', folder ?? 'temp')
     // formData.append('password', 'cloudtest')
@@ -139,11 +135,11 @@ export const sendFile = async (
   callback,
   folder,
   fileName = null,
-  project = 'polovinka_uspeha'
+  project = 'artistcrm'
 ) => {
   if (isObject(file)) {
     const formData = new FormData()
-    formData.append('project', project ?? 'polovinka_uspeha')
+    formData.append('project', project ?? 'artistcrm')
 
     formData.append('folder', folder ?? 'temp')
     // formData.append('password', 'cloudtest')

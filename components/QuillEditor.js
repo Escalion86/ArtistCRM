@@ -1,32 +1,9 @@
 'use client'
 
-import React, {
-  forwardRef,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
-// import dynamic from 'next/dynamic'
-// import Script from 'next/script'
+import React, { forwardRef, useEffect, useLayoutEffect, useRef } from 'react'
 import Quill from 'quill'
-// const Quill = dynamic(() => import('quill'), { ssr: false }).default
-// import * as Emoji from 'quill-emoji'
-// Editor is an uncontrolled React component
-// import Quill from 'quill/core'
-// const Quill = dynamic(() => import('quill'), { ssr: false }).default
-// const Emoji = dynamic(() => import('quill-emoji'), { ssr: false })
-// import Quill from 'quill'
-
-// import * as Emoji from 'quill-emoji'
-
-// Quill.register('modules/emoji', require('quill-emoji'))
 
 const toolbarOptions = {
-  // container: [['bold', 'italic', 'underline', 'strike'], ['emoji']],
-  // handlers: { emoji: function () {} },
-
   handlers: {
     link: function (value) {
       if (value) {
@@ -41,27 +18,7 @@ const toolbarOptions = {
         // this.quill.format('underline', false)
       }
     },
-    //   // handlers object will be merged with default handlers object
-    //   link: function (value) {
-    //     if (value) {
-    //       var href = prompt('Введите ссылку')
-    //       this.quill.format('link', href)
-    //     } else {
-    //       this.quill.format('link', false)
-    //     }
-    //   },
-    // 'list-logo': function () {
-    //   console.log('!', this.quill.getSelection())
-    //   // alert('DAGUR')
-    //   this.quill.insertText(
-    //     this.quill.getSelection().index,
-    //     '<img class="logo"><li></li></img>'
-    //   )
-    // },
     emoji: function () {},
-    // polovinkauspeha: () => {
-    //   //whatever action you want to perform here
-    // },
   },
   container: [
     [{ header: [1, 2, 3, 4, 5, 6, false] }],
@@ -92,7 +49,6 @@ const toolbarOptions = {
       // 'image'
     ],
     // ['emoji'],
-    // ['polovinkauspeha'],
     ['clean'],
   ],
 }

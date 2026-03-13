@@ -1,10 +1,13 @@
 import { faArrowDown } from '@fortawesome/free-solid-svg-icons/faArrowDown'
 import { faArrowUp } from '@fortawesome/free-solid-svg-icons/faArrowUp'
+import { faCopy } from '@fortawesome/free-solid-svg-icons/faCopy'
+import { faPaste } from '@fortawesome/free-solid-svg-icons/faPaste'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cn from 'classnames'
 import { forwardRef } from 'react'
 import { MaskedInput } from '@thaborach/react-text-mask'
 import { normalizeNumberInputString, toNormalizedNumber } from '@helpers/numberInput'
+import copyToClipboard from '@helpers/copyToClipboard'
 import InputWrapper from './InputWrapper'
 
 const Input = forwardRef(
@@ -39,6 +42,8 @@ const Input = forwardRef(
       autoComplete,
       maxLength,
       dataList,
+      copyPasteButtons = false,
+      normalizePastedValue,
     },
     ref
   ) => {
@@ -207,6 +212,37 @@ const Input = forwardRef(
               <option key={'list' + item}>{item}</option>
             ))}
           </datalist>
+        )}
+        {copyPasteButtons && !disabled && type !== 'number' && !isPhone && (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-50"
+              onClick={() => {
+                if (!navigator?.clipboard) return
+                navigator.clipboard.readText().then((text) => {
+                  const normalized =
+                    typeof normalizePastedValue === 'function'
+                      ? normalizePastedValue(text)
+                      : String(text ?? '')
+                  onChange(normalized)
+                })
+              }}
+              title="Вставить"
+            >
+              <FontAwesomeIcon icon={faPaste} className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-50"
+              onClick={() => {
+                copyToClipboard(String(value ?? ''))
+              }}
+              title="Скопировать"
+            >
+              <FontAwesomeIcon icon={faCopy} className="h-3.5 w-3.5" />
+            </button>
+          </div>
         )}
         {showArrows && type === 'number' && !disabled && (
           <div

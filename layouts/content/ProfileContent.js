@@ -6,6 +6,12 @@ import InputImages from '@components/InputImages'
 import PhoneInput from '@components/PhoneInput'
 import compareArrays from '@helpers/compareArrays'
 import { DEFAULT_USER } from '@helpers/constants'
+import {
+  normalizeEmailInput,
+  normalizeInstagramInput,
+  normalizeTelegramInput,
+  normalizeVkInput,
+} from '@helpers/socialInput'
 import useErrors from '@helpers/useErrors'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
@@ -30,7 +36,6 @@ const ProfileContent = () => {
   const [email, setEmail] = useState(DEFAULT_USER.email)
   const [phone, setPhone] = useState(DEFAULT_USER.phone)
   const [whatsapp, setWhatsapp] = useState(DEFAULT_USER.whatsapp)
-  const [viber, setViber] = useState(DEFAULT_USER.viber)
   const [telegram, setTelegram] = useState(DEFAULT_USER.telegram)
   const [instagram, setInstagram] = useState(DEFAULT_USER.instagram)
   const [vk, setVk] = useState(DEFAULT_USER.vk)
@@ -47,7 +52,6 @@ const ProfileContent = () => {
     setEmail(loggedUser.email ?? DEFAULT_USER.email)
     setPhone(loggedUser.phone ?? DEFAULT_USER.phone)
     setWhatsapp(loggedUser.whatsapp ?? DEFAULT_USER.whatsapp)
-    setViber(loggedUser.viber ?? DEFAULT_USER.viber)
     setTelegram(loggedUser.telegram ?? DEFAULT_USER.telegram)
     setInstagram(loggedUser.instagram ?? DEFAULT_USER.instagram)
     setVk(loggedUser.vk ?? DEFAULT_USER.vk)
@@ -64,7 +68,6 @@ const ProfileContent = () => {
       loggedUser.email !== email ||
       loggedUser.phone !== phone ||
       loggedUser.whatsapp !== whatsapp ||
-      loggedUser.viber !== viber ||
       loggedUser.telegram !== telegram ||
       loggedUser.instagram !== instagram ||
       loggedUser.vk !== vk ||
@@ -78,7 +81,6 @@ const ProfileContent = () => {
     email,
     phone,
     whatsapp,
-    viber,
     telegram,
     instagram,
     vk,
@@ -105,7 +107,6 @@ const ProfileContent = () => {
     if (
       checkErrors({
         phone,
-        viber,
         whatsapp,
         email,
       })
@@ -121,7 +122,6 @@ const ProfileContent = () => {
       email,
       phone,
       whatsapp,
-      viber,
       telegram,
       instagram,
       vk,
@@ -212,31 +212,37 @@ const ProfileContent = () => {
             error={errors.whatsapp}
             copyPasteButtons
           />
-          <PhoneInput
-            label="Viber"
-            value={viber}
-            onChange={setViber}
-            error={errors.viber}
-            copyPasteButtons
-          />
           <Input
             prefix="t.me/"
             label="Telegram (никнейм)"
             value={telegram}
             onChange={setTelegram}
+            copyPasteButtons
+            normalizePastedValue={normalizeTelegramInput}
           />
           <Input
             prefix="instagram.com/"
             label="Instagram"
             value={instagram}
             onChange={setInstagram}
+            copyPasteButtons
+            normalizePastedValue={normalizeInstagramInput}
           />
-          <Input prefix="vk.com/" label="Vk" value={vk} onChange={setVk} />
+          <Input
+            prefix="vk.com/"
+            label="Vk"
+            value={vk}
+            onChange={setVk}
+            copyPasteButtons
+            normalizePastedValue={normalizeVkInput}
+          />
           <Input
             label="Email"
             value={email}
             onChange={setEmail}
             error={errors.email}
+            copyPasteButtons
+            normalizePastedValue={normalizeEmailInput}
           />
         </FormWrapper>
         <ErrorsList errors={errors} />
