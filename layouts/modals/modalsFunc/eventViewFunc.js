@@ -1,12 +1,10 @@
 import CardButtons from '@components/CardButtons'
 import Chip from '@components/Chips/Chip'
-import IconActionButton from '@components/IconActionButton'
 import cn from 'classnames'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import ImageGallery from '@components/ImageGallery'
 import SurfaceCard from '@components/SurfaceCard'
 import TextLine from '@components/TextLine'
-import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
 import formatMinutes from '@helpers/formatMinutes'
@@ -387,13 +385,26 @@ const eventViewFunc = (eventId) => {
                           Children: ({ closeModal, setTopLeftComponent }) => {
                             useEffect(() => {
                               if (!setTopLeftComponent) return
-                              setTopLeftComponent(
-                                <IconActionButton
-                                  icon={faTrashAlt}
-                                  size="sm"
-                                  variant="danger"
-                                  title="Удалить доп. событие"
-                                  onClick={() =>
+                              setTopLeftComponent(() => (
+                                <CardButtons
+                                  item={{
+                                    _id: `${
+                                      event?._id || 'event'
+                                    }-additional-${index}`,
+                                    status: 'active',
+                                  }}
+                                  typeOfItem="event"
+                                  minimalActions
+                                  alwaysCompact
+                                  dropDownPlacement="left"
+                                  showCloneButton={false}
+                                  showHistoryButton={false}
+                                  showStatusButton={false}
+                                  onEdit={() => {
+                                    closeModal?.()
+                                    modalsFunc.event.edit(event?._id)
+                                  }}
+                                  onDelete={() =>
                                     modalsFunc.confirm({
                                       title: 'Удаление доп. события',
                                       text: 'Удалить это доп. событие?',
@@ -404,7 +415,7 @@ const eventViewFunc = (eventId) => {
                                     })
                                   }
                                 />
-                              )
+                              ))
                             }, [closeModal, setTopLeftComponent])
 
                             return (

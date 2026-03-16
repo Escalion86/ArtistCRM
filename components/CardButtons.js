@@ -97,6 +97,9 @@ const CardButtons = ({
   onOpenCalendar,
   onEditClientContacts,
   onEditFinanceDocs,
+  showCloneButton = true,
+  showHistoryButton = true,
+  showStatusButton = true,
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
@@ -128,19 +131,27 @@ const CardButtons = ({
           editBtn: showEditButton,
           editClientContacts: showEditButton && Boolean(onEditClientContacts),
           editFinanceDocs: showEditButton && Boolean(onEditFinanceDocs),
-          cloneBtn: typeOfItem !== 'user' && typeOfItem !== 'tariff',
+          cloneBtn:
+            showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
           openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
-          historyBtn: typeOfItem === 'event',
-          statusBtn: typeOfItem !== 'client' && typeOfItem !== 'service',
+          historyBtn: showHistoryButton && typeOfItem === 'event',
+          statusBtn:
+            showStatusButton &&
+            typeOfItem !== 'client' &&
+            typeOfItem !== 'service',
           deleteBtn:
             showDeleteButton && canManageItem && item.status !== 'closed',
         }
       : {
           editBtn: showEditButton && canManageItem,
-          cloneBtn: typeOfItem !== 'user' && typeOfItem !== 'tariff',
+          cloneBtn:
+            showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
           openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
-          historyBtn: typeOfItem === 'event',
-          statusBtn: typeOfItem !== 'client' && typeOfItem !== 'service',
+          historyBtn: showHistoryButton && typeOfItem === 'event',
+          statusBtn:
+            showStatusButton &&
+            typeOfItem !== 'client' &&
+            typeOfItem !== 'service',
           deleteBtn:
             showDeleteButton && canManageItem && item.status !== 'closed',
           userBilling: typeOfItem === 'user' && canManageUsers,
@@ -155,13 +166,17 @@ const CardButtons = ({
         setPasswordBtn: true,
         addToCalendar: typeOfItem === 'event',
         openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
-        historyBtn: typeOfItem === 'event',
+        historyBtn: showHistoryButton && typeOfItem === 'event',
         upBtn: onUpClick && upDownSee,
         downBtn: onDownClick && upDownSee,
         editBtn: showEditButton && canManageItem,
-        cloneBtn: typeOfItem !== 'user' && typeOfItem !== 'tariff',
+        cloneBtn:
+          showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
         showOnSiteBtn: showOnSiteOnClick,
-        statusBtn: typeOfItem !== 'client' && typeOfItem !== 'service',
+        statusBtn:
+          showStatusButton &&
+          typeOfItem !== 'client' &&
+          typeOfItem !== 'service',
         deleteBtn:
           showDeleteButton && canManageItem && item.status !== 'closed',
         userEvents: typeOfItem === 'client',

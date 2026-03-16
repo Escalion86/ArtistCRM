@@ -201,6 +201,10 @@ const usersSchema = {
           default: DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.closed,
         },
       },
+      deleteCanceledFromCalendar: {
+        type: Boolean,
+        default: false,
+      },
     },
     default: () => ({}),
   },

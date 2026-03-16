@@ -51,15 +51,23 @@ export const POST = async (req) => {
     body?.statusColors !== undefined
       ? normalizeCalendarStatusColors(body.statusColors)
       : normalizeCalendarStatusColors(settings.statusColors)
+  const deleteCanceledFromCalendar =
+    body?.deleteCanceledFromCalendar !== undefined
+      ? Boolean(body.deleteCanceledFromCalendar)
+      : Boolean(settings.deleteCanceledFromCalendar)
   dbUser.googleCalendar = {
     ...settings,
     reminders,
     statusColors,
+    deleteCanceledFromCalendar,
   }
   await dbUser.save()
 
   return NextResponse.json(
-    { success: true, data: { reminders, statusColors } },
+    {
+      success: true,
+      data: { reminders, statusColors, deleteCanceledFromCalendar },
+    },
     { status: 200 }
   )
 }

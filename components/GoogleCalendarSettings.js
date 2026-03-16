@@ -87,6 +87,9 @@ const serializeReminders = (value) => JSON.stringify(normalizeReminders(value))
 const serializeStatusColors = (value) =>
   JSON.stringify(normalizeStatusColors(value))
 
+const serializeCanceledDeleteFlag = (value) =>
+  JSON.stringify(Boolean(value))
+
 const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
   const [calendarStatus, setCalendarStatus] = useState({
     loading: true,
@@ -110,6 +113,10 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
   const [savedStatusColors, setSavedStatusColors] = useState(
     DEFAULT_STATUS_COLORS
   )
+  const [deleteCanceledFromCalendar, setDeleteCanceledFromCalendar] =
+    useState(false)
+  const [savedDeleteCanceledFromCalendar, setSavedDeleteCanceledFromCalendar] =
+    useState(false)
   const [checkedSyncSummary, setCheckedSyncSummary] = useState('')
   const [syncProgress, setSyncProgress] = useState({
     open: false,
@@ -135,10 +142,15 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       setCalendarStatus({ loading: false, ...result.data })
       const nextReminders = normalizeReminders(result?.data?.reminders)
       const nextStatusColors = normalizeStatusColors(result?.data?.statusColors)
+      const nextDeleteCanceledFromCalendar = Boolean(
+        result?.data?.deleteCanceledFromCalendar
+      )
       setCalendarReminders(nextReminders)
       setStatusColors(nextStatusColors)
       setSavedReminders(nextReminders)
       setSavedStatusColors(nextStatusColors)
+      setDeleteCanceledFromCalendar(nextDeleteCanceledFromCalendar)
+      setSavedDeleteCanceledFromCalendar(nextDeleteCanceledFromCalendar)
     } catch (error) {
       setCalendarError('Не удалось загрузить статус')
       setCalendarStatus((prev) => ({ ...prev, loading: false }))
@@ -240,6 +252,8 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       setStatusColors(DEFAULT_STATUS_COLORS)
       setSavedReminders(DEFAULT_CALENDAR_REMINDERS)
       setSavedStatusColors(DEFAULT_STATUS_COLORS)
+      setDeleteCanceledFromCalendar(false)
+      setSavedDeleteCanceledFromCalendar(false)
       await loadCalendarStatus()
     } catch (error) {
       setCalendarError('Не удалось отключить календарь')
@@ -280,7 +294,11 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       const response = await fetch('/api/google-calendar/reminders', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ statusColors, reminders: calendarReminders }),
+        body: JSON.stringify({
+          statusColors,
+          reminders: calendarReminders,
+          deleteCanceledFromCalendar,
+        }),
       })
       const result = await response.json()
       if (!result?.success) {
@@ -289,6 +307,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
         return
       }
       setSavedStatusColors(normalizeStatusColors(statusColors))
+      setSavedDeleteCanceledFromCalendar(Boolean(deleteCanceledFromCalendar))
       await loadCalendarStatus()
       setSyncSuggestModal({ open: true, source: 'colors' })
     } catch (error) {
@@ -301,7 +320,9 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
     serializeReminders(calendarReminders) !== serializeReminders(savedReminders)
   const statusColorsChanged =
     serializeStatusColors(statusColors) !==
-    serializeStatusColors(savedStatusColors)
+      serializeStatusColors(savedStatusColors) ||
+    serializeCanceledDeleteFlag(deleteCanceledFromCalendar) !==
+      serializeCanceledDeleteFlag(savedDeleteCanceledFromCalendar)
 
   const handleSyncCheckedEvents = async () => {
     if (calendarLoading || calendarStatus.loading) return
@@ -592,8 +613,26 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
           <div className="mt-2 text-xs text-gray-500">
             Цвет применяется к событию в Google Calendar при синхронизации.
           </div>
+          <div className="mt-3">
+            <IconCheckBox
+              checked={deleteCanceledFromCalendar}
+              onClick={() =>
+                setDeleteCanceledFromCalendar((prev) => !prev)
+              }
+              label="Удалять из календаря, если отменено"
+              small
+              noMargin
+              disabled={!calendarStatus.connected}
+            />
+          </div>
           <div className="flex flex-col gap-2 mt-3">
-            {STATUS_COLOR_FIELDS.map((field) => (
+            {STATUS_COLOR_FIELDS.filter(
+              (field) =>
+                !(
+                  deleteCanceledFromCalendar &&
+                  field.key === 'canceled'
+                )
+            ).map((field) => (
               <label
                 key={field.key}
                 className="flex flex-wrap items-center justify-between gap-2"

@@ -60,6 +60,8 @@ const normalizeCalendarStatusColors = (value) => {
 
 const normalizeCalendarSettings = (user) => {
   const settings = user?.googleCalendar ?? {}
+  const deleteCanceledFromCalendar =
+    settings?.deleteCanceledFromCalendar === true
   return {
     enabled: Boolean(settings.enabled),
     calendarId: settings.calendarId || '',
@@ -73,6 +75,7 @@ const normalizeCalendarSettings = (user) => {
     email: settings.email || '',
     reminders: normalizeCalendarReminders(settings.reminders),
     statusColors: normalizeCalendarStatusColors(settings.statusColors),
+    deleteCanceledFromCalendar,
   }
 }
 

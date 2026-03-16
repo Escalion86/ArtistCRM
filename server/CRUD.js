@@ -552,6 +552,9 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   const settings = normalizeCalendarSettings(user)
   const reminders = settings?.reminders ?? {}
   const statusColors = settings?.statusColors ?? {}
+  const deleteCanceledFromCalendar = Boolean(
+    settings?.deleteCanceledFromCalendar
+  )
   const calendarReminders = reminders.useDefault
     ? { useDefault: true }
     : { useDefault: false, overrides: reminders.overrides ?? [] }
@@ -715,6 +718,23 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       )
     })
 
+  if (isCanceled && deleteCanceledFromCalendar) {
+    if (event.googleCalendarId) {
+      try {
+        await calendarDelete(event.googleCalendarId)
+      } catch (error) {
+        if (error?.code !== 404) throw error
+      }
+      await Events.findByIdAndUpdate(event._id, {
+        googleCalendarId: '',
+        googleCalendarCalendarId: '',
+      })
+      event.googleCalendarId = ''
+      event.googleCalendarCalendarId = ''
+    }
+    return null
+  }
+
   let updatedCalendarEvent
   if (!event.googleCalendarId) {
     console.log('Создаем новое событие в календаре')
@@ -784,6 +804,26 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   for (const item of normalizedAdditionalEvents) {
     const hasContent = Boolean(item.title || item.description || item.date)
     if (!hasContent) continue
+
+    if (item.done) {
+      if (item.googleCalendarEventId) {
+        try {
+          await calendarDelete(item.googleCalendarEventId)
+        } catch (error) {
+          if (error?.code !== 404) {
+            console.log('Google Calendar additional event delete error', {
+              eventId: event?._id,
+              googleId: item.googleCalendarEventId,
+              error,
+            })
+          }
+        }
+        item.googleCalendarEventId = ''
+        additionalEventsChanged = true
+      }
+      nextAdditionalEvents.push(item)
+      continue
+    }
 
     if (!item.date) {
       if (item.googleCalendarEventId) {

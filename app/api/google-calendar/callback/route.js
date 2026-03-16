@@ -88,6 +88,7 @@ export const GET = async (req) => {
     tokens.expiry_date ? new Date(tokens.expiry_date) : prev.tokenExpiry || null
   const reminders = normalizeCalendarReminders(prev.reminders)
   const statusColors = normalizeCalendarStatusColors(prev.statusColors)
+  const deleteCanceledFromCalendar = prev?.deleteCanceledFromCalendar === true
 
   existing.googleCalendar = {
     enabled: true,
@@ -101,6 +102,7 @@ export const GET = async (req) => {
     email: prev.email || '',
     reminders,
     statusColors,
+    deleteCanceledFromCalendar,
   }
 
   await existing.save()
