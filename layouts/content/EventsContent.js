@@ -19,14 +19,17 @@ import { modalsFuncAtom, modalsAtom } from '@state/atoms'
 import EventCard from '@layouts/cards/EventCard'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import {
+  getAdditionalEventsListBySegments,
   eventHasAdditionalSegment,
   getAdditionalEventsSummary,
   getInAppReminderSummary,
+  getUpcomingEventsByDays,
   getSoonNoDepositEvents,
 } from '@helpers/additionalEvents'
 import AppButton from '@components/AppButton'
 import useUiDensity from '@helpers/useUiDensity'
 import { getData } from '@helpers/CRUD'
+import { DAYS_OF_WEEK } from '@helpers/constants'
 
 const getStatusFilterDefaults = (filter) => {
   if (filter === 'upcoming') {
@@ -96,6 +99,26 @@ const getEventStatusFlags = (event, now) => {
   }
 }
 
+const MONTH_VIEW_DAY_CELLS = 42
+
+const toMonthStart = (value = new Date()) =>
+  new Date(value.getFullYear(), value.getMonth(), 1)
+
+const toDateKey = (value) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const toMinuteOfDay = (value) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 0
+  return date.getHours() * 60 + date.getMinutes()
+}
+
 const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const { isCompact } = useUiDensity()
   const events = useAtomValue(eventsAtom)
@@ -111,6 +134,8 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const openHandledRef = useRef(false)
   const [selectedTown, setSelectedTown] = useState('')
   const [pendingOpenId, setPendingOpenId] = useState(null)
+  const [viewMode, setViewMode] = useState('list')
+  const [monthCursor, setMonthCursor] = useState(() => toMonthStart(new Date()))
   const [checkFilter, setCheckFilter] = useState({
     checked: true,
     unchecked: true,
@@ -274,13 +299,38 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     () => getSoonNoDepositEvents(filteredByStatus, transactions, new Date(), 3),
     [filteredByStatus, transactions]
   )
-  const upcomingOverviewBadgeCount = useMemo(
-    () =>
-      Number(additionalSummary?.overdue || 0) +
-      Number(additionalSummary?.today || 0) +
-      Number(additionalSummary?.tomorrow || 0),
-    [additionalSummary]
-  )
+  const upcomingOverviewBadges = useMemo(() => {
+    const now = new Date()
+    const segmentedAdditional = getAdditionalEventsListBySegments(events, now)
+    const upcomingEvents3Days = getUpcomingEventsByDays(events, 3, now)
+
+    return [
+      {
+        key: 'overdue',
+        title: 'Просрочено',
+        value: Number(segmentedAdditional?.overdue?.length || 0),
+        className: 'bg-red-600 text-white',
+      },
+      {
+        key: 'today',
+        title: 'Сегодня',
+        value: Number(segmentedAdditional?.today?.length || 0),
+        className: 'bg-amber-500 text-white',
+      },
+      {
+        key: 'tomorrow',
+        title: 'Завтра',
+        value: Number(segmentedAdditional?.tomorrow?.length || 0),
+        className: 'bg-blue-600 text-white',
+      },
+      {
+        key: 'upcoming3days',
+        title: 'Мероприятия на 3 дня',
+        value: Number(upcomingEvents3Days?.length || 0),
+        className: 'bg-emerald-600 text-white',
+      },
+    ].filter((item) => item.value > 0)
+  }, [events])
 
   const filteredByAdditionalQuick = useMemo(() => {
     if (!additionalQuickFilter) return filteredByStatus
@@ -607,22 +657,197 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     setAdditionalQuickFilter((prev) => (prev === value ? '' : value))
   }
 
-  const getAdditionalQuickFilterButtonClass = (segment) => {
-    const isActive = additionalQuickFilter === segment
-    if (segment === 'overdue') {
-      return isActive
-        ? 'rounded status-filter-btn--overdue-active hover:brightness-95'
-        : 'rounded status-filter-btn--overdue hover:brightness-95'
+  const handleLoadMorePast = useCallback(async () => {
+    if (pastLoadingMore || !pastHasMore) return
+    setPastLoadingMore(true)
+    try {
+      const query = pastNextBefore
+        ? `?scope=past&limit=120&before=${encodeURIComponent(pastNextBefore)}`
+        : '?scope=past&limit=120'
+      const response = await getData(
+        `/api/events${query}`,
+        null,
+        null,
+        null,
+        true
+      )
+      const loadedItems = Array.isArray(response?.data) ? response.data : []
+      const nextMeta = response?.meta ?? {}
+
+      if (loadedItems.length > 0) {
+        setEvents((prev) => {
+          const prevIds = new Set((prev ?? []).map((item) => String(item?._id)))
+          const uniqueNew = loadedItems.filter(
+            (item) => !prevIds.has(String(item?._id))
+          )
+          return uniqueNew.length > 0 ? [...(prev ?? []), ...uniqueNew] : prev ?? []
+        })
+      }
+
+      setPastHasMore(Boolean(nextMeta?.hasMore))
+      setPastNextBefore(nextMeta?.nextBefore || null)
+      setPastTotalCount(Number(nextMeta?.totalCount || loadedItems.length || 0))
+    } finally {
+      setPastLoadingMore(false)
     }
-    if (segment === 'today') {
-      return isActive
-        ? 'rounded status-filter-btn--today-active hover:brightness-95'
-        : 'rounded status-filter-btn--today hover:brightness-95'
-    }
-    return isActive
-      ? 'rounded status-filter-btn--tomorrow-active hover:brightness-95'
-      : 'rounded status-filter-btn--tomorrow hover:brightness-95'
-  }
+  }, [pastHasMore, pastLoadingMore, pastNextBefore, setEvents])
+
+  const monthTitle = useMemo(
+    () =>
+      monthCursor.toLocaleDateString('ru-RU', {
+        month: 'long',
+        year: 'numeric',
+      }),
+    [monthCursor]
+  )
+
+  const monthGridDays = useMemo(() => {
+    const monthStart = toMonthStart(monthCursor)
+    const shift = monthStart.getDay()
+    const gridStart = new Date(
+      monthStart.getFullYear(),
+      monthStart.getMonth(),
+      1 - shift
+    )
+    return Array.from({ length: MONTH_VIEW_DAY_CELLS }, (_, index) => {
+      const day = new Date(
+        gridStart.getFullYear(),
+        gridStart.getMonth(),
+        gridStart.getDate() + index
+      )
+      return {
+        date: day,
+        key: toDateKey(day),
+        inCurrentMonth: day.getMonth() === monthStart.getMonth(),
+      }
+    })
+  }, [monthCursor])
+
+  const monthItemsByDay = useMemo(() => {
+    const map = new Map()
+    sortedEvents.forEach((event) => {
+      const pushByDate = (dateValue, payload) => {
+        const dayKey = toDateKey(dateValue)
+        if (!dayKey) return
+        if (!map.has(dayKey)) map.set(dayKey, [])
+        map.get(dayKey).push(payload)
+      }
+
+      pushByDate(event?.eventDate, {
+        type: 'event',
+        eventId: event?._id,
+        title: event?.eventType || 'Мероприятие',
+        status: event?.status || 'active',
+        time: toMinuteOfDay(event?.eventDate),
+      })
+
+      ;(Array.isArray(event?.additionalEvents) ? event.additionalEvents : []).forEach(
+        (item, index) => {
+          pushByDate(item?.date, {
+            type: 'additional',
+            eventId: event?._id,
+            title: item?.title || `Доп. событие #${index + 1}`,
+            status: item?.done ? 'done' : 'active',
+            done: Boolean(item?.done),
+            time: toMinuteOfDay(item?.date),
+          })
+        }
+      )
+    })
+
+    map.forEach((items, key) => {
+      map.set(
+        key,
+        [...items].sort((a, b) => {
+          if (a.time !== b.time) return a.time - b.time
+          if (a.type === b.type) return 0
+          return a.type === 'event' ? -1 : 1
+        })
+      )
+    })
+    return map
+  }, [sortedEvents])
+
+  const monthEventsByDay = useMemo(() => {
+    const map = new Map()
+    sortedEvents.forEach((event) => {
+      const dayKey = toDateKey(event?.eventDate)
+      if (!dayKey) return
+      if (!map.has(dayKey)) map.set(dayKey, [])
+      map.get(dayKey).push(event)
+    })
+    map.forEach((items, key) => {
+      map.set(
+        key,
+        [...items].sort((a, b) => {
+          const aTime = new Date(a?.eventDate ?? 0).getTime()
+          const bTime = new Date(b?.eventDate ?? 0).getTime()
+          return aTime - bTime
+        })
+      )
+    })
+    return map
+  }, [sortedEvents])
+
+  const monthMeta = useMemo(() => {
+    const meta = { events: 0, additional: 0 }
+    monthGridDays.forEach((day) => {
+      if (!day.inCurrentMonth) return
+      const dayItems = monthItemsByDay.get(day.key) || []
+      dayItems.forEach((item) => {
+        if (item.type === 'event') meta.events += 1
+        else meta.additional += 1
+      })
+    })
+    return meta
+  }, [monthGridDays, monthItemsByDay])
+
+  useEffect(() => {
+    if (viewMode !== 'month') return
+    if (sortedEvents.length === 0) return
+    const hasItemsInCurrentMonth = monthGridDays.some((day) => {
+      if (!day.inCurrentMonth) return false
+      const items = monthItemsByDay.get(day.key)
+      return Array.isArray(items) && items.length > 0
+    })
+    if (hasItemsInCurrentMonth) return
+
+    const firstDate = sortedEvents[0]?.eventDate
+    const parsed = firstDate ? new Date(firstDate) : null
+    if (!parsed || Number.isNaN(parsed.getTime())) return
+    setMonthCursor(toMonthStart(parsed))
+  }, [monthGridDays, monthItemsByDay, sortedEvents, viewMode])
+
+  const openDayEventsModal = useCallback(
+    (day) => {
+      const dayEvents = monthEventsByDay.get(day?.key) || []
+      if (dayEvents.length === 0) return
+      const dayTitle = day?.date
+        ? day.date.toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+          })
+        : 'Выбранный день'
+
+      const DayEventsModal = () => (
+        <div className="flex max-h-[70vh] flex-col gap-2 overflow-auto px-1 py-1">
+          {dayEvents.map((event) => (
+            <EventCard key={`month-day-event-${event._id}`} eventId={event._id} />
+          ))}
+        </div>
+      )
+
+      modalsFunc.add({
+        title: `Мероприятия: ${dayTitle}`,
+        confirmButtonName: 'Закрыть',
+        onConfirm: true,
+        showDecline: false,
+        Children: DayEventsModal,
+      })
+    },
+    [modalsFunc, monthEventsByDay]
+  )
 
   useEffect(() => {
     if (!additionalQuickFilter) return
@@ -643,48 +868,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
               size="sm"
               className="rounded-md px-4"
               disabled={pastLoadingMore}
-              onClick={async () => {
-                if (pastLoadingMore || !pastHasMore) return
-                setPastLoadingMore(true)
-                try {
-                  const query = pastNextBefore
-                    ? `?scope=past&limit=120&before=${encodeURIComponent(pastNextBefore)}`
-                    : '?scope=past&limit=120'
-                  const response = await getData(
-                    `/api/events${query}`,
-                    null,
-                    null,
-                    null,
-                    true
-                  )
-                  const loadedItems = Array.isArray(response?.data)
-                    ? response.data
-                    : []
-                  const nextMeta = response?.meta ?? {}
-
-                  if (loadedItems.length > 0) {
-                    setEvents((prev) => {
-                      const prevIds = new Set(
-                        (prev ?? []).map((item) => String(item?._id))
-                      )
-                      const uniqueNew = loadedItems.filter(
-                        (item) => !prevIds.has(String(item?._id))
-                      )
-                      return uniqueNew.length > 0
-                        ? [...(prev ?? []), ...uniqueNew]
-                        : (prev ?? [])
-                    })
-                  }
-
-                  setPastHasMore(Boolean(nextMeta?.hasMore))
-                  setPastNextBefore(nextMeta?.nextBefore || null)
-                  setPastTotalCount(
-                    Number(nextMeta?.totalCount || loadedItems.length || 0)
-                  )
-                } finally {
-                  setPastLoadingMore(false)
-                }
-              }}
+              onClick={handleLoadMorePast}
             >
               {pastLoadingMore ? 'Загрузка...' : 'Загрузить еще прошедшие'}
             </AppButton>
@@ -702,11 +886,9 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     },
     [
       filter,
-      pastHasMore,
       pastLoadingMore,
-      pastNextBefore,
-      setEvents,
       sortedEvents,
+      handleLoadMorePast,
     ]
   )
 
@@ -717,7 +899,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
           className="tablet:flex-nowrap w-full gap-y-2"
           leftClassName="min-w-0"
           bottomClassName="w-full tablet:w-auto"
-          rightClassName="ml-auto"
+          rightClassName="ml-auto w-full justify-end tablet:w-auto"
           left={
             <div className="tablet:w-52 w-[min(56vw,160px)]">
               <ComboBox
@@ -752,7 +934,25 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
           }
           right={
             <>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-white p-0.5">
+                  <AppButton
+                    variant={viewMode === 'list' ? 'primary' : 'secondary'}
+                    size="sm"
+                    className="rounded-md px-2.5"
+                    onClick={() => setViewMode('list')}
+                  >
+                    Список
+                  </AppButton>
+                  <AppButton
+                    variant={viewMode === 'month' ? 'primary' : 'secondary'}
+                    size="sm"
+                    className="rounded-md px-2.5"
+                    onClick={() => setViewMode('month')}
+                  >
+                    Месяц
+                  </AppButton>
+                </div>
                 <MutedText>
                   {filterName}: {displayedCount}
                 </MutedText>
@@ -774,36 +974,6 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       {filter === 'upcoming' || filter === 'past' ? (
         <SectionCard className="border border-gray-200 bg-white/95 p-3 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
-            {additionalSummary.overdue > 0 ? (
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className={getAdditionalQuickFilterButtonClass('overdue')}
-                onClick={() => toggleAdditionalQuickFilter('overdue')}
-              >
-                Просрочено: {additionalSummary.overdue}
-              </AppButton>
-            ) : null}
-            {additionalSummary.today > 0 ? (
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className={getAdditionalQuickFilterButtonClass('today')}
-                onClick={() => toggleAdditionalQuickFilter('today')}
-              >
-                Сегодня: {additionalSummary.today}
-              </AppButton>
-            ) : null}
-            {additionalSummary.tomorrow > 0 ? (
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className={getAdditionalQuickFilterButtonClass('tomorrow')}
-                onClick={() => toggleAdditionalQuickFilter('tomorrow')}
-              >
-                Завтра: {additionalSummary.tomorrow}
-              </AppButton>
-            ) : null}
             {soonNoDepositEvents.length > 0 ? (
               <AppButton
                 variant="danger"
@@ -816,22 +986,32 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             ) : null}
             <div className="tablet:w-auto tablet:flex-1 tablet:justify-end flex w-full items-center justify-start">
               <div className="phoneH:flex-row tablet:w-auto flex w-full flex-col gap-2">
-                <AppButton
-                  variant="primary"
-                  size="sm"
-                  className="phoneH:w-auto w-full rounded-md px-4 font-semibold shadow-md"
-                  onClick={() => modalsFunc.event?.upcomingOverview?.()}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    Ближайшие события
-                    {upcomingOverviewBadgeCount > 0 ? (
-                      <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm">
-                        {upcomingOverviewBadgeCount}
-                      </span>
-                    ) : null}
-                  </span>
-                </AppButton>
                 {filter === 'upcoming' ? (
+                  <AppButton
+                    variant="primary"
+                    size="sm"
+                    className="phoneH:w-auto w-full rounded-md px-4 font-semibold shadow-md"
+                    onClick={() => modalsFunc.event?.upcomingOverview?.()}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      Ближайшие события
+                      {upcomingOverviewBadges.length > 0 ? (
+                        <span className="inline-flex items-center gap-1">
+                          {upcomingOverviewBadges.map((badge) => (
+                            <span
+                              key={badge.key}
+                              title={badge.title}
+                              className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold shadow-sm ${badge.className}`}
+                            >
+                              {badge.value}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
+                    </span>
+                  </AppButton>
+                ) : null}
+                {filter === 'upcoming' && pastActiveClosableCount > 0 ? (
                   <AppButton
                     variant="secondary"
                     size="sm"
@@ -856,21 +1036,163 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         </SectionCard>
       ) : null}
       <SectionCard className="min-h-0 flex-1 overflow-hidden border-0 bg-transparent shadow-none">
-        {sortedEvents.length > 0 ? (
-          <List
-            listRef={listRef}
-            rowCount={
-              filter === 'past' && pastHasMore
-                ? sortedEvents.length + 1
-                : sortedEvents.length
-            }
-            rowHeight={itemHeight}
-            rowComponent={RowComponent}
-            rowProps={{}}
-            style={{ height: '100%', width: '100%' }}
-          />
+        {viewMode === 'list' ? (
+          sortedEvents.length > 0 ? (
+            <List
+              listRef={listRef}
+              rowCount={
+                filter === 'past' && pastHasMore
+                  ? sortedEvents.length + 1
+                  : sortedEvents.length
+              }
+              rowHeight={itemHeight}
+              rowComponent={RowComponent}
+              rowProps={{}}
+              style={{ height: '100%', width: '100%' }}
+            />
+          ) : (
+            <EmptyState text="Для выбранных фильтьров мероприятий пока нет" />
+          )
         ) : (
-          <EmptyState text="Для выбранных фильтьров мероприятий пока нет" />
+          <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+            <SectionCard className="border border-gray-200 bg-white/95 p-3 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <AppButton
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-md px-3"
+                    onClick={() =>
+                      setMonthCursor((prev) =>
+                        toMonthStart(
+                          new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+                        )
+                      )
+                    }
+                  >
+                    Назад
+                  </AppButton>
+                  <AppButton
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-md px-3"
+                    onClick={() => setMonthCursor(toMonthStart(new Date()))}
+                  >
+                    Сегодня
+                  </AppButton>
+                  <AppButton
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-md px-3"
+                    onClick={() =>
+                      setMonthCursor((prev) =>
+                        toMonthStart(
+                          new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+                        )
+                      )
+                    }
+                  >
+                    Вперед
+                  </AppButton>
+                </div>
+                <div className="text-sm font-semibold text-gray-800 capitalize">
+                  {monthTitle}
+                </div>
+                <MutedText className="text-xs">
+                  Мероприятий: {monthMeta.events} | Доп. событий: {monthMeta.additional}
+                </MutedText>
+              </div>
+            </SectionCard>
+            <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-gray-200 bg-white">
+              <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+                {DAYS_OF_WEEK.map((dayName) => (
+                  <div
+                    key={dayName}
+                    className="px-2 py-1.5 text-center text-[11px] font-semibold text-gray-600"
+                  >
+                    {dayName}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7">
+                {monthGridDays.map((day) => {
+                  const dayItems = monthItemsByDay.get(day.key) || []
+                  const dayEvents = monthEventsByDay.get(day.key) || []
+                  const hasDayEvents = dayEvents.length > 0
+                  const extraCount = dayItems.length > 3 ? dayItems.length - 3 : 0
+                  const isToday = day.key === toDateKey(new Date())
+                  return (
+                    <div
+                      key={day.key}
+                      className={`min-h-[112px] border-r border-b border-gray-100 p-1.5 ${
+                        day.inCurrentMonth ? 'bg-white' : 'bg-gray-50/70'
+                      } ${hasDayEvents ? 'cursor-pointer hover:bg-blue-50/40' : ''}`}
+                      onClick={() => openDayEventsModal(day)}
+                    >
+                      <div
+                        className={`mb-1 inline-flex h-6 min-w-6 items-center justify-center rounded px-1 text-xs font-semibold ${
+                          isToday
+                            ? 'bg-general text-white'
+                            : day.inCurrentMonth
+                              ? 'text-gray-800'
+                              : 'text-gray-400'
+                        }`}
+                      >
+                        {day.date.getDate()}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        {dayItems.slice(0, 3).map((item, index) => (
+                          <button
+                            key={`${day.key}-${item.type}-${item.eventId}-${index}`}
+                            type="button"
+                            className={`w-full cursor-pointer truncate rounded px-1.5 py-1 text-left text-[11px] leading-tight ${
+                              item.type === 'event'
+                                ? item.status === 'canceled'
+                                  ? 'bg-red-50 text-red-700'
+                                  : item.status === 'draft'
+                                    ? 'bg-gray-100 text-gray-700'
+                                    : item.status === 'closed'
+                                      ? 'bg-emerald-50 text-emerald-700'
+                                      : 'bg-blue-50 text-blue-700'
+                                : item.done
+                                  ? 'bg-emerald-50 text-emerald-700 line-through'
+                                  : 'bg-amber-50 text-amber-700'
+                            }`}
+                            title={item.title}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              modalsFunc.event?.view?.(item.eventId)
+                            }}
+                          >
+                            {item.type === 'event' ? '● ' : '◦ '}
+                            {item.title}
+                          </button>
+                        ))}
+                        {extraCount > 0 ? (
+                          <div className="px-1.5 text-[10px] text-gray-500">
+                            +{extraCount} еще
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            {filter === 'past' && pastHasMore ? (
+              <div className="flex justify-center">
+                <AppButton
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-md px-4"
+                  disabled={pastLoadingMore}
+                  onClick={handleLoadMorePast}
+                >
+                  {pastLoadingMore ? 'Загрузка...' : 'Загрузить еще прошедшие'}
+                </AppButton>
+              </div>
+            ) : null}
+          </div>
         )}
       </SectionCard>
     </div>

@@ -1,4 +1,5 @@
 import { getServerSession } from 'next-auth'
+import mongoose from 'mongoose'
 import authOptions from '../app/api/auth/[...nextauth]/_options'
 import dbConnect from './dbConnect'
 import Users from '@models/Users'
@@ -48,7 +49,11 @@ const getTenantContext = async () => {
     }
   }
 
-  const tenantId = user?.tenantId || user?._id || null
+  const rawTenantId = user?.tenantId || user?._id || null
+  const tenantId =
+    rawTenantId && mongoose.Types.ObjectId.isValid(String(rawTenantId))
+      ? String(rawTenantId)
+      : null
 
   return { session, user, tenantId }
 }

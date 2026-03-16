@@ -6,7 +6,6 @@ import Services from '@models/Services'
 import Clients from '@models/Clients'
 import Transactions from '@models/Transactions'
 import dbConnect from './dbConnect'
-import DOMPurify from 'isomorphic-dompurify'
 // import { DEFAULT_ROLES } from '@helpers/constants'
 // import Roles from '@models/Roles'
 import mongoose from 'mongoose'
@@ -169,6 +168,19 @@ const buildNavigationLinks = (address) => {
 
 const isValidDateValue = (value) =>
   value instanceof Date && !Number.isNaN(value.getTime())
+
+const sanitizeToPlainText = (value) =>
+  String(value ?? '')
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+    .replace(/<\/?[^>]+>/g, '')
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .trim()
 
 const formatAdditionalEventsForMainDescription = (additionalEvents = []) => {
   if (!Array.isArray(additionalEvents) || additionalEvents.length === 0) return ''
@@ -576,7 +588,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   const calendarEvent = {
     summary: `${statusPrefix}${calendarTitle}`,
     description:
-      DOMPurify.sanitize(
+      sanitizeToPlainText(
         preparedText
           .replaceAll('<p><br></p>', '\n')
           .replaceAll('</blockquote>', '\n</blockquote>')
@@ -587,11 +599,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
           .replaceAll('</p>', '\n</p>')
           .replaceAll('<br>', '\n')
           .replaceAll('&nbsp;', ' ')
-          .trim('\n'),
-        {
-          ALLOWED_TAGS: [],
-          ALLOWED_ATTR: [],
-        }
+          .trim('\n')
       ) +
       `\n\nСсылка на мероприятие:\n${
         process.env.DOMAIN + '/event/' + event._id

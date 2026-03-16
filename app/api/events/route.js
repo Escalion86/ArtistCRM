@@ -77,67 +77,104 @@ const getPastAdditionalEventsMatch = (segment, now) => {
 }
 
 export const GET = async (req) => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) {
-    return NextResponse.json(
-      { success: false, error: 'Не авторизован' },
-      { status: 401 }
-    )
-  }
-  await dbConnect()
-  const { searchParams } = new URL(req.url)
-  const scope = searchParams.get('scope') || 'all'
-  const before = searchParams.get('before')
-  const limit = parsePositiveInt(searchParams.get('limit'), 120)
-  const countOnly = searchParams.get('countOnly') === '1'
+  try {
+    const { tenantId } = await getTenantContext()
+    if (!tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Не авторизован' },
+        { status: 401 }
+      )
+    }
+    await dbConnect()
+    const { searchParams } = new URL(req.url)
+    const scope = searchParams.get('scope') || 'all'
+    const before = searchParams.get('before')
+    const limit = parsePositiveInt(searchParams.get('limit'), 120)
+    const countOnly = searchParams.get('countOnly') === '1'
 
-  if (scope === 'past') {
-    const now = new Date()
-    let beforeCutoff = now
-    if (before) {
-      const beforeDate = new Date(before)
-      if (!Number.isNaN(beforeDate.getTime()) && beforeDate.getTime() < now.getTime()) {
-        beforeCutoff = beforeDate
+    if (scope === 'past') {
+      const now = new Date()
+      let beforeCutoff = now
+      if (before) {
+        const beforeDate = new Date(before)
+        if (
+          !Number.isNaN(beforeDate.getTime()) &&
+          beforeDate.getTime() < now.getTime()
+        ) {
+          beforeCutoff = beforeDate
+        }
       }
-    }
 
-    const baseQuery = {
-      tenantId,
-      ...buildPastCompletionQuery(now),
-    }
-    const town = (searchParams.get('town') || '').trim()
-    if (town) baseQuery['address.town'] = town
+      const baseConditions = [{ tenantId }, buildPastCompletionQuery(now)]
+      const town = (searchParams.get('town') || '').trim()
+      if (town) baseConditions.push({ 'address.town': town })
 
-    const calendarChecked = parseBooleanParam(searchParams.get('calendarChecked'))
-    if (calendarChecked !== null) {
-      baseQuery.calendarImportChecked = calendarChecked
-    }
+      const calendarChecked = parseBooleanParam(
+        searchParams.get('calendarChecked')
+      )
+      if (calendarChecked !== null) {
+        baseConditions.push({ calendarImportChecked: calendarChecked })
+      }
 
-    const statusFinished = parseBooleanParam(
-      searchParams.get('statusFinished')
-    )
-    const statusClosed = parseBooleanParam(searchParams.get('statusClosed'))
-    const statusCanceled = parseBooleanParam(searchParams.get('statusCanceled'))
+      const statusFinished = parseBooleanParam(
+        searchParams.get('statusFinished')
+      )
+      const statusClosed = parseBooleanParam(searchParams.get('statusClosed'))
+      const statusCanceled = parseBooleanParam(searchParams.get('statusCanceled'))
 
-    if (
-      statusFinished !== null ||
-      statusClosed !== null ||
-      statusCanceled !== null
-    ) {
-      const statusConditions = []
-      if (statusClosed === true) statusConditions.push({ status: 'closed' })
-      if (statusCanceled === true) statusConditions.push({ status: 'canceled' })
-      if (statusFinished === true) {
-        statusConditions.push({
-          $or: [
-            { status: { $exists: false } },
-            { status: null },
-            { status: { $nin: ['draft', 'closed', 'canceled'] } },
-          ],
+      if (
+        statusFinished !== null ||
+        statusClosed !== null ||
+        statusCanceled !== null
+      ) {
+        const statusConditions = []
+        if (statusClosed === true) statusConditions.push({ status: 'closed' })
+        if (statusCanceled === true) statusConditions.push({ status: 'canceled' })
+        if (statusFinished === true) {
+          statusConditions.push({
+            $or: [
+              { status: { $exists: false } },
+              { status: null },
+              { status: { $nin: ['draft', 'closed', 'canceled'] } },
+            ],
+          })
+        }
+
+        if (statusConditions.length === 0) {
+          return NextResponse.json(
+            {
+              success: true,
+              data: [],
+              meta: {
+                hasMore: false,
+                nextBefore: null,
+                limit,
+                scope: 'past',
+                totalCount: 0,
+              },
+            },
+            { status: 200 }
+          )
+        }
+
+        baseConditions.push({ $or: statusConditions })
+      }
+
+      const additionalQuick = searchParams.get('additionalQuick')
+      const additionalEventsMatch = getPastAdditionalEventsMatch(
+        additionalQuick,
+        new Date()
+      )
+      if (additionalEventsMatch) {
+        baseConditions.push({
+          additionalEvents: { $elemMatch: additionalEventsMatch },
         })
       }
 
-      if (statusConditions.length === 0) {
+      const baseQuery = { $and: baseConditions }
+
+      if (countOnly) {
+        const totalCount = await Events.countDocuments(baseQuery)
         return NextResponse.json(
           {
             success: true,
@@ -145,37 +182,40 @@ export const GET = async (req) => {
             meta: {
               hasMore: false,
               nextBefore: null,
-              limit,
+              limit: 0,
               scope: 'past',
-              totalCount: 0,
+              totalCount,
             },
           },
           { status: 200 }
         )
       }
 
-      baseQuery.$or = statusConditions
-    }
+      const query = {
+        $and: [...baseConditions, buildPastCompletionQuery(beforeCutoff)],
+      }
 
-    const additionalQuick = searchParams.get('additionalQuick')
-    const additionalEventsMatch = getPastAdditionalEventsMatch(
-      additionalQuick,
-      new Date()
-    )
-    if (additionalEventsMatch) {
-      baseQuery.additionalEvents = { $elemMatch: additionalEventsMatch }
-    }
+      const [totalCount, rows] = await Promise.all([
+        Events.countDocuments(baseQuery),
+        Events.find(query)
+          .sort({ dateEnd: -1, eventDate: -1, createdAt: -1 })
+          .limit(limit + 1)
+          .lean(),
+      ])
+      const hasMore = rows.length > limit
+      const items = hasMore ? rows.slice(0, limit) : rows
+      const lastItem = items[items.length - 1]
 
-    if (countOnly) {
-      const totalCount = await Events.countDocuments(baseQuery)
       return NextResponse.json(
         {
           success: true,
-          data: [],
+          data: items,
           meta: {
-            hasMore: false,
-            nextBefore: null,
-            limit: 0,
+            hasMore,
+            nextBefore: lastItem?.dateEnd || lastItem?.eventDate
+              ? new Date(lastItem.dateEnd ?? lastItem.eventDate).toISOString()
+              : null,
+            limit,
             scope: 'past',
             totalCount,
           },
@@ -184,44 +224,17 @@ export const GET = async (req) => {
       )
     }
 
-    const query = {
-      ...baseQuery,
-      ...buildPastCompletionQuery(beforeCutoff),
-    }
-
-    const [totalCount, rows] = await Promise.all([
-      Events.countDocuments(baseQuery),
-      Events.find(query)
-        .sort({ dateEnd: -1, eventDate: -1, createdAt: -1 })
-        .limit(limit + 1)
-        .lean(),
-    ])
-    const hasMore = rows.length > limit
-    const items = hasMore ? rows.slice(0, limit) : rows
-    const lastItem = items[items.length - 1]
-
+    const events = await Events.find({ tenantId })
+      .sort({ eventDate: -1, createdAt: -1 })
+      .lean()
+    return NextResponse.json({ success: true, data: events }, { status: 200 })
+  } catch (error) {
+    console.log('Events GET error', error)
     return NextResponse.json(
-      {
-        success: true,
-        data: items,
-        meta: {
-          hasMore,
-          nextBefore: lastItem?.dateEnd || lastItem?.eventDate
-            ? new Date(lastItem.dateEnd ?? lastItem.eventDate).toISOString()
-            : null,
-          limit,
-          scope: 'past',
-          totalCount,
-        },
-      },
-      { status: 200 }
+      { success: false, error: 'Не удалось загрузить мероприятия' },
+      { status: 500 }
     )
   }
-
-  const events = await Events.find({ tenantId })
-    .sort({ eventDate: -1, createdAt: -1 })
-    .lean()
-  return NextResponse.json({ success: true, data: events }, { status: 200 })
 }
 
 export const POST = async (req) => {

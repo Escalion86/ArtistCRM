@@ -74,9 +74,9 @@ const eventStatusEditFunc = (eventId) => {
       incomeTotal >= contractSum && (!event?.isByContract || hasTaxes)
     const statusDisabledValues = useMemo(() => {
       if (status === 'closed') return []
-      if (!canClose) return ['closed']
+      if (!canClose || hasPendingAdditionalEvents) return ['closed']
       return []
-    }, [canClose, status])
+    }, [canClose, hasPendingAdditionalEvents, status])
     const hasEvent = Boolean(event && eventId)
     const cancelReasons = useMemo(
       () => normalizeCancelReasons(siteSettings?.custom?.cancelReasons ?? []),
@@ -88,7 +88,9 @@ const eventStatusEditFunc = (eventId) => {
     )
     const needsCancelReason = status === 'canceled'
     const isClosing = status === 'closed'
-    const canApplySelectedStatus = !isClosing || canClose
+    const hasPendingAdditionalEvents = pendingAdditionalEvents.length > 0
+    const canApplySelectedStatus =
+      (!isClosing || canClose) && !(isClosing && hasPendingAdditionalEvents)
     const hasReasonChanged =
       normalizedCancelReason !== (event?.cancelReason ?? '')
     const pendingAdditionalEvents = useMemo(
@@ -157,8 +159,7 @@ const eventStatusEditFunc = (eventId) => {
     }
     const onClickConfirm = async () => {
       const needsAdditionalEventsConfirmation =
-        ['closed', 'canceled'].includes(status) &&
-        pendingAdditionalEvents.length > 0
+        status === 'canceled' && pendingAdditionalEvents.length > 0
 
       if (needsAdditionalEventsConfirmation) {
         modalsFunc.add({
@@ -247,6 +248,11 @@ const eventStatusEditFunc = (eventId) => {
             {event?.isByContract && !hasTaxes
               ? 'Закрытие недоступно: добавьте транзакцию Налоги.'
               : 'Закрытие недоступно, пока сумма поступлений меньше договорной.'}
+          </div>
+        )}
+        {isClosing && hasPendingAdditionalEvents && (
+          <div className="text-xs text-gray-500">
+            Закрытие недоступно: сначала отметьте выполненными все доп. события.
           </div>
         )}
         {/* {!canSetClosed && (

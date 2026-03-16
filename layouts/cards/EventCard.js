@@ -141,6 +141,7 @@ const EventCard = ({ eventId, style }) => {
   const isCanceled = rawStatus === 'canceled'
   const isClosed = rawStatus === 'closed'
   const isDraft = rawStatus === 'draft'
+  const isActive = rawStatus === 'active'
   const isFinished =
     !isCanceled && !isClosed && eventEnd && eventEnd.getTime() < now.getTime()
   const coordsLink =
@@ -327,8 +328,15 @@ const EventCard = ({ eventId, style }) => {
           {isDraft && (
             <FontAwesomeIcon
               icon={faClock}
-              className="h-4 w-4 text-blue-500"
+              className="h-4 w-4 text-gray-500"
               aria-label="Заявка"
+            />
+          )}
+          {isActive && (
+            <FontAwesomeIcon
+              icon={faCircleCheck}
+              className="h-4 w-4 text-blue-500"
+              aria-label="Мероприятие"
             />
           )}
           {!client && (

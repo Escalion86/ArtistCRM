@@ -13,7 +13,7 @@ import getEventDuration from '@helpers/getEventDuration'
 import getPersonFullName from '@helpers/getPersonFullName'
 import Image from 'next/image'
 import eventSelector from '@state/selectors/eventSelector'
-import DOMPurify from 'isomorphic-dompurify'
+import sanitizeHtml from '@helpers/sanitizeHtml'
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
@@ -282,7 +282,7 @@ const eventViewFunc = (eventId) => {
                 <div
                   className="w-full max-w-full overflow-hidden list-disc textarea ql"
                   dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(event?.description),
+                    __html: sanitizeHtml(event?.description),
                   }}
                 />
               </SectionBlock>
