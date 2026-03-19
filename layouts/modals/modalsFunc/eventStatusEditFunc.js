@@ -72,27 +72,6 @@ const eventStatusEditFunc = (eventId) => {
     )
     const canClose =
       incomeTotal >= contractSum && (!event?.isByContract || hasTaxes)
-    const statusDisabledValues = useMemo(() => {
-      if (status === 'closed') return []
-      if (!canClose || hasPendingAdditionalEvents) return ['closed']
-      return []
-    }, [canClose, hasPendingAdditionalEvents, status])
-    const hasEvent = Boolean(event && eventId)
-    const cancelReasons = useMemo(
-      () => normalizeCancelReasons(siteSettings?.custom?.cancelReasons ?? []),
-      [siteSettings?.custom?.cancelReasons]
-    )
-    const normalizedCancelReason = useMemo(
-      () => (typeof cancelReason === 'string' ? cancelReason.trim() : ''),
-      [cancelReason]
-    )
-    const needsCancelReason = status === 'canceled'
-    const isClosing = status === 'closed'
-    const hasPendingAdditionalEvents = pendingAdditionalEvents.length > 0
-    const canApplySelectedStatus =
-      (!isClosing || canClose) && !(isClosing && hasPendingAdditionalEvents)
-    const hasReasonChanged =
-      normalizedCancelReason !== (event?.cancelReason ?? '')
     const pendingAdditionalEvents = useMemo(
       () =>
         (Array.isArray(event?.additionalEvents) ? event.additionalEvents : [])
@@ -118,6 +97,27 @@ const eventStatusEditFunc = (eventId) => {
           .filter(Boolean),
       [event?.additionalEvents]
     )
+    const hasPendingAdditionalEvents = pendingAdditionalEvents.length > 0
+    const statusDisabledValues = useMemo(() => {
+      if (status === 'closed') return []
+      if (!canClose || hasPendingAdditionalEvents) return ['closed']
+      return []
+    }, [canClose, hasPendingAdditionalEvents, status])
+    const hasEvent = Boolean(event && eventId)
+    const cancelReasons = useMemo(
+      () => normalizeCancelReasons(siteSettings?.custom?.cancelReasons ?? []),
+      [siteSettings?.custom?.cancelReasons]
+    )
+    const normalizedCancelReason = useMemo(
+      () => (typeof cancelReason === 'string' ? cancelReason.trim() : ''),
+      [cancelReason]
+    )
+    const needsCancelReason = status === 'canceled'
+    const isClosing = status === 'closed'
+    const canApplySelectedStatus =
+      (!isClosing || canClose) && !(isClosing && hasPendingAdditionalEvents)
+    const hasReasonChanged =
+      normalizedCancelReason !== (event?.cancelReason ?? '')
 
     const applyStatus = async (removePendingAdditionalEvents = false) => {
       closeModal()

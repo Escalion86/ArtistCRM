@@ -97,6 +97,7 @@ const CardButtons = ({
   onOpenCalendar,
   onEditClientContacts,
   onEditFinanceDocs,
+  onAdditionalEvents,
   showCloneButton = true,
   showHistoryButton = true,
   showStatusButton = true,
@@ -134,6 +135,7 @@ const CardButtons = ({
           cloneBtn:
             showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
           openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
+          additionalEvents: typeOfItem === 'event',
           historyBtn: showHistoryButton && typeOfItem === 'event',
           statusBtn:
             showStatusButton &&
@@ -147,6 +149,7 @@ const CardButtons = ({
           cloneBtn:
             showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
           openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
+          additionalEvents: typeOfItem === 'event',
           historyBtn: showHistoryButton && typeOfItem === 'event',
           statusBtn:
             showStatusButton &&
@@ -166,6 +169,7 @@ const CardButtons = ({
         setPasswordBtn: true,
         addToCalendar: typeOfItem === 'event',
         openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
+        additionalEvents: typeOfItem === 'event',
         historyBtn: showHistoryButton && typeOfItem === 'event',
         upBtn: onUpClick && upDownSee,
         downBtn: onDownClick && upDownSee,
@@ -301,6 +305,17 @@ const CardButtons = ({
           onClick={handleOpenCalendar}
           color="blue"
           tooltipText="Открыть в календаре"
+        />
+      )}
+      {show.additionalEvents && (
+        <ItemComponent
+          icon={faCalendarAlt}
+          onClick={() => {
+            if (onAdditionalEvents) onAdditionalEvents()
+            else modalsFunc.event?.additionalEvents?.(item._id)
+          }}
+          color="blue"
+          tooltipText="Доп. события"
         />
       )}
       {show.historyBtn && (

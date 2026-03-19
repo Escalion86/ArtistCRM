@@ -16,6 +16,8 @@ const DropDown = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef(null)
+  const menuRef = useRef(null)
+  const closeTimeoutRef = useRef(null)
   const [menuPosition, setMenuPosition] = useState(null)
 
   const padding = useMemo(() => {
@@ -45,6 +47,21 @@ const DropDown = ({
     if (openOnHover) return
     setIsOpen((prev) => !prev)
   }, [openOnHover])
+
+  const clearCloseTimeout = useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current)
+      closeTimeoutRef.current = null
+    }
+  }, [])
+
+  const closeWithDelay = useCallback(() => {
+    clearCloseTimeout()
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsOpen(false)
+      closeTimeoutRef.current = null
+    }, 120)
+  }, [clearCloseTimeout])
 
   const updateMenuPosition = useCallback(() => {
     if (!renderInPortal) return
@@ -111,32 +128,48 @@ const DropDown = ({
     }
   }, [isOpen, renderInPortal, turnOffAutoClose, updateMenuPosition])
 
+  useEffect(() => {
+    return () => clearCloseTimeout()
+  }, [clearCloseTimeout])
+
   const hoverHandlers = openOnHover
     ? {
-        onMouseEnter: () => setIsOpen(true),
+        onMouseEnter: () => {
+          clearCloseTimeout()
+          setIsOpen(true)
+        },
         onMouseLeave: (event) => {
           const element = containerRef.current
+          const menuElement = menuRef.current
           if (!element) {
-            setIsOpen(false)
+            closeWithDelay()
             return
           }
           const relatedTarget = event.relatedTarget
-          if (relatedTarget instanceof Node && element.contains(relatedTarget))
+          if (
+            relatedTarget instanceof Node &&
+            (element.contains(relatedTarget) ||
+              (menuElement && menuElement.contains(relatedTarget)))
+          )
             return
-          setIsOpen(false)
+          closeWithDelay()
         },
       }
     : {}
 
   const menuHoverHandlers = openOnHover
     ? {
-        onMouseEnter: () => setIsOpen(true),
-        onMouseLeave: () => setIsOpen(false),
+        onMouseEnter: () => {
+          clearCloseTimeout()
+          setIsOpen(true)
+        },
+        onMouseLeave: () => closeWithDelay(),
       }
     : {}
 
   const menuContent = isOpen ? (
     <div
+      ref={menuRef}
       className={cn(
         'z-[80] flex items-center justify-center rounded-lg border border-gray-400 bg-white shadow-md dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-800',
         strategyAbsolute && !renderInPortal
