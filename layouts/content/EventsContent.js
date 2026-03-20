@@ -30,6 +30,7 @@ import AppButton from '@components/AppButton'
 import useUiDensity from '@helpers/useUiDensity'
 import { getData } from '@helpers/CRUD'
 import { DAYS_OF_WEEK } from '@helpers/constants'
+import { isEventCreatedViaPublicApi } from '@helpers/eventSource'
 
 const getStatusFilterDefaults = (filter) => {
   if (filter === 'upcoming') {
@@ -117,6 +118,12 @@ const toMinuteOfDay = (value) => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return 0
   return date.getHours() * 60 + date.getMinutes()
+}
+
+const getValidDateTime = (value) => {
+  if (!value) return null
+  const time = new Date(value).getTime()
+  return Number.isNaN(time) ? null : time
 }
 
 const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
@@ -341,10 +348,32 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   }, [additionalQuickFilter, filteredByStatus])
 
   const sortedEvents = useMemo(() => {
+    if (filter === 'upcoming') {
+      return [...filteredByAdditionalQuick].sort((a, b) => {
+        const aEventDate = getValidDateTime(a?.eventDate)
+        const bEventDate = getValidDateTime(b?.eventDate)
+        const aNoDate = aEventDate === null
+        const bNoDate = bEventDate === null
+        const aApiNoDate = aNoDate && isEventCreatedViaPublicApi(a)
+        const bApiNoDate = bNoDate && isEventCreatedViaPublicApi(b)
+
+        if (aApiNoDate !== bApiNoDate) return aApiNoDate ? -1 : 1
+        if (aNoDate !== bNoDate) return aNoDate ? 1 : -1
+
+        if (!aNoDate && !bNoDate && aEventDate !== bEventDate) {
+          return aEventDate - bEventDate
+        }
+
+        const aRequestCreatedAt = getValidDateTime(a?.requestCreatedAt) ?? 0
+        const bRequestCreatedAt = getValidDateTime(b?.requestCreatedAt) ?? 0
+        return bRequestCreatedAt - aRequestCreatedAt
+      })
+    }
+
     const sorter = (a, b) => {
       const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0
       const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0
-      return filter === 'upcoming' ? dateA - dateB : dateB - dateA
+      return dateB - dateA
     }
     return [...filteredByAdditionalQuick].sort(sorter)
   }, [filteredByAdditionalQuick, filter])

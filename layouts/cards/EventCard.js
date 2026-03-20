@@ -34,6 +34,7 @@ import StatusChip from '@components/StatusChip'
 import { getSoonNoDepositEvents } from '@helpers/additionalEvents'
 import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { isEventCreatedViaPublicApi } from '@helpers/eventSource'
 
 const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
 
@@ -175,6 +176,8 @@ const EventCard = ({ eventId, style }) => {
     const items = getSoonNoDepositEvents([event], transactions, new Date(), 3)
     return items.length > 0
   }, [event, transactions])
+
+  const isCreatedViaApi = isEventCreatedViaPublicApi(event)
 
   const nearestAdditionalEventInfo = useMemo(() => {
     const additionalEvents = Array.isArray(event?.additionalEvents)
@@ -349,6 +352,11 @@ const EventCard = ({ eventId, style }) => {
           <div className="card-title mr-6 flex-1 truncate text-lg">
             {[eventTitle, servicesTitle].join(' • ')}
           </div>
+          {isCreatedViaApi && (
+            <StatusChip tone="neutral" className="max-w-max shrink-0">
+              API
+            </StatusChip>
+          )}
           <CardActions className="z-10 -mt-1 -mr-3">
             <CardButtons
               item={event}
