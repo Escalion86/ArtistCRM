@@ -72,6 +72,7 @@
 - [x] E3-T8 Календарный режим на месяц: отображение мероприятий и доп. событий в формате month-view
 - [x] E3-T9 Авторизация через VK ID One Tap для web-кабинета
 - [x] E3-T10 Push-уведомления в установленном PWA по новым входящим API-заявкам (subscribe/unsubscribe/test + отправка из public lead endpoints)
+- [x] E3-T11 Push-напоминания по доп. событиям через cron endpoint (за день и после просрочки, с дедупликацией отправки)
 
 ### Mobile Track (React Native + Expo, параллельный поток)
 
@@ -220,3 +221,4 @@
 - 2026-03-12: hotfix VK ID auth в production — добавлен единый fallback секрета для NextAuth/VK ID, усилено автосоздание пользователя при первом входе через VK ID (вход=регистрация), добавлены явные коды ошибок и диагностические логи для `/api/vk-id/auth`.
 - 2026-03-16: завершен E3-T8 — в `Предстоящих`/`Прошедших` добавлен календарный month-view с переключением `Список/Месяц`, навигацией по месяцам и отображением мероприятий + доп. событий по дням.
 - 2026-03-21: завершен E3-T10 — добавлены web push уведомления для установленного PWA по входящим API-заявкам: backend подписок (`/api/push/public-key|subscribe|unsubscribe|test`), отправка push из `POST /api/public/lead` и `POST /api/public/lead/tilda`, UI-управление в `Интеграции`, custom service worker handlers (`push`/`notificationclick`).
+- 2026-03-21: завершен E3-T11 — добавлен cron endpoint `POST /api/push/reminders/additional-events` для push-напоминаний по `additionalEvents` (сегменты `tomorrow`/`overdue`) и модель дедупликации отправок `PushReminderLogs`.

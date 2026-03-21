@@ -411,36 +411,39 @@ const IntegrationsContent = () => {
               Разрешение: {pushPermission} | Подписка:{' '}
               {pushSubscribed ? 'активна' : 'нет'}
             </div>
-            <IconCheckBox
-              label="Отправлять push-уведомления о новых API-заявках"
-              checked={isPushEnabled}
-              onClick={() => {
-                if (!pushAvailable || pushBusy) return
-                if (isPushEnabled) disablePushNotifications()
-                else enablePushNotifications()
-              }}
-              noMargin
-            />
+            <div className="flex items-center">
+              <span
+                className={`inline-flex min-w-[110px] items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold ${
+                  isPushEnabled
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-300 bg-gray-100 text-gray-700'
+                }`}
+              >
+                {isPushEnabled ? 'Подключено' : 'Отключено'}
+              </span>
+            </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className="action-icon-button action-icon-button--success flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold tablet:w-auto"
-                onClick={enablePushNotifications}
+                className={`action-icon-button flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold tablet:w-auto ${
+                  isPushEnabled
+                    ? 'action-icon-button--danger'
+                    : 'action-icon-button--success'
+                }`}
+                onClick={() => {
+                  if (!pushAvailable || pushBusy) return
+                  if (isPushEnabled) disablePushNotifications()
+                  else enablePushNotifications()
+                }}
                 disabled={pushBusy || !pushAvailable}
               >
                 {pushBusy && pushAction === 'enable'
                   ? 'Подключаем...'
-                  : 'Включить push'}
-              </button>
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--danger flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold tablet:w-auto"
-                onClick={disablePushNotifications}
-                disabled={pushBusy || !pushAvailable}
-              >
-                {pushBusy && pushAction === 'disable'
+                  : pushBusy && pushAction === 'disable'
                   ? 'Отключаем...'
-                  : 'Отключить push'}
+                  : isPushEnabled
+                    ? 'Отключить push'
+                    : 'Включить push'}
               </button>
               <button
                 type="button"
