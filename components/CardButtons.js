@@ -23,6 +23,7 @@ import CardButton from './CardButton'
 import DropDown from './DropDown'
 import useCopyToClipboard from '@helpers/useCopyToClipboard'
 import { useEffect } from 'react'
+import { getAdditionalEventsSummary } from '@helpers/additionalEvents'
 
 const MENU_ITEM_TONE = {
   red: {
@@ -57,23 +58,47 @@ const MENU_ITEM_TONE = {
   },
 }
 
-const MenuItem = ({ active, icon, onClick, color = 'red', tooltipText }) => {
+const MenuItem = ({
+  active,
+  icon,
+  onClick,
+  color = 'red',
+  tooltipText,
+  badges = [],
+}) => {
   const tone = MENU_ITEM_TONE[color] || MENU_ITEM_TONE.red
 
   return (
-  <div
-    className={cn(
-      'flex h-9 cursor-pointer items-center gap-x-2 px-2 text-base font-normal duration-300',
-      tone.hover,
-      active ? tone.active : tone.base
-    )}
-    onClick={(e) => {
-      onClick && onClick()
-    }}
-  >
-    <FontAwesomeIcon icon={icon} className="h-7 w-7" />
-    <div className="prevent-select-text whitespace-nowrap">{tooltipText}</div>
-  </div>
+    <div
+      className={cn(
+        'flex h-9 cursor-pointer items-center gap-x-2 px-2 text-base font-normal duration-300',
+        tone.hover,
+        active ? tone.active : tone.base
+      )}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick && onClick()
+      }}
+    >
+      <FontAwesomeIcon icon={icon} className="h-7 w-7" />
+      <div className="prevent-select-text whitespace-nowrap">{tooltipText}</div>
+      {badges.length > 0 ? (
+        <div className="ml-auto flex items-center gap-1">
+          {badges.map((badge) => (
+            <span
+              key={badge.key}
+              title={badge.title}
+              className={cn(
+                'inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm',
+                badge.className
+              )}
+            >
+              {badge.value}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -116,6 +141,27 @@ const CardButtons = ({
     Boolean(onEditClientContacts || onEditFinanceDocs)
 
   const copyId = useCopyToClipboard(item._id, 'ID скопирован в буфер обмена')
+  const additionalEventsSummary = getAdditionalEventsSummary([item], new Date())
+  const additionalEventsBadges = [
+    {
+      key: 'overdue',
+      title: 'Просрочено',
+      value: Number(additionalEventsSummary?.overdue || 0),
+      className: 'bg-red-600',
+    },
+    {
+      key: 'today',
+      title: 'Сегодня',
+      value: Number(additionalEventsSummary?.today || 0),
+      className: 'bg-amber-500',
+    },
+    {
+      key: 'tomorrow',
+      title: 'Завтра',
+      value: Number(additionalEventsSummary?.tomorrow || 0),
+      className: 'bg-blue-600',
+    },
+  ].filter((badge) => badge.value > 0)
 
   const upDownSee =
     (!forForm && typeOfItem === 'service') || typeOfItem === 'product' || false
@@ -316,6 +362,7 @@ const CardButtons = ({
           }}
           color="blue"
           tooltipText="Доп. события"
+          badges={additionalEventsBadges}
         />
       )}
       {show.historyBtn && (

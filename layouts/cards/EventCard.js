@@ -352,11 +352,6 @@ const EventCard = ({ eventId, style }) => {
           <div className="card-title mr-6 flex-1 truncate text-lg">
             {[eventTitle, servicesTitle].join(' • ')}
           </div>
-          {isCreatedViaApi && (
-            <StatusChip tone="neutral" className="max-w-max shrink-0">
-              API
-            </StatusChip>
-          )}
           <CardActions className="z-10 -mt-1 -mr-3">
             <CardButtons
               item={event}
@@ -456,24 +451,31 @@ const EventCard = ({ eventId, style }) => {
 
         {isClosed || isCanceled ? null : (
           <div className="laptop:min-w-[240px] laptop:self-start flex shrink-0 items-end">
-            <div className="flex items-end justify-end gap-3 text-sm font-semibold">
-              {paid > 0 && contractSum > 0 && paid >= contractSum ? (
-                <span className="text-green-700">{paid.toLocaleString()}</span>
-              ) : (
-                <span>
-                  {paid > 0 ? (
-                    <span className="text-green-700">
-                      {paid.toLocaleString()}
-                    </span>
-                  ) : null}
-                  {paid > 0 && contractSum > 0 ? ' / ' : null}
-                  {contractSum > 0 ? (
-                    <span className="text-blue-700">
-                      {contractSum.toLocaleString()}
-                    </span>
-                  ) : null}
-                </span>
+            <div className="flex flex-col items-end justify-end gap-1 text-sm font-semibold">
+              {isCreatedViaApi && (
+                <StatusChip tone="neutral" className="max-w-max shrink-0">
+                  API
+                </StatusChip>
               )}
+              <div className="flex items-end justify-end gap-3">
+                {paid > 0 && contractSum > 0 && paid >= contractSum ? (
+                  <span className="text-green-700">{paid.toLocaleString()}</span>
+                ) : (
+                  <span>
+                    {paid > 0 ? (
+                      <span className="text-green-700">
+                        {paid.toLocaleString()}
+                      </span>
+                    ) : null}
+                    {paid > 0 && contractSum > 0 ? ' / ' : null}
+                    {contractSum > 0 ? (
+                      <span className="text-blue-700">
+                        {contractSum.toLocaleString()}
+                      </span>
+                    ) : null}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}

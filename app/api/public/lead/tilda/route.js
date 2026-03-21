@@ -6,9 +6,11 @@ import {
   normalizePhone,
   normalizeText,
   parseDateValue,
+  readCustomValue,
   resolvePublicLeadTenant,
   upsertPublicLeadClient,
 } from '@server/publicLeadService'
+import { notifyApiLeadCreated } from '@server/publicLeadPush'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -152,6 +154,9 @@ export const POST = async (req) => {
       )
     }
     const tenantId = accessData.tenantId
+    const pushEnabled =
+      readCustomValue(accessData?.siteSettings?.custom, 'publicLeadPushEnabled') ===
+      true
 
     const normalized = normalizeTildaPayload(body)
 
@@ -199,6 +204,19 @@ export const POST = async (req) => {
       rawPayload: body,
       historyUserId: 'public-api-tilda',
     })
+
+    if (pushEnabled) {
+      notifyApiLeadCreated({
+        tenantId,
+        event,
+        normalizedData: {
+          phone: normalized.phone,
+          source: normalized.source,
+        },
+      }).catch((error) =>
+        console.error('public tilda lead push notify error', error)
+      )
+    }
 
     return NextResponse.json(
       {

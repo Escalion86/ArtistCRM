@@ -1,6 +1,6 @@
 {
   "name": "ArtistCRM",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -61,7 +61,8 @@
     "react-markdown": "^10.1.0",
     "react-medium-image-zoom": "^5.4.1",
     "react-window": "^2.2.7",
-    "undici": "^7.24.3"
+    "undici": "^7.24.3",
+    "web-push": "^3.6.7"
   },
   "overrides": {
     "psl": "^1.15.0"
