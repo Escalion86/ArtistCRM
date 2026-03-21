@@ -23,7 +23,7 @@ const buildApiLeadPushPayload = ({ event, normalizedData }) => {
   if (source) bodyParts.push(`Источник: ${source}`)
 
   return {
-    title: 'Новая API-заявка',
+    title: 'Новая заявка',
     body: bodyParts.join(' | ') || 'Откройте кабинет для просмотра',
     icon: '/icons/AppImages/android/android-launchericon-192-192.png',
     badge: '/icons/AppImages/android/android-launchericon-192-192.png',

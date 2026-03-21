@@ -13,6 +13,7 @@ import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
 import ReactMarkdown from 'react-markdown'
+import useSnackbar from '@helpers/useSnackbar'
 
 const getCustomValue = (custom, key) => {
   if (!custom) return undefined
@@ -123,11 +124,12 @@ const IntegrationsApiGuide = () => {
 const IntegrationsContent = () => {
   const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const snackbar = useSnackbar()
   const [isSaving, setIsSaving] = useState(false)
   const [pushBusy, setPushBusy] = useState(false)
+  const [pushAction, setPushAction] = useState('')
   const [pushSubscribed, setPushSubscribed] = useState(false)
   const [pushPermission, setPushPermission] = useState('default')
-  const [pushStatusText, setPushStatusText] = useState('')
   const [pushAvailable, setPushAvailable] = useState(false)
 
   const customSettings = siteSettings?.custom ?? {}
@@ -199,30 +201,30 @@ const IntegrationsContent = () => {
 
   const enablePushNotifications = async () => {
     if (!isPushSupported()) {
-      setPushStatusText('Push-уведомления не поддерживаются на этом устройстве')
+      snackbar.warning('Push-уведомления не поддерживаются на этом устройстве')
       return
     }
 
     setPushBusy(true)
-    setPushStatusText('')
+    setPushAction('enable')
     try {
       const permission = await Notification.requestPermission()
       setPushPermission(permission)
       if (permission !== 'granted') {
-        setPushStatusText('Разрешение на уведомления не выдано')
+        snackbar.warning('Разрешение на уведомления не выдано')
         return
       }
 
       const keyResponse = await fetch('/api/push/public-key')
       const keyPayload = await keyResponse.json().catch(() => ({}))
       if (!keyResponse.ok || !keyPayload?.data?.publicKey) {
-        setPushStatusText(keyPayload?.error || 'Не удалось получить VAPID ключ')
+        snackbar.error(keyPayload?.error || 'Не удалось получить VAPID ключ')
         return
       }
 
       const registration = await getRegistration()
       if (!registration?.pushManager) {
-        setPushStatusText('Service Worker не готов для push')
+        snackbar.error('Service Worker не готов для push')
         return
       }
 
@@ -241,30 +243,29 @@ const IntegrationsContent = () => {
       })
       if (!saveResponse.ok) {
         const savePayload = await saveResponse.json().catch(() => ({}))
-        setPushStatusText(
-          savePayload?.error || 'Не удалось сохранить push-подписку'
-        )
+        snackbar.error(savePayload?.error || 'Не удалось сохранить push-подписку')
         return
       }
 
       await saveCustom({ publicLeadPushEnabled: true })
       setPushSubscribed(true)
-      setPushStatusText('Push-уведомления включены')
+      snackbar.success('Push-уведомления включены')
     } catch (error) {
-      setPushStatusText(
+      snackbar.error(
         error?.message
           ? `Не удалось включить push-уведомления: ${error.message}`
           : 'Не удалось включить push-уведомления'
       )
     } finally {
       setPushBusy(false)
+      setPushAction('')
       refreshPushState()
     }
   }
 
   const disablePushNotifications = async () => {
     setPushBusy(true)
-    setPushStatusText('')
+    setPushAction('disable')
     try {
       const registration = await getRegistration()
       const subscription = await registration?.pushManager
@@ -282,36 +283,38 @@ const IntegrationsContent = () => {
 
       await saveCustom({ publicLeadPushEnabled: false })
       setPushSubscribed(false)
-      setPushStatusText('Push-уведомления отключены')
+      snackbar.success('Push-уведомления отключены')
     } catch (error) {
-      setPushStatusText('Не удалось отключить push-уведомления')
+      snackbar.error('Не удалось отключить push-уведомления')
     } finally {
       setPushBusy(false)
+      setPushAction('')
       refreshPushState()
     }
   }
 
   const sendTestPush = async () => {
     setPushBusy(true)
-    setPushStatusText('')
+    setPushAction('test')
     try {
       const response = await fetch('/api/push/test', { method: 'POST' })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok || !payload?.success) {
-        setPushStatusText(payload?.error || 'Не удалось отправить тест')
+        snackbar.error(payload?.error || 'Не удалось отправить тест')
         return
       }
 
       const sent = Number(payload?.data?.sent || 0)
       if (sent <= 0) {
-        setPushStatusText('Тест отправлен, но активных подписок не найдено')
+        snackbar.warning('Тест отправлен, но активных подписок не найдено')
         return
       }
-      setPushStatusText(`Тест отправлен: ${sent}`)
+      snackbar.success(`Тест отправлен: ${sent}`)
     } catch (error) {
-      setPushStatusText('Не удалось отправить тест push')
+      snackbar.error('Не удалось отправить тест push')
     } finally {
       setPushBusy(false)
+      setPushAction('')
       refreshPushState()
     }
   }
@@ -425,7 +428,9 @@ const IntegrationsContent = () => {
                 onClick={enablePushNotifications}
                 disabled={pushBusy || !pushAvailable}
               >
-                Включить push
+                {pushBusy && pushAction === 'enable'
+                  ? 'Подключаем...'
+                  : 'Включить push'}
               </button>
               <button
                 type="button"
@@ -433,7 +438,9 @@ const IntegrationsContent = () => {
                 onClick={disablePushNotifications}
                 disabled={pushBusy || !pushAvailable}
               >
-                Отключить push
+                {pushBusy && pushAction === 'disable'
+                  ? 'Отключаем...'
+                  : 'Отключить push'}
               </button>
               <button
                 type="button"
@@ -441,12 +448,9 @@ const IntegrationsContent = () => {
                 onClick={sendTestPush}
                 disabled={pushBusy || !pushAvailable}
               >
-                Тест push
+                {pushBusy && pushAction === 'test' ? 'Отправка...' : 'Тест push'}
               </button>
             </div>
-            {pushStatusText ? (
-              <div className="text-sm text-gray-700">{pushStatusText}</div>
-            ) : null}
           </div>
         </LabeledContainer>
       </SectionCard>
