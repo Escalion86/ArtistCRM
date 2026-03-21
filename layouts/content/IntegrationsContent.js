@@ -161,8 +161,15 @@ const IntegrationsContent = () => {
   const getRegistration = useCallback(async () => {
     if (!isPushSupported()) return null
     const existing = await navigator.serviceWorker.getRegistration()
-    if (existing) return existing
-    return navigator.serviceWorker.register('/sw.js').catch(() => null)
+    if (existing?.active) return existing
+
+    if (!existing) {
+      await navigator.serviceWorker.register('/sw.js').catch(() => null)
+    }
+
+    const readyRegistration = await navigator.serviceWorker.ready.catch(() => null)
+    if (readyRegistration?.active) return readyRegistration
+    return existing || readyRegistration
   }, [])
 
   const refreshPushState = useCallback(async () => {
@@ -244,7 +251,11 @@ const IntegrationsContent = () => {
       setPushSubscribed(true)
       setPushStatusText('Push-уведомления включены')
     } catch (error) {
-      setPushStatusText('Не удалось включить push-уведомления')
+      setPushStatusText(
+        error?.message
+          ? `Не удалось включить push-уведомления: ${error.message}`
+          : 'Не удалось включить push-уведомления'
+      )
     } finally {
       setPushBusy(false)
       refreshPushState()
