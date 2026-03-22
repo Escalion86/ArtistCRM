@@ -83,12 +83,25 @@ const DropDown = ({
     }
     top = Math.max(viewportPadding, top)
 
-    let left =
-      placement === 'right' ? rect.right - menuWidth : rect.left
+    if (placement === 'right') {
+      let right = Math.max(viewportPadding, window.innerWidth - rect.right)
+      if (menuWidth > 0) {
+        const maxRight = window.innerWidth - menuWidth - viewportPadding
+        if (Number.isFinite(maxRight)) {
+          right = Math.min(right, Math.max(viewportPadding, maxRight))
+        }
+      }
+      setMenuPosition({ top, right })
+      return
+    }
 
+    let left = rect.left
     if (menuWidth > 0) {
       const maxLeft = window.innerWidth - menuWidth - viewportPadding
-      left = Math.min(Math.max(viewportPadding, left), Math.max(viewportPadding, maxLeft))
+      left = Math.min(
+        Math.max(viewportPadding, left),
+        Math.max(viewportPadding, maxLeft)
+      )
     } else {
       left = Math.max(viewportPadding, left)
     }
@@ -212,6 +225,8 @@ const DropDown = ({
               position: 'fixed',
               top: menuPosition.top,
               left: menuPosition.left,
+              right: menuPosition.right,
+              maxWidth: 'calc(100vw - 16px)',
               maxHeight: 'calc(100vh - 16px)',
               overflowY: 'auto',
             }
@@ -219,6 +234,10 @@ const DropDown = ({
       }
       aria-hidden={!isOpen}
       role="menu"
+      onClickCapture={() => {
+        if (turnOffAutoClose === 'inside') return
+        requestAnimationFrame(() => setIsOpen(false))
+      }}
       onClick={() => {
         if (turnOffAutoClose !== 'inside') setIsOpen(false)
       }}
