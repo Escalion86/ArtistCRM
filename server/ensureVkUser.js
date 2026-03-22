@@ -95,7 +95,7 @@ export const ensureVkUser = async ({
       user = await Users.findByIdAndUpdate(
         user._id,
         { $unset: { phone: 1 } },
-        { new: true }
+        { returnDocument: 'after' }
       )
     }
   } else {
@@ -111,7 +111,7 @@ export const ensureVkUser = async ({
       user = await Users.findByIdAndUpdate(
         user._id,
         { $set: patch },
-        { new: true }
+        { returnDocument: 'after' }
       )
     }
   }
@@ -120,7 +120,7 @@ export const ensureVkUser = async ({
     user = await Users.findByIdAndUpdate(
       user._id,
       { $set: { tenantId: user._id } },
-      { new: true }
+      { returnDocument: 'after' }
     )
   }
 

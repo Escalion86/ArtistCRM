@@ -59,7 +59,7 @@ const savePushSubscription = async ({
         isActive: Boolean(isActive),
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   )
 }
 

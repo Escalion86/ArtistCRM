@@ -66,32 +66,54 @@ const DropDown = ({
   const updateMenuPosition = useCallback(() => {
     if (!renderInPortal) return
     const element = containerRef.current
+    const menuElement = menuRef.current
     if (!element) return
     const rect = element.getBoundingClientRect()
     const gap = openOnHover ? 0 : 8
-    const top = rect.bottom + gap
-    if (placement === 'right') {
-      setMenuPosition({
-        top,
-        right: Math.max(0, window.innerWidth - rect.right),
-      })
-      return
+    const viewportPadding = 8
+    const menuHeight = menuElement?.offsetHeight || 0
+    const menuWidth = menuElement?.offsetWidth || 0
+
+    let top = rect.bottom + gap
+    if (
+      menuHeight > 0 &&
+      top + menuHeight > window.innerHeight - viewportPadding
+    ) {
+      top = rect.top - gap - menuHeight
     }
+    top = Math.max(viewportPadding, top)
+
+    let left =
+      placement === 'right' ? rect.right - menuWidth : rect.left
+
+    if (menuWidth > 0) {
+      const maxLeft = window.innerWidth - menuWidth - viewportPadding
+      left = Math.min(Math.max(viewportPadding, left), Math.max(viewportPadding, maxLeft))
+    } else {
+      left = Math.max(viewportPadding, left)
+    }
+
     setMenuPosition({
       top,
-      left: Math.max(0, rect.left),
+      left,
     })
   }, [openOnHover, placement, renderInPortal])
 
   useEffect(() => {
     if (!isOpen) return
-    updateMenuPosition()
+    const rafId = requestAnimationFrame(() => {
+      updateMenuPosition()
+    })
 
     const handleClick = (event) => {
       const element = containerRef.current
+      const menuElement = menuRef.current
       if (!element) return
 
-      const isInside = element.contains(event.target)
+      const isInsideTrigger = element.contains(event.target)
+      const isInsideMenu =
+        renderInPortal && menuElement ? menuElement.contains(event.target) : false
+      const isInside = isInsideTrigger || isInsideMenu
 
       if (isInside) {
         if (turnOffAutoClose !== 'inside') {
@@ -119,6 +141,7 @@ const DropDown = ({
     }
 
     return () => {
+      cancelAnimationFrame(rafId)
       document.removeEventListener('click', handleClick)
       document.removeEventListener('keydown', handleKeyDown)
       if (renderInPortal) {
@@ -189,15 +212,13 @@ const DropDown = ({
               position: 'fixed',
               top: menuPosition.top,
               left: menuPosition.left,
-              right: menuPosition.right,
+              maxHeight: 'calc(100vh - 16px)',
+              overflowY: 'auto',
             }
           : undefined
       }
       aria-hidden={!isOpen}
       role="menu"
-      onClickCapture={() => {
-        if (turnOffAutoClose !== 'inside') setIsOpen(false)
-      }}
       onClick={() => {
         if (turnOffAutoClose !== 'inside') setIsOpen(false)
       }}
