@@ -174,6 +174,59 @@ const IntegrationsContent = () => {
     return existing || readyRegistration
   }, [])
 
+  const fetchPushPublicKey = useCallback(async () => {
+    const keyResponse = await fetch('/api/push/public-key')
+    const keyPayload = await keyResponse.json().catch(() => ({}))
+    if (!keyResponse.ok || !keyPayload?.data?.publicKey) {
+      throw new Error(keyPayload?.error || 'Не удалось получить VAPID ключ')
+    }
+    return keyPayload.data.publicKey
+  }, [])
+
+  const syncPushSubscription = useCallback(
+    async ({ registration, subscription, ensureLocalSubscription = false } = {}) => {
+      if (!isPushSupported()) return { ok: false, reason: 'unsupported' }
+      if (Notification.permission !== 'granted') {
+        return { ok: false, reason: 'permission_not_granted' }
+      }
+
+      const currentRegistration = registration || (await getRegistration())
+      if (!currentRegistration?.pushManager) {
+        return { ok: false, reason: 'registration_not_ready' }
+      }
+
+      let currentSubscription =
+        subscription ||
+        (await currentRegistration.pushManager.getSubscription().catch(() => null))
+
+      if (!currentSubscription && ensureLocalSubscription) {
+        const publicKey = await fetchPushPublicKey()
+        currentSubscription = await currentRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        })
+      }
+
+      if (!currentSubscription) {
+        return { ok: false, reason: 'no_subscription' }
+      }
+
+      const saveResponse = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: currentSubscription.toJSON() }),
+      })
+
+      if (!saveResponse.ok) {
+        const savePayload = await saveResponse.json().catch(() => ({}))
+        throw new Error(savePayload?.error || 'Не удалось сохранить push-подписку')
+      }
+
+      return { ok: true, subscription: currentSubscription }
+    },
+    [fetchPushPublicKey, getRegistration]
+  )
+
   const refreshPushState = useCallback(async () => {
     const available = isPushSupported()
     setPushAvailable(available)
@@ -189,14 +242,45 @@ const IntegrationsContent = () => {
       return
     }
 
-    const subscription = await registration.pushManager
+    let subscription = await registration.pushManager
       .getSubscription()
       .catch(() => null)
+
+    if (isPushEnabled && Notification.permission === 'granted') {
+      try {
+        const syncResult = await syncPushSubscription({
+          registration,
+          subscription,
+          ensureLocalSubscription: true,
+        })
+        if (syncResult?.ok && syncResult?.subscription) {
+          subscription = syncResult.subscription
+        }
+      } catch (error) {
+        // Silent sync: UI status should still be visible even if sync failed.
+      }
+    }
+
     setPushSubscribed(Boolean(subscription))
-  }, [getRegistration])
+  }, [getRegistration, isPushEnabled, syncPushSubscription])
 
   useEffect(() => {
     refreshPushState()
+  }, [refreshPushState])
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshPushState()
+    }
+    const handleFocus = () => refreshPushState()
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [refreshPushState])
 
   const enablePushNotifications = async () => {
@@ -215,37 +299,16 @@ const IntegrationsContent = () => {
         return
       }
 
-      const keyResponse = await fetch('/api/push/public-key')
-      const keyPayload = await keyResponse.json().catch(() => ({}))
-      if (!keyResponse.ok || !keyPayload?.data?.publicKey) {
-        snackbar.error(keyPayload?.error || 'Не удалось получить VAPID ключ')
-        return
-      }
-
       const registration = await getRegistration()
       if (!registration?.pushManager) {
         snackbar.error('Service Worker не готов для push')
         return
       }
 
-      let subscription = await registration.pushManager.getSubscription()
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(keyPayload.data.publicKey),
-        })
-      }
-
-      const saveResponse = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: subscription.toJSON() }),
+      await syncPushSubscription({
+        registration,
+        ensureLocalSubscription: true,
       })
-      if (!saveResponse.ok) {
-        const savePayload = await saveResponse.json().catch(() => ({}))
-        snackbar.error(savePayload?.error || 'Не удалось сохранить push-подписку')
-        return
-      }
 
       await saveCustom({ publicLeadPushEnabled: true })
       setPushSubscribed(true)

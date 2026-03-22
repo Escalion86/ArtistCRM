@@ -309,13 +309,21 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const upcomingOverviewBadges = useMemo(() => {
     const now = new Date()
     const segmentedAdditional = getAdditionalEventsListBySegments(events, now)
+    const overdueNoDepositCount = getSoonNoDepositEvents(
+      events,
+      transactions,
+      now,
+      3
+    ).length
     const upcomingEvents3Days = getUpcomingEventsByDays(events, 3, now)
 
     return [
       {
         key: 'overdue',
         title: 'Просрочено',
-        value: Number(segmentedAdditional?.overdue?.length || 0),
+        value:
+          Number(segmentedAdditional?.overdue?.length || 0) +
+          Number(overdueNoDepositCount || 0),
         className: 'bg-red-600 text-white',
       },
       {
@@ -337,7 +345,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         className: 'bg-emerald-600 text-white',
       },
     ].filter((item) => item.value > 0)
-  }, [events])
+  }, [events, transactions])
 
   const filteredByAdditionalQuick = useMemo(() => {
     if (!additionalQuickFilter) return filteredByStatus
@@ -766,6 +774,8 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         type: 'event',
         eventId: event?._id,
         title: event?.eventType || 'Мероприятие',
+        description: event?.description || '',
+        date: event?.eventDate ?? null,
         status: event?.status || 'active',
         time: toMinuteOfDay(event?.eventDate),
       })
@@ -776,6 +786,9 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             type: 'additional',
             eventId: event?._id,
             title: item?.title || `Доп. событие #${index + 1}`,
+            description: item?.description || '',
+            date: item?.date ?? null,
+            index,
             status: item?.done ? 'done' : 'active',
             done: Boolean(item?.done),
             time: toMinuteOfDay(item?.date),
@@ -797,23 +810,11 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     return map
   }, [sortedEvents])
 
-  const monthEventsByDay = useMemo(() => {
+  const eventsById = useMemo(() => {
     const map = new Map()
-    sortedEvents.forEach((event) => {
-      const dayKey = toDateKey(event?.eventDate)
-      if (!dayKey) return
-      if (!map.has(dayKey)) map.set(dayKey, [])
-      map.get(dayKey).push(event)
-    })
-    map.forEach((items, key) => {
-      map.set(
-        key,
-        [...items].sort((a, b) => {
-          const aTime = new Date(a?.eventDate ?? 0).getTime()
-          const bTime = new Date(b?.eventDate ?? 0).getTime()
-          return aTime - bTime
-        })
-      )
+    ;(sortedEvents ?? []).forEach((event) => {
+      if (!event?._id) return
+      map.set(String(event._id), event)
     })
     return map
   }, [sortedEvents])
@@ -849,8 +850,17 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
 
   const openDayEventsModal = useCallback(
     (day) => {
-      const dayEvents = monthEventsByDay.get(day?.key) || []
-      if (dayEvents.length === 0) return
+      const dayItems = monthItemsByDay.get(day?.key) || []
+      if (dayItems.length === 0) return
+
+      const dayEvents = dayItems
+        .filter((item) => item.type === 'event')
+        .map((item) => eventsById.get(String(item.eventId)))
+        .filter(Boolean)
+      const dayAdditionalEvents = dayItems.filter(
+        (item) => item.type === 'additional'
+      )
+
       const dayTitle = day?.date
         ? day.date.toLocaleDateString('ru-RU', {
             day: '2-digit',
@@ -861,21 +871,76 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
 
       const DayEventsModal = () => (
         <div className="flex max-h-[70vh] flex-col gap-2 overflow-auto px-1 py-1">
-          {dayEvents.map((event) => (
-            <EventCard key={`month-day-event-${event._id}`} eventId={event._id} />
-          ))}
+          {dayEvents.length > 0 ? (
+            <>
+              <div className="text-sm font-semibold text-gray-700">
+                Мероприятия
+              </div>
+              {dayEvents.map((event) => (
+                <EventCard
+                  key={`month-day-event-${event._id}`}
+                  eventId={event._id}
+                />
+              ))}
+            </>
+          ) : null}
+          {dayAdditionalEvents.length > 0 ? (
+            <>
+              <div className="mt-2 text-sm font-semibold text-gray-700">
+                Доп. события
+              </div>
+              {dayAdditionalEvents.map((item, idx) => {
+                const date = item?.date ? new Date(item.date) : null
+                const timeLabel =
+                  date && !Number.isNaN(date.getTime())
+                    ? date.toLocaleTimeString('ru-RU', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : 'Время не указано'
+                return (
+                  <div
+                    key={`month-day-additional-${item.eventId}-${item.index}-${idx}`}
+                    className="rounded border border-gray-200 bg-white px-3 py-2"
+                  >
+                    <div className="text-sm font-semibold text-gray-900">
+                      {item.title || 'Доп. событие'}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {item.done ? 'Выполнено' : 'Активно'} • {timeLabel}
+                    </div>
+                    {item.description ? (
+                      <div className="text-xs text-gray-600">
+                        {item.description}
+                      </div>
+                    ) : null}
+                    <div className="mt-2">
+                      <AppButton
+                        variant="secondary"
+                        size="sm"
+                        className="w-full rounded-md tablet:w-auto"
+                        onClick={() => modalsFunc.event?.view?.(item.eventId)}
+                      >
+                        Открыть мероприятие
+                      </AppButton>
+                    </div>
+                  </div>
+                )
+              })}
+            </>
+          ) : null}
         </div>
       )
 
       modalsFunc.add({
-        title: `Мероприятия: ${dayTitle}`,
+        title: `План на день: ${dayTitle}`,
         confirmButtonName: 'Закрыть',
         onConfirm: true,
         showDecline: false,
         Children: DayEventsModal,
       })
     },
-    [modalsFunc, monthEventsByDay]
+    [eventsById, modalsFunc, monthItemsByDay]
   )
 
   useEffect(() => {
@@ -1003,16 +1068,6 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       {filter === 'upcoming' || filter === 'past' ? (
         <SectionCard className="border border-gray-200 bg-white/95 p-3 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
-            {soonNoDepositEvents.length > 0 ? (
-              <AppButton
-                variant="danger"
-                size="sm"
-                className="rounded"
-                onClick={() => modalsFunc.event?.upcomingOverview?.()}
-              >
-                Просрочен задаток: {soonNoDepositEvents.length}
-              </AppButton>
-            ) : null}
             <div className="tablet:w-auto tablet:flex-1 tablet:justify-end flex w-full items-center justify-start">
               <div className="phoneH:flex-row tablet:w-auto flex w-full flex-col gap-2">
                 {filter === 'upcoming' ? (
@@ -1146,24 +1201,43 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
               <div className="grid grid-cols-7">
                 {monthGridDays.map((day) => {
                   const dayItems = monthItemsByDay.get(day.key) || []
-                  const dayEvents = monthEventsByDay.get(day.key) || []
-                  const hasDayEvents = dayEvents.length > 0
+                  const hasDayContent = dayItems.length > 0
                   const extraCount = dayItems.length > 3 ? dayItems.length - 3 : 0
-                  const isToday = day.key === toDateKey(new Date())
+                  const today = new Date()
+                  const todayStart = new Date(
+                    today.getFullYear(),
+                    today.getMonth(),
+                    today.getDate()
+                  ).getTime()
+                  const dayStart = new Date(
+                    day.date.getFullYear(),
+                    day.date.getMonth(),
+                    day.date.getDate()
+                  ).getTime()
+                  const isToday = dayStart === todayStart
+                  const isPastDay = dayStart < todayStart
                   return (
                     <div
                       key={day.key}
                       className={`min-h-[112px] border-r border-b border-gray-100 p-1.5 ${
-                        day.inCurrentMonth ? 'bg-white' : 'bg-gray-50/70'
-                      } ${hasDayEvents ? 'cursor-pointer hover:bg-blue-50/40' : ''}`}
+                        day.inCurrentMonth
+                          ? isPastDay
+                            ? 'bg-gray-100'
+                            : isToday
+                              ? 'bg-blue-50/60'
+                              : 'bg-white'
+                          : 'bg-gray-50/70'
+                      } ${hasDayContent ? 'cursor-pointer hover:bg-blue-50/40' : ''}`}
                       onClick={() => openDayEventsModal(day)}
                     >
                       <div
                         className={`mb-1 inline-flex h-6 min-w-6 items-center justify-center rounded px-1 text-xs font-semibold ${
                           isToday
-                            ? 'bg-general text-white'
+                            ? 'bg-general ring-2 ring-blue-200 text-white'
                             : day.inCurrentMonth
-                              ? 'text-gray-800'
+                              ? isPastDay
+                                ? 'text-gray-500'
+                                : 'text-gray-800'
                               : 'text-gray-400'
                         }`}
                       >

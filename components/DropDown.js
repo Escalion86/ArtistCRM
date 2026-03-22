@@ -195,6 +195,9 @@ const DropDown = ({
       }
       aria-hidden={!isOpen}
       role="menu"
+      onClickCapture={() => {
+        if (turnOffAutoClose !== 'inside') setIsOpen(false)
+      }}
       onClick={() => {
         if (turnOffAutoClose !== 'inside') setIsOpen(false)
       }}

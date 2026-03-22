@@ -6,11 +6,13 @@ import StatusChip from '@components/StatusChip'
 import formatDateTime from '@helpers/formatDateTime'
 import {
   getAdditionalEventsListBySegments,
+  getSoonNoDepositEvents,
   getUpcomingEventsByDays,
 } from '@helpers/additionalEvents'
 import { modalsFuncAtom } from '@state/atoms'
 import eventsAtom from '@state/atoms/eventsAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
+import transactionsAtom from '@state/atoms/transactionsAtom'
 import { useAtomValue } from 'jotai'
 import { useMemo, useState } from 'react'
 
@@ -57,6 +59,7 @@ const toDateTimeLocalValue = (value) => {
 const upcomingEventsOverviewFunc = () => {
   const UpcomingEventsOverviewModal = ({ closeModal }) => {
     const events = useAtomValue(eventsAtom)
+    const transactions = useAtomValue(transactionsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const itemsFunc = useAtomValue(itemsFuncAtom)
     const [customDates, setCustomDates] = useState({})
@@ -67,10 +70,51 @@ const upcomingEventsOverviewFunc = () => {
       () => getAdditionalEventsListBySegments(events, now),
       [events, now]
     )
+    const overdueNoDepositEvents = useMemo(
+      () => getSoonNoDepositEvents(events, transactions, now, 3),
+      [events, transactions, now]
+    )
     const upcomingEvents = useMemo(
       () => getUpcomingEventsByDays(events, 3, now),
       [events, now]
     )
+    const segmentedItems = useMemo(() => {
+      const withType = (items) =>
+        (Array.isArray(items) ? items : []).map((item) => ({
+          ...item,
+          reminderType: 'additional',
+        }))
+      const overdueNoDepositItems = overdueNoDepositEvents.map((event) => ({
+        eventId: event?._id,
+        eventDate: event?.eventDate ?? null,
+        eventStatus: event?.status ?? '',
+        eventTown: event?.address?.town ?? '',
+        eventDescription: event?.description ?? '',
+        title: 'Просрочен задаток',
+        description:
+          Number(event?.depositExpectedAmount ?? 0) > 0
+            ? `Ожидается: ${Number(event.depositExpectedAmount).toLocaleString('ru-RU')} ₽`
+            : '',
+        date: event?.depositDueAt ?? null,
+        index: -1,
+        reminderType: 'depositOverdue',
+      }))
+
+      const parseTime = (value) => {
+        const date = parseDateSafe(value)
+        return date ? date.getTime() : 0
+      }
+
+      const overdue = withType(segmentedAdditional.overdue)
+        .concat(overdueNoDepositItems)
+        .sort((a, b) => parseTime(a?.date) - parseTime(b?.date))
+
+      return {
+        overdue,
+        today: withType(segmentedAdditional.today),
+        tomorrow: withType(segmentedAdditional.tomorrow),
+      }
+    }, [overdueNoDepositEvents, segmentedAdditional])
 
     const openEvent = (eventId) => {
       closeModal?.()
@@ -171,7 +215,7 @@ const upcomingEventsOverviewFunc = () => {
       <div className="flex flex-col gap-3 pb-2">
         {Object.keys(SEGMENT_META).map((key) => {
           const meta = SEGMENT_META[key]
-          const items = segmentedAdditional[key] ?? []
+          const items = segmentedItems[key] ?? []
           return (
             <ModalSection
               key={key}
@@ -218,65 +262,67 @@ const upcomingEventsOverviewFunc = () => {
                           },
                         ]}
                       />
-                      <div className="mt-2 grid grid-cols-2 items-center gap-2 tablet:flex tablet:flex-wrap">
-                        <QuickActionButtons
-                          wrapperClassName="col-span-2"
-                          actions={[
-                            {
-                              key: 'mark-done',
-                              label: 'Выполнено',
-                              variant: 'primary',
-                              className: 'w-full tablet:w-auto',
-                              disabled:
-                                savingKey === `${item.eventId}-${item.index}`,
-                              onClick: () =>
-                                markAdditionalEventDone(item.eventId, item.index),
-                            },
-                            {
-                              key: 'plus-1-day',
-                              label: '+1 день',
-                              variant: 'secondary',
-                              className: 'w-full tablet:w-auto',
-                              disabled:
-                                savingKey === `${item.eventId}-${item.index}`,
-                              onClick: () =>
-                                shiftAdditionalEventDate(
-                                  item.eventId,
-                                  item.index,
-                                  1
-                                ),
-                            },
-                            {
-                              key: 'plus-3-day',
-                              label: '+3 дня',
-                              variant: 'secondary',
-                              className: 'w-full tablet:w-auto',
-                              disabled:
-                                savingKey === `${item.eventId}-${item.index}`,
-                              onClick: () =>
-                                shiftAdditionalEventDate(
-                                  item.eventId,
-                                  item.index,
-                                  3
-                                ),
-                            },
-                          ]}
-                        />
-                        <DateTimeApplyControl
-                          value={
-                            customDates[`${item.eventId}-${item.index}`] ??
-                            toDateTimeLocalValue(item.date)
-                          }
-                          onChange={(value) =>
-                            setCustomDates((prev) => ({
-                              ...prev,
-                              [`${item.eventId}-${item.index}`]: value,
-                            }))
-                          }
-                          disabled={savingKey === `${item.eventId}-${item.index}`}
-                          onClick={() => applyCustomDate(item.eventId, item.index)}
-                        />
-                      </div>
+                      {item.reminderType === 'additional' ? (
+                        <div className="mt-2 grid grid-cols-2 items-center gap-2 tablet:flex tablet:flex-wrap">
+                          <QuickActionButtons
+                            wrapperClassName="col-span-2"
+                            actions={[
+                              {
+                                key: 'mark-done',
+                                label: 'Выполнено',
+                                variant: 'primary',
+                                className: 'w-full tablet:w-auto',
+                                disabled:
+                                  savingKey === `${item.eventId}-${item.index}`,
+                                onClick: () =>
+                                  markAdditionalEventDone(item.eventId, item.index),
+                              },
+                              {
+                                key: 'plus-1-day',
+                                label: '+1 день',
+                                variant: 'secondary',
+                                className: 'w-full tablet:w-auto',
+                                disabled:
+                                  savingKey === `${item.eventId}-${item.index}`,
+                                onClick: () =>
+                                  shiftAdditionalEventDate(
+                                    item.eventId,
+                                    item.index,
+                                    1
+                                  ),
+                              },
+                              {
+                                key: 'plus-3-day',
+                                label: '+3 дня',
+                                variant: 'secondary',
+                                className: 'w-full tablet:w-auto',
+                                disabled:
+                                  savingKey === `${item.eventId}-${item.index}`,
+                                onClick: () =>
+                                  shiftAdditionalEventDate(
+                                    item.eventId,
+                                    item.index,
+                                    3
+                                  ),
+                              },
+                            ]}
+                          />
+                          <DateTimeApplyControl
+                            value={
+                              customDates[`${item.eventId}-${item.index}`] ??
+                              toDateTimeLocalValue(item.date)
+                            }
+                            onChange={(value) =>
+                              setCustomDates((prev) => ({
+                                ...prev,
+                                [`${item.eventId}-${item.index}`]: value,
+                              }))
+                            }
+                            disabled={savingKey === `${item.eventId}-${item.index}`}
+                            onClick={() => applyCustomDate(item.eventId, item.index)}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
