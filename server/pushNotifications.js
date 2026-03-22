@@ -95,12 +95,27 @@ const sendPushToTenant = async ({ tenantId, payload }) => {
   let failed = 0
   let deactivated = 0
   const body = JSON.stringify(payload)
+  const resolvedTtl = Number(payload?.ttl)
+  const ttl = Number.isFinite(resolvedTtl) && resolvedTtl >= 0 ? resolvedTtl : 43200
+  const urgencyValue = String(payload?.urgency || 'high').toLowerCase()
+  const urgency =
+    urgencyValue === 'very-low' ||
+    urgencyValue === 'low' ||
+    urgencyValue === 'normal' ||
+    urgencyValue === 'high'
+      ? urgencyValue
+      : 'high'
+  const topic = String(payload?.tag || payload?.topic || '').trim() || undefined
 
   for (const doc of docs) {
     const subscription = parseSubscription(doc)
     if (!subscription) continue
     try {
-      await webpush.sendNotification(subscription, body)
+      await webpush.sendNotification(subscription, body, {
+        TTL: ttl,
+        urgency,
+        topic,
+      })
       sent += 1
       await PushSubscriptions.updateOne(
         { tenantId, endpoint: subscription.endpoint },
