@@ -50,11 +50,13 @@ const normalizeAdditionalEvents = (items) => {
           ? item.googleCalendarEventId.trim()
           : ''
       const done = Boolean(item.done)
+      const doneAt = done ? parseDateValue(item.doneAt) : null
       return {
         title,
         description,
         date,
         done,
+        doneAt,
         googleCalendarEventId,
       }
     })

@@ -11,6 +11,7 @@ const buildDefaultAdditionalEvent = () => ({
   description: '',
   date: new Date().toISOString(),
   done: false,
+  doneAt: null,
   googleCalendarEventId: '',
 })
 
@@ -35,6 +36,7 @@ const openEventAdditionalEventEditorModal = ({
       description: initialSource?.description ?? '',
       date: initialSource?.date ?? new Date().toISOString(),
       done: Boolean(initialSource?.done),
+      doneAt: initialSource?.doneAt ?? null,
       googleCalendarEventId: initialSource?.googleCalendarEventId ?? '',
     },
   }
@@ -71,6 +73,7 @@ const openEventAdditionalEventEditorModal = ({
         description,
         date,
         done,
+        doneAt: done ? stateRef.current.doneAt ?? new Date().toISOString() : null,
       }
     }, [date, description, done, localTitle])
 
@@ -183,6 +186,9 @@ const openEventAdditionalEventEditorModal = ({
         description: stateRef.current.description?.trim() ?? '',
         date: stateRef.current.date ?? null,
         done: Boolean(stateRef.current.done),
+        doneAt: stateRef.current.done
+          ? stateRef.current.doneAt ?? new Date().toISOString()
+          : null,
         googleCalendarEventId: stateRef.current.googleCalendarEventId ?? '',
       }
       if (typeof onConfirm === 'function') {

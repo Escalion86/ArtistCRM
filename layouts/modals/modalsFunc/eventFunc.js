@@ -107,6 +107,7 @@ const normalizeAdditionalEvents = (items) => {
           typeof item.description === 'string' ? item.description : '',
         date: item.date ?? null,
         done: Boolean(item.done),
+        doneAt: item.doneAt ?? null,
         googleCalendarEventId:
           typeof item.googleCalendarEventId === 'string'
             ? item.googleCalendarEventId
@@ -696,6 +697,7 @@ const eventFunc = (
             description: item.description?.trim() ?? '',
             date: item.date ?? null,
             done: Boolean(item.done),
+            doneAt: item.done ? item.doneAt ?? new Date().toISOString() : null,
             googleCalendarEventId: item.googleCalendarEventId?.trim() ?? '',
           }))
           .filter((item) => item.title || item.description || item.date)
@@ -1248,7 +1250,13 @@ const eventFunc = (
     const handleAdditionalEventToggleDone = (index) => {
       setAdditionalEvents((prev) =>
         prev.map((item, idx) =>
-          idx === index ? { ...item, done: !item?.done } : item
+          idx === index
+            ? {
+                ...item,
+                done: !item?.done,
+                doneAt: !item?.done ? new Date().toISOString() : null,
+              }
+            : item
         )
       )
     }
@@ -1780,8 +1788,8 @@ const eventFunc = (
                     />
                   ) : null}
 
-                  {additionalEvents.length ===
-                  0 ? null : filteredAdditionalEvents.length === 0 ? (
+                  {additionalEvents.length === 0 ? null : filteredAdditionalEvents.length ===
+                    0 ? (
                     <div className="text-sm text-gray-500">
                       Нет событий для выбранного фильтра
                     </div>
@@ -1796,62 +1804,75 @@ const eventFunc = (
                               : 'border-gray-200'
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div
-                                className={`truncate text-sm font-semibold ${
-                                  item?.done
-                                    ? 'text-emerald-700'
-                                    : 'text-gray-900'
-                                }`}
-                              >
-                                {item?.done ? '✓ ' : ''}
-                                {item?.title || `Событие #${index + 1}`}
-                              </div>
-                              <div className="text-xs text-gray-600">
-                                {item?.date
-                                  ? new Date(item.date).toLocaleString('ru-RU', {
-                                      day: '2-digit',
-                                      month: '2-digit',
-                                      year: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    })
-                                  : 'Дата не указана'}
-                              </div>
-                              {item?.description ? (
-                                <div className="text-xs text-gray-700">
-                                  {item.description}
+                          <div className="flex items-start gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleAdditionalEventToggleDone(index)}
+                              title={
+                                item?.done
+                                  ? 'Отметить как не выполнено'
+                                  : 'Отметить как выполнено'
+                              }
+                              aria-label={
+                                item?.done
+                                  ? 'Отметить как не выполнено'
+                                  : 'Отметить как выполнено'
+                              }
+                              className={`mt-0.5 inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border transition ${
+                                item?.done
+                                  ? 'border-emerald-500 bg-emerald-500 text-white'
+                                  : 'border-gray-300 bg-white text-gray-400 hover:border-emerald-400 hover:text-emerald-500'
+                              }`}
+                            >
+                              <FontAwesomeIcon icon={faCircleCheck} />
+                            </button>
+                            <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div
+                                  className={`truncate text-sm font-semibold ${
+                                    item?.done
+                                      ? 'text-emerald-700'
+                                      : 'text-gray-900'
+                                  }`}
+                                >
+                                  {item?.done ? '✓ ' : ''}
+                                  {item?.title || `Событие #${index + 1}`}
                                 </div>
-                              ) : null}
-                            </div>
-                            <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
-                              <AppButton
-                                variant={item?.done ? 'secondary' : 'primary'}
-                                size="sm"
-                                className="rounded tablet:w-auto"
-                                onClick={() =>
-                                  handleAdditionalEventToggleDone(index)
-                                }
-                              >
-                                {item?.done ? 'Вернуть' : 'Сделано'}
-                              </AppButton>
-                              <IconActionButton
-                                icon={faPencilAlt}
-                                onClick={() => handleAdditionalEventEdit(index)}
-                                title="Редактировать событие"
-                                variant="warning"
-                                size="xs"
-                                className="min-h-8 min-w-8"
-                              />
-                              <IconActionButton
-                                icon={faTrashAlt}
-                                onClick={() => handleAdditionalEventRemove(index)}
-                                title="Удалить событие"
-                                variant="danger"
-                                size="xs"
-                                className="min-h-8 min-w-8"
-                              />
+                                <div className="text-xs text-gray-600">
+                                  {item?.date
+                                    ? new Date(item.date).toLocaleString('ru-RU', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })
+                                    : 'Дата не указана'}
+                                </div>
+                                {item?.description ? (
+                                  <div className="text-xs text-gray-700">
+                                    {item.description}
+                                  </div>
+                                ) : null}
+                              </div>
+                              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                                <IconActionButton
+                                  icon={faPencilAlt}
+                                  onClick={() => handleAdditionalEventEdit(index)}
+                                  title="Редактировать событие"
+                                  variant="warning"
+                                  size="xs"
+                                  className="min-h-8 min-w-8"
+                                />
+                                <IconActionButton
+                                  icon={faTrashAlt}
+                                  onClick={() => handleAdditionalEventRemove(index)}
+                                  title="Удалить событие"
+                                  variant="danger"
+                                  size="xs"
+                                  className="min-h-8 min-w-8"
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>

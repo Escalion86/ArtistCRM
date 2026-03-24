@@ -917,6 +917,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         description: item.description || '',
         date: item.date || null,
         done: Boolean(item.done),
+        doneAt: item.doneAt || null,
         googleCalendarEventId: item.googleCalendarEventId || '',
       }))
     }

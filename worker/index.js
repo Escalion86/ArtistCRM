@@ -1,3 +1,55 @@
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    (async () => {
+      let registration = self.registration
+      if (!registration?.pushManager) return
+
+      let currentSubscription = event.newSubscription || null
+
+      if (!currentSubscription) {
+        try {
+          const keyResponse = await fetch('/api/push/public-key', {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+          })
+          const keyPayload = await keyResponse.json().catch(() => ({}))
+          const publicKey = keyPayload?.data?.publicKey
+          if (!keyResponse.ok || !publicKey) return
+
+          const padding = '='.repeat((4 - (publicKey.length % 4)) % 4)
+          const base64 = (publicKey + padding)
+            .replace(/-/g, '+')
+            .replace(/_/g, '/')
+          const rawData = atob(base64)
+          const outputArray = new Uint8Array(rawData.length)
+
+          for (let i = 0; i < rawData.length; i += 1) {
+            outputArray[i] = rawData.charCodeAt(i)
+          }
+
+          currentSubscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: outputArray,
+          })
+        } catch (error) {
+          return
+        }
+      }
+
+      if (!currentSubscription) return
+
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ subscription: currentSubscription.toJSON() }),
+      }).catch(() => null)
+    })()
+  )
+})
+
 self.addEventListener('push', (event) => {
   let payload = {}
 

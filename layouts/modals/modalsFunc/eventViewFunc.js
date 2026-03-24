@@ -170,7 +170,13 @@ const eventViewFunc = (eventId) => {
       const target = sourceItems[index]
       if (!target) return
       const nextItems = sourceItems.map((item, idx) =>
-        idx === index ? { ...item, done: !Boolean(item?.done) } : item
+        idx === index
+          ? {
+              ...item,
+              done: !Boolean(item?.done),
+              doneAt: !Boolean(item?.done) ? new Date().toISOString() : null,
+            }
+          : item
       )
       await itemsFunc?.event?.set(
         {

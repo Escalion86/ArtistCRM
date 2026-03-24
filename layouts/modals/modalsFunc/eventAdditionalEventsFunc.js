@@ -7,8 +7,9 @@ import SurfaceCard from '@components/SurfaceCard'
 import AppButton from '@components/AppButton'
 import IconActionButton from '@components/IconActionButton'
 import formatDateTime from '@helpers/formatDateTime'
-import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
+import { faCircleCheck, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
 
 const eventAdditionalEventsFunc = (eventId) => {
@@ -77,7 +78,13 @@ const eventAdditionalEventsFunc = (eventId) => {
       const target = sourceItems[index]
       if (!target) return
       const nextItems = sourceItems.map((item, idx) =>
-        idx === index ? { ...item, done: !Boolean(item?.done) } : item
+        idx === index
+          ? {
+              ...item,
+              done: !Boolean(item?.done),
+              doneAt: !Boolean(item?.done) ? new Date().toISOString() : null,
+            }
+          : item
       )
       await updateAdditionalEvents(nextItems)
     }
@@ -139,8 +146,30 @@ const eventAdditionalEventsFunc = (eventId) => {
                     : 'border-gray-200'
                 }
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAdditionalEventDone(index)}
+                    title={
+                      item?.done
+                        ? 'Отметить как не выполнено'
+                        : 'Отметить как выполнено'
+                    }
+                    aria-label={
+                      item?.done
+                        ? 'Отметить как не выполнено'
+                        : 'Отметить как выполнено'
+                    }
+                    className={`mt-0.5 inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border transition ${
+                      item?.done
+                        ? 'border-emerald-500 bg-emerald-500 text-white'
+                        : 'border-gray-300 bg-white text-gray-400 hover:border-emerald-400 hover:text-emerald-500'
+                    }`}
+                  >
+                    <FontAwesomeIcon icon={faCircleCheck} />
+                  </button>
+                  <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
                     <div
                       className={`truncate text-sm font-semibold ${
                         item?.done ? 'text-emerald-700' : 'text-gray-900'
@@ -159,14 +188,6 @@ const eventAdditionalEventsFunc = (eventId) => {
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    <AppButton
-                      variant={item?.done ? 'secondary' : 'primary'}
-                      size="sm"
-                      className="rounded"
-                      onClick={() => handleToggleAdditionalEventDone(index)}
-                    >
-                      {item?.done ? 'Вернуть' : 'Сделано'}
-                    </AppButton>
                     <IconActionButton
                       icon={faPencilAlt}
                       onClick={() => handleEditAdditionalEvent(index)}
@@ -183,6 +204,7 @@ const eventAdditionalEventsFunc = (eventId) => {
                       size="xs"
                       className="min-h-8 min-w-8"
                     />
+                  </div>
                   </div>
                 </div>
               </SurfaceCard>

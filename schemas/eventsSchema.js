@@ -30,6 +30,7 @@ const eventsSchema = {
         description: { type: String, default: '' },
         date: { type: Date, default: null },
         done: { type: Boolean, default: false },
+        doneAt: { type: Date, default: null },
         googleCalendarEventId: { type: String, default: '' },
       },
     ],

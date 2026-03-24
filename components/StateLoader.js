@@ -72,6 +72,30 @@ const StateLoader = (props) => {
 
   useWindowDimensionsRecoil()
 
+  const isPushSupported = () =>
+    typeof window !== 'undefined' &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window &&
+    'Notification' in window
+
+  const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/')
+    const rawData = window.atob(base64)
+    const outputArray = new Uint8Array(rawData.length)
+
+    for (let i = 0; i < rawData.length; i += 1) {
+      outputArray[i] = rawData.charCodeAt(i)
+    }
+    return outputArray
+  }
+
+  const customSettings = siteSettingsState?.custom
+  const isTenantPushEnabled =
+    (typeof customSettings?.get === 'function'
+      ? customSettings.get('publicLeadPushEnabled')
+      : customSettings?.publicLeadPushEnabled) === true
+
   useEffect(() => {
     const itemsFunc = itemsFuncGenerator(snackbar, loggedUser, {
       disableServerSync: serverSyncDisabled,
@@ -125,6 +149,60 @@ const StateLoader = (props) => {
     setSiteSettingsState,
     setTransactionsState,
   ])
+
+  useEffect(() => {
+    if (!loggedUser?._id) return
+    if (!isPushSupported()) return
+    if (Notification.permission !== 'granted') return
+    if (!isTenantPushEnabled) return
+
+    let cancelled = false
+
+    const syncPushSubscription = async () => {
+      try {
+        const existing = await navigator.serviceWorker.getRegistration()
+        if (!existing) {
+          await navigator.serviceWorker.register('/sw.js').catch(() => null)
+        }
+
+        const registration = await navigator.serviceWorker.ready.catch(() => null)
+        if (!registration?.pushManager || cancelled) return
+
+        let subscription = await registration.pushManager
+          .getSubscription()
+          .catch(() => null)
+
+        if (!subscription) {
+          const keyResponse = await fetch('/api/push/public-key')
+          const keyPayload = await keyResponse.json().catch(() => ({}))
+          const publicKey = keyPayload?.data?.publicKey
+          if (!keyResponse.ok || !publicKey) return
+          if (cancelled) return
+
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey),
+          })
+        }
+
+        if (!subscription || cancelled) return
+
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: subscription.toJSON() }),
+        }).catch(() => null)
+      } catch (error) {
+        // Silent sync: user can still manage push вручную из экрана интеграций.
+      }
+    }
+
+    syncPushSubscription()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isTenantPushEnabled, loggedUser?._id])
 
   useEffect(() => {
     if (!loggedUser?._id) return
