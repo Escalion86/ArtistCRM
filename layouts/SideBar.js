@@ -16,7 +16,8 @@ import cn from 'classnames'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { usePathname, useRouter } from 'next/navigation'
+import { useAtom, useAtomValue } from 'jotai'
 
 const menuCfg = (role) => {
   // const visiblePages = pages.filter((page) => )
@@ -66,15 +67,15 @@ const menuCfg = (role) => {
   return result
 }
 
-const MenuItem = ({ item, active = false, badge }) => {
-  const setMenuOpen = useSetAtom(menuOpenAtom)
+const MenuItem = ({ item, active = false, badge, pending = false, onNavigate }) => {
   return (
     <Link
       href={`/cabinet/${item.href}`}
-      onClick={() => setMenuOpen(false)}
+      onClick={() => onNavigate?.(item.href)}
       className={cn(
-        'mb-1 flex cursor-pointer flex-nowrap items-center justify-between rounded-lg',
+        'mb-1 flex cursor-pointer flex-nowrap items-center justify-between rounded-lg transition-opacity',
         active ? 'bg-general menu-item-active text-white' : '',
+        pending ? 'opacity-70' : '',
         'hover:bg-general hover:text-white'
       )}
     >
@@ -91,12 +92,15 @@ const MenuItem = ({ item, active = false, badge }) => {
             {badge <= 99 ? badge : '!'}
           </div>
         )}
+        {pending && (
+          <span className="ml-auto h-2 w-2 min-h-2 min-w-2 animate-pulse rounded-full bg-white/80" />
+        )}
       </div>
     </Link>
   )
 }
 
-const Menu = ({ menuCfg, activePage }) => {
+const Menu = ({ menuCfg, activePage, pendingPage, onNavigate }) => {
   const [menuOpen, setMenuOpen] = useAtom(menuOpenAtom)
   const [openedMenuIndex, setOpenedMenuIndex] = useState(1)
 
@@ -148,11 +152,12 @@ const Menu = ({ menuCfg, activePage }) => {
                     <Link
                       href={`/cabinet/${item.items[0].href}`}
                       className={cn(
-                        'flex min-h-12 w-full min-w-12 items-center gap-x-2 overflow-hidden px-2 py-2'
+                        'flex min-h-12 w-full min-w-12 items-center gap-x-2 overflow-hidden px-2 py-2 transition-opacity',
+                        pendingPage === item.items[0].href ? 'opacity-70' : ''
                         // groupIsActive ? 'text-ganeral' : 'text-white'
                       )}
                       onClick={() => {
-                        setMenuOpen(false)
+                        onNavigate?.(item.items[0].href)
                       }}
                     >
                       <div
@@ -175,6 +180,9 @@ const Menu = ({ menuCfg, activePage }) => {
                       <h3 className="ml-3 flex-1 text-left font-semibold tracking-wide whitespace-nowrap uppercase">
                         {item.items[0].name}
                       </h3>
+                      {pendingPage === item.items[0].href && (
+                        <span className="h-2 w-2 min-h-2 min-w-2 animate-pulse rounded-full bg-current/80" />
+                      )}
                     </Link>
                   ) : (
                     <button
@@ -230,6 +238,8 @@ const Menu = ({ menuCfg, activePage }) => {
                           key={'menu' + subitem.id}
                           item={subitem}
                           active={activePage === subitem.href}
+                          pending={pendingPage === subitem.href}
+                          onNavigate={onNavigate}
                           // badge={itemsBadges[subitem.id]}
                         />
                       ))}
@@ -254,11 +264,14 @@ const mobileVariants = {
 }
 
 const SideBar = ({ page }) => {
+  const router = useRouter()
+  const pathname = usePathname()
   const wrapperRef = useRef(null)
   const menuRef = useRef(null)
   const [menuOpen, setMenuOpen] = useAtom(menuOpenAtom)
   const [scrollPos, setScrollPos] = useState(0)
   const [scrollable, setScrollable] = useState(false)
+  const [pendingPage, setPendingPage] = useState(null)
   const { height } = useAtomValue(windowDimensionsAtom)
   const device = useAtomValue(windowDimensionsTailwindSelector)
   const loggedUser = useAtomValue(loggedUserAtom)
@@ -266,6 +279,12 @@ const SideBar = ({ page }) => {
   const isMobile =
     device === 'phoneV' || device === 'phoneH' || device === 'tablet'
   const motionVariants = isMobile ? mobileVariants : variants
+  const roleMenuCfg = menuCfg(role)
+
+  const handleNavigate = (href) => {
+    setPendingPage(href)
+    setMenuOpen(false)
+  }
 
   const handleScrollPosition = (scrollAmount) => {
     var newPos
@@ -311,6 +330,20 @@ const SideBar = ({ page }) => {
     }
   }, [menuRef.current?.scrollHeight, height])
 
+  useEffect(() => {
+    const pageFromPath = pathname?.split('/').filter(Boolean)?.[1]
+    if (!pageFromPath) return
+    if (!pendingPage || pendingPage === pageFromPath) setPendingPage(null)
+  }, [pathname, pendingPage])
+
+  useEffect(() => {
+    roleMenuCfg.forEach((group) => {
+      group.items.forEach((item) => {
+        router.prefetch(`/cabinet/${item.href}`)
+      })
+    })
+  }, [roleMenuCfg, router])
+
   return (
     <motion.div
       className={cn(
@@ -341,7 +374,12 @@ const SideBar = ({ page }) => {
         layout
       >
         <div className="flex w-full flex-col overflow-x-hidden">
-          <Menu menuCfg={menuCfg(role)} activePage={page} />
+          <Menu
+            menuCfg={roleMenuCfg}
+            activePage={page}
+            pendingPage={pendingPage}
+            onNavigate={handleNavigate}
+          />
         </div>
       </motion.div>
       <motion.div

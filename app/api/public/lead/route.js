@@ -106,14 +106,31 @@ export const POST = async (req) => {
     })
 
     if (pushEnabled) {
-      notifyApiLeadCreated({
-        tenantId,
-        event,
-        normalizedData: {
-          phone,
-          source,
-        },
-      }).catch((error) => console.error('public lead push notify error', error))
+      try {
+        const pushResult = await notifyApiLeadCreated({
+          tenantId,
+          event,
+          normalizedData: {
+            phone,
+            source,
+          },
+        })
+
+        if (
+          pushResult &&
+          Number(pushResult?.sent || 0) <= 0 &&
+          Number(pushResult?.failed || 0) > 0
+        ) {
+          console.warn('public lead push delivery failed', {
+            tenantId: String(tenantId),
+            eventId: String(event?._id || ''),
+            failed: Number(pushResult?.failed || 0),
+            deactivated: Number(pushResult?.deactivated || 0),
+          })
+        }
+      } catch (error) {
+        console.error('public lead push notify error', error)
+      }
     }
 
     return NextResponse.json(

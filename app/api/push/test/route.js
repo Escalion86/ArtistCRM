@@ -28,5 +28,27 @@ export const POST = async () => {
     },
   })
 
+  if (result?.reason === 'no_vapid') {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Push не настроен: отсутствуют VAPID ключи',
+        data: result,
+      },
+      { status: 503 }
+    )
+  }
+
+  if (Number(result?.sent || 0) <= 0 && Number(result?.failed || 0) > 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Push не доставлен: есть ошибки отправки в push-сервис',
+        data: result,
+      },
+      { status: 502 }
+    )
+  }
+
   return NextResponse.json({ success: true, data: result }, { status: 200 })
 }

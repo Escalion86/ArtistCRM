@@ -206,16 +206,31 @@ export const POST = async (req) => {
     })
 
     if (pushEnabled) {
-      notifyApiLeadCreated({
-        tenantId,
-        event,
-        normalizedData: {
-          phone: normalized.phone,
-          source: normalized.source,
-        },
-      }).catch((error) =>
+      try {
+        const pushResult = await notifyApiLeadCreated({
+          tenantId,
+          event,
+          normalizedData: {
+            phone: normalized.phone,
+            source: normalized.source,
+          },
+        })
+
+        if (
+          pushResult &&
+          Number(pushResult?.sent || 0) <= 0 &&
+          Number(pushResult?.failed || 0) > 0
+        ) {
+          console.warn('public tilda lead push delivery failed', {
+            tenantId: String(tenantId),
+            eventId: String(event?._id || ''),
+            failed: Number(pushResult?.failed || 0),
+            deactivated: Number(pushResult?.deactivated || 0),
+          })
+        }
+      } catch (error) {
         console.error('public tilda lead push notify error', error)
-      )
+      }
     }
 
     return NextResponse.json(
