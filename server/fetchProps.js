@@ -10,6 +10,40 @@ import mongoose from 'mongoose'
 
 let tenantBackfillApplied = false
 
+const safeErrorPayload = (error) => {
+  if (!error) return null
+  return {
+    name: error?.name || 'Error',
+    message: error?.message || String(error),
+    stack: typeof error?.stack === 'string' ? error.stack : undefined,
+    code: error?.code,
+  }
+}
+
+const buildSafeDefaultPayload = (serverDateTime, user, extra = {}) => ({
+  loggedUser: JSON.parse(JSON.stringify(user ?? null)),
+  clients: [],
+  events: [],
+  eventsPaging: {
+    scope: 'all',
+    hasMore: false,
+    nextBefore: null,
+    limit: 0,
+    totalCount: 0,
+  },
+  siteSettings: {},
+  transactions: [],
+  services: [],
+  tariffs: [],
+  users: [],
+  serverSettings: JSON.parse(
+    JSON.stringify({
+      dateTime: serverDateTime,
+    })
+  ),
+  ...extra,
+})
+
 const ensureLegacyTenantBackfill = async (tenantObjectId) => {
   if (tenantBackfillApplied) return
   tenantBackfillApplied = true
@@ -135,32 +169,21 @@ const buildEventsPayload = async (tenantId, page) => {
 
 const fetchProps = async (user, page = 'eventsUpcoming') => {
   const serverDateTime = new Date()
+  const requestId = `fetchProps-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   try {
     const db = await dbConnect()
     const tenantId = user?.tenantId || user?._id || null
 
     if (!tenantId) {
-      return {
-        clients: [],
-        events: [],
-        eventsPaging: {
-          scope: 'all',
-          hasMore: false,
-          nextBefore: null,
-          limit: 0,
-          totalCount: 0,
-        },
-        siteSettings: {},
-        transactions: [],
-        services: [],
-        tariffs: [],
-        serverSettings: JSON.parse(
-          JSON.stringify({
-            dateTime: serverDateTime,
-          })
-        ),
+      console.error('[fetchProps] tenantId not resolved', {
+        requestId,
+        page,
+        userId: user?._id ?? null,
+        tenantId: user?.tenantId ?? null,
+      })
+      return buildSafeDefaultPayload(serverDateTime, user, {
         error: { message: 'Не удалось определить пользователя' },
-      }
+      })
     }
 
     const tenantObjectId = new mongoose.Types.ObjectId(tenantId)
@@ -211,29 +234,17 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
 
     return fetchResult
   } catch (error) {
-    return {
-      loggedUser: JSON.parse(JSON.stringify(user ?? null)),
-      clients: [],
-      events: [],
-      eventsPaging: {
-        scope: 'all',
-        hasMore: false,
-        nextBefore: null,
-        limit: 0,
-        totalCount: 0,
-      },
-      siteSettings: {},
-      transactions: [],
-      services: [],
-      tariffs: [],
-      users: [],
-      serverSettings: JSON.parse(
-        JSON.stringify({
-          dateTime: serverDateTime,
-        })
-      ),
-      error: JSON.parse(JSON.stringify(error)),
-    }
+    const safeError = safeErrorPayload(error)
+    console.error('[fetchProps] failed', {
+      requestId,
+      page,
+      userId: user?._id ?? null,
+      tenantId: user?.tenantId ?? null,
+      error: safeError,
+    })
+    return buildSafeDefaultPayload(serverDateTime, user, {
+      error: safeError,
+    })
   }
 }
 

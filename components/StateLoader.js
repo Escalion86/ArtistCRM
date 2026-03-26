@@ -35,6 +35,7 @@ import {
   SERVER_SYNC_FLUSH_NOW_EVENT,
   shiftServerSyncQueue,
 } from '@helpers/serverSyncQueue'
+import { sendClientLog } from '@helpers/clientLog'
 
 const StateLoader = (props) => {
   if (props.error && Object.keys(props.error).length > 0)
@@ -224,6 +225,27 @@ const StateLoader = (props) => {
   const onboardingShownRef = useRef(false)
   const privacyWarningShownRef = useRef(false)
   const syncFlushInProgressRef = useRef(false)
+  const startupErrorLoggedRef = useRef(false)
+
+  useEffect(() => {
+    if (!props.error || startupErrorLoggedRef.current) return
+    startupErrorLoggedRef.current = true
+    sendClientLog({
+      type: 'cabinet-props-error',
+      page: props.page,
+      message:
+        typeof props.error?.message === 'string'
+          ? props.error.message
+          : 'unknown',
+      name: props.error?.name,
+      code: props.error?.code,
+      digest: props.error?.digest,
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+      hasLoggedUser: Boolean(props.loggedUser?._id),
+      hasEvents: Array.isArray(props.events),
+      eventsCount: Array.isArray(props.events) ? props.events.length : null,
+    })
+  }, [props.error, props.events, props.loggedUser?._id, props.page])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
