@@ -1,5 +1,4 @@
 import cn from 'classnames'
-import { motion } from 'framer-motion'
 import Image from 'next/image'
 
 export const LoadingSpinner = ({
@@ -46,15 +45,7 @@ export const LoadingSpinner = ({
           }}
           className="aspect-1 border-general absolute bottom-auto left-auto right-auto top-auto h-[95%] animate-spin rounded-full border-l-2"
         />
-        <motion.div
-          animate={{ scale: [1, 1, 1.15, 1.05, 1.15, 1] }}
-          transition={{
-            duration: 1.3,
-            repeat: Infinity,
-            times: [0, 0.6, 0.7, 0.8, 0.9, 1],
-          }}
-          className="flex h-full items-center justify-center"
-        >
+        <div className="flex h-full items-center justify-center animate-pulse">
           <Image
             className="aspect-1 h-[70%] max-h-[80%] w-[70%] object-contain"
             style={{ maxHeight: widthHeight, maxWidth: widthHeight }}
@@ -64,7 +55,7 @@ export const LoadingSpinner = ({
             height={widthHeight}
             priority
           />
-        </motion.div>
+        </div>
       </div>
       {text && <div className="animate-pulse text-lg font-bold">{text}</div>}
     </div>

@@ -7,8 +7,7 @@ import { modalsFuncAtom } from '@state/atoms'
 import cn from 'classnames'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { Suspense, useCallback, useRef, useState } from 'react'
-import Skeleton from 'react-loading-skeleton'
+import { useCallback, useRef, useState } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 
 const Modal = ({
@@ -110,7 +109,7 @@ const Modal = ({
   const router = useRouter()
 
   const refreshPage = useCallback(() => {
-    router.replace(router.asPath)
+    router.refresh()
   }, [router])
 
   const resetHorizontalScroll = useCallback(() => {
@@ -311,27 +310,25 @@ const Modal = ({
           onFocusCapture={handleContentFocusCapture}
         >
           {Children && (
-            <Suspense fallback={<Skeleton count={12} />}>
-              <Children
-                closeModal={closeModal}
-                setOnConfirmFunc={setOnConfirmFuncSafe}
-                setOnConfirm2Func={setOnConfirm2FuncSafe}
-                setOnDeclineFunc={setOnDeclineFuncSafe}
-                setOnShowOnCloseConfirmDialog={setOnShowOnCloseConfirmDialog}
-                setDisableConfirm={setDisableConfirm}
-                setDisableDecline={setDisableDecline}
-                setComponentInFooter={setComponentInFooter}
-                setOnlyCloseButtonShow={setOnlyCloseButtonShowState}
-                setTopLeftComponent={setTopLeftComponentState}
-                setBottomLeftButtonProps={setBottomLeftButton}
-                setBottomLeftComponent={setBottomLeftComponent}
-                setCloseButtonShow={setCloseButtonShowState}
-                setDeclineButtonShow={setDeclineButtonShowState}
-                setConfirmButtonName={setConfirmButtonNameState}
-                setConfirmButtonName2={setConfirmButtonName2State}
-                setTitle={setTitleState}
-              />
-            </Suspense>
+            <Children
+              closeModal={closeModal}
+              setOnConfirmFunc={setOnConfirmFuncSafe}
+              setOnConfirm2Func={setOnConfirm2FuncSafe}
+              setOnDeclineFunc={setOnDeclineFuncSafe}
+              setOnShowOnCloseConfirmDialog={setOnShowOnCloseConfirmDialog}
+              setDisableConfirm={setDisableConfirm}
+              setDisableDecline={setDisableDecline}
+              setComponentInFooter={setComponentInFooter}
+              setOnlyCloseButtonShow={setOnlyCloseButtonShowState}
+              setTopLeftComponent={setTopLeftComponentState}
+              setBottomLeftButtonProps={setBottomLeftButton}
+              setBottomLeftComponent={setBottomLeftComponent}
+              setCloseButtonShow={setCloseButtonShowState}
+              setDeclineButtonShow={setDeclineButtonShowState}
+              setConfirmButtonName={setConfirmButtonNameState}
+              setConfirmButtonName2={setConfirmButtonName2State}
+              setTitle={setTitleState}
+            />
           )}
         </div>
 

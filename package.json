@@ -3,22 +3,23 @@
   "version": "1.0.21",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "node scripts/postinstall.js"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.2.1",
+    "@tailwindcss/postcss": "^4.2.2",
     "autoprefixer": "^10.4.27",
     "eslint": "^9.39.4",
     "postcss": "^8.5.8",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "tailwindcss": "^4.2.1"
+    "tailwindcss": "^4.2.2"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -26,7 +27,7 @@
     "@fortawesome/free-brands-svg-icons": "^7.2.0",
     "@fortawesome/free-regular-svg-icons": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
-    "@fortawesome/react-fontawesome": "^3.2.0",
+    "@fortawesome/react-fontawesome": "^3.3.0",
     "@mui/icons-material": "^7.3.9",
     "@mui/lab": "^7.0.1-beta.23",
     "@mui/material": "^7.3.9",
@@ -39,19 +40,18 @@
     "dayjs": "^1.11.20",
     "docx": "^9.6.1",
     "docxtemplater": "^3.68.3",
-    "eslint-config-next": "16.1.6",
-    "framer-motion": "^12.36.0",
+    "eslint-config-next": "16.2.1",
+    "framer-motion": "^12.38.0",
     "googleapis": "^171.4.0",
     "isomorphic-dompurify": "^2.36.0",
-    "jotai": "^2.18.1",
+    "jotai": "^2.19.0",
     "jotai-family": "^1.0.1",
-    "mongoose": "^9.3.0",
-    "next": "^16.1.6",
+    "mongoose": "^9.3.3",
+    "next": "^16.2.1",
     "next-auth": "^4.24.13",
-    "next-pwa": "^5.6.0",
     "notistack": "^3.0.2",
     "pizzip": "^3.2.0",
-    "quill": "^2.0.3",
+    "quill": "^2.0.2",
     "react": "^19.2.4",
     "react-colorful": "^5.6.1",
     "react-dom": "^19.2.4",
@@ -61,10 +61,11 @@
     "react-markdown": "^10.1.0",
     "react-medium-image-zoom": "^5.4.1",
     "react-window": "^2.2.7",
-    "undici": "^7.24.3",
+    "undici": "^7.24.6",
     "web-push": "^3.6.7"
   },
   "overrides": {
-    "psl": "^1.15.0"
+    "psl": "^1.15.0",
+    "serialize-javascript": "^7.0.5"
   }
 }
