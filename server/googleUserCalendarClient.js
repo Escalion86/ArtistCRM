@@ -3,6 +3,12 @@ import { DEFAULT_GOOGLE_CALENDAR_REMINDERS } from '@helpers/constants'
 
 const READ_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'
 const WRITE_SCOPE = 'https://www.googleapis.com/auth/calendar'
+const DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS = Object.freeze({
+  draft: '8',
+  active: '9',
+  canceled: '11',
+  closed: '10',
+})
 
 const getOAuthClient = () => {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID
@@ -38,8 +44,24 @@ const normalizeCalendarReminders = (value) => {
   }
 }
 
+const normalizeCalendarStatusColors = (value) => {
+  const source = value && typeof value === 'object' ? value : {}
+  const normalizeColorId = (colorId, fallback) => {
+    const prepared = String(colorId ?? '').trim()
+    return /^(?:[1-9]|1[0-1])$/.test(prepared) ? prepared : fallback
+  }
+  return {
+    draft: normalizeColorId(source.draft, DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.draft),
+    active: normalizeColorId(source.active, DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.active),
+    canceled: normalizeColorId(source.canceled, DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.canceled),
+    closed: normalizeColorId(source.closed, DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.closed),
+  }
+}
+
 const normalizeCalendarSettings = (user) => {
   const settings = user?.googleCalendar ?? {}
+  const deleteCanceledFromCalendar =
+    settings?.deleteCanceledFromCalendar === true
   return {
     enabled: Boolean(settings.enabled),
     calendarId: settings.calendarId || '',
@@ -52,6 +74,8 @@ const normalizeCalendarSettings = (user) => {
     connectedAt: settings.connectedAt || null,
     email: settings.email || '',
     reminders: normalizeCalendarReminders(settings.reminders),
+    statusColors: normalizeCalendarStatusColors(settings.statusColors),
+    deleteCanceledFromCalendar,
   }
 }
 
@@ -103,6 +127,8 @@ export {
   getUserCalendarClient,
   listUserCalendars,
   normalizeCalendarReminders,
+  normalizeCalendarStatusColors,
   normalizeCalendarSettings,
   getUserCalendarId,
+  DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS,
 }

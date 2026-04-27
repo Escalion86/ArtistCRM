@@ -15,6 +15,7 @@ import ModalsPortal from '@layouts/modals/ModalsPortal'
 import isSiteLoadingAtom from '@state/atoms/isSiteLoadingAtom'
 import cn from 'classnames'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { useWindowDimensionsRecoil } from '@helpers/useWindowDimensions'
 import { modalsFuncAtom } from '@state/atoms'
 import modalsFuncGenerator from '@layouts/modals/modalsFuncGenerator'
@@ -24,6 +25,21 @@ import useSnackbar from '@helpers/useSnackbar'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { pages } from '@helpers/constants'
 import isPageAllowedForRole from '@helpers/pageAccess'
+import {
+  readServerSyncDisabledFromStorage,
+  resolveServerSyncDisabled,
+} from '@helpers/serverSyncMode'
+import {
+  appendServerSyncQueueItem,
+  readServerSyncQueue,
+  replaceServerSyncQueue,
+  SERVER_SYNC_FLUSH_NOW_EVENT,
+  shiftServerSyncQueue,
+} from '@helpers/serverSyncQueue'
+import { sendClientLog } from '@helpers/clientLog'
+import { queryKeys } from '@helpers/queryKeys'
+import { useEventActions } from '@helpers/useEventsQuery'
+import { useClientActions } from '@helpers/useClientsQuery'
 
 const StateLoader = (props) => {
   if (props.error && Object.keys(props.error).length > 0)
@@ -32,6 +48,7 @@ const StateLoader = (props) => {
   const snackbar = useSnackbar()
 
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const [modalFunc, setModalsFunc] = useAtom(modalsFuncAtom)
 
@@ -57,22 +74,63 @@ const StateLoader = (props) => {
   // const setServerSettingsState = useSetAtom(serverSettingsAtom)
 
   const setItemsFunc = useSetAtom(itemsFuncAtom)
+  const serverSyncDisabled = resolveServerSyncDisabled(siteSettingsState)
+  const eventActions = useEventActions()
+  const clientActions = useClientActions()
 
   useWindowDimensionsRecoil()
 
+  const isPushSupported = () =>
+    typeof window !== 'undefined' &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window &&
+    'Notification' in window
+
+  const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/')
+    const rawData = window.atob(base64)
+    const outputArray = new Uint8Array(rawData.length)
+
+    for (let i = 0; i < rawData.length; i += 1) {
+      outputArray[i] = rawData.charCodeAt(i)
+    }
+    return outputArray
+  }
+
+  const customSettings = siteSettingsState?.custom
+  const isTenantPushEnabled =
+    (typeof customSettings?.get === 'function'
+      ? customSettings.get('publicLeadPushEnabled')
+      : customSettings?.publicLeadPushEnabled) === true
+
   useEffect(() => {
-    const itemsFunc = itemsFuncGenerator(snackbar, loggedUser)
+    const itemsFunc = itemsFuncGenerator(snackbar, loggedUser, {
+      disableServerSync: serverSyncDisabled,
+      eventActions,
+      clientActions,
+    })
     setItemsFunc(itemsFunc)
     setModalsFunc(
       modalsFuncGenerator(
         router,
         itemsFunc,
-        loggedUser
+        loggedUser,
+        { disableServerSync: serverSyncDisabled }
         // loggedUser,
         // siteSettingsState,
       )
     )
-  }, [loggedUser, router, setItemsFunc, setModalsFunc, snackbar])
+  }, [
+    loggedUser,
+    clientActions,
+    eventActions,
+    router,
+    serverSyncDisabled,
+    setItemsFunc,
+    setModalsFunc,
+    snackbar,
+  ])
 
   useEffect(() => {
     setLoggedUser(props.loggedUser)
@@ -83,16 +141,37 @@ const StateLoader = (props) => {
     setTariffsState(props.tariffs ?? [])
     setUsersState(props.users ?? [])
     setSiteSettingsState(props.siteSettings)
+    queryClient.setQueryData(
+      queryKeys.events({
+        scope:
+          props.eventsPaging?.scope && props.eventsPaging.scope !== 'none'
+            ? props.eventsPaging.scope
+            : props.page === 'eventsUpcoming'
+              ? 'upcoming'
+              : props.page === 'eventsPast'
+                ? 'past'
+                : 'all',
+      }),
+      {
+        data: props.events ?? [],
+        meta: props.eventsPaging ?? {},
+      }
+    )
+    queryClient.setQueryData(queryKeys.clients(), props.clients ?? [])
+    queryClient.setQueryData(queryKeys.transactionsAll, props.transactions ?? [])
     setIsSiteLoading(false)
   }, [
     props.clients,
     props.events,
+    props.eventsPaging,
     props.loggedUser,
+    props.page,
     props.siteSettings,
     props.services,
     props.tariffs,
     props.transactions,
     props.users,
+    queryClient,
     setClientsState,
     setEventsState,
     setIsSiteLoading,
@@ -103,6 +182,60 @@ const StateLoader = (props) => {
     setSiteSettingsState,
     setTransactionsState,
   ])
+
+  useEffect(() => {
+    if (!loggedUser?._id) return
+    if (!isPushSupported()) return
+    if (Notification.permission !== 'granted') return
+    if (!isTenantPushEnabled) return
+
+    let cancelled = false
+
+    const syncPushSubscription = async () => {
+      try {
+        const existing = await navigator.serviceWorker.getRegistration()
+        if (!existing) {
+          await navigator.serviceWorker.register('/sw.js').catch(() => null)
+        }
+
+        const registration = await navigator.serviceWorker.ready.catch(() => null)
+        if (!registration?.pushManager || cancelled) return
+
+        let subscription = await registration.pushManager
+          .getSubscription()
+          .catch(() => null)
+
+        if (!subscription) {
+          const keyResponse = await fetch('/api/push/public-key')
+          const keyPayload = await keyResponse.json().catch(() => ({}))
+          const publicKey = keyPayload?.data?.publicKey
+          if (!keyResponse.ok || !publicKey) return
+          if (cancelled) return
+
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey),
+          })
+        }
+
+        if (!subscription || cancelled) return
+
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: subscription.toJSON() }),
+        }).catch(() => null)
+      } catch (error) {
+        // Silent sync: user can still manage push вручную из экрана интеграций.
+      }
+    }
+
+    syncPushSubscription()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isTenantPushEnabled, loggedUser?._id])
 
   useEffect(() => {
     if (!loggedUser?._id) return
@@ -122,6 +255,218 @@ const StateLoader = (props) => {
   ])
 
   const onboardingShownRef = useRef(false)
+  const privacyWarningShownRef = useRef(false)
+  const syncFlushInProgressRef = useRef(false)
+  const startupErrorLoggedRef = useRef(false)
+
+  useEffect(() => {
+    if (!props.error || startupErrorLoggedRef.current) return
+    startupErrorLoggedRef.current = true
+    sendClientLog({
+      type: 'cabinet-props-error',
+      page: props.page,
+      message:
+        typeof props.error?.message === 'string'
+          ? props.error.message
+          : 'unknown',
+      name: props.error?.name,
+      code: props.error?.code,
+      digest: props.error?.digest,
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+      hasLoggedUser: Boolean(props.loggedUser?._id),
+      hasEvents: Array.isArray(props.events),
+      eventsCount: Array.isArray(props.events) ? props.events.length : null,
+    })
+  }, [props.error, props.events, props.loggedUser?._id, props.page])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const nativeFetch = window.fetch.bind(window)
+
+    const getMethod = (input, init) =>
+      String(
+        init?.method ??
+          (typeof input === 'object' && input ? input.method : 'GET') ??
+          'GET'
+      ).toUpperCase()
+
+    const normalizeBody = (body) => {
+      if (!body) return ''
+      if (typeof body === 'string') return body
+      if (body instanceof URLSearchParams) return body.toString()
+      if (body instanceof FormData) return '[form-data]'
+      if (body instanceof Blob || body instanceof ArrayBuffer) return '[binary]'
+      try {
+        return JSON.stringify(body)
+      } catch (error) {
+        return '[unserializable]'
+      }
+    }
+
+    const normalizeHeaders = (headersValue) => {
+      if (!headersValue) return {}
+      if (headersValue instanceof Headers) {
+        return Object.fromEntries(headersValue.entries())
+      }
+      if (Array.isArray(headersValue)) {
+        return Object.fromEntries(headersValue)
+      }
+      if (typeof headersValue === 'object') {
+        return { ...headersValue }
+      }
+      return {}
+    }
+
+    const shouldBlock = (input, init) => {
+      const disabledFromStorage = readServerSyncDisabledFromStorage()
+      const disabled = typeof disabledFromStorage === 'boolean'
+        ? disabledFromStorage
+        : serverSyncDisabled
+      if (!disabled) return false
+
+      const method = getMethod(input, init)
+      if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return false
+
+      const inputUrl =
+        typeof input === 'string'
+          ? input
+          : typeof input?.url === 'string'
+            ? input.url
+            : ''
+      if (!inputUrl) return false
+
+      const url = new URL(inputUrl, window.location.origin)
+      const isSameOriginApi =
+        url.origin === window.location.origin && url.pathname.startsWith('/api/')
+      if (!isSameOriginApi) return false
+
+      if (url.pathname.startsWith('/api/auth/')) return false
+
+      return true
+    }
+
+    window.fetch = async (input, init = {}) => {
+      if (!shouldBlock(input, init)) {
+        return nativeFetch(input, init)
+      }
+
+      const method = getMethod(input, init)
+      const inputUrl =
+        typeof input === 'string'
+          ? input
+          : typeof input?.url === 'string'
+            ? input.url
+            : ''
+      const url = new URL(inputUrl, window.location.origin)
+
+      appendServerSyncQueueItem({
+        id: `queue-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        url: `${url.pathname}${url.search}`,
+        method,
+        body: normalizeBody(init?.body),
+        headers: normalizeHeaders(init?.headers),
+        createdAt: new Date().toISOString(),
+      })
+
+      if (!privacyWarningShownRef.current) {
+        snackbar.warning(
+          'Серверная синхронизация отключена: запрос сохранен локально'
+        )
+        privacyWarningShownRef.current = true
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: null,
+          localOnly: true,
+          queued: true,
+        }),
+        {
+          status: 202,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    return () => {
+      window.fetch = nativeFetch
+    }
+  }, [serverSyncDisabled, snackbar])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const flushQueue = async () => {
+      if (syncFlushInProgressRef.current) return
+      if (serverSyncDisabled) return
+      if (!navigator.onLine) return
+
+      const queue = readServerSyncQueue()
+      if (queue.length === 0) return
+
+      syncFlushInProgressRef.current = true
+      try {
+        let processed = 0
+        for (const item of queue) {
+          const method = String(item?.method || 'POST').toUpperCase()
+          const body =
+            typeof item?.body === 'string' && item.body !== '[form-data]' && item.body !== '[binary]'
+              ? item.body
+              : undefined
+          const headers =
+            item?.headers && typeof item.headers === 'object'
+              ? item.headers
+              : { 'Content-Type': 'application/json' }
+
+          const response = await fetch(item.url, {
+            method,
+            headers,
+            body,
+          })
+          if (!response.ok) break
+          processed += 1
+        }
+
+        if (processed > 0) {
+          shiftServerSyncQueue(processed)
+          snackbar.success(`Синхронизировано локальных изменений: ${processed}`)
+        }
+
+        const left = readServerSyncQueue()
+        if (left.length > 0 && processed === 0) {
+          snackbar.warning(
+            'Не удалось синхронизировать очередь. Проверьте подключение и повторите.'
+          )
+        } else if (left.length > 0 && processed > 0) {
+          replaceServerSyncQueue(left)
+        }
+      } catch (error) {
+        snackbar.warning('Синхронизация очереди прервана')
+      } finally {
+        syncFlushInProgressRef.current = false
+      }
+    }
+
+    const handleOnline = () => {
+      flushQueue()
+    }
+    const handleManualFlush = () => {
+      flushQueue()
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener(SERVER_SYNC_FLUSH_NOW_EVENT, handleManualFlush)
+
+    flushQueue()
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener(SERVER_SYNC_FLUSH_NOW_EVENT, handleManualFlush)
+    }
+  }, [serverSyncDisabled, snackbar])
 
   useEffect(() => {
     if (!loggedUser?._id || onboardingShownRef.current) return
@@ -184,7 +529,7 @@ const StateLoader = (props) => {
           <LoadingSpinner size="lg" />
         </div>
       ) : (
-        <div className="relative w-full bg-white">{props.children}</div>
+        <div className="relative w-full bg-transparent">{props.children}</div>
       )}
       <ReleaseOnboardingCoach />
       <ModalsPortal />

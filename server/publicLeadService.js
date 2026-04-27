@@ -195,8 +195,10 @@ const createPublicLeadDraftEvent = async ({
     additionalEvents: [],
     clientData: {
       source: normalizedData.source ?? 'public_api',
+      createdViaApi: true,
       lead: {
         ...normalizedData,
+        isPublicApi: true,
         raw: rawPayload,
       },
     },

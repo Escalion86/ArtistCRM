@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @next/next/no-img-element */
 import RotateButton from '@components/IconToggleButtons/RotateButton'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ReactCrop, {
@@ -364,3 +366,5 @@ const cropImageFunc = (
 }
 
 export default cropImageFunc
+
+

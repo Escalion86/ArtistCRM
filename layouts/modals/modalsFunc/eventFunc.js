@@ -22,7 +22,7 @@ import TabPanel from '@components/Tabs/TabPanel'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
-import { deleteData, postData } from '@helpers/CRUD'
+import { postData } from '@helpers/CRUD'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import useErrors from '@helpers/useErrors'
 import clientsAtom from '@state/atoms/clientsAtom'
@@ -30,9 +30,12 @@ import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import eventSelector from '@state/selectors/eventSelector'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue } from 'jotai'
 import Input from '@components/Input'
+import ComboBox from '@components/ComboBox'
 import AppButton from '@components/AppButton'
+import QuickActionButtons from '@components/QuickActionButtons'
+import RequisitesWarning from '@components/RequisitesWarning'
 import AddressPicker from '@components/AddressPicker'
 import InputWrapper from '@components/InputWrapper'
 import LabeledContainer from '@components/LabeledContainer'
@@ -42,11 +45,13 @@ import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import ServiceMultiSelect from '@components/ServiceMultiSelect'
 import serviceFunc from './serviceFunc'
+import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
 import servicesAtom from '@state/atoms/servicesAtom'
 import { getContractTemplateVariablesMap } from '@helpers/generateContractTemplate'
 import { getActTemplateVariablesMap } from '@helpers/generateActTemplate'
 import exportDocxFromTemplate from '@helpers/exportDocxFromTemplate'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { useDeleteTransactionMutation } from '@helpers/useTransactionsQuery'
 
 const normalizeAddressValue = (rawAddress) => {
   const normalized = { ...DEFAULT_ADDRESS }
@@ -103,6 +108,7 @@ const normalizeAdditionalEvents = (items) => {
           typeof item.description === 'string' ? item.description : '',
         date: item.date ?? null,
         done: Boolean(item.done),
+        doneAt: item.doneAt ?? null,
         googleCalendarEventId:
           typeof item.googleCalendarEventId === 'string'
             ? item.googleCalendarEventId
@@ -127,7 +133,33 @@ const arrayBufferToBase64 = (buffer) => {
   return window.btoa(binary)
 }
 
-const eventFunc = (eventId, clone = false, initialStatus = null) => {
+const getSuggestedDecisionAdditionalEventDate = (eventDateValue) => {
+  const now = new Date()
+  const suggested = new Date(now)
+  suggested.setDate(suggested.getDate() + 3)
+  suggested.setSeconds(0, 0)
+
+  if (!eventDateValue) return suggested.toISOString()
+  const eventDate = new Date(eventDateValue)
+  if (Number.isNaN(eventDate.getTime())) return suggested.toISOString()
+
+  const latestAllowed = new Date(eventDate)
+  latestAllowed.setDate(latestAllowed.getDate() - 1)
+  latestAllowed.setSeconds(0, 0)
+
+  return (suggested.getTime() > latestAllowed.getTime()
+    ? latestAllowed
+    : suggested
+  ).toISOString()
+}
+
+const eventFunc = (
+  eventId,
+  clone = false,
+  initialStatus = null,
+  options = {}
+) => {
+  const initialTab = options?.initialTab || 'Общие'
   const EventModal = ({
     closeModal,
     setOnConfirmFunc,
@@ -152,7 +184,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     const tariffs = useAtomValue(tariffsAtom)
     const services = useAtomValue(servicesAtom)
     const events = useAtomValue(eventsAtom)
-    const setTransactions = useSetAtom(transactionsAtom)
+    const deleteTransactionMutation = useDeleteTransactionMutation()
     const closeModalRef = useRef(closeModal)
 
     const initialIsTransferred =
@@ -221,6 +253,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     )
     const [description, setDescription] = useState(
       event?.description ?? event?.comment ?? DEFAULT_EVENT.description ?? ''
+    )
+    const [eventType, setEventType] = useState(
+      event?.eventType ?? DEFAULT_EVENT.eventType ?? ''
     )
     const [financeComment, setFinanceComment] = useState(
       event?.financeComment ?? DEFAULT_EVENT.financeComment ?? ''
@@ -299,6 +334,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         isByContract: event?.isByContract ?? DEFAULT_EVENT.isByContract,
         description:
           event?.description ?? event?.comment ?? DEFAULT_EVENT.description,
+        eventType: event?.eventType ?? DEFAULT_EVENT.eventType,
         financeComment: event?.financeComment ?? DEFAULT_EVENT.financeComment,
         dateEnd: event?.dateEnd ?? DEFAULT_EVENT.dateEnd,
         invoiceLinks: event?.invoiceLinks ?? DEFAULT_EVENT.invoiceLinks ?? [],
@@ -333,6 +369,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       event?.depositDueAt,
       event?.depositExpectedAmount,
       event?.description,
+      event?.eventType,
       event?.isByContract,
       event?.financeComment,
       event?.comment,
@@ -378,6 +415,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         initialEventValues.isTransferred !== isTransferred ||
         initialEventValues.colleagueId !== colleagueId ||
         initialEventValues.description !== description ||
+        initialEventValues.eventType !== eventType ||
         initialEventValues.financeComment !== financeComment ||
         initialEventValues.status !== status ||
         initialEventValues.requestCreatedAt !== requestCreatedAt ||
@@ -410,6 +448,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         isTransferred,
         colleagueId,
         description,
+        eventType,
         financeComment,
         invoiceLinks,
         receiptLinks,
@@ -472,15 +511,41 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       [eventTransactions]
     )
     const canClose = contractSum <= incomeTotal && (!isByContract || hasTaxes)
+    const eventEndDateForStatus = useMemo(
+      () => dateEnd || eventDate || null,
+      [dateEnd, eventDate]
+    )
+    const isEventFinished = useMemo(() => {
+      if (!eventEndDateForStatus) return false
+      const endDate = new Date(eventEndDateForStatus)
+      if (Number.isNaN(endDate.getTime())) return false
+      return endDate.getTime() < Date.now()
+    }, [eventEndDateForStatus])
+    const canSetClosedStatus = !isDraft && isEventFinished && canClose
+    const isClosed = status === 'closed'
+    const formLockedClassName = isClosed ? 'pointer-events-none opacity-65' : ''
+    const closeStatusDisabledReason = !isEventFinished
+      ? 'Закрыть можно только после завершения мероприятия'
+      : !canClose
+        ? 'Закрыть можно только после всех поступлений и обязательных налогов'
+        : ''
 
     const missingFields = useMemo(() => {
       const fields = []
       if (!clientId) fields.push('Клиент')
       if (!eventDate) fields.push('Дата начала')
+      if (!eventType?.trim()) fields.push('Что за событие')
       if (!servicesIds || servicesIds.length === 0) fields.push('Услуги')
       if (isTransferred && !colleagueId) fields.push('Коллега')
       return fields
-    }, [clientId, eventDate, servicesIds, isTransferred, colleagueId])
+    }, [
+      clientId,
+      eventDate,
+      eventType,
+      servicesIds,
+      isTransferred,
+      colleagueId,
+    ])
     const requiredMissing = missingFields.length > 0
 
     const dateRangeError = useMemo(() => {
@@ -582,7 +647,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     )
     const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
 
-    const onClickConfirm = useCallback(() => {
+    const onClickConfirm = () => {
       clearErrorsRef.current()
       let hasError = false
 
@@ -598,6 +663,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         addErrorRef.current({ servicesIds: 'Выберите услугу' })
         hasError = true
       }
+      if (!eventType?.trim()) {
+        addErrorRef.current({ eventType: 'Укажите, что за событие' })
+        hasError = true
+      }
       if (isTransferred && !colleagueId) {
         addErrorRef.current({ colleagueId: 'Выберите коллегу' })
         hasError = true
@@ -606,8 +675,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         hasError = true
       }
 
-      const proceedSave = () => {
-        closeModalRef.current()
+      const proceedSave = async () => {
         const normalizedContractSum =
           typeof contractSum === 'number' && !Number.isNaN(contractSum)
             ? contractSum
@@ -630,6 +698,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             description: item.description?.trim() ?? '',
             date: item.date ?? null,
             done: Boolean(item.done),
+            doneAt: item.done ? item.doneAt ?? new Date().toISOString() : null,
             googleCalendarEventId: item.googleCalendarEventId?.trim() ?? '',
           }))
           .filter((item) => item.title || item.description || item.date)
@@ -654,6 +723,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               : (depositExpectedAmount ?? null),
           isByContract,
           description: description?.trim() ?? '',
+          eventType: eventType?.trim() ?? '',
           financeComment: financeComment?.trim() ?? '',
           calendarImportChecked,
           servicesIds,
@@ -665,7 +735,66 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           payload.actLinks = normalizedActLinks
           payload.contractLinks = normalizedContractLinks
         }
-        setEvent(payload, clone)
+        const isCreatingDraftRequest =
+          !payload?._id && !clone && payload.status === 'draft'
+        const hasAdditionalEvents =
+          (payload?.additionalEvents?.length ?? 0) > 0
+        const savedEvent = await setEvent(payload, clone)
+
+        if (
+          !isCreatingDraftRequest ||
+          hasAdditionalEvents ||
+          !savedEvent?._id
+        ) {
+          closeModalRef.current()
+          return
+        }
+
+        const suggestedDate = getSuggestedDecisionAdditionalEventDate(
+          savedEvent?.eventDate ?? payload?.eventDate
+        )
+        const suggestedLabel = new Date(suggestedDate).toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        openAdditionalEventModal(null, {
+          title: 'Добавить доп. событие',
+          introText: `Рекомендуется добавить напоминание "Что решили клиенты" на ${suggestedLabel}. Вы можете изменить детали ниже.`,
+          sourceItem: {
+            title: 'Что решили клиенты',
+            description: '',
+            date: suggestedDate,
+            done: false,
+            googleCalendarEventId: '',
+          },
+          confirmButtonName: 'Добавить',
+          declineButtonName: 'Позже',
+          onConfirm: async (nextItem) => {
+            const currentEvent = (events ?? []).find(
+              (item) => String(item?._id) === String(savedEvent._id)
+            )
+            const currentAdditionalEvents = Array.isArray(
+              currentEvent?.additionalEvents
+            )
+              ? currentEvent.additionalEvents
+              : Array.isArray(savedEvent?.additionalEvents)
+                ? savedEvent.additionalEvents
+                : []
+
+            await setEvent(
+              {
+                _id: savedEvent._id,
+                additionalEvents: [...currentAdditionalEvents, nextItem],
+              },
+              false,
+              true
+            )
+          },
+        })
+        closeModalRef.current()
       }
 
       if (!hasError) {
@@ -683,46 +812,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         }
         proceedSave()
       }
-    }, [
-      addErrorRef,
-      calendarImportChecked,
-      clearErrorsRef,
-      clientId,
-      colleagueId,
-      description,
-      financeComment,
-      contractSum,
-      isByContract,
-      waitDeposit,
-      depositDueAt,
-      depositExpectedAmount,
-      dateEnd,
-      event?._id,
-      eventDate,
-      getConflictsCount,
-      isTransferred,
-      invoiceLinks,
-      receiptLinks,
-      actLinks,
-      contractLinks,
-      address,
-      modalsFunc,
-      requestCreatedAt,
-      additionalEvents,
-      setEvent,
-      servicesIds,
-      otherContacts,
-      dateRangeError,
-      status,
-      hasDepositTransaction,
-      canUseDocuments,
-    ])
+    }
 
     const onClickConfirmRef = useRef(onClickConfirm)
-
-    useEffect(() => {
-      onClickConfirmRef.current = onClickConfirm
-    }, [onClickConfirm])
+    onClickConfirmRef.current = onClickConfirm
 
     useEffect(() => {
       setOnShowOnCloseConfirmDialog(isFormChanged)
@@ -978,6 +1071,47 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       )
     }
 
+    const eventTypeOptions = useMemo(() => {
+      const rawEventTypes = Array.isArray(siteSettings?.custom?.eventTypes)
+        ? siteSettings.custom.eventTypes
+        : []
+      const eventTypesSet = new Set(
+        rawEventTypes
+          .map((item) => (typeof item === 'string' ? item.trim() : ''))
+          .filter(Boolean)
+      )
+      if (eventType && typeof eventType === 'string')
+        eventTypesSet.add(eventType.trim())
+      return Array.from(eventTypesSet).sort((a, b) => a.localeCompare(b, 'ru'))
+    }, [eventType, siteSettings?.custom?.eventTypes])
+
+    const handleCreateEventType = async () => {
+      const rawEventType = window.prompt('Новый тип события')
+      const normalizedEventType =
+        typeof rawEventType === 'string' ? rawEventType.trim() : ''
+      if (!normalizedEventType) return
+      setEventType(normalizedEventType)
+      const currentEventTypes = Array.isArray(siteSettings?.custom?.eventTypes)
+        ? siteSettings.custom.eventTypes
+        : []
+      const nextEventTypes = Array.from(
+        new Set([...currentEventTypes, normalizedEventType])
+      )
+      await postData(
+        '/api/site',
+        {
+          custom: {
+            ...(siteSettings?.custom ?? {}),
+            eventTypes: nextEventTypes,
+          },
+        },
+        (data) => setSiteSettings(data),
+        null,
+        false,
+        loggedUser?._id
+      )
+    }
+
     const [financeError, setFinanceError] = useState('')
     const [financeLoading, setFinanceLoading] = useState(false)
 
@@ -989,10 +1123,9 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         onConfirm: async () => {
           setFinanceError('')
           setFinanceLoading(true)
-          const response = await deleteData(`/api/transactions/${id}`)
-          if (response !== null) {
-            setTransactions((prev) => prev.filter((item) => item._id !== id))
-          } else {
+          try {
+            await deleteTransactionMutation.mutateAsync(id)
+          } catch (error) {
             setFinanceError('Не удалось удалить транзакцию')
           }
           setFinanceLoading(false)
@@ -1068,9 +1201,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
       setAdditionalEvents((prev) => prev.filter((_, idx) => idx !== index))
     }
 
-    const openAdditionalEventModal = (index = null) => {
-      const sourceItem =
-        index !== null
+    function openAdditionalEventModal(index = null, options = {}) {
+      const sourceItem = options?.sourceItem
+        ? { ...options.sourceItem }
+        : index !== null
           ? additionalEvents[index]
           : {
               title: '',
@@ -1079,180 +1213,18 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               done: false,
               googleCalendarEventId: '',
             }
-      const stateRef = {
-        current: {
-          title: sourceItem?.title ?? '',
-          description: sourceItem?.description ?? '',
-          date: sourceItem?.date ?? new Date().toISOString(),
-          done: Boolean(sourceItem?.done),
-          googleCalendarEventId: sourceItem?.googleCalendarEventId ?? '',
-        },
-      }
-
-      const AdditionalEventModal = () => {
-        const [title, setTitle] = useState(stateRef.current.title)
-        const [description, setDescription] = useState(
-          stateRef.current.description
-        )
-        const [date, setDate] = useState(stateRef.current.date)
-        const [done, setDone] = useState(stateRef.current.done)
-        const parseDateSafe = (value) => {
-          if (!value) return null
-          const parsed = new Date(value)
-          return Number.isNaN(parsed.getTime()) ? null : parsed
-        }
-        const getBaseDate = () => parseDateSafe(date) || new Date()
-        const applyPresetTime = (hours, minutes) => {
-          const next = getBaseDate()
-          next.setHours(hours, minutes, 0, 0)
-          setDate(next.toISOString())
-        }
-        const applyPresetDateFromToday = (days) => {
-          const base = getBaseDate()
-          const next = new Date()
-          next.setDate(next.getDate() + days)
-          next.setHours(base.getHours(), base.getMinutes(), 0, 0)
-          setDate(next.toISOString())
-        }
-
-        useEffect(() => {
-          stateRef.current = {
-            ...stateRef.current,
-            title,
-            description,
-            date,
-            done,
-          }
-        }, [date, description, done, title])
-
-        return (
-          <div className="mt-2 flex flex-col gap-y-2.5">
-            <div className="mt-2 text-xs font-semibold text-gray-700">
-              Быстрый заголовок
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => setTitle('Узнать что решили')}
-              >
-                Узнать что решили
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => setTitle('Встреча')}
-              >
-                Встреча
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => setTitle('Жду задаток')}
-              >
-                Жду задаток
-              </AppButton>
-            </div>
-            <Input
-              label="Заголовок"
-              value={title}
-              onChange={setTitle}
-              noMargin
-              fullWidth
-            />
-            <div className="text-xs font-semibold text-gray-700">
-              Быстрая дата и время
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetTime(11, 0)}
-              >
-                11:00
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetTime(19, 0)}
-              >
-                19:00
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetDateFromToday(0)}
-              >
-                Сегодня
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetDateFromToday(1)}
-              >
-                Завтра
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetDateFromToday(3)}
-              >
-                Через 2 дня
-              </AppButton>
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="rounded"
-                onClick={() => applyPresetDateFromToday(7)}
-              >
-                Через неделю
-              </AppButton>
-            </div>
-            <DateTimePicker
-              value={date ?? null}
-              onChange={(value) => setDate(value ?? null)}
-              label="Дата и время"
-              noMargin
-            />
-            <Textarea
-              label="Описание"
-              value={description}
-              onChange={setDescription}
-              rows={3}
-              noMargin
-            />
-            <IconCheckBox
-              checked={done}
-              onClick={() => setDone((prev) => !prev)}
-              label="Сделано"
-              checkedIcon={faCircleCheck}
-              checkedIconColor="#16A34A"
-              noMargin
-            />
-          </div>
-        )
-      }
-
-      modalsFunc.add({
-        title: `${index !== null ? 'Редактирование' : 'Создание'} доп. события`,
-        confirmButtonName: 'Сохранить',
-        declineButtonName: 'Отмена',
-        showDecline: true,
-        onConfirm: () => {
-          const nextItem = {
-            title: stateRef.current.title?.trim() ?? '',
-            description: stateRef.current.description?.trim() ?? '',
-            date: stateRef.current.date ?? null,
-            done: Boolean(stateRef.current.done),
-            googleCalendarEventId: stateRef.current.googleCalendarEventId ?? '',
+      openEventAdditionalEventEditorModal({
+        modalsFunc,
+        index,
+        sourceItem,
+        title: options?.title,
+        confirmButtonName: options?.confirmButtonName ?? 'Сохранить',
+        declineButtonName: options?.declineButtonName ?? 'Отмена',
+        introText: options?.introText,
+        onConfirm: async (nextItem) => {
+          if (typeof options?.onConfirm === 'function') {
+            await options.onConfirm(nextItem)
+            return
           }
           if (index !== null) {
             setAdditionalEvents((prev) =>
@@ -1260,11 +1232,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                 idx === index ? { ...item, ...nextItem } : item
               )
             )
-          } else {
-            setAdditionalEvents((prev) => [...prev, nextItem])
+            return
           }
+          setAdditionalEvents((prev) => [...prev, nextItem])
         },
-        Children: AdditionalEventModal,
       })
     }
 
@@ -1279,7 +1250,13 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
     const handleAdditionalEventToggleDone = (index) => {
       setAdditionalEvents((prev) =>
         prev.map((item, idx) =>
-          idx === index ? { ...item, done: !item?.done } : item
+          idx === index
+            ? {
+                ...item,
+                done: !item?.done,
+                doneAt: !item?.done ? new Date().toISOString() : null,
+              }
+            : item
         )
       )
     }
@@ -1289,11 +1266,15 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
         setFinanceError('В копии транзакции недоступны до сохранения')
         return
       }
+      if (isFormChanged) {
+        setFinanceError('Сначала сохраните изменения мероприятия')
+        return
+      }
       if (isDraft) {
         setFinanceError('Транзакции недоступны для заявки')
         return
       }
-      if (!sourceEventId || !event?.clientId) {
+      if (!sourceEventId || !clientId) {
         setFinanceError('Сначала сохраните мероприятие и выберите клиента')
         return
       }
@@ -1372,54 +1353,22 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           hasRequiredArtistRequisites(liveSiteSettings)
         const hasClientRequisites =
           hasRequiredClientRequisites(liveSelectedClient)
-        const showRequisitesWarning =
-          !hasArtistRequisites || !hasClientRequisites
 
         return (
           <div className="flex flex-col gap-2">
-            {showRequisitesWarning ? (
-              <div className="flex flex-col gap-2 px-3 py-2 border border-red-200 rounded bg-red-50/80">
-                {!hasArtistRequisites ? (
-                  <div className="text-xs text-red-700">
-                    Необходимо заполнить реквизиты артиста
-                  </div>
-                ) : null}
-                {!hasClientRequisites ? (
-                  <div className="text-xs text-red-700">
-                    Необходимо заполнить реквизиты в карточке клиента
-                  </div>
-                ) : null}
-                <div className="flex flex-wrap items-center gap-2">
-                  {!hasArtistRequisites ? (
-                    <AppButton
-                      variant="danger"
-                      size="sm"
-                      className="rounded"
-                      onClick={() =>
-                        modalsFunc.settings?.artistRequisitesEditor?.()
-                      }
-                    >
-                      Редактировать реквизиты
-                    </AppButton>
-                  ) : null}
-                  {!hasClientRequisites ? (
-                    <AppButton
-                      variant="danger"
-                      size="sm"
-                      className="rounded"
-                      disabled={!liveSelectedClient?._id}
-                      onClick={() =>
-                        liveSelectedClient?._id
-                          ? modalsFunc.client?.edit(liveSelectedClient._id)
-                          : null
-                      }
-                    >
-                      Редактировать клиента
-                    </AppButton>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
+            <RequisitesWarning
+              missingArtistRequisites={!hasArtistRequisites}
+              missingClientRequisites={!hasClientRequisites}
+              canEditClient={Boolean(liveSelectedClient?._id)}
+              onEditArtistRequisites={() =>
+                modalsFunc.settings?.artistRequisitesEditor?.()
+              }
+              onEditClient={() =>
+                liveSelectedClient?._id
+                  ? modalsFunc.client?.edit(liveSelectedClient._id)
+                  : null
+              }
+            />
             <div className="flex items-end justify-between gap-2">
               <div className="mt-1.5 flex items-end gap-2">
                 <Input
@@ -1543,54 +1492,22 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
           hasRequiredArtistRequisites(liveSiteSettings)
         const hasClientRequisites =
           hasRequiredClientRequisites(liveSelectedClient)
-        const showRequisitesWarning =
-          !hasArtistRequisites || !hasClientRequisites
 
         return (
           <div className="flex flex-col gap-2">
-            {showRequisitesWarning ? (
-              <div className="flex flex-col gap-2 px-3 py-2 border border-red-200 rounded bg-red-50/80">
-                {!hasArtistRequisites ? (
-                  <div className="text-xs text-red-700">
-                    Необходимо заполнить реквизиты артиста
-                  </div>
-                ) : null}
-                {!hasClientRequisites ? (
-                  <div className="text-xs text-red-700">
-                    Необходимо заполнить реквизиты в карточке клиента
-                  </div>
-                ) : null}
-                <div className="flex flex-wrap items-center gap-2">
-                  {!hasArtistRequisites ? (
-                    <AppButton
-                      variant="danger"
-                      size="sm"
-                      className="rounded"
-                      onClick={() =>
-                        modalsFunc.settings?.artistRequisitesEditor?.()
-                      }
-                    >
-                      Редактировать реквизиты
-                    </AppButton>
-                  ) : null}
-                  {!hasClientRequisites ? (
-                    <AppButton
-                      variant="danger"
-                      size="sm"
-                      className="rounded"
-                      disabled={!liveSelectedClient?._id}
-                      onClick={() =>
-                        liveSelectedClient?._id
-                          ? modalsFunc.client?.edit(liveSelectedClient._id)
-                          : null
-                      }
-                    >
-                      Редактировать клиента
-                    </AppButton>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
+            <RequisitesWarning
+              missingArtistRequisites={!hasArtistRequisites}
+              missingClientRequisites={!hasClientRequisites}
+              canEditClient={Boolean(liveSelectedClient?._id)}
+              onEditArtistRequisites={() =>
+                modalsFunc.settings?.artistRequisitesEditor?.()
+              }
+              onEditClient={() =>
+                liveSelectedClient?._id
+                  ? modalsFunc.client?.edit(liveSelectedClient._id)
+                  : null
+              }
+            />
             <div className="flex items-end justify-between gap-2">
               <div className="mt-1.5 flex items-end gap-2">
                 <Input
@@ -1651,46 +1568,89 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
 
     return (
       <TabContext
-        value="Общие"
+        value={initialTab}
         variant="fullWidth"
         scrollButtons={false}
         allowScrollButtonsMobile={false}
       >
         <TabPanel tabName="Общие">
           <FormWrapper>
-            {!eventId && (
-              <InputWrapper label="Тип" paddingY fitWidth>
+            <InputWrapper label="Статус" paddingY fitWidth>
+              <div className="flex w-full flex-col">
                 <div className="flex flex-wrap gap-2">
                   {[
                     { value: 'draft', label: 'Заявка' },
                     { value: 'active', label: 'Мероприятие' },
+                    { value: 'canceled', label: 'Отменено' },
+                    { value: 'closed', label: 'Закрыто' },
                   ].map((item) => {
                     const isActive = status === item.value
+                    const isClosedOption = item.value === 'closed'
+                    const disabled =
+                      isClosedOption && !canSetClosedStatus && !isClosed
                     return (
                       <button
                         key={item.value}
                         type="button"
+                        disabled={disabled}
+                        title={disabled ? closeStatusDisabledReason : ''}
                         className={`focus-visible:ring-general inline-flex min-h-[32px] items-center rounded border px-3 py-1 text-sm font-medium transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none ${getEventStatusButtonClasses(
                           item.value,
                           isActive
-                        )} ${isActive ? 'shadow' : 'shadow-sm'} cursor-pointer`}
-                        onClick={() => setStatus(item.value)}
+                        )} ${isActive ? 'shadow' : 'shadow-sm'} ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                        onClick={() => {
+                          if (disabled) return
+                          setStatus(item.value)
+                        }}
                       >
                         {item.label}
                       </button>
                     )
                   })}
                 </div>
-              </InputWrapper>
-            )}
-            <ServiceMultiSelect
-              value={servicesIds}
-              onChange={setServicesIds}
-              onCreate={openServiceCreateModal}
-              error={errors.servicesIds}
-              required
-              onClearError={() => removeError('servicesIds')}
-            />
+                {status !== 'closed' && !canSetClosedStatus ? (
+                  <div className="mt-2 text-xs text-amber-700">
+                    {closeStatusDisabledReason}
+                  </div>
+                ) : null}
+                {isClosed ? (
+                  <div className="mt-2 text-xs text-red-700">
+                    Статус «Закрыто»: редактирование полей мероприятия недоступно.
+                  </div>
+                ) : null}
+              </div>
+            </InputWrapper>
+            <div className={formLockedClassName}>
+              <ServiceMultiSelect
+                value={servicesIds}
+                onChange={setServicesIds}
+                onCreate={openServiceCreateModal}
+                error={errors.servicesIds}
+                required
+                onClearError={() => removeError('servicesIds')}
+              />
+              <div className="flex items-end mt-4 gap-x-1">
+              <ComboBox
+                label="Что за событие?"
+                items={eventTypeOptions}
+                value={eventType}
+                onChange={(value) => {
+                  removeError('eventType')
+                  setEventType(value ?? '')
+                }}
+                placeholder="Выберите тип события"
+                fullWidth
+                noMargin
+                className="flex-1 min-w-38"
+                error={errors.eventType}
+                required
+              />
+              <AddIconButton
+                onClick={handleCreateEventType}
+                title="Добавить тип события"
+                size="md"
+              />
+            </div>
 
             <div className="flex flex-wrap items-center gap-x-1">
               <DateTimePicker
@@ -1727,7 +1687,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               onCreateTown={handleCreateTown}
             />
             <Textarea
-              label="Комментарий"
+              label="Описание"
               onChange={setDescription}
               value={description}
               rows={3}
@@ -1774,147 +1734,163 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
               label="Дата заявки"
             />
             <ErrorsList errors={errors} />
+            </div>
           </FormWrapper>
         </TabPanel>
 
         <TabPanel tabName="Клиент и Контакты">
           <FormWrapper>
-            <ClientPicker
-              selectedClient={selectedClient}
-              selectedClientId={clientId}
-              onSelectClick={openClientSelectModal}
-              onViewClick={() => modalsFunc.client?.view(clientId)}
-              onCreateClick={() =>
-                modalsFunc.client?.add((newClient) => {
-                  if (!newClient?._id) return
-                  setClientId(newClient._id)
-                  removeError('clientId')
-                })
-              }
-              label="Клиент"
-              required
-              error={errors.clientId}
-              paddingY
-              fullWidth
-              compact
-            />
-            <OtherContactsPicker
-              contacts={otherContacts}
-              clients={clients}
-              onSelectContact={handleOtherContactSelect}
-              onChangeComment={handleOtherContactCommentChange}
-              onRemoveContact={handleOtherContactRemove}
-              onEditContact={(index) => {
-                const contact = otherContacts[index]
-                if (contact?.clientId) modalsFunc.client?.edit(contact.clientId)
-              }}
-              onAddContact={handleOtherContactAdd}
-            />
-            <LabeledContainer label="Доп. события">
-              <div className="flex flex-col w-full gap-2">
-                <div className="flex justify-end w-full">
-                  <AddIconButton
-                    onClick={() => handleAdditionalEventAdd()}
-                    title="Добавить событие"
-                    size="sm"
-                  />
-                </div>
-                {hasDoneAdditionalEvents ? (
-                  <IconCheckBox
-                    checked={showDoneAdditionalEvents}
-                    onClick={() => setShowDoneAdditionalEvents((prev) => !prev)}
-                    label="Показывать выполненные"
-                    checkedIcon={faCircleCheck}
-                    checkedIconColor="#16A34A"
-                    noMargin
-                  />
-                ) : null}
-
-                {additionalEvents.length ===
-                0 ? null : filteredAdditionalEvents.length === 0 ? (
-                  <div className="text-sm text-gray-500">
-                    Нет событий для выбранного фильтра
+            <div className={formLockedClassName}>
+              <ClientPicker
+                selectedClient={selectedClient}
+                selectedClientId={clientId}
+                onSelectClick={openClientSelectModal}
+                onViewClick={() => modalsFunc.client?.view(clientId)}
+                onCreateClick={() =>
+                  modalsFunc.client?.add((newClient) => {
+                    if (!newClient?._id) return
+                    setClientId(newClient._id)
+                    removeError('clientId')
+                  })
+                }
+                label="Клиент"
+                required
+                error={errors.clientId}
+                paddingY
+                fullWidth
+                compact
+              />
+              <OtherContactsPicker
+                contacts={otherContacts}
+                clients={clients}
+                onSelectContact={handleOtherContactSelect}
+                onChangeComment={handleOtherContactCommentChange}
+                onRemoveContact={handleOtherContactRemove}
+                onEditContact={(index) => {
+                  const contact = otherContacts[index]
+                  if (contact?.clientId) modalsFunc.client?.edit(contact.clientId)
+                }}
+                onAddContact={handleOtherContactAdd}
+              />
+              <LabeledContainer label="Доп. события">
+                <div className="flex flex-col w-full gap-2">
+                  <div className="flex justify-end w-full">
+                    <AddIconButton
+                      onClick={() => handleAdditionalEventAdd()}
+                      title="Добавить событие"
+                      size="sm"
+                    />
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
-                    {filteredAdditionalEvents.map(({ item, index }) => (
-                      <div
-                        key={`additional-event-${index}`}
-                        className={`w-full rounded border p-2 ${
-                          item?.done
-                            ? 'border-emerald-200 bg-emerald-50/70'
-                            : 'border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div
-                              className={`truncate text-sm font-semibold ${
+                  {hasDoneAdditionalEvents ? (
+                    <IconCheckBox
+                      checked={showDoneAdditionalEvents}
+                      onClick={() => setShowDoneAdditionalEvents((prev) => !prev)}
+                      label="Показывать выполненные"
+                      checkedIcon={faCircleCheck}
+                      checkedIconColor="#16A34A"
+                      noMargin
+                    />
+                  ) : null}
+
+                  {additionalEvents.length === 0 ? null : filteredAdditionalEvents.length ===
+                    0 ? (
+                    <div className="text-sm text-gray-500">
+                      Нет событий для выбранного фильтра
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
+                      {filteredAdditionalEvents.map(({ item, index }) => (
+                        <div
+                          key={`additional-event-${index}`}
+                          className={`w-full rounded border p-2 ${
+                            item?.done
+                              ? 'border-emerald-200 bg-emerald-50/70'
+                              : 'border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleAdditionalEventToggleDone(index)}
+                              title={
                                 item?.done
-                                  ? 'text-emerald-700'
-                                  : 'text-gray-900'
+                                  ? 'Отметить как не выполнено'
+                                  : 'Отметить как выполнено'
+                              }
+                              aria-label={
+                                item?.done
+                                  ? 'Отметить как не выполнено'
+                                  : 'Отметить как выполнено'
+                              }
+                              className={`mt-0.5 inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border transition ${
+                                item?.done
+                                  ? 'border-emerald-500 bg-emerald-500 text-white'
+                                  : 'border-gray-300 bg-white text-gray-400 hover:border-emerald-400 hover:text-emerald-500'
                               }`}
                             >
-                              {item?.done ? '✓ ' : ''}
-                              {item?.title || `Событие #${index + 1}`}
-                            </div>
-                            <div className="text-xs text-gray-600">
-                              {item?.date
-                                ? new Date(item.date).toLocaleString('ru-RU', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
-                                : 'Дата не указана'}
-                            </div>
-                            {item?.description ? (
-                              <div className="text-xs text-gray-700">
-                                {item.description}
+                              <FontAwesomeIcon icon={faCircleCheck} />
+                            </button>
+                            <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div
+                                  className={`truncate text-sm font-semibold ${
+                                    item?.done
+                                      ? 'text-emerald-700'
+                                      : 'text-gray-900'
+                                  }`}
+                                >
+                                  {item?.done ? '✓ ' : ''}
+                                  {item?.title || `Событие #${index + 1}`}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  {item?.date
+                                    ? new Date(item.date).toLocaleString('ru-RU', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })
+                                    : 'Дата не указана'}
+                                </div>
+                                {item?.description ? (
+                                  <div className="text-xs text-gray-700">
+                                    {item.description}
+                                  </div>
+                                ) : null}
                               </div>
-                            ) : null}
-                          </div>
-                          <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
-                            <AppButton
-                              variant={item?.done ? 'secondary' : 'primary'}
-                              size="sm"
-                              className="rounded tablet:w-auto"
-                              onClick={() =>
-                                handleAdditionalEventToggleDone(index)
-                              }
-                            >
-                              {item?.done ? 'Вернуть' : 'Сделано'}
-                            </AppButton>
-                            <IconActionButton
-                              icon={faPencilAlt}
-                              onClick={() => handleAdditionalEventEdit(index)}
-                              title="Редактировать событие"
-                              variant="warning"
-                              size="xs"
-                              className="min-h-8 min-w-8"
-                            />
-                            <IconActionButton
-                              icon={faTrashAlt}
-                              onClick={() => handleAdditionalEventRemove(index)}
-                              title="Удалить событие"
-                              variant="danger"
-                              size="xs"
-                              className="min-h-8 min-w-8"
-                            />
+                              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                                <IconActionButton
+                                  icon={faPencilAlt}
+                                  onClick={() => handleAdditionalEventEdit(index)}
+                                  title="Редактировать событие"
+                                  variant="warning"
+                                  size="xs"
+                                  className="min-h-8 min-w-8"
+                                />
+                                <IconActionButton
+                                  icon={faTrashAlt}
+                                  onClick={() => handleAdditionalEventRemove(index)}
+                                  title="Удалить событие"
+                                  variant="danger"
+                                  size="xs"
+                                  className="min-h-8 min-w-8"
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </LabeledContainer>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </LabeledContainer>
+            </div>
           </FormWrapper>
         </TabPanel>
 
         <TabPanel tabName="Финансы и Документы">
-          <div className="flex flex-col gap-2">
+          <div className={`flex flex-col gap-2 ${formLockedClassName}`}>
             <Input
               label="Договорная сумма"
               type="number"
@@ -2010,7 +1986,7 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
             )}
             {isDraft ? (
               <div className="px-3 py-2 text-sm border rounded-md border-amber-200 bg-amber-50 text-amber-800">
-                {`Для заявки финансы, транзакции и документы недоступны. Переведите статус в "Активно"`}
+                {`Для заявки финансы, транзакции и документы недоступны. Переведите тип в "Мероприятие"`}
               </div>
             ) : null}
             {isByContract && !isDraft && canUseDocuments && (
@@ -2053,9 +2029,10 @@ const eventFunc = (eventId, clone = false, initialStatus = null) => {
                     disabled={
                       isDraft ||
                       clone ||
+                      isFormChanged ||
                       financeLoading ||
                       !sourceEventId ||
-                      !event?.clientId
+                      !clientId
                     }
                     title="Добавить транзакцию"
                     size="sm"

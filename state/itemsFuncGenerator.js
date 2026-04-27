@@ -1,7 +1,7 @@
 import { postData, putData, deleteData } from '@helpers/CRUD'
 import isSiteLoadingAtom from './atoms/isSiteLoadingAtom'
 
-import { setAtomValue } from '@state/storeHelpers'
+import { getAtomValue, setAtomValue } from '@state/storeHelpers'
 import addErrorModalSelector from './selectors/addErrorModalSelector'
 import setLoadingSelector from './selectors/setLoadingSelector'
 import setNotLoadingSelector from './selectors/setNotLoadingSelector'
@@ -12,10 +12,16 @@ import eventDeleteSelector from './selectors/eventDeleteSelector'
 import userDeleteSelector from './selectors/userDeleteSelector'
 import userEditSelector from './selectors/userEditSelector'
 import clientEditSelector from './selectors/clientEditSelector'
+import clientDeleteSelector from './selectors/clientDeleteSelector'
 import serviceEditSelector from './selectors/serviceEditSelector'
 import serviceDeleteSelector from './selectors/serviceDeleteSelector'
 import tariffEditSelector from './selectors/tariffEditSelector'
 import tariffDeleteSelector from './selectors/tariffDeleteSelector'
+import eventsAtom from './atoms/eventsAtom'
+import clientsAtom from './atoms/clientsAtom'
+import servicesAtom from './atoms/servicesAtom'
+import usersAtom from './atoms/usersAtom'
+import tariffsAtom from './atoms/tariffsAtom'
 // import siteSettingsAtom from './atoms/siteSettingsAtom'
 // import questionnaireEditSelector from './selectors/questionnaireEditSelector'
 // import questionnaireDeleteSelector from './selectors/questionnaireDeleteSelector'
@@ -34,6 +40,19 @@ import tariffDeleteSelector from './selectors/tariffDeleteSelector'
 
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1)
+}
+
+const getErrorText = (error) => {
+  if (!error) return ''
+  if (typeof error === 'string') return error
+  if (typeof error?.message === 'string') return error.message
+  return ''
+}
+
+const buildErrorToast = (baseText, error) => {
+  const details = getErrorText(error)
+  if (!details || details.startsWith('HTTP ')) return baseText
+  return `${baseText}: ${details}`
 }
 
 const messages = {
@@ -139,6 +158,25 @@ const messages = {
 
 const setFunc = (atom) => (value) => setAtomValue(atom, value)
 
+const createLocalId = (itemName) =>
+  `local-${itemName}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+
+const atomByItemName = {
+  event: eventsAtom,
+  client: clientsAtom,
+  service: servicesAtom,
+  user: usersAtom,
+  tariff: tariffsAtom,
+}
+
+const getCurrentItemById = (itemName, itemId) => {
+  const sourceAtom = atomByItemName[itemName]
+  if (!sourceAtom || !itemId) return null
+  const list = getAtomValue(sourceAtom)
+  if (!Array.isArray(list)) return null
+  return list.find((item) => item?._id === itemId) ?? null
+}
+
 // const setFamilyFunc = (selector) => (id, value) =>
 //   setRecoil(selector(id), value)
 
@@ -152,6 +190,7 @@ const props = {
   setEvent: setFunc(eventEditSelector),
   deleteEvent: setFunc(eventDeleteSelector),
   setClient: setFunc(clientEditSelector),
+  deleteClient: setFunc(clientDeleteSelector),
   setUser: setFunc(userEditSelector),
   setTariff: setFunc(tariffEditSelector),
 
@@ -178,6 +217,7 @@ const props = {
 const itemsFuncGenerator = (
   snackbar,
   loggedUser,
+  options = {},
   array = [
     'event',
     'client',
@@ -194,6 +234,9 @@ const itemsFuncGenerator = (
     // 'eventsTag',
   ]
 ) => {
+  const disableServerSync = Boolean(options?.disableServerSync)
+  const eventActions = options?.eventActions
+  const clientActions = options?.clientActions
   const {
     setLoadingCard,
     setNotLoadingCard,
@@ -207,6 +250,69 @@ const itemsFuncGenerator = (
     array.forEach((itemName) => {
       obj[itemName] = {
         set: async (item, clone, noSnackbar) => {
+          if (disableServerSync) {
+            const localId = item?._id && !clone ? item._id : createLocalId(itemName)
+            const prevItem =
+              item?._id && !clone ? getCurrentItemById(itemName, item._id) : null
+            const localItem = {
+              ...(prevItem ?? {}),
+              ...item,
+              _id: localId,
+              _localOnly: true,
+              _localUpdatedAt: new Date().toISOString(),
+            }
+            if (item?._id && !clone) setLoadingCard(itemName + item._id)
+            props['set' + capitalizeFirstLetter(itemName)](localItem)
+            if (item?._id && !clone) setNotLoadingCard(itemName + item._id)
+            if (!noSnackbar) {
+              const message = item?._id && !clone
+                ? `${messages[itemName]?.update?.success || 'Изменение сохранено'} (локально)`
+                : `${messages[itemName]?.add?.success || 'Элемент создан'} (локально)`
+              snackbar.success(message)
+            }
+            return localItem
+          }
+
+          const serverActions =
+            itemName === 'event'
+              ? eventActions
+              : itemName === 'client'
+                ? clientActions
+                : null
+
+          if (serverActions?.set) {
+            const isUpdate = Boolean(item?._id && !clone)
+            if (isUpdate) setLoadingCard(itemName + item._id)
+            try {
+              const data = await serverActions.set(item, clone)
+              if (isUpdate) setNotLoadingCard(itemName + item._id)
+              if (!noSnackbar) {
+                const message = isUpdate
+                  ? messages[itemName]?.update?.success
+                  : messages[itemName]?.add?.success
+                if (message) snackbar.success(message)
+              }
+              return data
+            } catch (error) {
+              if (!noSnackbar) {
+                const message = isUpdate
+                  ? messages[itemName]?.update?.error
+                  : messages[itemName]?.add?.error
+                if (message) snackbar.error(buildErrorToast(message, error))
+              }
+              setErrorCard(itemName + item?._id)
+              const data = {
+                errorPlace: isUpdate ? 'UPDATE ERROR' : 'CREATE ERROR',
+                itemName,
+                item,
+                error,
+              }
+              addErrorModal(data)
+              console.log(data)
+              return null
+            }
+          }
+
           if (item?._id && !clone) {
             setLoadingCard(itemName + item._id)
             return await putData(
@@ -221,7 +327,9 @@ const itemsFuncGenerator = (
               },
               (error) => {
                 if (!noSnackbar && messages[itemName]?.update?.error)
-                  snackbar.error(messages[itemName].update.error)
+                  snackbar.error(
+                    buildErrorToast(messages[itemName].update.error, error)
+                  )
                 setErrorCard(itemName + item._id)
                 const data = {
                   errorPlace: 'UPDATE ERROR',
@@ -248,7 +356,9 @@ const itemsFuncGenerator = (
               },
               (error) => {
                 if (!noSnackbar && messages[itemName]?.add?.error)
-                  snackbar.error(messages[itemName].add.error)
+                  snackbar.error(
+                    buildErrorToast(messages[itemName].add.error, error)
+                  )
                 setErrorCard(itemName + item._id)
                 const data = {
                   errorPlace: 'CREATE ERROR',
@@ -265,6 +375,46 @@ const itemsFuncGenerator = (
           }
         },
         delete: async (itemId) => {
+          if (disableServerSync) {
+            setLoadingCard(itemName + itemId)
+            props['delete' + capitalizeFirstLetter(itemName)](itemId)
+            setNotLoadingCard(itemName + itemId)
+            if (messages[itemName]?.delete?.success)
+              snackbar.success(`${messages[itemName].delete.success} (локально)`)
+            return true
+          }
+          const serverActions =
+            itemName === 'event'
+              ? eventActions
+              : itemName === 'client'
+                ? clientActions
+                : null
+
+          if (serverActions?.delete) {
+            setLoadingCard(itemName + itemId)
+            try {
+              await serverActions.delete(itemId)
+              setNotLoadingCard(itemName + itemId)
+              if (messages[itemName]?.delete?.success)
+                snackbar.success(messages[itemName].delete.success)
+              return true
+            } catch (error) {
+              if (messages[itemName]?.delete?.error)
+                snackbar.error(
+                  buildErrorToast(messages[itemName].delete.error, error)
+                )
+              setErrorCard(itemName + itemId)
+              const data = {
+                errorPlace: 'DELETE ERROR',
+                itemName,
+                itemId,
+                error,
+              }
+              addErrorModal(data)
+              console.log(data)
+              return false
+            }
+          }
           setLoadingCard(itemName + itemId)
           return await deleteData(
             `/api/${itemName.toLowerCase()}s/${itemId}`,
@@ -275,7 +425,9 @@ const itemsFuncGenerator = (
             },
             (error) => {
               if (messages[itemName]?.delete?.error)
-                snackbar.error(messages[itemName].delete.error)
+                snackbar.error(
+                  buildErrorToast(messages[itemName].delete.error, error)
+                )
               setErrorCard(itemName + itemId)
               const data = {
                 errorPlace: 'DELETE ERROR',
@@ -296,7 +448,37 @@ const itemsFuncGenerator = (
 
 
   obj.event.cancel = async (eventId) => {
+    if (disableServerSync) {
+      const prevEvent = getCurrentItemById('event', eventId) ?? {}
+      setLoadingCard('event' + eventId)
+      props.setEvent({
+        ...prevEvent,
+        _id: prevEvent?._id || eventId,
+        status: 'canceled',
+        _localOnly: true,
+        _localUpdatedAt: new Date().toISOString(),
+      })
+      setNotLoadingCard('event' + eventId)
+      snackbar.success('Мероприятие отменено (локально)')
+      return true
+    }
+
     setLoadingCard('event' + eventId)
+    if (eventActions?.updateStatus) {
+      try {
+        const data = await eventActions.updateStatus(eventId, 'canceled')
+        snackbar.success('Мероприятие отменено')
+        setNotLoadingCard('event' + eventId)
+        return data
+      } catch (error) {
+        snackbar.error(buildErrorToast('Не удалось отменить мероприятие', error))
+        setErrorCard('event' + eventId)
+        const data = { errorPlace: 'EVENT CANCEL ERROR', eventId, error }
+        addErrorModal(data)
+        console.log(data)
+        return null
+      }
+    }
     return await putData(
       `/api/events/${eventId}`,
       { status: 'canceled' },
@@ -306,7 +488,7 @@ const itemsFuncGenerator = (
         props.setEvent(data)
       },
       (error) => {
-        snackbar.error('Не удалось отменить мероприятие')
+        snackbar.error(buildErrorToast('Не удалось отменить мероприятие', error))
         setErrorCard('event' + eventId)
         const data = { errorPlace: 'EVENT CANCEL ERROR', eventId, error }
         addErrorModal(data)
@@ -318,17 +500,47 @@ const itemsFuncGenerator = (
   }
 
   obj.event.close = async (eventId) => {
+    if (disableServerSync) {
+      const prevEvent = getCurrentItemById('event', eventId) ?? {}
+      setLoadingCard('event' + eventId)
+      props.setEvent({
+        ...prevEvent,
+        _id: prevEvent?._id || eventId,
+        status: 'closed',
+        _localOnly: true,
+        _localUpdatedAt: new Date().toISOString(),
+      })
+      setNotLoadingCard('event' + eventId)
+      snackbar.success('Мероприятие закрыто (локально)')
+      return true
+    }
+
     setLoadingCard('event' + eventId)
+    if (eventActions?.updateStatus) {
+      try {
+        const data = await eventActions.updateStatus(eventId, 'closed')
+        snackbar.success('Мероприятие закрыто')
+        setNotLoadingCard('event' + eventId)
+        return data
+      } catch (error) {
+        snackbar.error(buildErrorToast('Не удалось закрыть мероприятие', error))
+        setErrorCard('event' + eventId)
+        const data = { errorPlace: 'EVENT CLOSE ERROR', eventId, error }
+        addErrorModal(data)
+        console.log(data)
+        return null
+      }
+    }
     return await putData(
       `/api/events/${eventId}`,
-      { status: 'close' },
+      { status: 'closed' },
       (data) => {
         snackbar.success('Мероприятие закрыто')
         setNotLoadingCard('event' + eventId)
         props.setEvent(data)
       },
       (error) => {
-        snackbar.error('Не удалось закрыть мероприятие')
+        snackbar.error(buildErrorToast('Не удалось закрыть мероприятие', error))
         setErrorCard('event' + eventId)
         const data = { errorPlace: 'EVENT CLOSE ERROR', eventId, error }
         addErrorModal(data)
@@ -359,7 +571,39 @@ const itemsFuncGenerator = (
   // }
 
   obj.event.uncancel = async (eventId) => {
+    if (disableServerSync) {
+      const prevEvent = getCurrentItemById('event', eventId) ?? {}
+      setLoadingCard('event' + eventId)
+      props.setEvent({
+        ...prevEvent,
+        _id: prevEvent?._id || eventId,
+        status: 'active',
+        _localOnly: true,
+        _localUpdatedAt: new Date().toISOString(),
+      })
+      setNotLoadingCard('event' + eventId)
+      snackbar.success('Мероприятие активировано (локально)')
+      return true
+    }
+
     setLoadingCard('event' + eventId)
+    if (eventActions?.updateStatus) {
+      try {
+        const data = await eventActions.updateStatus(eventId, 'active')
+        snackbar.success('Мероприятие активировано')
+        setNotLoadingCard('event' + eventId)
+        return data
+      } catch (error) {
+        snackbar.error(
+          buildErrorToast('Не удалось активировать мероприятие', error)
+        )
+        setErrorCard('event' + eventId)
+        const data = { errorPlace: 'EVENT ACTIVE ERROR', eventId, error }
+        addErrorModal(data)
+        console.log(data)
+        return null
+      }
+    }
     return await putData(
       `/api/events/${eventId}`,
       { status: 'active' },
@@ -369,7 +613,9 @@ const itemsFuncGenerator = (
         props.setEvent(data)
       },
       (error) => {
-        snackbar.error('не удалось активировать мероприятие')
+        snackbar.error(
+          buildErrorToast('Не удалось активировать мероприятие', error)
+        )
         setErrorCard('event' + eventId)
         const data = { errorPlace: 'EVENT ACTIVE ERROR', eventId, error }
         addErrorModal(data)

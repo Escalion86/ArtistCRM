@@ -1,5 +1,5 @@
 import cn from 'classnames'
-import MaskedInput from 'react-text-mask'
+import { MaskedInput } from '@thaborach/react-text-mask'
 import InputWrapper from './InputWrapper'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCopy } from '@fortawesome/free-solid-svg-icons/faCopy'
@@ -24,7 +24,7 @@ const PhoneInput = ({
     labelClassName={labelClassName}
     value={value}
     required={required}
-    className={cn('w-48', className)}
+    className={cn('w-60', className)}
     disabled={disabled}
     noMargin={noMargin}
     error={error}
@@ -33,7 +33,7 @@ const PhoneInput = ({
       disabled ? 'text-disabled cursor-not-allowed' : 'text-white'
     }
   >
-    <div className="flex w-full items-center gap-2">
+    <div className="flex items-center w-full gap-2">
       <div className="text-gray-500">+7</div>
       <MaskedInput
         disabled={disabled}
@@ -88,7 +88,7 @@ const PhoneInput = ({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            className="flex h-7 w-7 items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-50 cursor-pointer"
+            className="flex items-center justify-center text-gray-600 transition border border-gray-300 rounded cursor-pointer h-7 w-7 hover:bg-gray-50"
             onClick={() => {
               if (!navigator?.clipboard) return
               navigator.clipboard.readText().then((text) => {
@@ -100,8 +100,7 @@ const PhoneInput = ({
                 let normalized = digits
                 if (normalized.startsWith('7') || normalized.startsWith('8'))
                   normalized = normalized.slice(1)
-                if (normalized.length > 10)
-                  normalized = normalized.slice(-10)
+                if (normalized.length > 10) normalized = normalized.slice(-10)
                 onChange(Number('7' + normalized))
               })
             }}
@@ -111,7 +110,7 @@ const PhoneInput = ({
           </button>
           <button
             type="button"
-            className="flex h-7 w-7 items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-50 cursor-pointer"
+            className="flex items-center justify-center text-gray-600 transition border border-gray-300 rounded cursor-pointer h-7 w-7 hover:bg-gray-50"
             onClick={() => {
               if (!value) return
               const raw = String(value).replace(/[^\d]/g, '')

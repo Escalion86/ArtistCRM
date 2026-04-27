@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import FormWrapper from '@components/FormWrapper'
 import TextLine from '@components/TextLine'
 import UserName from '@components/UserName'
@@ -192,3 +193,4 @@ const userBillingFunc = (userId) => {
 }
 
 export default userBillingFunc
+

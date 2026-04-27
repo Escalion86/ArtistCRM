@@ -17,7 +17,7 @@ const normalizeCategory = (value) => {
   return CATEGORY_ALIASES[raw] || raw
 }
 
-export const GET = async () => {
+export const GET = async (req) => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) {
     return NextResponse.json(
@@ -26,7 +26,16 @@ export const GET = async () => {
     )
   }
   await dbConnect()
-  const transactions = await Transactions.find({ tenantId })
+  const { searchParams } = new URL(req.url)
+  const eventIds = (searchParams.get('eventIds') || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+  const clientId = (searchParams.get('clientId') || '').trim()
+  const query = { tenantId }
+  if (eventIds.length > 0) query.eventId = { $in: eventIds }
+  if (clientId) query.clientId = clientId
+  const transactions = await Transactions.find(query)
     .sort({ date: -1, createdAt: -1 })
     .lean()
   return NextResponse.json(
@@ -46,18 +55,30 @@ export const POST = async (req) => {
   }
   await dbConnect()
 
-  if (!body.eventId || !body.clientId)
+  if (!body.eventId)
     return NextResponse.json(
-      { success: false, error: 'Укажите мероприятие и клиента' },
+      { success: false, error: 'Укажите мероприятие' },
       { status: 400 }
     )
 
   const event = await Events.findOne({ _id: body.eventId, tenantId }).lean()
-  const client = await Clients.findOne({ _id: body.clientId, tenantId }).lean()
-
-  if (!event || !client)
+  if (!event)
     return NextResponse.json(
-      { success: false, error: 'Мероприятие или клиент не найден' },
+      { success: false, error: 'Мероприятие не найдено' },
+      { status: 404 }
+    )
+
+  const clientId = event?.clientId ?? body.clientId
+  if (!clientId)
+    return NextResponse.json(
+      { success: false, error: 'Для мероприятия не указан клиент' },
+      { status: 400 }
+    )
+
+  const client = await Clients.findOne({ _id: clientId, tenantId }).lean()
+  if (!client)
+    return NextResponse.json(
+      { success: false, error: 'Клиент мероприятия не найден' },
       { status: 404 }
     )
   if (event?.status === 'draft') {
@@ -76,7 +97,7 @@ export const POST = async (req) => {
   const transaction = await Transactions.create({
     tenantId,
     eventId: body.eventId,
-    clientId: body.clientId,
+    clientId,
     amount: Number(body.amount) || 0,
     type: body.type ?? 'expense',
     category: normalizeCategory(body.category),

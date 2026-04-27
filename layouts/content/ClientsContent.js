@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import AddIconButton from '@components/AddIconButton'
@@ -12,20 +12,33 @@ import SectionCard from '@components/SectionCard'
 import ClientCard from '@layouts/cards/ClientCard'
 import clientsAtom from '@state/atoms/clientsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
-import { useAtomValue } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
+import useUiDensity from '@helpers/useUiDensity'
+import { useClientsQuery } from '@helpers/useClientsQuery'
 
-const ITEM_HEIGHT = 140
+const normalizeDigits = (value) =>
+  String(value ?? '').replace(/[^\d]/g, '')
 
 const ClientsContent = () => {
-  const clients = useAtomValue(clientsAtom)
+  const { isCompact } = useUiDensity()
+  const initialClients = useAtomValue(clientsAtom)
+  const setClients = useSetAtom(clientsAtom)
+  const clientsQuery = useClientsQuery(initialClients)
+  const clients = clientsQuery.data ?? initialClients
   const events = useAtomValue(eventsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
 
   const [search, setSearch] = useState('')
+  const itemHeight = isCompact ? 122 : 140
+
+  useEffect(() => {
+    if (Array.isArray(clientsQuery.data)) setClients(clientsQuery.data)
+  }, [clientsQuery.data, setClients])
 
   const clientsWithStats = useMemo(() => {
     const lowerSearch = search.trim().toLowerCase()
+    const digitsSearch = normalizeDigits(search)
     return clients
       .map((client) => {
         const clientRequests = events.filter(
@@ -53,15 +66,33 @@ const ClientsContent = () => {
       })
       .filter((client) => {
         if (!lowerSearch) return true
-        return [
+        const textMatch = [
           client.firstName,
           client.secondName,
           client.thirdName,
+          client.telegram,
+          client.instagram,
+          client.vk,
           client.phone ? `+${client.phone}` : '',
         ]
           .join(' ')
           .toLowerCase()
           .includes(lowerSearch)
+
+        if (textMatch) return true
+        if (!digitsSearch) return false
+
+        const contactsDigits = [
+          client.phone,
+          client.whatsapp,
+          client.viber,
+          client.telegram,
+        ]
+          .map(normalizeDigits)
+          .filter(Boolean)
+          .join(' ')
+
+        return contactsDigits.includes(digitsSearch)
       })
       .sort((a, b) => {
         if (a.lastRequest && b.lastRequest)
@@ -119,7 +150,7 @@ const ClientsContent = () => {
         {clientsWithStats.length > 0 ? (
           <List
             rowCount={clientsWithStats.length}
-            rowHeight={ITEM_HEIGHT}
+            rowHeight={itemHeight}
             rowComponent={RowComponent}
             rowProps={{}}
             style={{ height: '100%', width: '100%' }}

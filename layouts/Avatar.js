@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import getUserAvatarSrc from '@helpers/getUserAvatarSrc'
 import cn from 'classnames'
 
@@ -14,3 +15,4 @@ const Avatar = ({ user, className }) => (
 )
 
 export default Avatar
+

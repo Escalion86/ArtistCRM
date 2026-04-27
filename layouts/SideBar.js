@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   faAngleDown,
   faAngleUp,
@@ -15,7 +16,8 @@ import cn from 'classnames'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { usePathname, useRouter } from 'next/navigation'
+import { useAtom, useAtomValue } from 'jotai'
 
 const menuCfg = (role) => {
   // const visiblePages = pages.filter((page) => )
@@ -65,37 +67,40 @@ const menuCfg = (role) => {
   return result
 }
 
-const MenuItem = ({ item, active = false, badge }) => {
-  const setMenuOpen = useSetAtom(menuOpenAtom)
+const MenuItem = ({ item, active = false, badge, pending = false, onNavigate }) => {
   return (
     <Link
       href={`/cabinet/${item.href}`}
-      onClick={() => setMenuOpen(false)}
+      onClick={() => onNavigate?.(item.href)}
       className={cn(
-        'mb-1 flex cursor-pointer flex-nowrap items-center justify-between rounded-lg',
+        'mb-1 flex cursor-pointer flex-nowrap items-center justify-between rounded-lg transition-opacity',
         active ? 'bg-general menu-item-active text-white' : '',
+        pending ? 'opacity-70' : '',
         'hover:bg-general hover:text-white'
       )}
     >
       <div className={cn('flex w-full items-center gap-x-2 px-3 py-1')}>
-        <FontAwesomeIcon icon={item.icon} className="w-5 h-5 min-w-5" />
+        <FontAwesomeIcon icon={item.icon} className="h-5 w-5 min-w-5" />
         <span className={'text-sm font-medium whitespace-nowrap'}>
           {item.name}
         </span>
         {item.num !== null && (
-          <span className="text-xs font-semibold text-general">{item.num}</span>
+          <span className="text-general text-xs font-semibold">{item.num}</span>
         )}
         {typeof badge === 'number' && badge > 0 && (
-          <div className="flex items-center justify-center w-5 h-5 text-xs text-white rounded-full bg-danger min-h-5 min-w-5">
+          <div className="bg-danger flex h-5 min-h-5 w-5 min-w-5 items-center justify-center rounded-full text-xs text-white">
             {badge <= 99 ? badge : '!'}
           </div>
+        )}
+        {pending && (
+          <span className="ml-auto h-2 w-2 min-h-2 min-w-2 animate-pulse rounded-full bg-white/80" />
         )}
       </div>
     </Link>
   )
 }
 
-const Menu = ({ menuCfg, activePage }) => {
+const Menu = ({ menuCfg, activePage, pendingPage, onNavigate }) => {
   const [menuOpen, setMenuOpen] = useAtom(menuOpenAtom)
   const [openedMenuIndex, setOpenedMenuIndex] = useState(1)
 
@@ -114,7 +119,7 @@ const Menu = ({ menuCfg, activePage }) => {
     item.items.find((item) => item.href === activePage)
   )
   return (
-    <nav className="flex flex-col w-full h-full px-2 py-3 mt-1 gap-y-2">
+    <nav className="mt-1 flex h-full w-full flex-col gap-y-2 px-2 py-3">
       {menuCfg &&
         menuCfg.length > 0 &&
         menuCfg
@@ -138,9 +143,8 @@ const Menu = ({ menuCfg, activePage }) => {
                 <div
                   className={cn(
                     'group rounded-lg duration-300',
-                    groupIsActive
-                      ? 'text-general bg-white'
-                      : 'hover:text-general text-white hover:bg-white'
+                    groupIsActive ? 'text-general bg-white' : 'text-white'
+                    // : 'hover:text-general text-white hover:bg-white'
                   )}
                   key={'groupMenu' + index}
                 >
@@ -148,11 +152,12 @@ const Menu = ({ menuCfg, activePage }) => {
                     <Link
                       href={`/cabinet/${item.items[0].href}`}
                       className={cn(
-                        'flex min-h-12 w-full min-w-12 items-center gap-x-2 overflow-hidden px-2 py-2'
+                        'flex min-h-12 w-full min-w-12 items-center gap-x-2 overflow-hidden px-2 py-2 transition-opacity',
+                        pendingPage === item.items[0].href ? 'opacity-70' : ''
                         // groupIsActive ? 'text-ganeral' : 'text-white'
                       )}
                       onClick={() => {
-                        setMenuOpen(false)
+                        onNavigate?.(item.items[0].href)
                       }}
                     >
                       <div
@@ -172,9 +177,12 @@ const Menu = ({ menuCfg, activePage }) => {
                             </div>
                           )} */}
                       </div>
-                      <h3 className="flex-1 ml-3 font-semibold tracking-wide text-left uppercase whitespace-nowrap">
+                      <h3 className="ml-3 flex-1 text-left font-semibold tracking-wide whitespace-nowrap uppercase">
                         {item.items[0].name}
                       </h3>
+                      {pendingPage === item.items[0].href && (
+                        <span className="h-2 w-2 min-h-2 min-w-2 animate-pulse rounded-full bg-current/80" />
+                      )}
                     </Link>
                   ) : (
                     <button
@@ -206,7 +214,7 @@ const Menu = ({ menuCfg, activePage }) => {
                             </div>
                           )} */}
                       </div>
-                      <h3 className="flex-1 ml-3 font-semibold tracking-wide text-left uppercase whitespace-nowrap">
+                      <h3 className="ml-3 flex-1 text-left font-semibold tracking-wide whitespace-nowrap uppercase">
                         {item.name}
                       </h3>
                       <div
@@ -223,13 +231,15 @@ const Menu = ({ menuCfg, activePage }) => {
                       variants={variants}
                       initial="hide"
                       animate={openedMenuIndex === index ? 'show' : 'hide'}
-                      className="ml-3 mr-2 overflow-hidden"
+                      className="mr-2 ml-3 overflow-hidden"
                     >
                       {item.items.map((subitem, index) => (
                         <MenuItem
                           key={'menu' + subitem.id}
                           item={subitem}
                           active={activePage === subitem.href}
+                          pending={pendingPage === subitem.href}
+                          onNavigate={onNavigate}
                           // badge={itemsBadges[subitem.id]}
                         />
                       ))}
@@ -254,11 +264,14 @@ const mobileVariants = {
 }
 
 const SideBar = ({ page }) => {
+  const router = useRouter()
+  const pathname = usePathname()
   const wrapperRef = useRef(null)
   const menuRef = useRef(null)
   const [menuOpen, setMenuOpen] = useAtom(menuOpenAtom)
   const [scrollPos, setScrollPos] = useState(0)
   const [scrollable, setScrollable] = useState(false)
+  const [pendingPage, setPendingPage] = useState(null)
   const { height } = useAtomValue(windowDimensionsAtom)
   const device = useAtomValue(windowDimensionsTailwindSelector)
   const loggedUser = useAtomValue(loggedUserAtom)
@@ -266,6 +279,12 @@ const SideBar = ({ page }) => {
   const isMobile =
     device === 'phoneV' || device === 'phoneH' || device === 'tablet'
   const motionVariants = isMobile ? mobileVariants : variants
+  const roleMenuCfg = menuCfg(role)
+
+  const handleNavigate = (href) => {
+    setPendingPage(href)
+    setMenuOpen(false)
+  }
 
   const handleScrollPosition = (scrollAmount) => {
     var newPos
@@ -311,6 +330,20 @@ const SideBar = ({ page }) => {
     }
   }, [menuRef.current?.scrollHeight, height])
 
+  useEffect(() => {
+    const pageFromPath = pathname?.split('/').filter(Boolean)?.[1]
+    if (!pageFromPath) return
+    if (!pendingPage || pendingPage === pageFromPath) setPendingPage(null)
+  }, [pathname, pendingPage])
+
+  useEffect(() => {
+    roleMenuCfg.forEach((group) => {
+      group.items.forEach((item) => {
+        router.prefetch(`/cabinet/${item.href}`)
+      })
+    })
+  }, [roleMenuCfg, router])
+
   return (
     <motion.div
       className={cn(
@@ -340,8 +373,13 @@ const SideBar = ({ page }) => {
         initial={'min'}
         layout
       >
-        <div className="flex flex-col w-full overflow-x-hidden">
-          <Menu menuCfg={menuCfg(role)} activePage={page} />
+        <div className="flex w-full flex-col overflow-x-hidden">
+          <Menu
+            menuCfg={roleMenuCfg}
+            activePage={page}
+            pendingPage={pendingPage}
+            onNavigate={handleNavigate}
+          />
         </div>
       </motion.div>
       <motion.div
@@ -360,12 +398,12 @@ const SideBar = ({ page }) => {
           {scrollPos > 0 && (
             <div
               onClick={() => handleScrollPosition(-120)}
-              className="absolute top-0 left-0 right-0 z-50 w-full h-10 border-t cursor-pointer sidebar-bg rounded-b-2xl"
+              className="sidebar-bg absolute top-0 right-0 left-0 z-50 h-10 w-full cursor-pointer rounded-b-2xl border-t"
             >
-              <div className="flex items-center justify-center w-full h-full border-b border-white rounded-2xl">
+              <div className="flex h-full w-full items-center justify-center rounded-2xl border-b border-white">
                 <FontAwesomeIcon
                   icon={faAngleUp}
-                  className="w-6 h-6 text-white"
+                  className="h-6 w-6 text-white"
                 />
               </div>
             </div>
@@ -375,12 +413,12 @@ const SideBar = ({ page }) => {
             scrollPos && (
             <div
               onClick={() => handleScrollPosition(120)}
-              className="absolute bottom-0 left-0 right-0 z-50 w-full h-10 border-b cursor-pointer sidebar-bg rounded-t-2xl"
+              className="sidebar-bg absolute right-0 bottom-0 left-0 z-50 h-10 w-full cursor-pointer rounded-t-2xl border-b"
             >
-              <div className="flex items-center justify-center w-full h-full border-t border-white rounded-2xl">
+              <div className="flex h-full w-full items-center justify-center rounded-2xl border-t border-white">
                 <FontAwesomeIcon
                   icon={faAngleDown}
-                  className="w-6 h-6 text-white"
+                  className="h-6 w-6 text-white"
                 />
               </div>
             </div>

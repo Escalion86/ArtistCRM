@@ -70,7 +70,7 @@ const TransactionCard = ({
     <CardWrapper
       style={style}
       onClick={() => !loading && onEdit?.()}
-      className="flex h-full w-full cursor-pointer p-3 pr-4 text-left hover:border-gray-300"
+      className="card-body-pad flex h-full w-full cursor-pointer p-3 pr-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
@@ -91,32 +91,32 @@ const TransactionCard = ({
 
       <div className="flex h-full w-full flex-col pl-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="text-sm font-semibold text-gray-900">
+          <div className="card-title text-sm">
             {formatTransactionDate(transaction.date)}
           </div>
           {categoryLabel && (
-            <div className="text-xs font-medium text-gray-500">
+            <div className="card-muted text-xs font-medium">
               {categoryLabel}
             </div>
           )}
         </div>
-        <div className="tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] grid text-sm text-gray-700">
+        <div className="card-meta tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] grid text-sm">
           <div className="truncate">
-            <div className="truncate font-medium text-gray-800">
+            <div className="card-title truncate font-medium">
               {clientName || '-'}
             </div>
           </div>
           <div className="truncate">
-            <div className="truncate font-medium text-gray-800">
+            <div className="card-title truncate font-medium">
               {eventTitleWithDate}
             </div>
           </div>
         </div>
         {transaction.comment && (
-          <div className="text-sm text-gray-600">{transaction.comment}</div>
+          <div className="card-muted text-sm">{transaction.comment}</div>
         )}
       </div>
-      <div className="mt-auto self-end text-right text-lg font-semibold whitespace-nowrap text-gray-900">
+      <div className="card-title mt-auto self-end text-right text-lg font-semibold whitespace-nowrap">
         {transaction.amount
           ? `${transaction.amount.toLocaleString()} ₽`
           : '0 ₽'}

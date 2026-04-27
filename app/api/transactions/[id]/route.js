@@ -35,6 +35,12 @@ export const PUT = async (req, { params }) => {
     )
   }
   await dbConnect()
+  const existing = await Transactions.findOne({ _id: id, tenantId }).lean()
+  if (!existing)
+    return NextResponse.json(
+      { success: false, error: 'Транзакция не найдена' },
+      { status: 404 }
+    )
 
   const update = {}
   if (body.amount !== undefined) update.amount = Number(body.amount) || 0
@@ -49,30 +55,39 @@ export const PUT = async (req, { params }) => {
     update.paymentMethod = body.paymentMethod
   }
 
-  if (body.eventId) {
-    const event = await Events.findOne({ _id: body.eventId, tenantId }).lean()
-    if (!event)
-      return NextResponse.json(
-        { success: false, error: 'Мероприятие не найдено' },
-        { status: 404 }
-      )
-    if (event?.status === 'draft')
-      return NextResponse.json(
-        { success: false, error: 'Транзакции недоступны для заявки' },
-        { status: 400 }
-      )
-    update.eventId = body.eventId
-  }
+  const nextEventId = body.eventId ?? existing.eventId
+  if (!nextEventId)
+    return NextResponse.json(
+      { success: false, error: 'Укажите мероприятие' },
+      { status: 400 }
+    )
+  const event = await Events.findOne({ _id: nextEventId, tenantId }).lean()
+  if (!event)
+    return NextResponse.json(
+      { success: false, error: 'Мероприятие не найдено' },
+      { status: 404 }
+    )
+  if (event?.status === 'draft')
+    return NextResponse.json(
+      { success: false, error: 'Транзакции недоступны для заявки' },
+      { status: 400 }
+    )
 
-  if (body.clientId) {
-    const client = await Clients.findOne({ _id: body.clientId, tenantId }).lean()
-    if (!client)
-      return NextResponse.json(
-        { success: false, error: 'Клиент не найден' },
-        { status: 404 }
-      )
-    update.clientId = body.clientId
-  }
+  const nextClientId = event?.clientId ?? body.clientId ?? existing.clientId
+  if (!nextClientId)
+    return NextResponse.json(
+      { success: false, error: 'Для мероприятия не указан клиент' },
+      { status: 400 }
+    )
+  const client = await Clients.findOne({ _id: nextClientId, tenantId }).lean()
+  if (!client)
+    return NextResponse.json(
+      { success: false, error: 'Клиент мероприятия не найден' },
+      { status: 404 }
+    )
+
+  update.eventId = nextEventId
+  update.clientId = nextClientId
 
   const transaction = await Transactions.findOneAndUpdate(
     { _id: id, tenantId },
@@ -81,12 +96,6 @@ export const PUT = async (req, { params }) => {
       returnDocument: 'after',
     }
   )
-
-  if (!transaction)
-    return NextResponse.json(
-      { success: false, error: 'Транзакция не найдена' },
-      { status: 404 }
-    )
 
   return NextResponse.json({ success: true, data: transaction }, { status: 200 })
 }

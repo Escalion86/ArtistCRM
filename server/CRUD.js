@@ -6,7 +6,6 @@ import Services from '@models/Services'
 import Clients from '@models/Clients'
 import Transactions from '@models/Transactions'
 import dbConnect from './dbConnect'
-import DOMPurify from 'isomorphic-dompurify'
 // import { DEFAULT_ROLES } from '@helpers/constants'
 // import Roles from '@models/Roles'
 import mongoose from 'mongoose'
@@ -139,15 +138,6 @@ const getSiteTimeZone = async (tenantId) => {
   return settings?.timeZone || DEFAULT_TIME_ZONE
 }
 
-const getSiteDefaultTown = async (tenantId) => {
-  if (!tenantId) return ''
-  await dbConnect()
-  const settings = await SiteSettings.findOne({ tenantId })
-    .select('defaultTown')
-    .lean()
-  return settings?.defaultTown || ''
-}
-
 const buildNavigationLinks = (address) => {
   if (!address || typeof address !== 'object') return []
   const links = []
@@ -178,6 +168,49 @@ const buildNavigationLinks = (address) => {
 
 const isValidDateValue = (value) =>
   value instanceof Date && !Number.isNaN(value.getTime())
+
+const sanitizeToPlainText = (value) =>
+  String(value ?? '')
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+    .replace(/<\/?[^>]+>/g, '')
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .trim()
+
+const formatAdditionalEventsForMainDescription = (additionalEvents = []) => {
+  if (!Array.isArray(additionalEvents) || additionalEvents.length === 0) return ''
+
+  const lines = additionalEvents
+    .map((item) => {
+      if (!item || typeof item !== 'object') return ''
+      const title = typeof item.title === 'string' ? item.title.trim() : ''
+      const description =
+        typeof item.description === 'string' ? item.description.trim() : ''
+      const rawDate = item.date ? new Date(item.date) : null
+      const dateLabel = isValidDateValue(rawDate)
+        ? rawDate.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : 'без даты'
+      const statusPrefix = item.done ? '[выполнено]' : '[в работе]'
+      const parts = [title || 'Доп. событие']
+      if (description) parts.push(description)
+      return `- ${statusPrefix} ${dateLabel}: ${parts.join(' — ')}`
+    })
+    .filter(Boolean)
+
+  if (lines.length === 0) return ''
+  return `Доп. события:\n${lines.join('\n')}`
+}
 
 const getCalendarContext = async (user) => {
   if (!user) return null
@@ -443,6 +476,15 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       .join('\n\n')
   }
 
+  const additionalEventsDescription = formatAdditionalEventsForMainDescription(
+    event?.additionalEvents
+  )
+  if (additionalEventsDescription) {
+    preparedText = [preparedText, additionalEventsDescription]
+      .filter(Boolean)
+      .join('\n\n')
+  }
+
   const navigationLinks = buildNavigationLinks(event?.address)
   if (navigationLinks.length > 0) {
     preparedText = [preparedText, `Навигатор:\n${navigationLinks.join('\n')}`]
@@ -498,22 +540,8 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
     endDateTime,
   })
   const calendarLocation = formatAddress(event.address, event.location)
-  const defaultTown = await getSiteDefaultTown(event?.tenantId)
-  const addressTown =
-    typeof event?.address?.town === 'string' ? event.address.town.trim() : ''
-  const showTown = addressTown && addressTown !== defaultTown
-  const addressParts = [
-    event?.address?.street,
-    event?.address?.house ? `дом ${event.address.house}` : '',
-    event?.address?.flat ? `кв. ${event.address.flat}` : '',
-    event?.address?.entrance ? `${event.address.entrance} подъезд` : '',
-    event?.address?.floor ? `${event.address.floor} этаж` : '',
-  ]
-    .filter(Boolean)
-    .join(', ')
-  const addressLine =
-    addressParts || event?.address?.comment || (event.location ?? '')
-
+  const eventTypeTitle =
+    typeof event?.eventType === 'string' ? event.eventType.trim() : ''
   let servicesTitle = ''
   if (Array.isArray(event?.servicesIds) && event.servicesIds.length > 0) {
     const services = await Services.find({
@@ -529,20 +557,27 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   }
 
   const titleParts = []
-  if (showTown) titleParts.push(addressTown)
+  if (eventTypeTitle) titleParts.push(eventTypeTitle)
   if (servicesTitle) titleParts.push(servicesTitle)
-  if (addressLine) titleParts.push(addressLine)
-  const calendarTitle =
-    titleParts.length > 0 ? titleParts.join(' • ') : 'Адрес не указан'
+  const calendarTitle = titleParts.length > 0 ? titleParts.join(' • ') : 'Мероприятие'
 
   const settings = normalizeCalendarSettings(user)
   const reminders = settings?.reminders ?? {}
+  const statusColors = settings?.statusColors ?? {}
+  const deleteCanceledFromCalendar = Boolean(
+    settings?.deleteCanceledFromCalendar
+  )
   const calendarReminders = reminders.useDefault
     ? { useDefault: true }
     : { useDefault: false, overrides: reminders.overrides ?? [] }
+  const calendarColorId =
+    statusColors?.[event?.status] || statusColors?.active || undefined
 
   const isCanceled = event.status === 'canceled'
   const isTransferred = Boolean(event?.isTransferred)
+  const eventReminders = isCanceled
+    ? { useDefault: false, overrides: [] }
+    : calendarReminders
   const statusPrefix = isCanceled
     ? '[ОТМЕНЕНО] '
     : isTransferred
@@ -553,7 +588,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   const calendarEvent = {
     summary: `${statusPrefix}${calendarTitle}`,
     description:
-      DOMPurify.sanitize(
+      sanitizeToPlainText(
         preparedText
           .replaceAll('<p><br></p>', '\n')
           .replaceAll('</blockquote>', '\n</blockquote>')
@@ -564,11 +599,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
           .replaceAll('</p>', '\n</p>')
           .replaceAll('<br>', '\n')
           .replaceAll('&nbsp;', ' ')
-          .trim('\n'),
-        {
-          ALLOWED_TAGS: [],
-          ALLOWED_ATTR: [],
-        }
+          .trim('\n')
       ) +
       `\n\nСсылка на мероприятие:\n${
         process.env.DOMAIN + '/event/' + event._id
@@ -583,7 +614,8 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
     },
     location: calendarLocation,
     attendees: [],
-    reminders: calendarReminders,
+    reminders: eventReminders,
+    colorId: calendarColorId,
     // visibility: event.showOnSite ? 'default' : 'private',
   }
 
@@ -620,7 +652,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
           ? 'Отменено'
           : event.status === 'closed'
           ? 'Закрыто'
-            : 'Активно'
+            : 'Мероприятие'
     }`,
     clientBlock,
     colleagueBlock,
@@ -694,6 +726,23 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       )
     })
 
+  if (isCanceled && deleteCanceledFromCalendar) {
+    if (event.googleCalendarId) {
+      try {
+        await calendarDelete(event.googleCalendarId)
+      } catch (error) {
+        if (error?.code !== 404) throw error
+      }
+      await Events.findByIdAndUpdate(event._id, {
+        googleCalendarId: '',
+        googleCalendarCalendarId: '',
+      })
+      event.googleCalendarId = ''
+      event.googleCalendarCalendarId = ''
+    }
+    return null
+  }
+
   let updatedCalendarEvent
   if (!event.googleCalendarId) {
     console.log('Создаем новое событие в календаре')
@@ -763,6 +812,26 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   for (const item of normalizedAdditionalEvents) {
     const hasContent = Boolean(item.title || item.description || item.date)
     if (!hasContent) continue
+
+    if (item.done) {
+      if (item.googleCalendarEventId) {
+        try {
+          await calendarDelete(item.googleCalendarEventId)
+        } catch (error) {
+          if (error?.code !== 404) {
+            console.log('Google Calendar additional event delete error', {
+              eventId: event?._id,
+              googleId: item.googleCalendarEventId,
+              error,
+            })
+          }
+        }
+        item.googleCalendarEventId = ''
+        additionalEventsChanged = true
+      }
+      nextAdditionalEvents.push(item)
+      continue
+    }
 
     if (!item.date) {
       if (item.googleCalendarEventId) {
@@ -848,6 +917,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         description: item.description || '',
         date: item.date || null,
         done: Boolean(item.done),
+        doneAt: item.doneAt || null,
         googleCalendarEventId: item.googleCalendarEventId || '',
       }))
     }

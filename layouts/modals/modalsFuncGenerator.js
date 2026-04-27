@@ -9,10 +9,12 @@ import eventFunc from './modalsFunc/eventFunc'
 // import eventSignUpFunc from './modalsFunc/eventSignUpFunc2'
 import eventStatusEditFunc from './modalsFunc/eventStatusEditFunc'
 import eventViewFunc from './modalsFunc/eventViewFunc'
+import eventAdditionalEventsFunc from './modalsFunc/eventAdditionalEventsFunc'
 import upcomingEventsOverviewFunc from './modalsFunc/upcomingEventsOverviewFunc'
 import transactionFunc from './modalsFunc/transactionFunc'
 import eventsTagsFunc from './modalsFunc/eventsTagsFunc'
 import townsFunc from './modalsFunc/townsFunc'
+import eventTypesFunc from './modalsFunc/eventTypesFunc'
 import artistRequisitesEditorFunc from './modalsFunc/artistRequisitesEditorFunc'
 import jsonFunc from './modalsFunc/jsonFunc'
 // import questionnaireConstructorFunc from './modalsFunc/questionnaireConstructorFunc'
@@ -57,10 +59,11 @@ import clientEventsFunc from './modalsFunc/clientEventsFunc'
 // import eventAfterSignUpMessageFunc from './modalsFunc/eventAfterSignUpMessageFunc'
 // import subEventFunc from './modalsFunc/subEventFunc'
 
-const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
+const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
   const addModal = (value) => setAtomValue(addModalSelector, value)
   // const itemsFunc = getRecoil(itemsFuncAtom)
   const canManageUsers = ['dev', 'admin'].includes(loggedUser?.role)
+  const disableServerSync = Boolean(options?.disableServerSync)
 
   return {
     add: addModal,
@@ -167,6 +170,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
     },
     settings: {
       towns: () => addModal(townsFunc()),
+      eventTypes: () => addModal(eventTypesFunc()),
       artistRequisitesEditor: () => addModal(artistRequisitesEditorFunc()),
     },
     transaction: {
@@ -189,7 +193,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
     event: {
       add: (eventId) => addModal(eventFunc(eventId, true)),
       create: () => addModal(eventFunc(null, false, 'draft')),
-      edit: (eventId) => addModal(eventFunc(eventId)),
+      edit: (eventId, options) => addModal(eventFunc(eventId, false, null, options)),
       history: (eventId) => addModal(eventHistoryFunc(eventId)),
       statusEdit: (eventId) => addModal(eventStatusEditFunc(eventId)),
       close: (eventId) =>
@@ -211,6 +215,14 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
           onConfirm: async () => itemsFunc.event.uncancel(eventId),
         }),
       delete: async (eventId) => {
+        if (disableServerSync) {
+          addModal({
+            title: 'Удаление события',
+            text: 'Серверная синхронизация отключена. Событие будет удалено только локально на этом устройстве.',
+            onConfirm: async () => itemsFunc.event.delete(eventId),
+          })
+          return
+        }
         try {
           const response = await fetch(`/api/events/${eventId}/delete-check`)
           const result = await response.json()
@@ -261,6 +273,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
         }
       },
       view: (eventId) => addModal(eventViewFunc(eventId)),
+      additionalEvents: (eventId) => addModal(eventAdditionalEventsFunc(eventId)),
       upcomingOverview: () => addModal(upcomingEventsOverviewFunc()),
       // editLikes: (eventId) => addModal(likesEditFunc(eventId)),
       // viewLikes: (eventId) => addModal(likesViewFunc(eventId)),
@@ -307,6 +320,14 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
       edit: (serviceId) => addModal(serviceFunc(serviceId)),
       view: (serviceId) => addModal(serviceViewFunc(serviceId)),
       delete: async (serviceId) => {
+        if (disableServerSync) {
+          addModal({
+            title: 'Удаление услуги',
+            text: 'Серверная синхронизация отключена. Услуга будет удалена только локально на этом устройстве.',
+            onConfirm: async () => itemsFunc.service.delete(serviceId),
+          })
+          return
+        }
         try {
           const response = await fetch(
             `/api/services/${serviceId}/delete-check`
@@ -381,6 +402,14 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser) => {
       transactions: (clientId) => addModal(clientTransactionsFunc(clientId)),
       events: (clientId) => addModal(clientEventsFunc(clientId)),
       delete: async (clientId) => {
+        if (disableServerSync) {
+          addModal({
+            title: 'Удаление клиента',
+            text: 'Серверная синхронизация отключена. Клиент будет удален только локально на этом устройстве.',
+            onConfirm: async () => itemsFunc.client.delete(clientId),
+          })
+          return
+        }
         try {
           const response = await fetch(
             `/api/clients/${clientId}/delete-check`

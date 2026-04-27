@@ -4,6 +4,8 @@ import DevContent from './DevContent'
 import TransactionsContent from './TransactionsContent'
 import SettingsContent from './SettingsContent'
 import IntegrationsContent from './IntegrationsContent'
+import DocumentsContent from './DocumentsContent'
+import ListsContent from './ListsContent'
 import StatisticsContent from './StatisticsContent'
 import ServicesContent from './ServicesContent'
 import UsersContent from './UsersContent'
@@ -11,8 +13,10 @@ import ProfileContent from './ProfileContent'
 import TariffsContent from './TariffsContent'
 import TariffSelectContent from './TariffSelectContent'
 
-const UpcomingEventsContent = () => <EventsContent filter="upcoming" />
-const PastEventsContent = () => <EventsContent filter="past" />
+const UpcomingEventsContent = (props) => (
+  <EventsContent filter="upcoming" {...props} />
+)
+const PastEventsContent = (props) => <EventsContent filter="past" {...props} />
 
 export const CONTENTS = Object.freeze({
   eventsUpcoming: {
@@ -47,6 +51,14 @@ export const CONTENTS = Object.freeze({
     Component: IntegrationsContent,
     name: 'Интеграции',
   },
+  documents: {
+    Component: DocumentsContent,
+    name: 'Документы',
+  },
+  lists: {
+    Component: ListsContent,
+    name: 'Списки',
+  },
   tariffs: {
     Component: TariffsContent,
     name: 'Тарифы',
@@ -57,7 +69,7 @@ export const CONTENTS = Object.freeze({
   },
   services: {
     Component: ServicesContent,
-    name: 'Услуги',
+    name: 'Мои услуги',
   },
   statistics: {
     Component: StatisticsContent,

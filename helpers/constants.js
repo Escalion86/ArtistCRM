@@ -25,7 +25,13 @@ import {
   faVk,
   faWhatsapp,
 } from '@fortawesome/free-brands-svg-icons'
-import { faChartLine, faCog, faPlug } from '@fortawesome/free-solid-svg-icons'
+import {
+  faChartLine,
+  faCog,
+  faFileLines,
+  faList,
+  faPlug,
+} from '@fortawesome/free-solid-svg-icons'
 
 const colors = [
   'border-blue-400',
@@ -390,6 +396,7 @@ export const DEFAULT_ADDRESS = Object.freeze({
 export const DEFAULT_EVENT = Object.freeze({
   clientId: null,
   description: '',
+  eventType: '',
   financeComment: '',
   requestCreatedAt: null,
   additionalEvents: [],
@@ -503,7 +510,7 @@ export const DEFAULT_IMAGE_CONSTRUCTOR_ITEM = Object.freeze({
 
 export const EVENT_STATUSES_SIMPLE = Object.freeze([
   { value: 'draft', name: 'Заявка', color: 'gray' },
-  { value: 'active', name: 'Активно', color: 'blue' },
+  { value: 'active', name: 'Мероприятие', color: 'blue' },
   { value: 'canceled', name: 'Отменено', color: 'red' },
   { value: 'closed', name: 'Закрыто', color: 'green' },
 ])
@@ -609,7 +616,7 @@ export const EVENT_RELATIONSHIP_ACCESS = [
 
 export const EVENT_STATUSES = [
   { value: 'draft', name: 'Заявка', color: 'gray-400', icon: faClock },
-  { value: 'active', name: 'Активно', color: 'blue-400', icon: faPlay },
+  { value: 'active', name: 'Мероприятие', color: 'blue-400', icon: faPlay },
   { value: 'canceled', name: 'Отменено', color: 'red-400', icon: faBan },
   { value: 'closed', name: 'Закрыто', color: 'green-400', icon: faLock },
 ]
@@ -701,13 +708,6 @@ export const pages = [
     href: 'eventsPast',
     icon: faClock,
   },
-  {
-    id: 6,
-    group: 3,
-    name: 'Услуги',
-    href: 'services',
-    icon: faWandMagicSparkles,
-  },
   // {
   //   id: 5,
   //   group: 3,
@@ -752,11 +752,32 @@ export const pages = [
     icon: faCog,
   },
   {
+    id: 6,
+    group: 6,
+    name: 'Мои услуги',
+    href: 'services',
+    icon: faWandMagicSparkles,
+  },
+  {
     id: 22,
     group: 6,
     name: 'Интеграции',
     href: 'integrations',
     icon: faPlug,
+  },
+  {
+    id: 23,
+    group: 6,
+    name: 'Документы',
+    href: 'documents',
+    icon: faFileLines,
+  },
+  {
+    id: 24,
+    group: 6,
+    name: 'Списки',
+    href: 'lists',
+    icon: faList,
   },
   {
     id: 21,

@@ -7,8 +7,7 @@ import { modalsFuncAtom } from '@state/atoms'
 import cn from 'classnames'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { Suspense, useCallback, useState } from 'react'
-import Skeleton from 'react-loading-skeleton'
+import { useCallback, useRef, useState } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 
 const Modal = ({
@@ -75,6 +74,7 @@ const Modal = ({
   )
   const [bottomLeftComponentState, setBottomLeftComponent] =
     useState(bottomLeftComponent)
+  const contentRef = useRef(null)
 
   const setOnConfirmFuncSafe = useCallback(
     (value) => {
@@ -109,8 +109,34 @@ const Modal = ({
   const router = useRouter()
 
   const refreshPage = useCallback(() => {
-    router.replace(router.asPath)
+    router.refresh()
   }, [router])
+
+  const resetHorizontalScroll = useCallback(() => {
+    const contentNode = contentRef.current
+    if (contentNode) contentNode.scrollLeft = 0
+    const parentNode = contentNode?.parentElement
+    if (parentNode) parentNode.scrollLeft = 0
+    if (typeof window !== 'undefined') {
+      window.scrollTo(window.scrollX > 0 ? 0 : window.pageXOffset, window.scrollY)
+    }
+  }, [])
+
+  const handleContentFocusCapture = useCallback(
+    (event) => {
+      const target = event?.target
+      const tagName = target?.tagName?.toLowerCase?.()
+      if (!['input', 'textarea', 'select'].includes(tagName)) return
+
+      requestAnimationFrame(() => {
+        resetHorizontalScroll()
+      })
+      setTimeout(() => {
+        resetHorizontalScroll()
+      }, 80)
+    },
+    [resetHorizontalScroll]
+  )
 
   // const onConfirmClick = () => {
   //   if (onConfirmFunc) return onConfirmFunc(refreshPage)
@@ -199,7 +225,7 @@ const Modal = ({
     <motion.div
       className={
         cn(
-          'fixed inset-0 z-50 flex w-full transform justify-center overflow-y-auto bg-gray-800 bg-opacity-80 duration-200 tablet:items-center',
+          'fixed inset-0 z-50 flex w-full justify-center overflow-y-auto bg-gray-800 bg-opacity-80 duration-200 tablet:items-center',
           subModalText ? 'py-0 tablet:pb-5 tablet:pt-10' : 'py-0 tablet:py-5'
         )
         //  + (rendered ? ' opacity-100' : ' opacity-0')
@@ -217,8 +243,8 @@ const Modal = ({
           )
           // + (rendered ? '' : ' scale-50')
         }
-        initial={{ scale: 0.5 }}
-        animate={{ scale: close ? 0.5 : 1 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: close ? 0 : 1 }}
         transition={{ duration: 0.1 }}
         // onClick={(e) => e?.stopPropagation()}
         onMouseDown={(e) => e?.stopPropagation()}
@@ -278,29 +304,31 @@ const Modal = ({
         {/* {noPropsToChildren
           ? children
           : cloneElement(children, { onClose: closeModal, setBeforeCloseFunc })} */}
-        <div className="flex-1 overflow-y-auto px-2 tablet:px-3">
+        <div
+          ref={contentRef}
+          className="flex-1 overflow-y-auto overflow-x-hidden px-2 tablet:px-3"
+          onFocusCapture={handleContentFocusCapture}
+        >
           {Children && (
-            <Suspense fallback={<Skeleton count={12} />}>
-              <Children
-                closeModal={closeModal}
-                setOnConfirmFunc={setOnConfirmFuncSafe}
-                setOnConfirm2Func={setOnConfirm2FuncSafe}
-                setOnDeclineFunc={setOnDeclineFuncSafe}
-                setOnShowOnCloseConfirmDialog={setOnShowOnCloseConfirmDialog}
-                setDisableConfirm={setDisableConfirm}
-                setDisableDecline={setDisableDecline}
-                setComponentInFooter={setComponentInFooter}
-                setOnlyCloseButtonShow={setOnlyCloseButtonShowState}
-                setTopLeftComponent={setTopLeftComponentState}
-                setBottomLeftButtonProps={setBottomLeftButton}
-                setBottomLeftComponent={setBottomLeftComponent}
-                setCloseButtonShow={setCloseButtonShowState}
-                setDeclineButtonShow={setDeclineButtonShowState}
-                setConfirmButtonName={setConfirmButtonNameState}
-                setConfirmButtonName2={setConfirmButtonName2State}
-                setTitle={setTitleState}
-              />
-            </Suspense>
+            <Children
+              closeModal={closeModal}
+              setOnConfirmFunc={setOnConfirmFuncSafe}
+              setOnConfirm2Func={setOnConfirm2FuncSafe}
+              setOnDeclineFunc={setOnDeclineFuncSafe}
+              setOnShowOnCloseConfirmDialog={setOnShowOnCloseConfirmDialog}
+              setDisableConfirm={setDisableConfirm}
+              setDisableDecline={setDisableDecline}
+              setComponentInFooter={setComponentInFooter}
+              setOnlyCloseButtonShow={setOnlyCloseButtonShowState}
+              setTopLeftComponent={setTopLeftComponentState}
+              setBottomLeftButtonProps={setBottomLeftButton}
+              setBottomLeftComponent={setBottomLeftComponent}
+              setCloseButtonShow={setCloseButtonShowState}
+              setDeclineButtonShow={setDeclineButtonShowState}
+              setConfirmButtonName={setConfirmButtonNameState}
+              setConfirmButtonName2={setConfirmButtonName2State}
+              setTitle={setTitleState}
+            />
           )}
         </div>
 

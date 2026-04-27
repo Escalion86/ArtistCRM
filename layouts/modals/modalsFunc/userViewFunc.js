@@ -26,11 +26,6 @@ const CardButtonsComponent = ({ user }) => (
 const userViewFunc = (userId, params = {}) => {
   const UserModal = ({
     closeModal,
-    setOnConfirmFunc,
-    setOnDeclineFunc,
-    setOnShowOnCloseConfirmDialog,
-    setDisableConfirm,
-    setDisableDecline,
     setTopLeftComponent,
   }) => {
     const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
@@ -42,14 +37,12 @@ const userViewFunc = (userId, params = {}) => {
 
     useEffect(() => {
       if (!user) closeModal()
-    }, [user])
+    }, [closeModal, user])
 
     useEffect(() => {
       if (setTopLeftComponent)
         setTopLeftComponent(() => <CardButtonsComponent user={user} />)
-    }, [setTopLeftComponent])
-
-    if (!user) return null
+    }, [setTopLeftComponent, user])
 
     const tariffInfo = useMemo(() => {
       if (!user?.tariffId) return 'Не выбран'
@@ -96,6 +89,8 @@ const userViewFunc = (userId, params = {}) => {
           item?.status === 'draft'
       ).length
     }, [events, user?._id])
+
+    if (!user) return null
 
     return (
       <FormWrapper flex className="flex-col">

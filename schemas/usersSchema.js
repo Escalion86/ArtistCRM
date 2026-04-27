@@ -4,6 +4,13 @@ import {
 } from '@helpers/constants'
 import { Schema } from 'mongoose'
 
+const DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS = Object.freeze({
+  draft: '8',
+  active: '9',
+  canceled: '11',
+  closed: '10',
+})
+
 const usersSchema = {
   tenantId: {
     type: Schema.Types.ObjectId,
@@ -43,6 +50,22 @@ const usersSchema = {
     type: String,
     default: '',
   },
+  consentPrivacyPolicyAccepted: {
+    type: Boolean,
+    default: false,
+  },
+  consentPersonalDataAccepted: {
+    type: Boolean,
+    default: false,
+  },
+  privacyPolicyAcceptedAt: {
+    type: Date,
+    default: null,
+  },
+  personalDataProcessingAcceptedAt: {
+    type: Date,
+    default: null,
+  },
   images: {
     type: Array,
     default: [],
@@ -74,6 +97,10 @@ const usersSchema = {
   vk: {
     type: String,
     default: '',
+  },
+  vkId: {
+    type: String,
+    default: undefined,
   },
   tariffId: {
     type: Schema.Types.ObjectId,
@@ -155,6 +182,28 @@ const usersSchema = {
               ...item,
             })),
         },
+      },
+      statusColors: {
+        draft: {
+          type: String,
+          default: DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.draft,
+        },
+        active: {
+          type: String,
+          default: DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.active,
+        },
+        canceled: {
+          type: String,
+          default: DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.canceled,
+        },
+        closed: {
+          type: String,
+          default: DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.closed,
+        },
+      },
+      deleteCanceledFromCalendar: {
+        type: Boolean,
+        default: false,
       },
     },
     default: () => ({}),

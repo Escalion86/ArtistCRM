@@ -6,6 +6,7 @@ import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import {
   normalizeCalendarReminders,
+  normalizeCalendarStatusColors,
   normalizeCalendarSettings,
 } from '@server/googleUserCalendarClient'
 
@@ -46,14 +47,27 @@ export const POST = async (req) => {
   }
 
   const settings = normalizeCalendarSettings(dbUser)
+  const statusColors =
+    body?.statusColors !== undefined
+      ? normalizeCalendarStatusColors(body.statusColors)
+      : normalizeCalendarStatusColors(settings.statusColors)
+  const deleteCanceledFromCalendar =
+    body?.deleteCanceledFromCalendar !== undefined
+      ? Boolean(body.deleteCanceledFromCalendar)
+      : Boolean(settings.deleteCanceledFromCalendar)
   dbUser.googleCalendar = {
     ...settings,
     reminders,
+    statusColors,
+    deleteCanceledFromCalendar,
   }
   await dbUser.save()
 
   return NextResponse.json(
-    { success: true, data: { reminders } },
+    {
+      success: true,
+      data: { reminders, statusColors, deleteCanceledFromCalendar },
+    },
     { status: 200 }
   )
 }

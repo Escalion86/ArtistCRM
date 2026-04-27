@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import DateTimePicker from '@components/DateTimePicker'
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
@@ -10,16 +11,19 @@ import {
   TRANSACTION_PAYMENT_METHODS,
   TRANSACTION_TYPES,
 } from '@helpers/constants'
-import { postData, putData } from '@helpers/CRUD'
 import clientsAtom from '@state/atoms/clientsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { useAtomValue, useSetAtom } from 'jotai'
+import { useAtomValue } from 'jotai'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
 import { setAtomValue } from '@state/storeHelpers'
+import {
+  useCreateTransactionMutation,
+  useUpdateTransactionMutation,
+} from '@helpers/useTransactionsQuery'
 
 const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
   const TransactionModal = ({
@@ -32,7 +36,8 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
     const events = useAtomValue(eventsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const transactions = useAtomValue(transactionsAtom)
-    const setTransactions = useSetAtom(transactionsAtom)
+    const createTransactionMutation = useCreateTransactionMutation()
+    const updateTransactionMutation = useUpdateTransactionMutation()
 
     const transaction = useMemo(
       () =>
@@ -232,47 +237,32 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       if (transactionId) {
         setAtomValue(loadingAtom('transaction' + transactionId), true)
         setAtomValue(errorAtom('transaction' + transactionId), false)
-        const updated = await putData(
-          `/api/transactions/${transactionId}`,
-          {
-            ...payload,
-            ...payloadRelations,
-          },
-          null,
-          null,
-          true
-        )
-        if (updated?.data) {
-          setTransactions((prev) =>
-            prev.map((item) =>
-              item._id === transactionId ? updated.data : item
-            )
-          )
+        try {
+          await updateTransactionMutation.mutateAsync({
+            transactionId,
+            payload: {
+              ...payload,
+              ...payloadRelations,
+            },
+          })
           setAtomValue(loadingAtom('transaction' + transactionId), false)
           setAtomValue(errorAtom('transaction' + transactionId), false)
           closeModal()
-        } else {
+        } catch (requestError) {
           setAtomValue(loadingAtom('transaction' + transactionId), false)
           setAtomValue(errorAtom('transaction' + transactionId), true)
-          setError('Не удалось обновить транзакцию')
+          setError(requestError?.message || 'Не удалось обновить транзакцию')
         }
       } else {
-        const created = await postData(
-          '/api/transactions',
-          {
+        try {
+          await createTransactionMutation.mutateAsync({
             ...payload,
             ...payloadRelations,
             contractSum: payloadContractSum,
-          },
-          null,
-          null,
-          true
-        )
-        if (created?.data) {
-          setTransactions((prev) => [...prev, created.data])
+          })
           closeModal()
-        } else {
-          setError('Не удалось создать транзакцию')
+        } catch (requestError) {
+          setError(requestError?.message || 'Не удалось создать транзакцию')
         }
       }
 
@@ -290,7 +280,8 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       isReadOnly,
       transactionId,
       contractSum,
-      setTransactions,
+      createTransactionMutation,
+      updateTransactionMutation,
       closeModal,
     ])
 
@@ -466,3 +457,4 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
 }
 
 export default transactionFunc
+

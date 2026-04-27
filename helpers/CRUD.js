@@ -2,6 +2,31 @@ import urlQueryGenerator from './urlQueryGenerator'
 
 const contentType = 'application/json'
 
+const extractApiErrorMessage = (json) => {
+  if (!json) return ''
+  if (typeof json?.error?.message === 'string' && json.error.message.trim()) {
+    return json.error.message.trim()
+  }
+  if (typeof json?.error === 'string' && json.error.trim()) {
+    return json.error.trim()
+  }
+  return ''
+}
+
+const buildHttpError = async (res) => {
+  let message = ''
+  try {
+    const json = await res.json()
+    message = extractApiErrorMessage(json)
+  } catch (error) {
+    message = ''
+  }
+  const fallback = `HTTP ${res.status}`
+  const httpError = new Error(message || fallback)
+  httpError.status = res.status
+  return httpError
+}
+
 export const getData = async (
   url,
   form,
@@ -21,7 +46,7 @@ export const getData = async (
     })
     // Throw error with status code in case Fetch API req failed
     if (!res.ok) {
-      throw new Error(res.status)
+      throw await buildHttpError(res)
     }
 
     const json = await res.json()
@@ -56,7 +81,7 @@ export const putData = async (
 
     // Throw error with status code in case Fetch API req failed
     if (!res.ok) {
-      throw new Error(res.status)
+      throw await buildHttpError(res)
     }
 
     const json = await res.json()
@@ -94,7 +119,7 @@ export const postData = async (
 
     // Throw error with status code in case Fetch API req failed
     if (!res.ok) {
-      throw new Error(res.status)
+      throw await buildHttpError(res)
     }
     const json = await res.json()
     const result = resJson ? json : json.data
@@ -130,7 +155,7 @@ export const deleteData = async (
 
     // Throw error with status code in case Fetch API req failed
     if (!res.ok) {
-      throw new Error(res.status)
+      throw await buildHttpError(res)
     }
     let json = null
     try {

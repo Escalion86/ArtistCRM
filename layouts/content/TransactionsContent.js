@@ -13,19 +13,24 @@ import TransactionCard from '@layouts/cards/TransactionCard'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import clientsAtom from '@state/atoms/clientsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
-import { useAtomValue, useSetAtom } from 'jotai'
+import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
 import { TRANSACTION_TYPES } from '@helpers/constants'
-import { deleteData } from '@helpers/CRUD'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
 import { setAtomValue } from '@state/storeHelpers'
-
-const ITEM_HEIGHT = 120
+import useUiDensity from '@helpers/useUiDensity'
+import {
+  useDeleteTransactionMutation,
+  useTransactionsQuery,
+} from '@helpers/useTransactionsQuery'
 
 const TransactionsContent = () => {
-  const transactions = useAtomValue(transactionsAtom)
-  const setTransactions = useSetAtom(transactionsAtom)
+  const { isCompact } = useUiDensity()
+  const initialTransactions = useAtomValue(transactionsAtom)
+  const { data: transactions = initialTransactions } =
+    useTransactionsQuery(initialTransactions)
+  const deleteTransactionMutation = useDeleteTransactionMutation()
   const clients = useAtomValue(clientsAtom)
   const events = useAtomValue(eventsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -33,6 +38,7 @@ const TransactionsContent = () => {
     income: true,
     expense: true,
   })
+  const itemHeight = isCompact ? 106 : 120
 
   const typeMap = useMemo(
     () =>
@@ -88,27 +94,17 @@ const TransactionsContent = () => {
         onConfirm: async () => {
           setAtomValue(loadingAtom('transaction' + transactionId), true)
           setAtomValue(errorAtom('transaction' + transactionId), false)
-          const result = await deleteData(
-            `/api/transactions/${transactionId}`,
-            null,
-            null,
-            {},
-            true
-          )
-          if (result?.success) {
-            setTransactions((prev) =>
-              prev.filter((item) => item._id !== transactionId)
-            )
+          try {
+            await deleteTransactionMutation.mutateAsync(transactionId)
             setAtomValue(loadingAtom('transaction' + transactionId), false)
-          }
-          if (!result?.success) {
+          } catch (error) {
             setAtomValue(loadingAtom('transaction' + transactionId), false)
             setAtomValue(errorAtom('transaction' + transactionId), true)
           }
         },
       })
     },
-    [modalsFunc, setTransactions]
+    [deleteTransactionMutation, modalsFunc]
   )
 
   const RowComponent = useCallback(
@@ -173,7 +169,7 @@ const TransactionsContent = () => {
         {filteredTransactions.length > 0 ? (
           <List
             rowCount={filteredTransactions.length}
-            rowHeight={ITEM_HEIGHT}
+            rowHeight={itemHeight}
             rowComponent={RowComponent}
             rowProps={{}}
                                     style={{ height: '100%', width: '100%' }}

@@ -8,6 +8,7 @@ import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import SurfaceCard from '@components/SurfaceCard'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { useClientRelationsQuery } from '@helpers/useClientsQuery'
 
 const SectionBlock = ({ title, action, children }) => (
   <SurfaceCard>
@@ -36,6 +37,7 @@ const clientViewFunc = (clientId) => {
     const events = useAtomValue(eventsAtom)
     const transactions = useAtomValue(transactionsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
+    useClientRelationsQuery(clientId)
 
     const now = new Date()
     const startOfToday = new Date(

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { List } from 'react-window'
 import { useMemo, useEffect, useState, useCallback } from 'react'
 import { useAtom, useAtomValue } from 'jotai'

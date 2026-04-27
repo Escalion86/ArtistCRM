@@ -1,9 +1,16 @@
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import fetchProps from '@server/fetchProps'
 import authOptions from '../api/auth/[...nextauth]/_options'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata = {
+  title: 'Кабинет ArtistCRM',
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 export default async function Cabinet() {
   let session = null
@@ -15,6 +22,5 @@ export default async function Cabinet() {
 
   if (!session) return redirect('/login')
 
-  const fetchedProps = await fetchProps(session?.user)
   return redirect('/cabinet/eventsUpcoming')
 }

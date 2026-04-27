@@ -1,7 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
-import { ResponsiveBar } from '@nivo/bar'
+import { useMemo, useState, useEffect, useRef } from 'react'
+import { Bar } from '@nivo/bar'
 import { useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
 import ComboBox from '@components/ComboBox'
@@ -21,8 +22,10 @@ import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { useRouter } from 'next/navigation'
 import formatAddress from '@helpers/formatAddress'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { useStatisticsQuery } from '@helpers/useStatisticsQuery'
 
 const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
+const ALL_TOWNS_OPTION = 'Все города'
 
 const getMonthKey = (date, year) =>
   `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -67,11 +70,24 @@ const StatisticsContent = () => {
   const servicesRaw = useAtomValue(servicesAtom)
   const tariffsRaw = useAtomValue(tariffsAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
+  const statisticsQuery = useStatisticsQuery({
+    transactions: transactionsRaw,
+    events: eventsRaw,
+    clients: clientsRaw,
+    services: servicesRaw,
+  })
+  const statisticsData = statisticsQuery.data ?? {}
 
-  const transactions = Array.isArray(transactionsRaw) ? transactionsRaw : []
-  const events = Array.isArray(eventsRaw) ? eventsRaw : []
-  const clients = Array.isArray(clientsRaw) ? clientsRaw : []
-  const services = Array.isArray(servicesRaw) ? servicesRaw : []
+  const transactions = Array.isArray(statisticsData.transactions)
+    ? statisticsData.transactions
+    : []
+  const events = Array.isArray(statisticsData.events) ? statisticsData.events : []
+  const clients = Array.isArray(statisticsData.clients)
+    ? statisticsData.clients
+    : []
+  const services = Array.isArray(statisticsData.services)
+    ? statisticsData.services
+    : []
   const tariffs = Array.isArray(tariffsRaw) ? tariffsRaw : []
   const requests = useMemo(
     () => events.filter((event) => event?.status === 'draft'),
@@ -119,6 +135,35 @@ const StatisticsContent = () => {
   const [selectedYear, setSelectedYear] = useState(null)
   const [selectedTown, setSelectedTown] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const chartContainerRef = useRef(null)
+  const [chartWidth, setChartWidth] = useState(0)
+
+  useEffect(() => {
+    const element = chartContainerRef.current
+    if (!element) return
+
+    const updateWidth = () => {
+      const nextWidth = Math.max(0, Math.floor(element.clientWidth))
+      setChartWidth(nextWidth)
+    }
+
+    updateWidth()
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => updateWidth())
+      observer.observe(element)
+      return () => observer.disconnect()
+    }
+
+    window.addEventListener('resize', updateWidth)
+    return () => window.removeEventListener('resize', updateWidth)
+  }, [
+    selectedYear,
+    selectedTown,
+    selectedStatus,
+    events.length,
+    transactions.length,
+  ])
 
   useEffect(() => {
     if (selectedYear !== null) return
@@ -136,6 +181,11 @@ const StatisticsContent = () => {
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'))
   }, [events, selectedYear])
+
+  const townsOptionsWithAll = useMemo(
+    () => [ALL_TOWNS_OPTION, ...townsOptions],
+    [townsOptions]
+  )
 
   useEffect(() => {
     if (!selectedTown) return
@@ -177,7 +227,9 @@ const StatisticsContent = () => {
 
   const filteredTransactions = useMemo(
     () =>
-      transactions.filter((tx) => tx?.eventId && filteredEventIds.has(tx.eventId)),
+      transactions.filter(
+        (tx) => tx?.eventId && filteredEventIds.has(tx.eventId)
+      ),
     [transactions, filteredEventIds]
   )
 
@@ -222,6 +274,10 @@ const StatisticsContent = () => {
     const isFutureMonth = (monthIndex) =>
       selectedYear > currentYear ||
       (selectedYear === currentYear && monthIndex > currentMonth)
+    const isOpenCurrentMonth = (monthIndex) =>
+      selectedYear === currentYear && monthIndex === currentMonth
+    const isUnfinishedMonth = (monthIndex) =>
+      isFutureMonth(monthIndex) || isOpenCurrentMonth(monthIndex)
 
     filteredEvents.forEach((event) => {
       if (!event?.eventDate || !isValidDate(event.eventDate)) return
@@ -236,6 +292,8 @@ const StatisticsContent = () => {
           expense: 0,
           profit: 0,
           isFuture: isFutureMonth(date.getMonth()),
+          isOpenMonth: isOpenCurrentMonth(date.getMonth()),
+          isUnfinished: isUnfinishedMonth(date.getMonth()),
           plannedIncome: 0,
         })
       }
@@ -260,6 +318,8 @@ const StatisticsContent = () => {
           expense: 0,
           profit: 0,
           isFuture: isFutureMonth(date.getMonth()),
+          isOpenMonth: isOpenCurrentMonth(date.getMonth()),
+          isUnfinished: isUnfinishedMonth(date.getMonth()),
           plannedIncome: 0,
         })
       }
@@ -452,22 +512,22 @@ const StatisticsContent = () => {
         income: 0,
         expense: 0,
       }
-        const profit = finance.income - finance.expense
-        return {
-          ID: event._id,
-          'Дата начала': formatDateTime(event.eventDate),
-          'Дата окончания': formatDateTime(event.dateEnd),
-          Клиент: resolveClientName(event.clientId),
-          Город: event?.address?.town ?? '',
-          Адрес: formatAddress(event.address, ''),
-          Услуги: resolveServicesTitles(event.servicesIds),
-          Статус: getEventStatusLabel(getEventComputedStatus(event)),
-          'Договорная сумма': Number(event.contractSum ?? 0),
-          Доход: finance.income,
-          Расход: finance.expense,
-          Прибыль: profit,
-        }
-      })
+      const profit = finance.income - finance.expense
+      return {
+        ID: event._id,
+        'Дата начала': formatDateTime(event.eventDate),
+        'Дата окончания': formatDateTime(event.dateEnd),
+        Клиент: resolveClientName(event.clientId),
+        Город: event?.address?.town ?? '',
+        Адрес: formatAddress(event.address, ''),
+        Услуги: resolveServicesTitles(event.servicesIds),
+        Статус: getEventStatusLabel(getEventComputedStatus(event)),
+        'Договорная сумма': Number(event.contractSum ?? 0),
+        Доход: finance.income,
+        Расход: finance.expense,
+        Прибыль: profit,
+      }
+    })
 
     const requestsHeaders = [
       'ID',
@@ -483,18 +543,18 @@ const StatisticsContent = () => {
       'Связано с мероприятием',
     ]
     const requestsRows = filteredRequests.map((request) => ({
-        ID: request._id,
-        'Дата заявки': formatDateTime(request.createdAt),
-        'Дата мероприятия': formatDateTime(request.eventDate),
-        Клиент: resolveClientName(request.clientId),
-        Телефон: resolveClientPhone(request.clientId),
-        Город: request?.address?.town ?? '',
-        Адрес: formatAddress(request.address, ''),
-        Услуги: resolveServicesTitles(request.servicesIds),
-        Статус: request.status ?? '',
-        'Договорная сумма': Number(request.contractSum ?? 0),
-        'Связано с мероприятием': 'Нет',
-      }))
+      ID: request._id,
+      'Дата заявки': formatDateTime(request.createdAt),
+      'Дата мероприятия': formatDateTime(request.eventDate),
+      Клиент: resolveClientName(request.clientId),
+      Телефон: resolveClientPhone(request.clientId),
+      Город: request?.address?.town ?? '',
+      Адрес: formatAddress(request.address, ''),
+      Услуги: resolveServicesTitles(request.servicesIds),
+      Статус: request.status ?? '',
+      'Договорная сумма': Number(request.contractSum ?? 0),
+      'Связано с мероприятием': 'Нет',
+    }))
 
     const transactionsHeaders = [
       'ID',
@@ -507,18 +567,18 @@ const StatisticsContent = () => {
       'Комментарий',
     ]
     const transactionsRows = filteredTransactions.map((tx) => {
-        const event = eventsMap.get(tx.eventId)
-        return {
-          ID: tx._id,
-          Дата: formatDateTime(tx.date),
-          Тип: tx.type ?? '',
-          Категория: tx.category ?? '',
-          Сумма: Number(tx.amount ?? 0),
-          Клиент: resolveClientName(tx.clientId),
-          Мероприятие: resolveEventTitle(event),
-          Комментарий: tx.comment ?? '',
-        }
-      })
+      const event = eventsMap.get(tx.eventId)
+      return {
+        ID: tx._id,
+        Дата: formatDateTime(tx.date),
+        Тип: tx.type ?? '',
+        Категория: tx.category ?? '',
+        Сумма: Number(tx.amount ?? 0),
+        Клиент: resolveClientName(tx.clientId),
+        Мероприятие: resolveEventTitle(event),
+        Комментарий: tx.comment ?? '',
+      }
+    })
 
     const suffixYear = selectedYear ? String(selectedYear) : 'all'
     const suffixTown = selectedTown ? selectedTown.replace(/\s+/g, '_') : 'all'
@@ -538,11 +598,11 @@ const StatisticsContent = () => {
   }
 
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex h-full flex-col gap-4">
       {!canShowStatistics ? (
         <>
           <ContentHeader />
-          <SectionCard className="flex items-center justify-center flex-1 min-h-0 px-4">
+          <SectionCard className="flex min-h-0 flex-1 items-center justify-center px-4">
             <EmptyState bordered={false}>
               <div className="flex flex-col items-center gap-4 text-center text-gray-500">
                 <div className="text-lg font-semibold text-gray-700">
@@ -578,9 +638,13 @@ const StatisticsContent = () => {
                   <div className="w-44">
                     <ComboBox
                       label="Город"
-                      items={townsOptions}
-                      value={selectedTown}
-                      onChange={(value) => setSelectedTown(value ?? '')}
+                      items={townsOptionsWithAll}
+                      value={selectedTown || ALL_TOWNS_OPTION}
+                      onChange={(value) =>
+                        setSelectedTown(
+                          !value || value === ALL_TOWNS_OPTION ? '' : value
+                        )
+                      }
                       placeholder="Все города"
                       fullWidth
                       noMargin
@@ -602,8 +666,8 @@ const StatisticsContent = () => {
             />
           </ContentHeader>
 
-          <SectionCard className="flex-1 min-h-0 p-4 overflow-y-auto">
-            <div className="grid grid-cols-1 gap-2 mb-4 tablet:grid-cols-2 desktop:grid-cols-3">
+          <SectionCard className="min-h-0 flex-1 overflow-y-auto p-4">
+            <div className="tablet:grid-cols-3 mb-4 grid grid-cols-2 gap-2">
               <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="text-xs text-gray-500">Выручка</div>
                 <div className="text-lg font-semibold text-green-700">
@@ -635,17 +699,39 @@ const StatisticsContent = () => {
                 </div>
               </SurfaceCard>
               <SurfaceCard className="rounded" paddingClassName="p-3">
-                <div className="text-xs text-gray-500">Комиссии/реферальные</div>
+                <div className="text-xs text-gray-500">
+                  Комиссии/реферальные
+                </div>
                 <div className="text-lg font-semibold text-purple-700">
                   {formatCurrency(financeSummary.commissions)}
                 </div>
               </SurfaceCard>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 mb-3 text-sm text-gray-700">
+            <div className="mb-3 flex flex-wrap items-center gap-4 text-sm text-gray-700">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-blue-600 rounded" />
+                <span className="h-3 w-3 rounded bg-blue-600" />
                 <span>Прибыль</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-4 w-6 rounded-sm border border-blue-500"
+                  style={{
+                    background:
+                      'repeating-linear-gradient(135deg, #2563eb 0, #2563eb 8px, rgba(255,255,255,0.94) 8px, rgba(255,255,255,0.94) 10px)',
+                  }}
+                />
+                <span>Текущий месяц (в работе)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-4 w-6 rounded-sm border border-blue-500"
+                  style={{
+                    background:
+                      'repeating-linear-gradient(135deg, #2563eb 0, #2563eb 3px, rgba(255,255,255,0.94) 3px, rgba(255,255,255,0.94) 6px)',
+                  }}
+                />
+                <span>Будущие месяцы</span>
               </div>
             </div>
             {stats.length === 0 ? (
@@ -658,72 +744,96 @@ const StatisticsContent = () => {
                 }
               />
             ) : (
-              <div className="h-[320px]">
-                <ResponsiveBar
-                  data={stats}
-                  keys={['profit']}
-                  indexBy="month"
-                  margin={{ top: 20, right: 20, bottom: 60, left: 70 }}
-                  padding={0.2}
-                  colors={['#2563eb']}
-                  defs={[
-                    {
-                      id: 'futurePattern',
-                      type: 'patternLines',
-                      background: 'inherit',
-                      color: 'rgba(0,0,0,0.25)',
-                      rotation: -45,
-                      lineWidth: 4,
-                      spacing: 6,
-                    },
-                  ]}
-                  fill={[
-                    {
-                      match: (d) => d.data.isFuture === true,
-                      id: 'futurePattern',
-                    },
-                  ]}
-                  axisBottom={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: -20,
-                  }}
-                  axisLeft={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    legend: 'Сумма, руб.',
-                    legendPosition: 'middle',
-                    legendOffset: -55,
-                  }}
-                  enableLabel={false}
-                  groupMode="grouped"
-                  valueFormat={(value) => value.toLocaleString('ru-RU')}
-                  tooltip={({ id, value, indexValue }) => (
-                    <div className="statistics-tooltip px-2 py-1 text-xs text-gray-700 border border-gray-200 rounded shadow">
-                      <div className="font-semibold">{indexValue}</div>
-                      <div>
-                        {id === 'profit' ? 'Прибыль' : id}:{' '}
-                        {Number(value).toLocaleString('ru-RU')} ₽
-                      </div>
-                    </div>
-                  )}
-                  theme={{
-                    text: { fontSize: 12, fill: '#374151' },
-                    axis: {
-                      legend: { text: { fontSize: 12, fill: '#374151' } },
-                      ticks: {
-                        text: { fontSize: 11, fill: '#6b7280' },
+              <div ref={chartContainerRef} className="h-[320px]">
+                {chartWidth > 0 ? (
+                  <Bar
+                    width={chartWidth}
+                    height={320}
+                    data={stats}
+                    keys={['profit']}
+                    indexBy="month"
+                    margin={{ top: 20, right: 20, bottom: 60, left: 70 }}
+                    padding={0.2}
+                    colors={['#2563eb']}
+                    defs={[
+                      {
+                        id: 'futurePattern',
+                        type: 'patternLines',
+                        background: 'inherit',
+                        color: 'rgba(255,255,255,0.9)',
+                        rotation: -45,
+                        lineWidth: 3,
+                        spacing: 6,
                       },
-                    },
-                    grid: {
-                      line: { stroke: '#e5e7eb', strokeWidth: 1 },
-                    },
-                  }}
-                />
+                      {
+                        id: 'openMonthPattern',
+                        type: 'patternLines',
+                        background: 'inherit',
+                        color: 'rgba(255,255,255,0.82)',
+                        rotation: -45,
+                        lineWidth: 2,
+                        spacing: 10,
+                      },
+                    ]}
+                    fill={[
+                      {
+                        match: (d) =>
+                          Boolean(
+                            d?.data?.isOpenMonth ?? d?.data?.data?.isOpenMonth
+                          ) &&
+                          !Boolean(
+                            d?.data?.isFuture ?? d?.data?.data?.isFuture
+                          ),
+                        id: 'openMonthPattern',
+                      },
+                      {
+                        match: (d) =>
+                          Boolean(d?.data?.isFuture ?? d?.data?.data?.isFuture),
+                        id: 'futurePattern',
+                      },
+                    ]}
+                    axisBottom={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      tickRotation: -20,
+                    }}
+                    axisLeft={{
+                      tickSize: 5,
+                      tickPadding: 5,
+                      legend: 'Сумма, руб.',
+                      legendPosition: 'middle',
+                      legendOffset: -55,
+                    }}
+                    enableLabel={false}
+                    groupMode="grouped"
+                    valueFormat={(value) => value.toLocaleString('ru-RU')}
+                    tooltip={({ id, value, indexValue }) => (
+                      <div className="statistics-tooltip rounded border border-gray-200 px-2 py-1 text-xs text-gray-700 shadow">
+                        <div className="font-semibold">{indexValue}</div>
+                        <div>
+                          {id === 'profit' ? 'Прибыль' : id}:{' '}
+                          {Number(value).toLocaleString('ru-RU')} ₽
+                        </div>
+                      </div>
+                    )}
+                    theme={{
+                      text: { fontSize: 12, fill: '#374151' },
+                      axis: {
+                        legend: { text: { fontSize: 12, fill: '#374151' } },
+                        ticks: {
+                          text: { fontSize: 11, fill: '#6b7280' },
+                        },
+                      },
+                      grid: {
+                        line: { stroke: '#e5e7eb', strokeWidth: 1 },
+                      },
+                    }}
+                  />
+                ) : null}
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-3 mt-4 desktop:grid-cols-2">
+            <div className="desktop:grid-cols-2 mt-4 grid grid-cols-1 gap-3">
               <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="mb-2 text-sm font-semibold text-gray-700">
                   Топ расходов по категориям
@@ -756,9 +866,13 @@ const StatisticsContent = () => {
                 ) : (
                   <div className="space-y-2 text-sm">
                     {topProfitableEvents.map(({ event, profit }) => (
-                      <div key={event?._id} className="pb-2 border-b border-gray-100 last:border-b-0">
+                      <div
+                        key={event?._id}
+                        className="border-b border-gray-100 pb-2 last:border-b-0"
+                      >
                         <div className="font-medium">
-                          {resolveEventTitle(event) || 'Мероприятие без названия'}
+                          {resolveEventTitle(event) ||
+                            'Мероприятие без названия'}
                         </div>
                         <div className="text-xs text-gray-500">
                           {formatDateTime(event?.eventDate)} •{' '}

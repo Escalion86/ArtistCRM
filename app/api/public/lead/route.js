@@ -7,9 +7,11 @@ import {
   normalizeServicesIds,
   normalizeText,
   parseDateValue,
+  readCustomValue,
   resolvePublicLeadTenant,
   upsertPublicLeadClient,
 } from '@server/publicLeadService'
+import { notifyApiLeadCreated } from '@server/publicLeadPush'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -34,6 +36,9 @@ export const POST = async (req) => {
       )
     }
     const tenantId = accessData.tenantId
+    const pushEnabled =
+      readCustomValue(accessData?.siteSettings?.custom, 'publicLeadPushEnabled') ===
+      true
 
     const name = normalizeText(body?.name || body?.clientName, 120)
     const phone = normalizePhone(body?.phone || body?.clientPhone)
@@ -99,6 +104,34 @@ export const POST = async (req) => {
       rawPayload: body,
       historyUserId: 'public-api',
     })
+
+    if (pushEnabled) {
+      try {
+        const pushResult = await notifyApiLeadCreated({
+          tenantId,
+          event,
+          normalizedData: {
+            phone,
+            source,
+          },
+        })
+
+        if (
+          pushResult &&
+          Number(pushResult?.sent || 0) <= 0 &&
+          Number(pushResult?.failed || 0) > 0
+        ) {
+          console.warn('public lead push delivery failed', {
+            tenantId: String(tenantId),
+            eventId: String(event?._id || ''),
+            failed: Number(pushResult?.failed || 0),
+            deactivated: Number(pushResult?.deactivated || 0),
+          })
+        }
+      } catch (error) {
+        console.error('public lead push notify error', error)
+      }
+    }
 
     return NextResponse.json(
       {

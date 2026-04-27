@@ -16,7 +16,7 @@ const BUTTON_STYLES = {
     bgHover: '#1d4ed8',
     border: '#2563eb',
     text: '#2563eb',
-    label: 'Активные',
+    label: 'Мероприятия',
   },
   finished: {
     bg: '#16a34a',

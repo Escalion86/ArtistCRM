@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import mongoose from 'mongoose'
 import Events from '@models/Events'
 import Transactions from '@models/Transactions'
 import Histories from '@models/Histories'
@@ -11,6 +12,7 @@ import {
   hasDocuments,
   normalizeAdditionalEvents,
   normalizeDepositExpectedAmount,
+  normalizeEventType,
   normalizeWaitDeposit,
   parseDateValue,
 } from '@server/eventApiNormalization'
@@ -55,7 +57,7 @@ const normalizeOtherContacts = (contacts) => {
   return contacts
     .map((item) => {
       if (!item || typeof item !== 'object') return null
-      const clientId = item.clientId ?? null
+      const clientId = normalizeObjectId(item.clientId)
       if (!clientId) return null
       return {
         clientId,
@@ -64,10 +66,46 @@ const normalizeOtherContacts = (contacts) => {
     })
     .filter(Boolean)
 }
+
+const normalizeObjectId = (value) => {
+  if (value === null || value === undefined) return null
+  const normalized = String(value).trim()
+  if (!normalized) return null
+  return mongoose.Types.ObjectId.isValid(normalized) ? normalized : null
+}
+
+const normalizeObjectIdList = (items) => {
+  if (!Array.isArray(items)) return []
+  return items
+    .map((item) => normalizeObjectId(item))
+    .filter(Boolean)
+}
 const getNextStatus = (current, body) => {
   const next = body?.status
   if (next && EVENT_STATUSES.has(next)) return next
   return current
+}
+
+export const GET = async (req, { params }) => {
+  const { id } = await params
+  const { tenantId, user } = await getTenantContext()
+  if (!tenantId || !user?._id) {
+    return NextResponse.json(
+      { success: false, error: 'Не авторизован' },
+      { status: 401 }
+    )
+  }
+
+  await dbConnect()
+  const event = await Events.findOne({ _id: id, tenantId }).lean()
+  if (!event) {
+    return NextResponse.json(
+      { success: false, error: 'Мероприятие не найдено' },
+      { status: 404 }
+    )
+  }
+
+  return NextResponse.json({ success: true, data: event }, { status: 200 })
 }
 
 export const PUT = async (req, { params }) => {
@@ -135,6 +173,15 @@ export const PUT = async (req, { params }) => {
       )
     }
   }
+  if (
+    body.eventType !== undefined &&
+    !normalizeEventType(body.eventType)
+  ) {
+    return NextResponse.json(
+      { success: false, error: 'Поле "Что за событие" обязательно' },
+      { status: 400 }
+    )
+  }
 
   const update = {}
   if (body.eventDate !== undefined)
@@ -143,7 +190,8 @@ export const PUT = async (req, { params }) => {
     update.dateEnd = body.dateEnd ? new Date(body.dateEnd) : null
   if (body.additionalEvents !== undefined)
     update.additionalEvents = normalizeAdditionalEvents(body.additionalEvents)
-  if (body.clientId !== undefined) update.clientId = body.clientId
+  if (body.clientId !== undefined)
+    update.clientId = normalizeObjectId(body.clientId)
   if (body.address !== undefined) {
     if (typeof body.address === 'string')
       update.address = normalizeAddress({}, body.address)
@@ -161,6 +209,8 @@ export const PUT = async (req, { params }) => {
     )
   if (body.description !== undefined)
     update.description = body.description ?? ''
+  if (body.eventType !== undefined)
+    update.eventType = normalizeEventType(body.eventType)
   if (body.financeComment !== undefined)
     update.financeComment = body.financeComment ?? ''
   if (body.invoiceLinks !== undefined)
@@ -180,15 +230,17 @@ export const PUT = async (req, { params }) => {
   if (body.isByContract !== undefined)
     update.isByContract = Boolean(body.isByContract)
   if (body.servicesIds !== undefined)
-    update.servicesIds = Array.isArray(body.servicesIds) ? body.servicesIds : []
+    update.servicesIds = normalizeObjectIdList(body.servicesIds)
   if (body.otherContacts !== undefined)
     update.otherContacts = normalizeOtherContacts(body.otherContacts)
   if (body.calendarImportChecked !== undefined && access?.allowCalendarSync)
     update.calendarImportChecked = Boolean(body.calendarImportChecked)
-  if (body.colleagueId !== undefined) update.colleagueId = body.colleagueId
+  if (body.colleagueId !== undefined)
+    update.colleagueId = normalizeObjectId(body.colleagueId)
   if (body.isTransferred !== undefined) {
     update.isTransferred = Boolean(body.isTransferred)
     if (!update.isTransferred) update.colleagueId = null
+    if (update.isTransferred && !update.colleagueId) update.colleagueId = null
   }
   if (body.cancelReason !== undefined) {
     update.cancelReason = normalizeCancelReason(body.cancelReason)
@@ -196,9 +248,27 @@ export const PUT = async (req, { params }) => {
   if (body.status && EVENT_STATUSES.has(body.status))
     update.status = body.status
 
-  const event = await Events.findOneAndUpdate({ _id: id, tenantId }, update, {
-    returnDocument: 'after',
-  })
+  let event = null
+  try {
+    event = await Events.findOneAndUpdate({ _id: id, tenantId }, update, {
+      returnDocument: 'after',
+    })
+  } catch (error) {
+    console.error('Events PUT update error', error)
+    if (error?.name === 'CastError') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Некорректное значение поля "${error.path}"`,
+        },
+        { status: 400 }
+      )
+    }
+    return NextResponse.json(
+      { success: false, error: 'Не удалось сохранить мероприятие' },
+      { status: 500 }
+    )
+  }
   if (!event)
     return NextResponse.json(
       { success: false, error: 'Мероприятие не найдено' },

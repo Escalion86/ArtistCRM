@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { UserItem } from '@components/ItemCards'
 import Search from '@components/Search'
 import filterItems from '@helpers/filterItems'
@@ -227,3 +228,4 @@ const selectUsersFunc = (
 }
 
 export default selectUsersFunc
+

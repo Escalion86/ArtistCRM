@@ -6,6 +6,14 @@ import authOptions from '../api/auth/[...nextauth]/_options'
 
 export const dynamic = 'force-dynamic'
 
+export const metadata = {
+  title: 'Вход в ArtistCRM',
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
+
 export default async function Login() {
   let session = null
 

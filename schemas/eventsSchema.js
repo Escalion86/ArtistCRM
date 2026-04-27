@@ -15,6 +15,10 @@ const eventsSchema = {
     type: String,
     default: 'Описание мероприятия',
   },
+  eventType: {
+    type: String,
+    default: '',
+  },
   requestCreatedAt: {
     type: Date,
     default: () => new Date(),
@@ -26,6 +30,7 @@ const eventsSchema = {
         description: { type: String, default: '' },
         date: { type: Date, default: null },
         done: { type: Boolean, default: false },
+        doneAt: { type: Date, default: null },
         googleCalendarEventId: { type: String, default: '' },
       },
     ],

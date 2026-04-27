@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { postData } from '@helpers/CRUD'
 import { modalsFuncAtom } from '@state/atoms'
 import eventsAtom from '@state/atoms/eventsAtom'
@@ -85,7 +86,7 @@ const ReleaseOnboardingCoach = () => {
       },
       {
         id: 'activeStatus',
-        title: 'Переведите заявку в статус "Активно"',
+        title: 'Переведите заявку в тип "Мероприятие"',
         description:
           'Статус "Активно" означает, что клиент подтвердил мероприятие и вы берете его в работу.',
         done: hasActiveEvent,

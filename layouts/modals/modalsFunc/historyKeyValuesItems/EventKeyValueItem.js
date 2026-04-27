@@ -3,8 +3,8 @@ import InputImages from '@components/InputImages'
 import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
 import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
+import sanitizeHtml from '@helpers/sanitizeHtml'
 import textAge from '@helpers/textAge'
-import DOMPurify from 'isomorphic-dompurify'
 
 const EventKeyValueItem = ({ objKey, value }) =>
   value === undefined ? (
@@ -13,7 +13,7 @@ const EventKeyValueItem = ({ objKey, value }) =>
     <div
       className="textarea ql w-full max-w-full list-disc overflow-hidden"
       dangerouslySetInnerHTML={{
-        __html: DOMPurify.sanitize(value),
+        __html: sanitizeHtml(value),
       }}
     />
   ) : objKey === 'tags' ? (

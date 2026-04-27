@@ -25,6 +25,9 @@ const parseDateValue = (value) => {
 
 const normalizeWaitDeposit = (value) => Boolean(value)
 
+const normalizeEventType = (value) =>
+  typeof value === 'string' ? value.trim() : ''
+
 const normalizeDepositExpectedAmount = (value) => {
   if (value === null || value === undefined || value === '') return null
   const number = Number(value)
@@ -47,11 +50,13 @@ const normalizeAdditionalEvents = (items) => {
           ? item.googleCalendarEventId.trim()
           : ''
       const done = Boolean(item.done)
+      const doneAt = done ? parseDateValue(item.doneAt) : null
       return {
         title,
         description,
         date,
         done,
+        doneAt,
         googleCalendarEventId,
       }
     })
@@ -62,6 +67,7 @@ export {
   hasDocuments,
   parseDateValue,
   normalizeWaitDeposit,
+  normalizeEventType,
   normalizeDepositExpectedAmount,
   normalizeAdditionalEvents,
 }

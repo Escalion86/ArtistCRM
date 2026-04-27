@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import loadingAtom from '@state/atoms/loadingAtom'
@@ -32,7 +33,7 @@ const ServiceCard = ({ service, style }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && modalsFunc.service?.view(service._id)}
-      className="group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
+      className="card-body-pad group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
@@ -55,17 +56,17 @@ const ServiceCard = ({ service, style }) => {
         )}
         <div className="flex h-full w-full flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-base font-semibold text-gray-900">
+            <div className="card-title text-base">
               {service.title || 'Без названия'}
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 text-sm text-gray-700">
+          <div className="card-meta flex flex-wrap gap-3 text-sm">
             <div>
               <span className="font-medium">Продолжительность:</span>{' '}
               {durationLabel}
             </div>
           </div>
-          <TextLinesLimiter className="text-sm text-gray-600" lines={3}>
+          <TextLinesLimiter className="card-muted text-sm" lines={3}>
             {description}
           </TextLinesLimiter>
         </div>
@@ -90,3 +91,4 @@ ServiceCard.defaultProps = {
 }
 
 export default ServiceCard
+

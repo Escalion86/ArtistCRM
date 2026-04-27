@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import Button from '@components/Button'
 import ColorPicker from '@components/ColorPicker'
 import FormWrapper from '@components/FormWrapper'
@@ -156,3 +157,4 @@ const eventsTagsFunc = () => {
 }
 
 export default eventsTagsFunc
+

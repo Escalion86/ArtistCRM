@@ -30,6 +30,8 @@ export const GET = async () => {
         calendarName: settings.calendarName,
         connectedAt: settings.connectedAt,
         reminders: settings.reminders,
+        statusColors: settings.statusColors,
+        deleteCanceledFromCalendar: settings.deleteCanceledFromCalendar,
       },
     },
     { status: 200 }

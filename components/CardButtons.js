@@ -10,6 +10,7 @@ import {
   faExternalLinkAlt,
   faMoneyBill,
   faPencilAlt,
+  faUser,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { EVENT_STATUSES, SERVICE_USER_STATUSES } from '@helpers/constants'
@@ -22,6 +23,7 @@ import CardButton from './CardButton'
 import DropDown from './DropDown'
 import useCopyToClipboard from '@helpers/useCopyToClipboard'
 import { useEffect } from 'react'
+import { getAdditionalEventsSummary } from '@helpers/additionalEvents'
 
 const MENU_ITEM_TONE = {
   red: {
@@ -56,23 +58,47 @@ const MENU_ITEM_TONE = {
   },
 }
 
-const MenuItem = ({ active, icon, onClick, color = 'red', tooltipText }) => {
+const MenuItem = ({
+  active,
+  icon,
+  onClick,
+  color = 'red',
+  tooltipText,
+  badges = [],
+}) => {
   const tone = MENU_ITEM_TONE[color] || MENU_ITEM_TONE.red
 
   return (
-  <div
-    className={cn(
-      'flex h-9 cursor-pointer items-center gap-x-2 px-2 text-base font-normal duration-300',
-      tone.hover,
-      active ? tone.active : tone.base
-    )}
-    onClick={(e) => {
-      onClick && onClick()
-    }}
-  >
-    <FontAwesomeIcon icon={icon} className="h-7 w-7" />
-    <div className="prevent-select-text whitespace-nowrap">{tooltipText}</div>
-  </div>
+    <div
+      className={cn(
+        'flex h-9 cursor-pointer items-center gap-x-2 px-2 text-base font-normal duration-300',
+        tone.hover,
+        active ? tone.active : tone.base
+      )}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick && onClick()
+      }}
+    >
+      <FontAwesomeIcon icon={icon} className="h-7 w-7" />
+      <div className="prevent-select-text whitespace-nowrap">{tooltipText}</div>
+      {badges.length > 0 ? (
+        <div className="ml-auto flex items-center gap-1">
+          {badges.map((badge) => (
+            <span
+              key={badge.key}
+              title={badge.title}
+              className={cn(
+                'inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm',
+                badge.className
+              )}
+            >
+              {badge.value}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -94,6 +120,12 @@ const CardButtons = ({
   minimalActions = false,
   calendarLink,
   onOpenCalendar,
+  onEditClientContacts,
+  onEditFinanceDocs,
+  onAdditionalEvents,
+  showCloneButton = true,
+  showHistoryButton = true,
+  showStatusButton = true,
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
@@ -102,8 +134,34 @@ const CardButtons = ({
   const canManageUsers = ['dev', 'admin'].includes(loggedUser?.role)
   const canManageItem =
     typeOfItem !== 'user' && typeOfItem !== 'tariff' ? true : canManageUsers
+  const isEventEditTabsMenu =
+    minimalActions &&
+    typeOfItem === 'event' &&
+    canManageItem &&
+    Boolean(onEditClientContacts || onEditFinanceDocs)
 
   const copyId = useCopyToClipboard(item._id, 'ID скопирован в буфер обмена')
+  const additionalEventsSummary = getAdditionalEventsSummary([item], new Date())
+  const additionalEventsBadges = [
+    {
+      key: 'overdue',
+      title: 'Просрочено',
+      value: Number(additionalEventsSummary?.overdue || 0),
+      className: 'bg-red-600',
+    },
+    {
+      key: 'today',
+      title: 'Сегодня',
+      value: Number(additionalEventsSummary?.today || 0),
+      className: 'bg-amber-500',
+    },
+    {
+      key: 'tomorrow',
+      title: 'Завтра',
+      value: Number(additionalEventsSummary?.tomorrow || 0),
+      className: 'bg-blue-600',
+    },
+  ].filter((badge) => badge.value > 0)
 
   const upDownSee =
     (!forForm && typeOfItem === 'service') || typeOfItem === 'product' || false
@@ -115,18 +173,40 @@ const CardButtons = ({
   // (typeOfItem === 'productUser' && loggedUserActiveRole.productsUsers.edit) ||
 
   const show = minimalActions
-    ? {
-        editBtn: showEditButton && canManageItem,
-        cloneBtn: typeOfItem !== 'user' && typeOfItem !== 'tariff',
-        openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
-        historyBtn: typeOfItem === 'event',
-        statusBtn: typeOfItem !== 'client',
-        deleteBtn:
-          showDeleteButton && canManageItem && item.status !== 'closed',
-        userBilling: typeOfItem === 'user' && canManageUsers,
-        userTariff: typeOfItem === 'user' && canManageUsers,
-        userEvents: typeOfItem === 'client',
-      }
+    ? isEventEditTabsMenu
+      ? {
+          editBtn: showEditButton,
+          editClientContacts: showEditButton && Boolean(onEditClientContacts),
+          editFinanceDocs: showEditButton && Boolean(onEditFinanceDocs),
+          cloneBtn:
+            showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
+          openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
+          additionalEvents: typeOfItem === 'event',
+          historyBtn: showHistoryButton && typeOfItem === 'event',
+          statusBtn:
+            showStatusButton &&
+            typeOfItem !== 'client' &&
+            typeOfItem !== 'service',
+          deleteBtn:
+            showDeleteButton && canManageItem && item.status !== 'closed',
+        }
+      : {
+          editBtn: showEditButton && canManageItem,
+          cloneBtn:
+            showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
+          openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
+          additionalEvents: typeOfItem === 'event',
+          historyBtn: showHistoryButton && typeOfItem === 'event',
+          statusBtn:
+            showStatusButton &&
+            typeOfItem !== 'client' &&
+            typeOfItem !== 'service',
+          deleteBtn:
+            showDeleteButton && canManageItem && item.status !== 'closed',
+          userBilling: typeOfItem === 'user' && canManageUsers,
+          userTariff: typeOfItem === 'user' && canManageUsers,
+          userEvents: typeOfItem === 'client',
+        }
     : {
         copyId: true,
         userActionsHistory: typeOfItem === 'user',
@@ -135,13 +215,18 @@ const CardButtons = ({
         setPasswordBtn: true,
         addToCalendar: typeOfItem === 'event',
         openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
-        historyBtn: typeOfItem === 'event',
+        additionalEvents: typeOfItem === 'event',
+        historyBtn: showHistoryButton && typeOfItem === 'event',
         upBtn: onUpClick && upDownSee,
         downBtn: onDownClick && upDownSee,
         editBtn: showEditButton && canManageItem,
-        cloneBtn: typeOfItem !== 'user' && typeOfItem !== 'tariff',
+        cloneBtn:
+          showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
         showOnSiteBtn: showOnSiteOnClick,
-        statusBtn: typeOfItem !== 'client',
+        statusBtn:
+          showStatusButton &&
+          typeOfItem !== 'client' &&
+          typeOfItem !== 'service',
         deleteBtn:
           showDeleteButton && canManageItem && item.status !== 'closed',
         userEvents: typeOfItem === 'client',
@@ -171,6 +256,33 @@ const CardButtons = ({
 
   const items = (
     <>
+      {isEventEditTabsMenu && show.editBtn && (
+        <ItemComponent
+          icon={faPencilAlt}
+          onClick={() => {
+            if (onEdit) onEdit()
+            else modalsFunc[typeOfItem].edit(item._id)
+          }}
+          color="orange"
+          tooltipText="Редактирование"
+        />
+      )}
+      {isEventEditTabsMenu && show.editClientContacts && (
+        <ItemComponent
+          icon={faUser}
+          onClick={() => onEditClientContacts?.()}
+          color="blue"
+          tooltipText="Клиент и контакты"
+        />
+      )}
+      {isEventEditTabsMenu && show.editFinanceDocs && (
+        <ItemComponent
+          icon={faMoneyBill}
+          onClick={() => onEditFinanceDocs?.()}
+          color="green"
+          tooltipText="Финансы и документы"
+        />
+      )}
       {show.copyId && (
         <ItemComponent
           icon={faCode}
@@ -241,6 +353,18 @@ const CardButtons = ({
           tooltipText="Открыть в календаре"
         />
       )}
+      {show.additionalEvents && (
+        <ItemComponent
+          icon={faCalendarAlt}
+          onClick={() => {
+            if (onAdditionalEvents) onAdditionalEvents()
+            else modalsFunc.event?.additionalEvents?.(item._id)
+          }}
+          color="blue"
+          tooltipText="Доп. события"
+          badges={additionalEventsBadges}
+        />
+      )}
       {show.historyBtn && (
         <ItemComponent
           icon={faClockRotateLeft}
@@ -249,7 +373,7 @@ const CardButtons = ({
           tooltipText="История изменений"
         />
       )}
-      {show.editBtn && (
+      {!isEventEditTabsMenu && show.editBtn && (
         <ItemComponent
           icon={faPencilAlt}
           onClick={() => {
@@ -257,7 +381,23 @@ const CardButtons = ({
             else modalsFunc[typeOfItem].edit(item._id)
           }}
           color="orange"
-          tooltipText="Редактировать"
+          tooltipText={isEventEditTabsMenu ? 'Редактирование' : 'Редактировать'}
+        />
+      )}
+      {!isEventEditTabsMenu && show.editClientContacts && (
+        <ItemComponent
+          icon={faUser}
+          onClick={() => onEditClientContacts?.()}
+          color="blue"
+          tooltipText="Клиент и контакты"
+        />
+      )}
+      {!isEventEditTabsMenu && show.editFinanceDocs && (
+        <ItemComponent
+          icon={faMoneyBill}
+          onClick={() => onEditFinanceDocs?.()}
+          color="green"
+          tooltipText="Финансы и документы"
         />
       )}
       {show.cloneBtn && (
