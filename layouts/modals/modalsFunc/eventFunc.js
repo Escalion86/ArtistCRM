@@ -19,16 +19,12 @@ import {
 import { getEventStatusButtonClasses } from '@helpers/eventStatusStyles'
 import TabContext from '@components/Tabs/TabContext'
 import TabPanel from '@components/Tabs/TabPanel'
-import transactionsAtom from '@state/atoms/transactionsAtom'
-import eventsAtom from '@state/atoms/eventsAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import { postData } from '@helpers/CRUD'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import useErrors from '@helpers/useErrors'
-import clientsAtom from '@state/atoms/clientsAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { modalsFuncAtom } from '@state/atoms'
-import eventSelector from '@state/selectors/eventSelector'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import Input from '@components/Input'
@@ -51,7 +47,12 @@ import { getContractTemplateVariablesMap } from '@helpers/generateContractTempla
 import { getActTemplateVariablesMap } from '@helpers/generateActTemplate'
 import exportDocxFromTemplate from '@helpers/exportDocxFromTemplate'
 import getPersonFullName from '@helpers/getPersonFullName'
-import { useDeleteTransactionMutation } from '@helpers/useTransactionsQuery'
+import {
+  useDeleteTransactionMutation,
+  useTransactionsQuery,
+} from '@helpers/useTransactionsQuery'
+import { useClientsQuery } from '@helpers/useClientsQuery'
+import { useEventQuery, useEventsQuery } from '@helpers/useEventsQuery'
 
 const normalizeAddressValue = (rawAddress) => {
   const normalized = { ...DEFAULT_ADDRESS }
@@ -169,10 +170,10 @@ const eventFunc = (
     setDisableDecline,
     setComponentInFooter,
   }) => {
-    const event = useAtomValue(eventSelector(eventId))
+    const { data: event } = useEventQuery(eventId)
     const itemsFunc = useAtomValue(itemsFuncAtom)
     const setEvent = itemsFunc?.event?.set
-    const clients = useAtomValue(clientsAtom)
+    const { data: clients = [] } = useClientsQuery()
     const loggedUser = useAtomValue(loggedUserAtom)
     const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
     const colleagues = useMemo(
@@ -180,10 +181,16 @@ const eventFunc = (
       [clients]
     )
     const modalsFunc = useAtomValue(modalsFuncAtom)
-    const transactions = useAtomValue(transactionsAtom)
+    const { data: transactions = [] } = useTransactionsQuery(undefined, {
+      enabled: false,
+    })
     const tariffs = useAtomValue(tariffsAtom)
     const services = useAtomValue(servicesAtom)
-    const events = useAtomValue(eventsAtom)
+    const { data: eventsPayload } = useEventsQuery({
+      scope: 'all',
+      enabled: false,
+    })
+    const events = eventsPayload?.data ?? []
     const deleteTransactionMutation = useDeleteTransactionMutation()
     const closeModalRef = useRef(closeModal)
 
@@ -1324,7 +1331,7 @@ const eventFunc = (
 
       const ContractTemplatePreview = () => {
         const liveSiteSettings = useAtomValue(siteSettingsAtom)
-        const liveClients = useAtomValue(clientsAtom)
+        const { data: liveClients = [] } = useClientsQuery()
         const [contractNumber, setContractNumber] = useState(
           String(nextDefaultNumber)
         )
@@ -1465,7 +1472,7 @@ const eventFunc = (
 
       const ActTemplatePreview = () => {
         const liveSiteSettings = useAtomValue(siteSettingsAtom)
-        const liveClients = useAtomValue(clientsAtom)
+        const { data: liveClients = [] } = useClientsQuery()
         const [actNumber, setActNumber] = useState(String(nextDefaultNumber))
         const [actDate, setActDate] = useState(defaultActDate)
         const liveSelectedClient = useMemo(

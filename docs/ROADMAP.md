@@ -108,7 +108,7 @@
 - [x] OPT-T6 Перевести события на React Query: `eventsUpcoming`, `eventsPast`, `event(id)`, lazy past pagination
 - [x] OPT-T7 Перевести клиентов на React Query и добавить ленивую загрузку событий/транзакций клиента
 - [x] OPT-T8 Вынести статистику в server endpoint `/api/statistics` с фильтрами и кешированием
-- [ ] OPT-T9 Убрать серверные коллекции из глобальных Jotai-атомов, оставив Jotai для UI state
+- [-] OPT-T9 Убрать серверные коллекции из глобальных Jotai-атомов, оставив Jotai для UI state
 - [ ] OPT-T10 Добавить измерения payload/render performance для кабинета
 
 ---
@@ -256,3 +256,5 @@
 - 2026-04-27: завершен OPT-T6 — события переведены на React Query слой для списков, `event(id)`, lazy past pagination и CRUD/status mutations с синхронизацией query-cache и текущего Jotai-моста.
 - 2026-04-27: завершен OPT-T7 — клиенты переведены на React Query для списка и CRUD, добавлена ленивая догрузка событий/транзакций клиента при открытии клиентских модалок.
 - 2026-04-27: завершен OPT-T8 — добавлен защищенный `/api/statistics` с фильтрами `year/town/status`, private cache headers и React Query загрузкой данных на экране статистики.
+- 2026-04-27: начат OPT-T9 — `ClientsContent`, `TransactionsContent`, клиентские модалки и экран статистики переведены на чтение из React Query cache вместо прямого чтения серверных коллекций из Jotai; Jotai оставлен как временный мост для старых event-сценариев.
+- 2026-04-27: продолжен OPT-T9 — `clientsAtom`/`transactionsAtom` убраны из `layouts/content`, `layouts/cards` и `layouts/modals/modalsFunc`; event-сценарии читают клиентов/транзакции через React Query cache, атомы остались только в bridge/selectors слое.

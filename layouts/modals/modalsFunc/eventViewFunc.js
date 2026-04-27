@@ -12,15 +12,15 @@ import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromTex
 import getEventDuration from '@helpers/getEventDuration'
 import getPersonFullName from '@helpers/getPersonFullName'
 import Image from 'next/image'
-import eventSelector from '@state/selectors/eventSelector'
 import sanitizeHtml from '@helpers/sanitizeHtml'
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
-import clientsAtom from '@state/atoms/clientsAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
+import { useClientsQuery } from '@helpers/useClientsQuery'
+import { useEventQuery } from '@helpers/useEventsQuery'
 
 const EVENT_STATUS_META = Object.freeze({
   draft: {
@@ -91,9 +91,9 @@ const eventViewFunc = (eventId) => {
     setDisableDecline,
     setTopLeftComponent,
   }) => {
-    const event = useAtomValue(eventSelector(eventId))
+    const { data: event } = useEventQuery(eventId)
     const services = useAtomValue(servicesAtom)
-    const clients = useAtomValue(clientsAtom)
+    const { data: clients = [] } = useClientsQuery()
     const siteSettings = useAtomValue(siteSettingsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const itemsFunc = useAtomValue(itemsFuncAtom)

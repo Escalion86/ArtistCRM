@@ -9,11 +9,12 @@ import transactionsAtom from '@state/atoms/transactionsAtom'
 const normalizeTransactionsPayload = (payload) =>
   Array.isArray(payload?.data) ? payload.data : []
 
-export const useTransactionsQuery = (initialData) =>
+export const useTransactionsQuery = (initialData, options = {}) =>
   useQuery({
     queryKey: queryKeys.transactionsAll,
     queryFn: async () => normalizeTransactionsPayload(await apiJson('/api/transactions')),
     initialData,
+    ...options,
   })
 
 const upsertTransaction = (items, transaction) => {

@@ -10,9 +10,6 @@ import TransactionTypeToggleButtons from '@components/IconToggleButtons/Transact
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import TransactionCard from '@layouts/cards/TransactionCard'
-import transactionsAtom from '@state/atoms/transactionsAtom'
-import clientsAtom from '@state/atoms/clientsAtom'
-import eventsAtom from '@state/atoms/eventsAtom'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
 import { TRANSACTION_TYPES } from '@helpers/constants'
@@ -24,15 +21,19 @@ import {
   useDeleteTransactionMutation,
   useTransactionsQuery,
 } from '@helpers/useTransactionsQuery'
+import { useClientsQuery } from '@helpers/useClientsQuery'
+import { useEventsQuery } from '@helpers/useEventsQuery'
 
 const TransactionsContent = () => {
   const { isCompact } = useUiDensity()
-  const initialTransactions = useAtomValue(transactionsAtom)
-  const { data: transactions = initialTransactions } =
-    useTransactionsQuery(initialTransactions)
+  const { data: transactions = [] } = useTransactionsQuery()
   const deleteTransactionMutation = useDeleteTransactionMutation()
-  const clients = useAtomValue(clientsAtom)
-  const events = useAtomValue(eventsAtom)
+  const { data: clients = [] } = useClientsQuery()
+  const { data: eventsPayload } = useEventsQuery({
+    scope: 'all',
+    enabled: false,
+  })
+  const events = eventsPayload?.data ?? []
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const [typeFilter, setTypeFilter] = useState({
     income: true,

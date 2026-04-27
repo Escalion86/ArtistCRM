@@ -15,11 +15,11 @@ import {
   getUpcomingEventsByDays,
 } from '@helpers/additionalEvents'
 import { modalsFuncAtom } from '@state/atoms'
-import eventsAtom from '@state/atoms/eventsAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 import { useAtomValue } from 'jotai'
 import { useMemo, useState } from 'react'
+import { useEventsQuery } from '@helpers/useEventsQuery'
+import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 
 const SEGMENT_META = {
   overdue: {
@@ -74,8 +74,14 @@ const toDateTimeLocalValue = (value) => {
 
 const upcomingEventsOverviewFunc = () => {
   const UpcomingEventsOverviewModal = ({ closeModal }) => {
-    const events = useAtomValue(eventsAtom)
-    const transactions = useAtomValue(transactionsAtom)
+    const { data: eventsPayload } = useEventsQuery({
+      scope: 'upcoming',
+      enabled: false,
+    })
+    const events = eventsPayload?.data ?? []
+    const { data: transactions = [] } = useTransactionsQuery(undefined, {
+      enabled: false,
+    })
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const itemsFunc = useAtomValue(itemsFuncAtom)
     const [customDates, setCustomDates] = useState({})

@@ -11,9 +11,6 @@ import {
   TRANSACTION_PAYMENT_METHODS,
   TRANSACTION_TYPES,
 } from '@helpers/constants'
-import clientsAtom from '@state/atoms/clientsAtom'
-import eventsAtom from '@state/atoms/eventsAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useAtomValue } from 'jotai'
@@ -22,8 +19,11 @@ import errorAtom from '@state/atoms/errorAtom'
 import { setAtomValue } from '@state/storeHelpers'
 import {
   useCreateTransactionMutation,
+  useTransactionsQuery,
   useUpdateTransactionMutation,
 } from '@helpers/useTransactionsQuery'
+import { useClientsQuery } from '@helpers/useClientsQuery'
+import { useEventsQuery } from '@helpers/useEventsQuery'
 
 const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
   const TransactionModal = ({
@@ -32,10 +32,16 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
     setOnShowOnCloseConfirmDialog,
     setDisableConfirm,
   }) => {
-    const clients = useAtomValue(clientsAtom)
-    const events = useAtomValue(eventsAtom)
+    const { data: clients = [] } = useClientsQuery()
+    const { data: eventsPayload } = useEventsQuery({
+      scope: 'all',
+      enabled: false,
+    })
+    const events = eventsPayload?.data ?? []
     const modalsFunc = useAtomValue(modalsFuncAtom)
-    const transactions = useAtomValue(transactionsAtom)
+    const { data: transactions = [] } = useTransactionsQuery(undefined, {
+      enabled: false,
+    })
     const createTransactionMutation = useCreateTransactionMutation()
     const updateTransactionMutation = useUpdateTransactionMutation()
 

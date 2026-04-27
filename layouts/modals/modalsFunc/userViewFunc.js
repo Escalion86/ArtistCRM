@@ -9,9 +9,9 @@ import formatDate from '@helpers/formatDate'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 import userSelector from '@state/selectors/userSelector'
 import tariffsAtom from '@state/atoms/tariffsAtom'
-import eventsAtom from '@state/atoms/eventsAtom'
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
+import { useEventsQuery } from '@helpers/useEventsQuery'
 
 const CardButtonsComponent = ({ user }) => (
   <CardButtons
@@ -33,7 +33,11 @@ const userViewFunc = (userId, params = {}) => {
 
     const user = useAtomValue(userSelector(userId))
     const tariffs = useAtomValue(tariffsAtom)
-    const events = useAtomValue(eventsAtom)
+    const { data: eventsPayload } = useEventsQuery({
+      scope: 'all',
+      enabled: false,
+    })
+    const events = eventsPayload?.data ?? []
 
     useEffect(() => {
       if (!user) closeModal()

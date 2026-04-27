@@ -1,14 +1,15 @@
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
-import clientSelector from '@state/selectors/clientSelector'
-import eventsAtom from '@state/atoms/eventsAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import SurfaceCard from '@components/SurfaceCard'
 import getPersonFullName from '@helpers/getPersonFullName'
-import { useClientRelationsQuery } from '@helpers/useClientsQuery'
+import {
+  useClientQuery,
+  useClientRelationsQuery,
+  useClientsQuery,
+} from '@helpers/useClientsQuery'
 
 const SectionBlock = ({ title, action, children }) => (
   <SurfaceCard>
@@ -33,11 +34,22 @@ const CardButtonsComponent = ({ client, onEdit }) => (
 
 const clientViewFunc = (clientId) => {
   const ClientViewModal = ({ setTopLeftComponent }) => {
-    const client = useAtomValue(clientSelector(clientId))
-    const events = useAtomValue(eventsAtom)
-    const transactions = useAtomValue(transactionsAtom)
+    const { data: clients = [] } = useClientsQuery()
+    const initialClient = useMemo(
+      () => clients.find((item) => item._id === clientId) ?? null,
+      [clients]
+    )
+    const { data: client = initialClient } = useClientQuery(
+      clientId,
+      initialClient
+    )
     const modalsFunc = useAtomValue(modalsFuncAtom)
-    useClientRelationsQuery(clientId)
+    const { data: relations } = useClientRelationsQuery(clientId)
+    const events = useMemo(() => relations?.events ?? [], [relations?.events])
+    const transactions = useMemo(
+      () => relations?.transactions ?? [],
+      [relations?.transactions]
+    )
 
     const now = new Date()
     const startOfToday = new Date(

@@ -1,14 +1,14 @@
 import Input from '@components/Input'
 import getPersonFullName from '@helpers/getPersonFullName'
-import clientsAtom from '@state/atoms/clientsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useState } from 'react'
 import { useAtomValue } from 'jotai'
+import { useClientsQuery } from '@helpers/useClientsQuery'
 
 const clientSelectFunc = (onSelect, title = 'Выбор клиента', options = {}) => {
   const { clientTypes } = options
   const ClientSelectModal = ({ closeModal }) => {
-    const clients = useAtomValue(clientsAtom)
+    const { data: clients = [] } = useClientsQuery()
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const [search, setSearch] = useState('')
 

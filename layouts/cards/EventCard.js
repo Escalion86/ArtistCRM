@@ -8,9 +8,6 @@ import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
 import { modalsFuncAtom } from '@state/atoms'
-import transactionsAtom from '@state/atoms/transactionsAtom'
-import eventSelector from '@state/selectors/eventSelector'
-import clientSelector from '@state/selectors/clientSelector'
 import servicesAtom from '@state/atoms/servicesAtom'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
@@ -35,6 +32,9 @@ import { getSoonNoDepositEvents } from '@helpers/additionalEvents'
 import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getPersonFullName from '@helpers/getPersonFullName'
 import { isEventCreatedViaPublicApi } from '@helpers/eventSource'
+import { useClientsQuery } from '@helpers/useClientsQuery'
+import { useEventQuery } from '@helpers/useEventsQuery'
+import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 
 const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
 
@@ -45,10 +45,23 @@ const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
 //   return text.slice(0, markerIndex).trim()
 // }
 
-const EventCard = ({ eventId, style }) => {
-  const event = useAtomValue(eventSelector(eventId))
-  const client = useAtomValue(clientSelector(event?.clientId))
-  const transactions = useAtomValue(transactionsAtom)
+const EventCard = ({
+  eventId,
+  style,
+  event: eventProp,
+  transactions: transactionsProp,
+}) => {
+  const { data: cachedEvent } = useEventQuery(eventId, eventProp)
+  const event = eventProp ?? cachedEvent
+  const { data: clients = [] } = useClientsQuery()
+  const client = useMemo(
+    () => clients.find((item) => item._id === event?.clientId) ?? null,
+    [clients, event?.clientId]
+  )
+  const { data: cachedTransactions = [] } = useTransactionsQuery(undefined, {
+    enabled: false,
+  })
+  const transactions = transactionsProp ?? cachedTransactions
   const services = useAtomValue(servicesAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loading = useAtomValue(loadingAtom('event' + eventId))
@@ -124,10 +137,10 @@ const EventCard = ({ eventId, style }) => {
       }
     }, [event, transactions])
 
-  const eventStart = event.eventDate ? new Date(event.eventDate) : null
-  const eventEnd = event.dateEnd ? new Date(event.dateEnd) : eventStart
+  const eventStart = event?.eventDate ? new Date(event.eventDate) : null
+  const eventEnd = event?.dateEnd ? new Date(event.dateEnd) : eventStart
   const now = new Date()
-  const eventDateLabel = event.eventDate
+  const eventDateLabel = event?.eventDate
     ? `${formatDate(event.eventDate, false, true)} ${new Date(
         event.eventDate
       ).toLocaleTimeString('ru-RU', {

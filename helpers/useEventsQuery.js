@@ -68,7 +68,12 @@ const deleteEventFromQueries = (queryClient, eventId) => {
   })
 }
 
-export const useEventsQuery = ({ scope, initialData, initialMeta } = {}) =>
+export const useEventsQuery = ({
+  scope,
+  initialData,
+  initialMeta,
+  ...options
+} = {}) =>
   useQuery({
     queryKey: queryKeys.events({ scope: scope || 'all' }),
     queryFn: async () =>
@@ -80,6 +85,7 @@ export const useEventsQuery = ({ scope, initialData, initialMeta } = {}) =>
       data: Array.isArray(initialData) ? initialData : [],
       meta: initialMeta ?? {},
     },
+    ...options,
   })
 
 export const useEventQuery = (eventId, initialData) =>

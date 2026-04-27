@@ -1,20 +1,30 @@
 import { useMemo } from 'react'
 import { useAtomValue } from 'jotai'
-import clientSelector from '@state/selectors/clientSelector'
-import eventsAtom from '@state/atoms/eventsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import formatDate from '@helpers/formatDate'
 import formatDateTime from '@helpers/formatDateTime'
 import getPersonFullName from '@helpers/getPersonFullName'
 import Button from '@components/Button'
-import { useClientRelationsQuery } from '@helpers/useClientsQuery'
+import {
+  useClientQuery,
+  useClientRelationsQuery,
+  useClientsQuery,
+} from '@helpers/useClientsQuery'
 
 const clientEventsFunc = (clientId) => {
   const ClientEventsModal = () => {
-    const client = useAtomValue(clientSelector(clientId))
-    const events = useAtomValue(eventsAtom)
+    const { data: clients = [] } = useClientsQuery()
+    const initialClient = useMemo(
+      () => clients.find((item) => item._id === clientId) ?? null,
+      [clients]
+    )
+    const { data: client = initialClient } = useClientQuery(
+      clientId,
+      initialClient
+    )
     const modalsFunc = useAtomValue(modalsFuncAtom)
-    useClientRelationsQuery(clientId)
+    const { data: relations } = useClientRelationsQuery(clientId)
+    const events = useMemo(() => relations?.events ?? [], [relations?.events])
 
     const clientRequests = useMemo(
       () =>

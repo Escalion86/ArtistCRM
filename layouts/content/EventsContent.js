@@ -12,7 +12,6 @@ import EventStatusToggleButtons from '@components/IconToggleButtons/EventStatusT
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import eventsAtom from '@state/atoms/eventsAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 // import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { modalsFuncAtom, modalsAtom } from '@state/atoms'
@@ -35,6 +34,7 @@ import {
   useEventsQuery,
   useLoadMorePastEventsMutation,
 } from '@helpers/useEventsQuery'
+import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 
 const getStatusFilterDefaults = (filter) => {
   if (filter === 'upcoming') {
@@ -143,7 +143,9 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   })
   const events = initialEvents
   const loadMorePastEventsMutation = useLoadMorePastEventsMutation()
-  const transactions = useAtomValue(transactionsAtom)
+  const { data: transactions = [] } = useTransactionsQuery(undefined, {
+    enabled: false,
+  })
   // const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const modals = useAtomValue(modalsAtom)
@@ -887,6 +889,8 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 <EventCard
                   key={`month-day-event-${event._id}`}
                   eventId={event._id}
+                  event={event}
+                  transactions={transactions}
                 />
               ))}
             </>
@@ -947,7 +951,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         Children: DayEventsModal,
       })
     },
-    [eventsById, modalsFunc, monthItemsByDay]
+    [eventsById, modalsFunc, monthItemsByDay, transactions]
   )
 
   useEffect(() => {
@@ -981,7 +985,9 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       return (
         <EventCard
           eventId={event._id}
+          event={event}
           style={{ ...style, padding: '6px 8px' }}
+          transactions={transactions}
         />
       )
     },
@@ -990,6 +996,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       pastLoadingMore,
       sortedEvents,
       handleLoadMorePast,
+      transactions,
     ]
   )
 

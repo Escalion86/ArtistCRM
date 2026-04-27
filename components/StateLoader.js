@@ -141,24 +141,35 @@ const StateLoader = (props) => {
     setTariffsState(props.tariffs ?? [])
     setUsersState(props.users ?? [])
     setSiteSettingsState(props.siteSettings)
+    const eventsScope =
+      props.eventsPaging?.scope && props.eventsPaging.scope !== 'none'
+        ? props.eventsPaging.scope
+        : props.page === 'eventsUpcoming'
+          ? 'upcoming'
+          : props.page === 'eventsPast'
+            ? 'past'
+            : 'all'
+    const eventsQueryPayload = {
+      data: props.events ?? [],
+      meta: props.eventsPaging ?? {},
+    }
     queryClient.setQueryData(
-      queryKeys.events({
-        scope:
-          props.eventsPaging?.scope && props.eventsPaging.scope !== 'none'
-            ? props.eventsPaging.scope
-            : props.page === 'eventsUpcoming'
-              ? 'upcoming'
-              : props.page === 'eventsPast'
-                ? 'past'
-                : 'all',
-      }),
-      {
-        data: props.events ?? [],
-        meta: props.eventsPaging ?? {},
-      }
+      queryKeys.events({ scope: eventsScope }),
+      eventsQueryPayload
     )
+    queryClient.setQueryData(queryKeys.events({ scope: 'all' }), eventsQueryPayload)
+    ;(props.events ?? []).forEach((event) => {
+      if (event?._id) queryClient.setQueryData(queryKeys.event(event._id), event)
+    })
     queryClient.setQueryData(queryKeys.clients(), props.clients ?? [])
     queryClient.setQueryData(queryKeys.transactionsAll, props.transactions ?? [])
+    queryClient.setQueryData(queryKeys.statistics(), {
+      events: props.events ?? [],
+      clients: props.clients ?? [],
+      services: props.services ?? [],
+      transactions: props.transactions ?? [],
+      filters: {},
+    })
     setIsSiteLoading(false)
   }, [
     props.clients,

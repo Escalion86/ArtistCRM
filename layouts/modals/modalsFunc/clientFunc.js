@@ -12,12 +12,11 @@ import {
   normalizeVkInput,
 } from '@helpers/socialInput'
 import useErrors from '@helpers/useErrors'
-import clientSelector from '@state/selectors/clientSelector'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
-import clientsAtom from '@state/atoms/clientsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
+import { useClientQuery, useClientsQuery } from '@helpers/useClientsQuery'
 
 const clientFunc = (clientId, clone = false, onSuccess) => {
   const ClientModal = ({
@@ -28,9 +27,16 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     setDisableConfirm,
     setDisableDecline,
   }) => {
-    const client = useAtomValue(clientSelector(clientId))
+    const { data: clients = [] } = useClientsQuery()
+    const initialClient = useMemo(
+      () => clients.find((item) => item._id === clientId) ?? null,
+      [clients]
+    )
+    const { data: client = initialClient } = useClientQuery(
+      clientId,
+      initialClient
+    )
     const setClient = useAtomValue(itemsFuncAtom).client.set
-    const clients = useAtomValue(clientsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
 
     const [firstName, setFirstName] = useState(

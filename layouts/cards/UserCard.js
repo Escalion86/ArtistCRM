@@ -13,9 +13,9 @@ import errorAtom from '@state/atoms/errorAtom'
 import userSelector from '@state/selectors/userSelector'
 import { useAtomValue } from 'jotai'
 import tariffsAtom from '@state/atoms/tariffsAtom'
-import eventsAtom from '@state/atoms/eventsAtom'
 import formatDate from '@helpers/formatDate'
 import CardWrapper from '@components/CardWrapper'
+import { useEventsQuery } from '@helpers/useEventsQuery'
 
 const UserCard = ({ userId, hidden = false, style }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -23,7 +23,11 @@ const UserCard = ({ userId, hidden = false, style }) => {
   const loading = useAtomValue(loadingAtom('user' + userId))
   const error = useAtomValue(errorAtom('user' + userId))
   const tariffs = useAtomValue(tariffsAtom)
-  const events = useAtomValue(eventsAtom)
+  const { data: eventsPayload } = useEventsQuery({
+    scope: 'all',
+    enabled: false,
+  })
+  const events = eventsPayload?.data ?? []
   // const widthNum = useWindowDimensionsTailwindNum()
   // const itemFunc = useAtomValue(itemsFuncAtom)
 

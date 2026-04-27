@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { useAtomValue } from 'jotai'
-import eventSelector from '@state/selectors/eventSelector'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import SurfaceCard from '@components/SurfaceCard'
@@ -11,10 +10,11 @@ import { faCircleCheck, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
+import { useEventQuery } from '@helpers/useEventsQuery'
 
 const eventAdditionalEventsFunc = (eventId) => {
   const EventAdditionalEventsModal = () => {
-    const event = useAtomValue(eventSelector(eventId))
+    const { data: event } = useEventQuery(eventId)
     const itemsFunc = useAtomValue(itemsFuncAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
 

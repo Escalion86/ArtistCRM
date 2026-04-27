@@ -12,8 +12,8 @@ import { eventKeys } from './historyKeyValuesItems/keys'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import dateToDateTimeStr from '@helpers/dateToDateTimeStr'
-import eventSelector from '@state/selectors/eventSelector'
 import formatAddress from '@helpers/formatAddress'
+import { useEventQuery } from '@helpers/useEventsQuery'
 
 const eventHistoryFunc = (eventId) => {
   const EventHistoryModal = ({
@@ -26,7 +26,7 @@ const eventHistoryFunc = (eventId) => {
     setTopLeftComponent,
   }) => {
     const modalsFunc = useAtomValue(modalsFuncAtom)
-    const event = useAtomValue(eventSelector(eventId))
+    const { data: event } = useEventQuery(eventId)
     const [eventHistory, setEventHistory] = useState()
     const setEvent = useAtomValue(itemsFuncAtom).event.set
     const hasEvent = Boolean(event && eventId)

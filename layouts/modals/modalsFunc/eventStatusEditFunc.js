@@ -4,8 +4,6 @@ import Input from '@components/Input'
 import { DEFAULT_EVENT } from '@helpers/constants'
 // import isEventExpiredFunc from '@helpers/isEventExpired'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
-import eventSelector from '@state/selectors/eventSelector'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 // import expectedIncomeOfEventSelector from '@state/selectors/expectedIncomeOfEventSelector'
@@ -13,6 +11,8 @@ import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
+import { useEventQuery } from '@helpers/useEventsQuery'
+import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 
 const normalizeCancelReasons = (list = []) =>
   Array.from(
@@ -33,10 +33,12 @@ const eventStatusEditFunc = (eventId) => {
     setDisableDecline,
     setTopLeftComponent,
   }) => {
-    const event = useAtomValue(eventSelector(eventId))
+    const { data: event } = useEventQuery(eventId)
     const setEvent = useAtomValue(itemsFuncAtom).event.set
     const modalsFunc = useAtomValue(modalsFuncAtom)
-    const transactions = useAtomValue(transactionsAtom)
+    const { data: transactions = [] } = useTransactionsQuery(undefined, {
+      enabled: false,
+    })
     const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
     // const isEventExpired = isEventExpiredFunc(event)
 

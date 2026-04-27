@@ -3,23 +3,20 @@ import { useMemo, useState, useCallback } from 'react'
 import { List } from 'react-window'
 import TransactionTypeToggleButtons from '@components/IconToggleButtons/TransactionTypeToggleButtons'
 import TransactionCard from '@layouts/cards/TransactionCard'
-import transactionsAtom from '@state/atoms/transactionsAtom'
-import eventsAtom from '@state/atoms/eventsAtom'
-import clientsAtom from '@state/atoms/clientsAtom'
 import { TRANSACTION_TYPES } from '@helpers/constants'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
-import { useClientRelationsQuery } from '@helpers/useClientsQuery'
+import { useClientRelationsQuery, useClientsQuery } from '@helpers/useClientsQuery'
 
 const ITEM_HEIGHT = 120
 
 const clientTransactionsFunc = (clientId) => {
   const ClientTransactionsModal = () => {
-    const transactions = useAtomValue(transactionsAtom)
-    const events = useAtomValue(eventsAtom)
-    const clients = useAtomValue(clientsAtom)
+    const { data: clients = [] } = useClientsQuery()
     const modalsFunc = useAtomValue(modalsFuncAtom)
-    useClientRelationsQuery(clientId)
+    const { data: relations } = useClientRelationsQuery(clientId)
+    const transactions = relations?.transactions ?? []
+    const events = relations?.events ?? []
     const [typeFilter, setTypeFilter] = useState({
       income: true,
       expense: true,

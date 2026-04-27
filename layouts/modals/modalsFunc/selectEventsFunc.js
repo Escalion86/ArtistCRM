@@ -6,10 +6,9 @@ import eventStatusFunc from '@helpers/eventStatus'
 import isObject from '@helpers/isObject'
 import sortFunctions from '@helpers/sortFunctions'
 import ListWrapper from '@layouts/lists/ListWrapper'
-import eventsAtom from '@state/atoms/eventsAtom'
 import formatAddress from '@helpers/formatAddress'
 import { useCallback, useEffect, useState } from 'react'
-import { useAtomValue } from 'jotai'
+import { useEventsQuery } from '@helpers/useEventsQuery'
 
 const selectEventsFunc = (
   state,
@@ -31,7 +30,11 @@ const selectEventsFunc = (
     setDisableDecline,
     setComponentInFooter,
   }) => {
-    const events = useAtomValue(eventsAtom)
+    const { data: eventsPayload } = useEventsQuery({
+      scope: 'all',
+      enabled: false,
+    })
+    const events = eventsPayload?.data ?? []
     const [selectedEvents, setSelectedEvents] = useState(
       isObject(state)
         ? state.filter((item) => typeof item === 'string' && item !== '')
