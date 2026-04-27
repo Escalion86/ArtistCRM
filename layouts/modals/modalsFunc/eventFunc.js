@@ -22,7 +22,7 @@ import TabPanel from '@components/Tabs/TabPanel'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
-import { deleteData, postData } from '@helpers/CRUD'
+import { postData } from '@helpers/CRUD'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import useErrors from '@helpers/useErrors'
 import clientsAtom from '@state/atoms/clientsAtom'
@@ -30,7 +30,7 @@ import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import eventSelector from '@state/selectors/eventSelector'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue } from 'jotai'
 import Input from '@components/Input'
 import ComboBox from '@components/ComboBox'
 import AppButton from '@components/AppButton'
@@ -51,6 +51,7 @@ import { getContractTemplateVariablesMap } from '@helpers/generateContractTempla
 import { getActTemplateVariablesMap } from '@helpers/generateActTemplate'
 import exportDocxFromTemplate from '@helpers/exportDocxFromTemplate'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { useDeleteTransactionMutation } from '@helpers/useTransactionsQuery'
 
 const normalizeAddressValue = (rawAddress) => {
   const normalized = { ...DEFAULT_ADDRESS }
@@ -183,7 +184,7 @@ const eventFunc = (
     const tariffs = useAtomValue(tariffsAtom)
     const services = useAtomValue(servicesAtom)
     const events = useAtomValue(eventsAtom)
-    const setTransactions = useSetAtom(transactionsAtom)
+    const deleteTransactionMutation = useDeleteTransactionMutation()
     const closeModalRef = useRef(closeModal)
 
     const initialIsTransferred =
@@ -1122,10 +1123,9 @@ const eventFunc = (
         onConfirm: async () => {
           setFinanceError('')
           setFinanceLoading(true)
-          const response = await deleteData(`/api/transactions/${id}`)
-          if (response !== null) {
-            setTransactions((prev) => prev.filter((item) => item._id !== id))
-          } else {
+          try {
+            await deleteTransactionMutation.mutateAsync(id)
+          } catch (error) {
             setFinanceError('Не удалось удалить транзакцию')
           }
           setFinanceLoading(false)
@@ -1264,6 +1264,10 @@ const eventFunc = (
     const openTransactionModal = (transactionId) => {
       if (clone) {
         setFinanceError('В копии транзакции недоступны до сохранения')
+        return
+      }
+      if (isFormChanged) {
+        setFinanceError('Сначала сохраните изменения мероприятия')
         return
       }
       if (isDraft) {
@@ -2025,6 +2029,7 @@ const eventFunc = (
                     disabled={
                       isDraft ||
                       clone ||
+                      isFormChanged ||
                       financeLoading ||
                       !sourceEventId ||
                       !clientId

@@ -6,6 +6,14 @@ import authOptions from '../../api/auth/[...nextauth]/_options'
 
 export const dynamic = 'force-dynamic'
 
+export const metadata = {
+  title: 'Кабинет ArtistCRM',
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
+
 const normalizeCabinetProps = (input, sessionUser, page) => {
   const source = input && typeof input === 'object' ? input : {}
   return {

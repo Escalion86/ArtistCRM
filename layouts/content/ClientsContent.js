@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import AddIconButton from '@components/AddIconButton'
@@ -12,21 +12,29 @@ import SectionCard from '@components/SectionCard'
 import ClientCard from '@layouts/cards/ClientCard'
 import clientsAtom from '@state/atoms/clientsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
-import { useAtomValue } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
 import useUiDensity from '@helpers/useUiDensity'
+import { useClientsQuery } from '@helpers/useClientsQuery'
 
 const normalizeDigits = (value) =>
   String(value ?? '').replace(/[^\d]/g, '')
 
 const ClientsContent = () => {
   const { isCompact } = useUiDensity()
-  const clients = useAtomValue(clientsAtom)
+  const initialClients = useAtomValue(clientsAtom)
+  const setClients = useSetAtom(clientsAtom)
+  const clientsQuery = useClientsQuery(initialClients)
+  const clients = clientsQuery.data ?? initialClients
   const events = useAtomValue(eventsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
 
   const [search, setSearch] = useState('')
   const itemHeight = isCompact ? 122 : 140
+
+  useEffect(() => {
+    if (Array.isArray(clientsQuery.data)) setClients(clientsQuery.data)
+  }, [clientsQuery.data, setClients])
 
   const clientsWithStats = useMemo(() => {
     const lowerSearch = search.trim().toLowerCase()

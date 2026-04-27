@@ -15,6 +15,7 @@ import ModalsPortal from '@layouts/modals/ModalsPortal'
 import isSiteLoadingAtom from '@state/atoms/isSiteLoadingAtom'
 import cn from 'classnames'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { useWindowDimensionsRecoil } from '@helpers/useWindowDimensions'
 import { modalsFuncAtom } from '@state/atoms'
 import modalsFuncGenerator from '@layouts/modals/modalsFuncGenerator'
@@ -36,6 +37,9 @@ import {
   shiftServerSyncQueue,
 } from '@helpers/serverSyncQueue'
 import { sendClientLog } from '@helpers/clientLog'
+import { queryKeys } from '@helpers/queryKeys'
+import { useEventActions } from '@helpers/useEventsQuery'
+import { useClientActions } from '@helpers/useClientsQuery'
 
 const StateLoader = (props) => {
   if (props.error && Object.keys(props.error).length > 0)
@@ -44,6 +48,7 @@ const StateLoader = (props) => {
   const snackbar = useSnackbar()
 
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const [modalFunc, setModalsFunc] = useAtom(modalsFuncAtom)
 
@@ -70,6 +75,8 @@ const StateLoader = (props) => {
 
   const setItemsFunc = useSetAtom(itemsFuncAtom)
   const serverSyncDisabled = resolveServerSyncDisabled(siteSettingsState)
+  const eventActions = useEventActions()
+  const clientActions = useClientActions()
 
   useWindowDimensionsRecoil()
 
@@ -100,6 +107,8 @@ const StateLoader = (props) => {
   useEffect(() => {
     const itemsFunc = itemsFuncGenerator(snackbar, loggedUser, {
       disableServerSync: serverSyncDisabled,
+      eventActions,
+      clientActions,
     })
     setItemsFunc(itemsFunc)
     setModalsFunc(
@@ -114,6 +123,8 @@ const StateLoader = (props) => {
     )
   }, [
     loggedUser,
+    clientActions,
+    eventActions,
     router,
     serverSyncDisabled,
     setItemsFunc,
@@ -130,16 +141,37 @@ const StateLoader = (props) => {
     setTariffsState(props.tariffs ?? [])
     setUsersState(props.users ?? [])
     setSiteSettingsState(props.siteSettings)
+    queryClient.setQueryData(
+      queryKeys.events({
+        scope:
+          props.eventsPaging?.scope && props.eventsPaging.scope !== 'none'
+            ? props.eventsPaging.scope
+            : props.page === 'eventsUpcoming'
+              ? 'upcoming'
+              : props.page === 'eventsPast'
+                ? 'past'
+                : 'all',
+      }),
+      {
+        data: props.events ?? [],
+        meta: props.eventsPaging ?? {},
+      }
+    )
+    queryClient.setQueryData(queryKeys.clients(), props.clients ?? [])
+    queryClient.setQueryData(queryKeys.transactionsAll, props.transactions ?? [])
     setIsSiteLoading(false)
   }, [
     props.clients,
     props.events,
+    props.eventsPaging,
     props.loggedUser,
+    props.page,
     props.siteSettings,
     props.services,
     props.tariffs,
     props.transactions,
     props.users,
+    queryClient,
     setClientsState,
     setEventsState,
     setIsSiteLoading,

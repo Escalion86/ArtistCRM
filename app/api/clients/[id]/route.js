@@ -5,6 +5,25 @@ import Transactions from '@models/Transactions'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 
+export const GET = async (req, { params }) => {
+  const { id } = await params
+  const { tenantId } = await getTenantContext()
+  if (!tenantId) {
+    return NextResponse.json(
+      { success: false, error: 'Не авторизован' },
+      { status: 401 }
+    )
+  }
+  await dbConnect()
+  const client = await Clients.findOne({ _id: id, tenantId }).lean()
+  if (!client)
+    return NextResponse.json(
+      { success: false, error: 'Клиент не найден' },
+      { status: 404 }
+    )
+  return NextResponse.json({ success: true, data: client }, { status: 200 })
+}
+
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()

@@ -22,6 +22,7 @@ import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { useRouter } from 'next/navigation'
 import formatAddress from '@helpers/formatAddress'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { useStatisticsQuery } from '@helpers/useStatisticsQuery'
 
 const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
 const ALL_TOWNS_OPTION = 'Все города'
@@ -69,11 +70,24 @@ const StatisticsContent = () => {
   const servicesRaw = useAtomValue(servicesAtom)
   const tariffsRaw = useAtomValue(tariffsAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
+  const statisticsQuery = useStatisticsQuery({
+    transactions: transactionsRaw,
+    events: eventsRaw,
+    clients: clientsRaw,
+    services: servicesRaw,
+  })
+  const statisticsData = statisticsQuery.data ?? {}
 
-  const transactions = Array.isArray(transactionsRaw) ? transactionsRaw : []
-  const events = Array.isArray(eventsRaw) ? eventsRaw : []
-  const clients = Array.isArray(clientsRaw) ? clientsRaw : []
-  const services = Array.isArray(servicesRaw) ? servicesRaw : []
+  const transactions = Array.isArray(statisticsData.transactions)
+    ? statisticsData.transactions
+    : []
+  const events = Array.isArray(statisticsData.events) ? statisticsData.events : []
+  const clients = Array.isArray(statisticsData.clients)
+    ? statisticsData.clients
+    : []
+  const services = Array.isArray(statisticsData.services)
+    ? statisticsData.services
+    : []
   const tariffs = Array.isArray(tariffsRaw) ? tariffsRaw : []
   const requests = useMemo(
     () => events.filter((event) => event?.status === 'draft'),

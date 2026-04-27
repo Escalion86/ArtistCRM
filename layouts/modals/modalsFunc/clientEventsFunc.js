@@ -7,12 +7,14 @@ import formatDate from '@helpers/formatDate'
 import formatDateTime from '@helpers/formatDateTime'
 import getPersonFullName from '@helpers/getPersonFullName'
 import Button from '@components/Button'
+import { useClientRelationsQuery } from '@helpers/useClientsQuery'
 
 const clientEventsFunc = (clientId) => {
   const ClientEventsModal = () => {
     const client = useAtomValue(clientSelector(clientId))
     const events = useAtomValue(eventsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
+    useClientRelationsQuery(clientId)
 
     const clientRequests = useMemo(
       () =>

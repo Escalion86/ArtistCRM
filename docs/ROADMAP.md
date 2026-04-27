@@ -86,12 +86,38 @@
 - [ ] M1-T8 Beta релиз (TestFlight/Android Internal Testing) и сбор обратной связи
 - [ ] M1-T9 Offline outbox: локальное создание/редактирование заявок без сети + авто-синхронизация
 
+### SEO Track: Яндекс и Google
+
+- [x] SEO-T1 Техническая индексация: убрать служебные страницы из sitemap и добавить `noindex` для входа/кабинета/редиректов
+- [ ] SEO-T2 Подключить и настроить Яндекс Вебмастер и Google Search Console
+- [ ] SEO-T3 Проверить production canonical/host через `DOMAIN`, HTTPS, редиректы www/non-www и slash-версии
+- [x] SEO-T4 Собрать семантическое ядро под артистов, ведущих, музыкантов, мероприятия, заявки, оплаты и договоры
+- [x] SEO-T5 Создать посадочные страницы: `crm-dlya-artistov`, `crm-dlya-vedushchih`, `crm-dlya-muzykantov`, `crm-dlya-tilda-zayavok`, `crm-s-google-calendar`
+- [ ] SEO-T6 Добавить OG-изображение 1200x630 и улучшить сниппеты для соцсетей/мессенджеров
+- [x] SEO-T7 Настроить стабильный `lastModified` в sitemap по фактическим изменениям контента
+- [ ] SEO-T8 Добавить SEO-метрики в регулярную проверку: индекс, позиции, CTR, Core Web Vitals, заявки из органики
+- [ ] SEO-T9 Оптимизировать публичную главную под Lighthouse mobile: LCP, CLS, размер JS/CSS, шрифты и изображения
+
+### Optimization Track: server state и загрузка данных
+
+- [x] OPT-T1 Подключить TanStack Query и базовый `QueryClientProvider`
+- [x] OPT-T2 Ввести единые query keys и API helper для server state
+- [x] OPT-T3 Перевести список транзакций на React Query с временной синхронизацией в Jotai
+- [x] OPT-T4 Перевести создание/редактирование/удаление транзакций на React Query mutations во всех точках UI
+- [x] OPT-T5 Разделить `fetchProps` на page-specific payloads: события, клиенты, транзакции, пользователи только по необходимости
+- [x] OPT-T6 Перевести события на React Query: `eventsUpcoming`, `eventsPast`, `event(id)`, lazy past pagination
+- [x] OPT-T7 Перевести клиентов на React Query и добавить ленивую загрузку событий/транзакций клиента
+- [x] OPT-T8 Вынести статистику в server endpoint `/api/statistics` с фильтрами и кешированием
+- [ ] OPT-T9 Убрать серверные коллекции из глобальных Jotai-атомов, оставив Jotai для UI state
+- [ ] OPT-T10 Добавить измерения payload/render performance для кабинета
+
 ---
 
 ## Backlog (приоритизация Impact/Effort)
 
 ### P0
 
+- [ ] SEO: посадочные страницы и индексация для Яндекс/Google
 - [ ] Просроченные доп. события + быстрый перенос
 - [ ] Напоминание `задаток не получен`
 - [ ] Финансовые типы транзакций (задаток/налог/комиссии)
@@ -168,10 +194,11 @@
 
 ## Следующие шаги (ближайшие)
 
-1. Расширить напоминания: добавить push-канал (PWA/mobile) для правил `за 1 день` и `после просрочки`.
-2. Параллельно продолжить Mobile Track с M1-T1 и M1-T2, чтобы не откладывать push-уведомления и mobile-first сценарии.
-3. Усилить offline-трек: добавить статус/конфликты по элементам очереди и ретраи с backoff.
-4. Укрепить безопасность авторизации: аудит rate-limit/anti-abuse для входа через внешние провайдеры.
+1. Продолжить SEO Track: подключить Яндекс Вебмастер/Google Search Console и собрать семантическое ядро для посадочных страниц.
+2. Расширить напоминания: добавить push-канал (PWA/mobile) для правил `за 1 день` и `после просрочки`.
+3. Параллельно продолжить Mobile Track с M1-T1 и M1-T2, чтобы не откладывать push-уведомления и mobile-first сценарии.
+4. Усилить offline-трек: добавить статус/конфликты по элементам очереди и ретраи с backoff.
+5. Укрепить безопасность авторизации: аудит rate-limit/anti-abuse для входа через внешние провайдеры.
 
 ---
 
@@ -222,3 +249,10 @@
 - 2026-03-16: завершен E3-T8 — в `Предстоящих`/`Прошедших` добавлен календарный month-view с переключением `Список/Месяц`, навигацией по месяцам и отображением мероприятий + доп. событий по дням.
 - 2026-03-21: завершен E3-T10 — добавлены web push уведомления для установленного PWA по входящим API-заявкам: backend подписок (`/api/push/public-key|subscribe|unsubscribe|test`), отправка push из `POST /api/public/lead` и `POST /api/public/lead/tilda`, UI-управление в `Интеграции`, custom service worker handlers (`push`/`notificationclick`).
 - 2026-03-21: завершен E3-T11 — добавлен cron endpoint `POST /api/push/reminders/additional-events` для push-напоминаний по `additionalEvents` (сегменты `tomorrow`/`overdue`) и модель дедупликации отправок `PushReminderLogs`.
+- 2026-04-27: добавлен SEO Track для Яндекс/Google; завершен SEO-T1 — служебные страницы убраны из sitemap и закрыты от индексации через metadata robots.
+- 2026-04-27: завершены SEO-T4/SEO-T5/SEO-T7 — добавлено семантическое ядро, созданы первые посадочные страницы и sitemap переведен на стабильный `lastModified`.
+- 2026-04-27: добавлен Optimization Track; завершены OPT-T1/OPT-T2/OPT-T3 — подключен TanStack Query, добавлены query keys/API helper и список транзакций переведен на query-cache с мостом к текущему Jotai.
+- 2026-04-27: завершены OPT-T4/OPT-T5 — CRUD транзакций переведен на React Query mutations, `fetchProps` разделен на page-specific payloads с ограниченной загрузкой событий/клиентов/транзакций/сервисов/пользователей.
+- 2026-04-27: завершен OPT-T6 — события переведены на React Query слой для списков, `event(id)`, lazy past pagination и CRUD/status mutations с синхронизацией query-cache и текущего Jotai-моста.
+- 2026-04-27: завершен OPT-T7 — клиенты переведены на React Query для списка и CRUD, добавлена ленивая догрузка событий/транзакций клиента при открытии клиентских модалок.
+- 2026-04-27: завершен OPT-T8 — добавлен защищенный `/api/statistics` с фильтрами `year/town/status`, private cache headers и React Query загрузкой данных на экране статистики.

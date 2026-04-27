@@ -1,31 +1,32 @@
-const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
-const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
-const normalizedSiteUrl = siteUrl.replace(/\/$/, '')
+import {
+  SEO_LAST_MODIFIED,
+  normalizedSiteUrl,
+  seoLandingSlugs,
+} from '@helpers/seoLandingPages'
 
 export default function sitemap() {
-  const now = new Date()
   return [
     {
       url: `${normalizedSiteUrl}/`,
-      lastModified: now,
+      lastModified: SEO_LAST_MODIFIED,
       changeFrequency: 'weekly',
       priority: 1,
     },
-    {
-      url: `${normalizedSiteUrl}/login`,
-      lastModified: now,
+    ...seoLandingSlugs.map((slug) => ({
+      url: `${normalizedSiteUrl}/${slug}`,
+      lastModified: SEO_LAST_MODIFIED,
       changeFrequency: 'monthly',
-      priority: 0.8,
-    },
+      priority: 0.85,
+    })),
     {
       url: `${normalizedSiteUrl}/privacy`,
-      lastModified: now,
+      lastModified: SEO_LAST_MODIFIED,
       changeFrequency: 'yearly',
       priority: 0.4,
     },
     {
       url: `${normalizedSiteUrl}/terms`,
-      lastModified: now,
+      lastModified: SEO_LAST_MODIFIED,
       changeFrequency: 'yearly',
       priority: 0.4,
     },

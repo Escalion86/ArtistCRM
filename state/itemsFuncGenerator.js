@@ -235,6 +235,8 @@ const itemsFuncGenerator = (
   ]
 ) => {
   const disableServerSync = Boolean(options?.disableServerSync)
+  const eventActions = options?.eventActions
+  const clientActions = options?.clientActions
   const {
     setLoadingCard,
     setNotLoadingCard,
@@ -269,6 +271,46 @@ const itemsFuncGenerator = (
               snackbar.success(message)
             }
             return localItem
+          }
+
+          const serverActions =
+            itemName === 'event'
+              ? eventActions
+              : itemName === 'client'
+                ? clientActions
+                : null
+
+          if (serverActions?.set) {
+            const isUpdate = Boolean(item?._id && !clone)
+            if (isUpdate) setLoadingCard(itemName + item._id)
+            try {
+              const data = await serverActions.set(item, clone)
+              if (isUpdate) setNotLoadingCard(itemName + item._id)
+              if (!noSnackbar) {
+                const message = isUpdate
+                  ? messages[itemName]?.update?.success
+                  : messages[itemName]?.add?.success
+                if (message) snackbar.success(message)
+              }
+              return data
+            } catch (error) {
+              if (!noSnackbar) {
+                const message = isUpdate
+                  ? messages[itemName]?.update?.error
+                  : messages[itemName]?.add?.error
+                if (message) snackbar.error(buildErrorToast(message, error))
+              }
+              setErrorCard(itemName + item?._id)
+              const data = {
+                errorPlace: isUpdate ? 'UPDATE ERROR' : 'CREATE ERROR',
+                itemName,
+                item,
+                error,
+              }
+              addErrorModal(data)
+              console.log(data)
+              return null
+            }
           }
 
           if (item?._id && !clone) {
@@ -341,6 +383,38 @@ const itemsFuncGenerator = (
               snackbar.success(`${messages[itemName].delete.success} (локально)`)
             return true
           }
+          const serverActions =
+            itemName === 'event'
+              ? eventActions
+              : itemName === 'client'
+                ? clientActions
+                : null
+
+          if (serverActions?.delete) {
+            setLoadingCard(itemName + itemId)
+            try {
+              await serverActions.delete(itemId)
+              setNotLoadingCard(itemName + itemId)
+              if (messages[itemName]?.delete?.success)
+                snackbar.success(messages[itemName].delete.success)
+              return true
+            } catch (error) {
+              if (messages[itemName]?.delete?.error)
+                snackbar.error(
+                  buildErrorToast(messages[itemName].delete.error, error)
+                )
+              setErrorCard(itemName + itemId)
+              const data = {
+                errorPlace: 'DELETE ERROR',
+                itemName,
+                itemId,
+                error,
+              }
+              addErrorModal(data)
+              console.log(data)
+              return false
+            }
+          }
           setLoadingCard(itemName + itemId)
           return await deleteData(
             `/api/${itemName.toLowerCase()}s/${itemId}`,
@@ -390,6 +464,21 @@ const itemsFuncGenerator = (
     }
 
     setLoadingCard('event' + eventId)
+    if (eventActions?.updateStatus) {
+      try {
+        const data = await eventActions.updateStatus(eventId, 'canceled')
+        snackbar.success('Мероприятие отменено')
+        setNotLoadingCard('event' + eventId)
+        return data
+      } catch (error) {
+        snackbar.error(buildErrorToast('Не удалось отменить мероприятие', error))
+        setErrorCard('event' + eventId)
+        const data = { errorPlace: 'EVENT CANCEL ERROR', eventId, error }
+        addErrorModal(data)
+        console.log(data)
+        return null
+      }
+    }
     return await putData(
       `/api/events/${eventId}`,
       { status: 'canceled' },
@@ -427,6 +516,21 @@ const itemsFuncGenerator = (
     }
 
     setLoadingCard('event' + eventId)
+    if (eventActions?.updateStatus) {
+      try {
+        const data = await eventActions.updateStatus(eventId, 'closed')
+        snackbar.success('Мероприятие закрыто')
+        setNotLoadingCard('event' + eventId)
+        return data
+      } catch (error) {
+        snackbar.error(buildErrorToast('Не удалось закрыть мероприятие', error))
+        setErrorCard('event' + eventId)
+        const data = { errorPlace: 'EVENT CLOSE ERROR', eventId, error }
+        addErrorModal(data)
+        console.log(data)
+        return null
+      }
+    }
     return await putData(
       `/api/events/${eventId}`,
       { status: 'closed' },
@@ -483,6 +587,23 @@ const itemsFuncGenerator = (
     }
 
     setLoadingCard('event' + eventId)
+    if (eventActions?.updateStatus) {
+      try {
+        const data = await eventActions.updateStatus(eventId, 'active')
+        snackbar.success('Мероприятие активировано')
+        setNotLoadingCard('event' + eventId)
+        return data
+      } catch (error) {
+        snackbar.error(
+          buildErrorToast('Не удалось активировать мероприятие', error)
+        )
+        setErrorCard('event' + eventId)
+        const data = { errorPlace: 'EVENT ACTIVE ERROR', eventId, error }
+        addErrorModal(data)
+        console.log(data)
+        return null
+      }
+    }
     return await putData(
       `/api/events/${eventId}`,
       { status: 'active' },

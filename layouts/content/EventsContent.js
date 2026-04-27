@@ -31,6 +31,10 @@ import useUiDensity from '@helpers/useUiDensity'
 import { getData } from '@helpers/CRUD'
 import { DAYS_OF_WEEK } from '@helpers/constants'
 import { isEventCreatedViaPublicApi } from '@helpers/eventSource'
+import {
+  useEventsQuery,
+  useLoadMorePastEventsMutation,
+} from '@helpers/useEventsQuery'
 
 const getStatusFilterDefaults = (filter) => {
   if (filter === 'upcoming') {
@@ -128,8 +132,17 @@ const getValidDateTime = (value) => {
 
 const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const { isCompact } = useUiDensity()
-  const events = useAtomValue(eventsAtom)
+  const initialEvents = useAtomValue(eventsAtom)
   const setEvents = useSetAtom(eventsAtom)
+  const eventsScope =
+    filter === 'upcoming' ? 'upcoming' : filter === 'past' ? 'past' : 'all'
+  const { data: eventsPayload } = useEventsQuery({
+    scope: eventsScope,
+    initialData: initialEvents,
+    initialMeta: eventsPaging ?? {},
+  })
+  const events = initialEvents
+  const loadMorePastEventsMutation = useLoadMorePastEventsMutation()
   const transactions = useAtomValue(transactionsAtom)
   // const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -161,6 +174,11 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const noDepositReminderShownRef = useRef(false)
   const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
   const itemHeight = isCompact ? 152 : 170
+
+  useEffect(() => {
+    if (!Array.isArray(eventsPayload?.data)) return
+    setEvents(eventsPayload.data)
+  }, [eventsPayload?.data, setEvents])
 
   useEffect(() => {
     if (filter !== 'past') {
@@ -698,28 +716,12 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     if (pastLoadingMore || !pastHasMore) return
     setPastLoadingMore(true)
     try {
-      const query = pastNextBefore
-        ? `?scope=past&limit=120&before=${encodeURIComponent(pastNextBefore)}`
-        : '?scope=past&limit=120'
-      const response = await getData(
-        `/api/events${query}`,
-        null,
-        null,
-        null,
-        true
-      )
+      const response = await loadMorePastEventsMutation.mutateAsync({
+        before: pastNextBefore,
+        limit: 120,
+      })
       const loadedItems = Array.isArray(response?.data) ? response.data : []
       const nextMeta = response?.meta ?? {}
-
-      if (loadedItems.length > 0) {
-        setEvents((prev) => {
-          const prevIds = new Set((prev ?? []).map((item) => String(item?._id)))
-          const uniqueNew = loadedItems.filter(
-            (item) => !prevIds.has(String(item?._id))
-          )
-          return uniqueNew.length > 0 ? [...(prev ?? []), ...uniqueNew] : prev ?? []
-        })
-      }
 
       setPastHasMore(Boolean(nextMeta?.hasMore))
       setPastNextBefore(nextMeta?.nextBefore || null)
@@ -727,7 +729,12 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     } finally {
       setPastLoadingMore(false)
     }
-  }, [pastHasMore, pastLoadingMore, pastNextBefore, setEvents])
+  }, [
+    loadMorePastEventsMutation,
+    pastHasMore,
+    pastLoadingMore,
+    pastNextBefore,
+  ])
 
   const monthTitle = useMemo(
     () =>

@@ -5,6 +5,14 @@ import EventRedirectClient from './EventRedirectClient'
 
 export const runtime = 'nodejs'
 
+export const metadata = {
+  title: 'Переход к мероприятию',
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
+
 const getTargetPage = (eventDate) => {
   if (!eventDate?.eventDate && !eventDate?.dateEnd) return 'eventsUpcoming'
   const now = new Date()

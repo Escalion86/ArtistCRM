@@ -9,6 +9,7 @@ import clientsAtom from '@state/atoms/clientsAtom'
 import { TRANSACTION_TYPES } from '@helpers/constants'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
+import { useClientRelationsQuery } from '@helpers/useClientsQuery'
 
 const ITEM_HEIGHT = 120
 
@@ -18,6 +19,7 @@ const clientTransactionsFunc = (clientId) => {
     const events = useAtomValue(eventsAtom)
     const clients = useAtomValue(clientsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
+    useClientRelationsQuery(clientId)
     const [typeFilter, setTypeFilter] = useState({
       income: true,
       expense: true,

@@ -73,6 +73,50 @@ const ensureLegacyTenantBackfill = async (tenantObjectId) => {
 }
 
 const PAST_EVENTS_INITIAL_LIMIT = 120
+const USER_LIST_PAGES = new Set(['users', 'profile', 'questionnaire', 'dev'])
+const EVENTS_PAYLOAD_PAGES = new Set([
+  'eventsUpcoming',
+  'eventsPast',
+  'events',
+  'clients',
+  'transactions',
+  'statistics',
+  'dev',
+])
+const CLIENTS_PAYLOAD_PAGES = new Set([
+  'eventsUpcoming',
+  'eventsPast',
+  'events',
+  'clients',
+  'transactions',
+  'statistics',
+  'dev',
+])
+const TRANSACTIONS_PAYLOAD_PAGES = new Set([
+  'eventsUpcoming',
+  'eventsPast',
+  'events',
+  'clients',
+  'transactions',
+  'statistics',
+  'dev',
+])
+const FULL_TRANSACTIONS_PAGES = new Set([
+  'clients',
+  'transactions',
+  'statistics',
+  'dev',
+])
+const SERVICES_PAYLOAD_PAGES = new Set([
+  'eventsUpcoming',
+  'eventsPast',
+  'events',
+  'clients',
+  'services',
+  'transactions',
+  'statistics',
+  'dev',
+])
 
 const buildPastCompletionQuery = (cutoffDate) => ({
   $or: [
@@ -105,6 +149,19 @@ const buildUpcomingCompletionQuery = (nowDate) => ({
 })
 
 const buildEventsPayload = async (tenantId, page) => {
+  if (!EVENTS_PAYLOAD_PAGES.has(page)) {
+    return {
+      events: [],
+      paging: {
+        scope: 'none',
+        hasMore: false,
+        nextBefore: null,
+        limit: 0,
+        totalCount: 0,
+      },
+    }
+  }
+
   const now = new Date()
 
   if (page === 'eventsPast') {
@@ -191,30 +248,59 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
     await ensureLegacyTenantBackfill(tenantObjectId)
 
     const canManageAllUsers = ['dev', 'admin'].includes(user?.role)
+    const shouldFetchUsers = USER_LIST_PAGES.has(page)
+    const shouldFetchClients = CLIENTS_PAYLOAD_PAGES.has(page)
+    const shouldFetchTransactions = TRANSACTIONS_PAYLOAD_PAGES.has(page)
+    const shouldFetchServices = SERVICES_PAYLOAD_PAGES.has(page)
     const usersQuery = canManageAllUsers ? {} : { tenantId }
 
     const [
       eventsPayload,
-      clients,
       siteSettings,
-      transactions,
-      services,
       tariffs,
       users,
       loggedUser,
     ] = await Promise.all([
       buildEventsPayload(tenantId, page),
-      Clients.find({ tenantId }).select('-password').lean(),
       SiteSettings.findOne({ tenantId }).lean(),
-      Transactions.find({ tenantId }).lean(),
-      Services.find({ tenantId }).lean(),
       Tariffs.find({}).sort({ price: 1, title: 1 }).lean(),
-      Users.find(usersQuery).select('-password').lean(),
+      shouldFetchUsers
+        ? Users.find(usersQuery).select('-password').lean()
+        : Promise.resolve([]),
       user?._id ? Users.findById(user._id).select('-password').lean() : null,
     ])
 
+    const eventIds = (eventsPayload.events ?? [])
+      .map((event) => event?._id)
+      .filter(Boolean)
+    const transactionsQuery =
+      shouldFetchTransactions && !FULL_TRANSACTIONS_PAGES.has(page)
+        ? eventIds.length > 0
+          ? { tenantId, eventId: { $in: eventIds } }
+          : null
+        : { tenantId }
+
+    const [clients, transactions, services] = await Promise.all([
+      shouldFetchClients
+        ? Clients.find({ tenantId }).select('-password').lean()
+        : Promise.resolve([]),
+      shouldFetchTransactions && transactionsQuery
+        ? Transactions.find(transactionsQuery).lean()
+        : Promise.resolve([]),
+      shouldFetchServices
+        ? Services.find({ tenantId }).lean()
+        : Promise.resolve([]),
+    ])
+
+    const safeLoggedUser = loggedUser ?? user ?? null
+    const usersPayload = shouldFetchUsers
+      ? users
+      : safeLoggedUser
+        ? [safeLoggedUser]
+        : []
+
     const fetchResult = {
-      loggedUser: JSON.parse(JSON.stringify(loggedUser ?? user ?? null)),
+      loggedUser: JSON.parse(JSON.stringify(safeLoggedUser)),
       clients: JSON.parse(JSON.stringify(clients)),
       events: JSON.parse(JSON.stringify(eventsPayload.events)),
       eventsPaging: JSON.parse(JSON.stringify(eventsPayload.paging)),
@@ -224,7 +310,7 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
       transactions: JSON.parse(JSON.stringify(transactions)),
       services: JSON.parse(JSON.stringify(services)),
       tariffs: JSON.parse(JSON.stringify(tariffs)),
-      users: JSON.parse(JSON.stringify(users)),
+      users: JSON.parse(JSON.stringify(usersPayload)),
       serverSettings: JSON.parse(
         JSON.stringify({
           dateTime: serverDateTime,

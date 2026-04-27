@@ -45,6 +45,24 @@ const buildPastCompletionQuery = (cutoffDate) => ({
   ],
 })
 
+const buildUpcomingCompletionQuery = (nowDate) => ({
+  $or: [
+    { dateEnd: { $gte: nowDate } },
+    {
+      $and: [
+        { $or: [{ dateEnd: null }, { dateEnd: { $exists: false } }] },
+        { eventDate: { $gte: nowDate } },
+      ],
+    },
+    {
+      $and: [
+        { $or: [{ dateEnd: null }, { dateEnd: { $exists: false } }] },
+        { $or: [{ eventDate: null }, { eventDate: { $exists: false } }] },
+      ],
+    },
+  ],
+})
+
 const getPastAdditionalEventsMatch = (segment, now) => {
   if (!segment) return null
 
@@ -91,6 +109,27 @@ export const GET = async (req) => {
     const before = searchParams.get('before')
     const limit = parsePositiveInt(searchParams.get('limit'), 120)
     const countOnly = searchParams.get('countOnly') === '1'
+    const clientId = (searchParams.get('clientId') || '').trim()
+
+    if (clientId) {
+      const events = await Events.find({ tenantId, clientId })
+        .sort({ eventDate: -1, createdAt: -1 })
+        .lean()
+      return NextResponse.json(
+        {
+          success: true,
+          data: events,
+          meta: {
+            hasMore: false,
+            nextBefore: null,
+            limit: 0,
+            scope: 'client',
+            totalCount: events.length,
+          },
+        },
+        { status: 200 }
+      )
+    }
 
     if (scope === 'past') {
       const now = new Date()
@@ -218,6 +257,32 @@ export const GET = async (req) => {
             limit,
             scope: 'past',
             totalCount,
+          },
+        },
+        { status: 200 }
+      )
+    }
+
+    if (scope === 'upcoming') {
+      const now = new Date()
+      const query = {
+        tenantId,
+        ...buildUpcomingCompletionQuery(now),
+      }
+      const events = await Events.find(query)
+        .sort({ eventDate: -1, createdAt: -1 })
+        .lean()
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: events,
+          meta: {
+            hasMore: false,
+            nextBefore: null,
+            limit: 0,
+            scope: 'upcoming',
+            totalCount: events.length,
           },
         },
         { status: 200 }

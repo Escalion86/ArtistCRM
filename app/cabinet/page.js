@@ -4,6 +4,14 @@ import authOptions from '../api/auth/[...nextauth]/_options'
 
 export const dynamic = 'force-dynamic'
 
+export const metadata = {
+  title: 'Кабинет ArtistCRM',
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
+
 export default async function Cabinet() {
   let session = null
   try {

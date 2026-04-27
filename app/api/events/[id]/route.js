@@ -86,6 +86,28 @@ const getNextStatus = (current, body) => {
   return current
 }
 
+export const GET = async (req, { params }) => {
+  const { id } = await params
+  const { tenantId, user } = await getTenantContext()
+  if (!tenantId || !user?._id) {
+    return NextResponse.json(
+      { success: false, error: 'Не авторизован' },
+      { status: 401 }
+    )
+  }
+
+  await dbConnect()
+  const event = await Events.findOne({ _id: id, tenantId }).lean()
+  if (!event) {
+    return NextResponse.json(
+      { success: false, error: 'Мероприятие не найдено' },
+      { status: 404 }
+    )
+  }
+
+  return NextResponse.json({ success: true, data: event }, { status: 200 })
+}
+
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
