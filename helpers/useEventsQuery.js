@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSetAtom } from 'jotai'
 import { apiJson } from '@helpers/apiClient'
+import { reachGoalOnce } from '@helpers/metrikaGoals'
 import { queryKeys } from '@helpers/queryKeys'
 import eventsAtom from '@state/atoms/eventsAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
@@ -164,9 +165,19 @@ export const useEventActions = () => {
       })
       return payload?.data
     },
-    onSuccess: (event) => {
+    onSuccess: (event, variables) => {
       setEventInQueries(queryClient, event)
       setEvents((prev) => replaceEventById(prev, event))
+      const isCreate = !variables?.item?._id || variables?.clone
+      if (!isCreate) return
+      if (event?.status === 'draft') {
+        reachGoalOnce('first_request_created', { eventId: event._id })
+      } else {
+        reachGoalOnce('first_event_created', {
+          eventId: event?._id,
+          status: event?.status,
+        })
+      }
     },
   })
 

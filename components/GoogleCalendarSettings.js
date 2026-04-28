@@ -6,6 +6,7 @@ import AddIconButton from '@components/AddIconButton'
 import IconActionButton from '@components/IconActionButton'
 import { toNormalizedNumber } from '@helpers/numberInput'
 import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
+import { reachGoalOnce } from '@helpers/metrikaGoals'
 
 const DEFAULT_CALENDAR_REMINDERS = Object.freeze({
   useDefault: false,
@@ -158,6 +159,15 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
   }
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('gc_connected') === '1') {
+      reachGoalOnce('calendar_connected')
+      params.delete('gc_connected')
+      const query = params.toString()
+      const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
+      window.history.replaceState(null, '', nextUrl)
+    }
+
     const timer = window.setTimeout(() => {
       loadCalendarStatus()
     }, 0)

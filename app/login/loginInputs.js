@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { signIn } from 'next-auth/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Input from '@components/Input'
+import { reachGoal, reachGoalOnce } from '@helpers/metrikaGoals'
 
 const normalizePhone = (value) => {
   if (!value) return ''
@@ -108,6 +109,7 @@ function validate_login(
         }
         alert('Неверный телефон или пароль')
       } else {
+        reachGoal('login_success', { method: 'credentials' })
         window.location.replace('/cabinet')
       }
     })
@@ -421,6 +423,7 @@ const LoginInputs = () => {
       })
 
       if (signInResult?.error) {
+        reachGoalOnce('registration_success', { method: 'phone' })
         alert('Регистрация успешна. Войдите в кабинет.')
         setRegisterPhone(null)
         setRegisterPassword('')
@@ -432,6 +435,7 @@ const LoginInputs = () => {
         return
       }
 
+      reachGoalOnce('registration_success', { method: 'phone' })
       window.location.replace('/cabinet')
     } catch (error) {
       alert('Не удалось зарегистрироваться')
@@ -685,6 +689,7 @@ const LoginInputs = () => {
                 redirect: false,
               })
               if (result?.error) throw new Error(result.error)
+              reachGoal('login_success', { method: 'vkid' })
               window.location.replace('/cabinet')
             } catch (error) {
               console.error('[VK One Tap] auth error', error)
@@ -1014,7 +1019,10 @@ const LoginInputs = () => {
             <button
               type="button"
               className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
-              onClick={() => setMode('register')}
+              onClick={() => {
+                reachGoal('registration_start')
+                setMode('register')
+              }}
             >
               Создать аккаунт
             </button>

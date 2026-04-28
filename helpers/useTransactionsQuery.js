@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSetAtom } from 'jotai'
 import { apiJson } from '@helpers/apiClient'
+import { reachGoal } from '@helpers/metrikaGoals'
 import { queryKeys } from '@helpers/queryKeys'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 
@@ -42,6 +43,11 @@ export const useCreateTransactionMutation = () => {
         upsertTransaction(prev, transaction)
       )
       setTransactions((prev) => upsertTransaction(prev, transaction))
+      reachGoal('transaction_created', {
+        transactionId: transaction._id,
+        type: transaction.type,
+        category: transaction.category,
+      })
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })

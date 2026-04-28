@@ -107,7 +107,9 @@ export const GET = async (req) => {
 
   await existing.save()
 
-  const response = NextResponse.redirect(new URL(redirect, baseUrl))
+  const redirectUrl = new URL(redirect, baseUrl)
+  redirectUrl.searchParams.set('gc_connected', '1')
+  const response = NextResponse.redirect(redirectUrl)
   response.cookies.delete('gc_oauth_state')
   return response
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ContentHeader from '@components/ContentHeader'
 import Button from '@components/Button'
 import EmptyState from '@components/EmptyState'
@@ -14,6 +14,7 @@ import modalsFuncAtom from '@state/atoms/modalsFuncAtom'
 import { useAtom, useAtomValue } from 'jotai'
 import { useRouter } from 'next/navigation'
 import useSnackbar from '@helpers/useSnackbar'
+import { reachGoal } from '@helpers/metrikaGoals'
 
 const formatPrice = (price) => {
   if (!price || Number(price) === 0) return 'Бесплатно'
@@ -36,6 +37,10 @@ const TariffSelectContent = () => {
   const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    reachGoal('tariff_page_open')
+  }, [])
 
   const addMonths = (date, count) => {
     const next = new Date(date)
@@ -97,6 +102,13 @@ const TariffSelectContent = () => {
     const hasPaidTariff = Number.isFinite(currentPrice) && currentPrice > 0
     const isTargetFree = !Number.isFinite(price) || price <= 0
     const isTargetPaid = Number.isFinite(price) && price > 0
+    if (isTargetPaid) {
+      reachGoal('payment_intent', {
+        tariffId,
+        price,
+        balance,
+      })
+    }
     const now = new Date()
     const activeUntil = loggedUser?.tariffActiveUntil
       ? new Date(loggedUser.tariffActiveUntil)
