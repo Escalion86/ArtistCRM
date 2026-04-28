@@ -20,6 +20,9 @@ export const metadata = {
     'CRM-система для артистов: заявки, мероприятия, финансы, договоры и напоминания.',
   applicationName: 'ArtistCRM',
   manifest: '/manifest.json',
+  verification: {
+    yandex: 'f559d6455245a7c5',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
