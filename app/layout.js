@@ -11,7 +11,12 @@ import AppSnackbarProvider from '@components/AppSnackbarProvider'
 import AppQueryProvider from '@components/AppQueryProvider'
 import Script from 'next/script'
 
+const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
+const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
+const normalizedSiteUrl = siteUrl.replace(/\/$/, '')
+
 export const metadata = {
+  metadataBase: new URL(normalizedSiteUrl),
   title: 'ArtistCRM — CRM для артистов',
   description:
     'CRM-система для артистов: заявки, мероприятия, финансы, договоры и напоминания.',

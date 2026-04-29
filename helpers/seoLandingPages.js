@@ -222,7 +222,7 @@ export const seoLandingSlugs = Object.keys(seoLandingPages)
 
 export const buildSeoLandingMetadata = (page) => {
   const url = `${normalizedSiteUrl}/${page.slug}`
-  const imageUrl = `${normalizedSiteUrl}/icons/AppImages/android/android-launchericon-512-512.png`
+  const imageUrl = `${normalizedSiteUrl}/opengraph-image`
 
   return {
     title: page.metaTitle,
@@ -240,8 +240,8 @@ export const buildSeoLandingMetadata = (page) => {
       images: [
         {
           url: imageUrl,
-          width: 512,
-          height: 512,
+          width: 1200,
+          height: 630,
           alt: page.title,
         },
       ],

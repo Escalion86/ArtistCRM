@@ -115,10 +115,22 @@ curl -X POST "https://YOUR_DOMAIN/api/public/lead" \
   "data": {
     "eventId": "65f...",
     "clientId": "65e...",
-    "status": "draft"
+    "status": "draft",
+    "push": {
+      "enabled": true,
+      "sent": 1,
+      "failed": 0,
+      "deactivated": 0,
+      "skippedReason": "",
+      "reason": ""
+    }
   }
 }
 ```
+
+`data.push.skippedReason` помогает диагностировать уведомления:
+`disabled` — push выключен в настройках, `no_active_subscriptions` — нет активной
+браузерной подписки, `notify_error` — ошибка при отправке.
 
 ---
 

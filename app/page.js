@@ -5,15 +5,12 @@ import Tariffs from '@models/Tariffs'
 import { getServerSession } from 'next-auth'
 import authOptions from './api/auth/[...nextauth]/_options'
 import { redirect } from 'next/navigation'
-import ThemeToggleButton from '@components/ThemeToggleButton'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCloudArrowUp } from '@fortawesome/free-solid-svg-icons/faCloudArrowUp'
 
 const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
 const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
 const normalizedSiteUrl = siteUrl.replace(/\/$/, '')
 const homeUrl = `${normalizedSiteUrl}/`
-const ogImageUrl = `${normalizedSiteUrl}/icons/AppImages/android/android-launchericon-512-512.png`
+const ogImageUrl = `${normalizedSiteUrl}/opengraph-image`
 
 export const metadata = {
   title: 'ArtistCRM - CRM для артистов, ведущих и музыкантов',
@@ -41,8 +38,8 @@ export const metadata = {
     images: [
       {
         url: ogImageUrl,
-        width: 512,
-        height: 512,
+        width: 1200,
+        height: 630,
         alt: 'ArtistCRM — CRM для артистов',
       },
     ],
@@ -231,26 +228,11 @@ export default async function HomePage() {
           </p>
           <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-600 landing-reveal">
             <span className="flex items-center gap-2 px-4 py-2 rounded-full shadow-sm home-chip bg-white/80">
-              <FontAwesomeIcon
-                icon={faCloudArrowUp}
-                className="w-4 h-4 text-general"
-              />
-              <span>
-                Все данные сохраняются в облаке и доступны с любого устройства
-              </span>
+              Все данные сохраняются в облаке и доступны с любого устройства
             </span>
-            <div className="flex items-center">
-              <div className="flex items-center gap-3 px-4 py-2 rounded-full shadow-sm home-chip bg-white/80">
-                <span>Светлая / тёмная тема</span>
-                <ThemeToggleButton />
-              </div>
-              <div className="flex text-base font-semibold text-general whitespace-nowrap">
-                <div className="-translate-x-1.5 -translate-y-4 scale-x-250 scale-y-200 rotate-15">
-                  ↶
-                </div>
-                нажми
-              </div>
-            </div>
+            <span className="flex items-center gap-2 px-4 py-2 rounded-full shadow-sm home-chip bg-white/80">
+              Мобильный кабинет для быстрых действий с заявки
+            </span>
           </div>
           <div className="flex flex-wrap items-center gap-4 mt-8 landing-reveal">
             <Link

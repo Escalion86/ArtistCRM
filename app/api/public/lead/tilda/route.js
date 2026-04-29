@@ -206,6 +206,14 @@ export const POST = async (req) => {
       apiKeyData: accessData.apiKeyData,
     })
 
+    let pushStatus = {
+      enabled: pushEnabled,
+      sent: 0,
+      failed: 0,
+      deactivated: 0,
+      skippedReason: pushEnabled ? '' : 'disabled',
+    }
+
     if (pushEnabled) {
       try {
         const pushResult = await notifyApiLeadCreated({
@@ -213,9 +221,21 @@ export const POST = async (req) => {
           event,
           normalizedData: {
             phone: normalized.phone,
-            source: normalized.source,
+            source: accessData?.apiKeyData?.name || normalized.source,
           },
         })
+        pushStatus = {
+          enabled: true,
+          sent: Number(pushResult?.sent || 0),
+          failed: Number(pushResult?.failed || 0),
+          deactivated: Number(pushResult?.deactivated || 0),
+          skippedReason:
+            Number(pushResult?.sent || 0) <= 0 &&
+            Number(pushResult?.failed || 0) <= 0
+              ? 'no_active_subscriptions'
+              : '',
+          reason: pushResult?.reason || '',
+        }
 
         if (
           pushResult &&
@@ -231,7 +251,20 @@ export const POST = async (req) => {
         }
       } catch (error) {
         console.error('public tilda lead push notify error', error)
+        pushStatus = {
+          enabled: true,
+          sent: 0,
+          failed: 1,
+          deactivated: 0,
+          skippedReason: 'notify_error',
+        }
       }
+    } else {
+      console.warn('public tilda lead push skipped', {
+        tenantId: String(tenantId),
+        eventId: String(event?._id || ''),
+        reason: 'disabled',
+      })
     }
 
     return NextResponse.json(
@@ -241,6 +274,7 @@ export const POST = async (req) => {
           eventId: String(event._id),
           clientId: client?._id ? String(client._id) : null,
           status: event.status,
+          push: pushStatus,
         },
       },
       { status: 201, headers: CORS_HEADERS }

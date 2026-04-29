@@ -2,7 +2,6 @@
 
 import { useAtom } from 'jotai'
 import { useCallback, useEffect, useState } from 'react'
-import IconCheckBox from '@components/IconCheckBox'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { postData } from '@helpers/CRUD'
 import useSnackbar from '@helpers/useSnackbar'
@@ -179,6 +178,11 @@ const PushNotificationsSettings = () => {
   }
 
   const sendTestPush = async () => {
+    if (!isPushEnabled) {
+      snackbar.warning('Сначала включите push-уведомления')
+      return
+    }
+
     setPushBusy(true)
     setPushAction('test')
     try {
@@ -235,16 +239,6 @@ const PushNotificationsSettings = () => {
         Push-уведомления приходят в установленное PWA-приложение по новым
         входящим API-заявкам и системным напоминаниям.
       </div>
-      <IconCheckBox
-        label="Получать push-уведомления по новым API-заявкам"
-        checked={isPushEnabled}
-        onClick={() => {
-          if (!pushAvailable || pushBusy) return
-          if (isPushEnabled) disablePushNotifications()
-          else enablePushNotifications()
-        }}
-        noMargin
-      />
       <div className="text-xs text-gray-500">
         Статус: {pushAvailable ? 'поддерживается' : 'не поддерживается'} |
         Разрешение: {pushPermission} | Подписка:{' '}

@@ -12,7 +12,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  productionBrowserSourceMaps: true,
+  productionBrowserSourceMaps:
+    process.env.NEXT_PUBLIC_ENABLE_SOURCE_MAPS === 'true',
   turbopack: {},
 }
 
