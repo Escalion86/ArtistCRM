@@ -43,7 +43,7 @@ body {
   --surface-card-highlight: rgba(255, 255, 255, 0.72);
   --surface-toolbar-bg: rgba(255, 255, 255, 0.72);
   --surface-toolbar-border: rgba(138, 111, 59, 0.25);
-  --ui-primary: #8a6f3b;
+  --ui-primary: #7d6435;
   --ui-primary-hover: #6f582f;
   --ui-primary-text: #ffffff;
   --ui-secondary-border: rgba(138, 111, 59, 0.35);
@@ -51,8 +51,8 @@ body {
   --ui-secondary-text: #1c1d1f;
   --ui-secondary-hover-bg: rgba(255, 255, 255, 1);
   --ui-secondary-hover-border: rgba(138, 111, 59, 0.7);
-  --ui-secondary-hover-text: #8a6f3b;
-  --sidebar-bg: #8a6f3b;
+  --ui-secondary-hover-text: #7d6435;
+  --sidebar-bg: #7d6435;
   --sidebar-text: #1C1D1F;
   --tx-income: #22c55e;
   --tx-income-hover: #16a34a;
@@ -497,7 +497,7 @@ body.theme-dark .hover\:shadow-card:hover {
 }
 
 .text-general {
-  color: #8a6f3b;
+  color: #7d6435;
 }
 
 body.theme-dark .text-general {

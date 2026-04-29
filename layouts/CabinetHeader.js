@@ -23,7 +23,7 @@ const CabinetHeader = ({ title = '', titleLink, icon }) => {
           <Link href="/" shallow className="hidden tablet:block">
             <img
               className="h-14 rounded-full"
-              src={icon || '/img/logo.png'}
+              src={icon || '/img/logo-96.png'}
               alt="logo"
             />
           </Link>
@@ -40,7 +40,7 @@ const CabinetHeader = ({ title = '', titleLink, icon }) => {
       ) : (
         <div className="absolute left-1/2 z-10 -translate-x-1/2">
           <Link href="/" shallow>
-            <img className="h-12" src="/img/logo.png" alt="logo" />
+            <img className="h-12" src="/img/logo-96.png" alt="logo" />
           </Link>
         </div>
       )}

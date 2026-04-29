@@ -156,7 +156,7 @@ export default async function HomePage() {
     '@type': 'Organization',
     name: 'ArtistCRM',
     url: homeUrl,
-    logo: `${normalizedSiteUrl}/img/logo.png`,
+    logo: `${normalizedSiteUrl}/img/logo-96.png`,
   }
 
   const faqSchema = {
@@ -187,7 +187,7 @@ export default async function HomePage() {
       <div className="relative z-20 flex items-center justify-between w-full max-w-6xl px-6 pt-6 mx-auto">
         <Link href="/" className="flex items-center gap-3 cursor-pointer">
           <Image
-            src="/img/logo.png"
+            src="/img/logo-96.png"
             alt="ArtistCRM"
             width={36}
             height={36}
