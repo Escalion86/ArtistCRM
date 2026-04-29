@@ -203,6 +203,7 @@ export const POST = async (req) => {
       normalizedData: normalized,
       rawPayload: body,
       historyUserId: 'public-api-tilda',
+      apiKeyData: accessData.apiKeyData,
     })
 
     if (pushEnabled) {

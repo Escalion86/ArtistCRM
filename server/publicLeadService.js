@@ -17,6 +17,35 @@ const normalizeText = (value, maxLength = 500) => {
   return text.slice(0, maxLength)
 }
 
+const normalizePublicLeadApiKeys = (custom) => {
+  const items = readCustomValue(custom, 'publicLeadApiKeys')
+  const normalized = Array.isArray(items)
+    ? items
+        .map((item) => ({
+          id: normalizeText(item?.id, 80),
+          name: normalizeText(item?.name, 120),
+          key: normalizeText(item?.key, 256),
+          enabled: item?.enabled !== false,
+        }))
+        .filter((item) => item.key)
+    : []
+
+  const legacyKey = normalizeText(readCustomValue(custom, 'publicLeadApiKey'), 256)
+  if (
+    legacyKey &&
+    !normalized.some((item) => String(item.key) === String(legacyKey))
+  ) {
+    normalized.unshift({
+      id: 'legacy',
+      name: 'Основной API',
+      key: legacyKey,
+      enabled: true,
+    })
+  }
+
+  return normalized
+}
+
 const normalizePhone = (value) => String(value ?? '').replace(/\D/g, '')
 
 const parseDateValue = (value) => {
@@ -68,7 +97,10 @@ const resolvePublicLeadTenant = async (apiKey) => {
   }
 
   const siteSettings = await SiteSettings.findOne({
-    'custom.publicLeadApiKey': apiKey,
+    $or: [
+      { 'custom.publicLeadApiKey': apiKey },
+      { 'custom.publicLeadApiKeys.key': apiKey },
+    ],
   })
     .select('tenantId custom')
     .lean()
@@ -93,6 +125,16 @@ const resolvePublicLeadTenant = async (apiKey) => {
     }
   }
 
+  const apiKeys = normalizePublicLeadApiKeys(siteSettings.custom)
+  const apiKeyData = apiKeys.find((item) => item.key === apiKey)
+  if (!apiKeyData || apiKeyData.enabled === false) {
+    return {
+      ok: false,
+      status: 403,
+      error: 'API key отключен или не найден',
+    }
+  }
+
   const tenantId = siteSettings.tenantId
   const access = await getUserTariffAccess(tenantId)
   if (!access?.trialActive && !access?.hasTariff) {
@@ -108,6 +150,7 @@ const resolvePublicLeadTenant = async (apiKey) => {
     tenantId,
     siteSettings,
     access,
+    apiKeyData,
   }
 }
 
@@ -171,7 +214,10 @@ const createPublicLeadDraftEvent = async ({
   normalizedData,
   rawPayload,
   historyUserId,
+  apiKeyData,
 }) => {
+  const apiSourceName = normalizeText(apiKeyData?.name, 120)
+  const sourceLabel = apiSourceName || normalizedData.source || 'public_api'
   const event = await Events.create({
     tenantId,
     clientId: clientId ?? null,
@@ -194,11 +240,17 @@ const createPublicLeadDraftEvent = async ({
     importedFromCalendar: false,
     additionalEvents: [],
     clientData: {
-      source: normalizedData.source ?? 'public_api',
+      source: sourceLabel,
+      sourceLabel,
       createdViaApi: true,
+      apiKeyId: normalizeText(apiKeyData?.id, 80),
+      apiKeyName: apiSourceName,
       lead: {
         ...normalizedData,
         isPublicApi: true,
+        sourceLabel,
+        apiKeyId: normalizeText(apiKeyData?.id, 80),
+        apiKeyName: apiSourceName,
         raw: rawPayload,
       },
     },
@@ -217,6 +269,7 @@ const createPublicLeadDraftEvent = async ({
 export {
   normalizeText,
   normalizePhone,
+  normalizePublicLeadApiKeys,
   parseDateValue,
   normalizeServicesIds,
   readCustomValue,

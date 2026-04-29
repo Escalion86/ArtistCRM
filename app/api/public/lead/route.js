@@ -103,6 +103,7 @@ export const POST = async (req) => {
       },
       rawPayload: body,
       historyUserId: 'public-api',
+      apiKeyData: accessData.apiKeyData,
     })
 
     if (pushEnabled) {

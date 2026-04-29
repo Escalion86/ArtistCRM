@@ -6,6 +6,7 @@ import SettingsContent from './SettingsContent'
 import IntegrationsContent from './IntegrationsContent'
 import DocumentsContent from './DocumentsContent'
 import ListsContent from './ListsContent'
+import NotificationsContent from './NotificationsContent'
 import StatisticsContent from './StatisticsContent'
 import ServicesContent from './ServicesContent'
 import UsersContent from './UsersContent'
@@ -58,6 +59,10 @@ export const CONTENTS = Object.freeze({
   lists: {
     Component: ListsContent,
     name: 'Списки',
+  },
+  notifications: {
+    Component: NotificationsContent,
+    name: 'Уведомления',
   },
   tariffs: {
     Component: TariffsContent,

@@ -2,10 +2,7 @@
 
 import { useMemo } from 'react'
 import { useAtomValue } from 'jotai'
-import ContentHeader from '@components/ContentHeader'
-import HeaderActions from '@components/HeaderActions'
 import MutedText from '@components/MutedText'
-import SectionCard from '@components/SectionCard'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -43,11 +40,8 @@ const ListsContent = () => {
   )
 
   return (
-    <div className="flex flex-col h-full gap-4">
-      <ContentHeader>
-        <HeaderActions left={<div />} right={<div />} />
-      </ContentHeader>
-      <SectionCard className="flex flex-col flex-1 min-h-0 gap-4 p-4 overflow-y-auto">
+    <div className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         <div className="flex flex-col w-full gap-3">
           <div className="flex items-center justify-between w-full gap-3 p-3 border border-gray-200 rounded">
             <div className="flex flex-col gap-1">
@@ -90,7 +84,7 @@ const ListsContent = () => {
             </button>
           </div>
         </div>
-      </SectionCard>
+      </div>
     </div>
   )
 }

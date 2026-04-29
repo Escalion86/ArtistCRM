@@ -3,13 +3,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom } from 'jotai'
-import ContentHeader from '@components/ContentHeader'
-import HeaderActions from '@components/HeaderActions'
 import Input from '@components/Input'
 import IconCheckBox from '@components/IconCheckBox'
 import ComboBox from '@components/ComboBox'
 import MutedText from '@components/MutedText'
-import SectionCard from '@components/SectionCard'
 import LabeledContainer from '@components/LabeledContainer'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { postData } from '@helpers/CRUD'
@@ -134,12 +131,8 @@ const SettingsContent = () => {
   }, [defaultEventDuration, siteSettings, serverSyncDisabled])
 
   return (
-    <div className="flex flex-col h-full gap-4">
-      <ContentHeader>
-        <HeaderActions left={<div />} right={<div />} />
-      </ContentHeader>
-
-      <SectionCard className="flex flex-col flex-1 min-h-0 gap-4 p-4 overflow-y-auto">
+    <div className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         <IconCheckBox
           label="Темная тема"
           checked={darkTheme}
@@ -261,7 +254,7 @@ const SettingsContent = () => {
             </button>
           </div>
         </LabeledContainer>
-      </SectionCard>
+      </div>
     </div>
   )
 }

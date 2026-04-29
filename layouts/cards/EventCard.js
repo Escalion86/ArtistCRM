@@ -31,12 +31,28 @@ import StatusChip from '@components/StatusChip'
 import { getSoonNoDepositEvents } from '@helpers/additionalEvents'
 import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getPersonFullName from '@helpers/getPersonFullName'
-import { isEventCreatedViaPublicApi } from '@helpers/eventSource'
+import {
+  getEventPublicApiSourceLabel,
+  isEventCreatedViaPublicApi,
+} from '@helpers/eventSource'
 import { useClientsQuery } from '@helpers/useClientsQuery'
 import { useEventQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 
 const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
+
+const getEventStatusMarkerClassName = ({
+  isCanceled,
+  isClosed,
+  isDraft,
+  isFinished,
+}) => {
+  if (isCanceled) return 'bg-red-500'
+  if (isClosed) return 'bg-emerald-500'
+  if (isFinished) return 'bg-gray-400'
+  if (isDraft) return 'bg-amber-500'
+  return 'bg-blue-500'
+}
 
 // const stripCalendarResponse = (text = '') => {
 //   const marker = `\n\n${CALENDAR_RESPONSE_MARKER}\n`
@@ -158,6 +174,12 @@ const EventCard = ({
   const isActive = rawStatus === 'active'
   const isFinished =
     !isCanceled && !isClosed && eventEnd && eventEnd.getTime() < now.getTime()
+  const statusMarkerClassName = getEventStatusMarkerClassName({
+    isCanceled,
+    isClosed,
+    isDraft,
+    isFinished,
+  })
   const coordsLink =
     event?.address?.latitude && event?.address?.longitude
       ? `dgis://2gis.ru/geo/${event.address.longitude},${event.address.latitude}`
@@ -191,6 +213,7 @@ const EventCard = ({
   }, [event, transactions])
 
   const isCreatedViaApi = isEventCreatedViaPublicApi(event)
+  const apiSourceLabel = getEventPublicApiSourceLabel(event)
 
   const nearestAdditionalEventInfo = useMemo(() => {
     const additionalEvents = Array.isArray(event?.additionalEvents)
@@ -294,9 +317,13 @@ const EventCard = ({
       style={style}
       outerClassName="px-2 py-1"
       onClick={() => !loading && modalsFunc.event?.view(event._id)}
-      className="event-card-shell card-body-pad laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg p-3"
+      className="event-card-shell card-body-pad laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg py-3 pr-3 pl-4"
     >
       <CardOverlay loading={loading} error={error} />
+      <div
+        className={`absolute top-3 bottom-3 left-0 w-1 rounded-r-full ${statusMarkerClassName}`}
+        aria-hidden="true"
+      />
       <div className="flex w-full items-center justify-between gap-x-1">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {event.isTransferred && (
@@ -362,15 +389,16 @@ const EventCard = ({
               aria-label="Клиент не указан"
             />
           )}
-          <div className="card-title mr-6 flex-1 truncate text-lg">
+          <div className="card-title mr-8 flex-1 truncate text-base tablet:text-lg">
             {[eventTitle, servicesTitle].join(' • ')}
           </div>
-          <CardActions className="z-10 -mt-1 -mr-3">
+          <CardActions className="z-10 -mt-2 -mr-2">
             <CardButtons
               item={event}
               typeOfItem="event"
               minimalActions
               alwaysCompact
+              compactTriggerClassName="event-card-menu-trigger h-11 min-h-11 w-11 rounded-full"
               calendarLink={calendarLink}
               onEdit={() => modalsFunc.event?.edit(event._id)}
               onEditClientContacts={() =>
@@ -464,28 +492,34 @@ const EventCard = ({
 
         {isClosed || isCanceled ? null : (
           <div className="laptop:min-w-[240px] laptop:self-start flex shrink-0 items-end">
-            <div className="flex flex-col items-end justify-end gap-1 text-sm font-semibold">
+            <div className="flex min-w-[112px] flex-col items-end justify-end gap-1 text-sm font-semibold">
               {isCreatedViaApi && (
                 <StatusChip tone="neutral" className="max-w-max shrink-0">
-                  API
+                  {apiSourceLabel}
                 </StatusChip>
               )}
-              <div className="flex items-end justify-end gap-3">
+              <div className="flex min-h-6 min-w-[112px] items-end justify-end gap-3 whitespace-nowrap">
                 {paid > 0 && contractSum > 0 && paid >= contractSum ? (
                   <span className="text-green-700">{paid.toLocaleString()}</span>
                 ) : (
                   <span>
-                    {paid > 0 ? (
-                      <span className="text-green-700">
-                        {paid.toLocaleString()}
-                      </span>
-                    ) : null}
-                    {paid > 0 && contractSum > 0 ? ' / ' : null}
-                    {contractSum > 0 ? (
-                      <span className="text-blue-700">
-                        {contractSum.toLocaleString()}
-                      </span>
-                    ) : null}
+                    {paid > 0 || contractSum > 0 ? (
+                      <>
+                        {paid > 0 ? (
+                          <span className="text-green-700">
+                            {paid.toLocaleString()}
+                          </span>
+                        ) : null}
+                        {paid > 0 && contractSum > 0 ? ' / ' : null}
+                        {contractSum > 0 ? (
+                          <span className="text-blue-700">
+                            {contractSum.toLocaleString()}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
                   </span>
                 )}
               </div>

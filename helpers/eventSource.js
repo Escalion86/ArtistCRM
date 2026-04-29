@@ -25,4 +25,20 @@ const isEventCreatedViaPublicApi = (event) => {
   )
 }
 
-export { isEventCreatedViaPublicApi }
+const getEventPublicApiSourceLabel = (event) => {
+  if (!isEventCreatedViaPublicApi(event)) return ''
+
+  const clientData = event?.clientData
+  const leadData = isObject(clientData?.lead) ? clientData.lead : {}
+  const label =
+    clientData?.sourceLabel ||
+    clientData?.apiKeyName ||
+    leadData?.sourceLabel ||
+    leadData?.apiKeyName ||
+    clientData?.source ||
+    leadData?.source
+
+  return typeof label === 'string' && label.trim() ? label.trim() : 'API'
+}
+
+export { getEventPublicApiSourceLabel, isEventCreatedViaPublicApi }

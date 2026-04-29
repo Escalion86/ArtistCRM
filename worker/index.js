@@ -70,7 +70,8 @@ self.addEventListener('push', (event) => {
       payload?.badge || '/icons/AppImages/android/android-launchericon-192-192.png',
     tag: payload?.tag || undefined,
     data: payload?.data || {},
-    renotify: false,
+    renotify: Boolean(payload?.renotify),
+    requireInteraction: Boolean(payload?.requireInteraction),
   }
 
   event.waitUntil(self.registration.showNotification(title, options))

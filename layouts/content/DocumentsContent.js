@@ -2,10 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
-import ContentHeader from '@components/ContentHeader'
-import HeaderActions from '@components/HeaderActions'
 import LabeledContainer from '@components/LabeledContainer'
-import SectionCard from '@components/SectionCard'
 import ReactMarkdown from 'react-markdown'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
@@ -166,11 +163,8 @@ const DocumentsContent = () => {
   }
 
   return (
-    <div className="flex flex-col h-full gap-4">
-      <ContentHeader>
-        <HeaderActions left={<div />} right={<div />} />
-      </ContentHeader>
-      <SectionCard className="flex flex-col flex-1 min-h-0 gap-4 p-4 overflow-y-auto">
+    <div className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         {!canUseDocuments ? (
           <div className="p-3 text-sm border rounded border-amber-200 bg-amber-50 text-amber-800">
             Работа с документами недоступна на текущем тарифе.
@@ -281,7 +275,7 @@ const DocumentsContent = () => {
             </div>
           </LabeledContainer>
         )}
-      </SectionCard>
+      </div>
     </div>
   )
 }

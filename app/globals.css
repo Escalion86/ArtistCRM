@@ -433,6 +433,16 @@ body.theme-dark .home-page .text-gray-500 {
   text-align: center;
 }
 
+.event-card-menu-trigger {
+  background-color: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 6px 14px rgba(17, 24, 39, 0.12);
+  border: 1px solid rgba(17, 24, 39, 0.06);
+}
+
+.event-card-menu-trigger:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
 .event-profit-card--zero {
   background-color: #e5e7eb;
   border-color: #cbd5e1;
@@ -458,6 +468,16 @@ body.theme-dark .event-profit-card--zero {
 
 body.theme-dark .event-profit-text--zero {
   color: #e2e8f0;
+}
+
+body.theme-dark .event-card-menu-trigger {
+  background-color: rgba(24, 19, 13, 0.84);
+  border-color: rgba(235, 211, 165, 0.22);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.34);
+}
+
+body.theme-dark .event-card-menu-trigger:hover {
+  background-color: rgba(37, 30, 20, 0.96);
 }
 
 body.theme-dark .shadow-card {
@@ -575,6 +595,10 @@ body.theme-dark .MuiTabs-indicator {
     border-color: color-mix(in srgb, var(--ui-primary-hover) 75%, #1c1d1f 25%);
     box-shadow: 0 12px 24px rgba(28, 29, 31, 0.26);
     transform: translateY(-1px);
+  }
+
+  .ui-btn .MuiSvgIcon-root {
+    color: currentColor;
   }
 
   .ui-btn-secondary {

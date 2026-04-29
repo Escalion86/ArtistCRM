@@ -126,6 +126,7 @@ const CardButtons = ({
   showCloneButton = true,
   showHistoryButton = true,
   showStatusButton = true,
+  compactTriggerClassName = '',
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
@@ -455,7 +456,12 @@ const CardButtons = ({
   return isCompact ? (
     <DropDown
       trigger={
-        <div className="text-general flex h-9 min-h-9 w-9 cursor-pointer flex-col items-center justify-center">
+        <div
+          className={cn(
+            'text-general flex h-9 min-h-9 w-9 cursor-pointer flex-col items-center justify-center',
+            compactTriggerClassName
+          )}
+        >
           <FontAwesomeIcon icon={faEllipsisV} className="h-7 min-h-7 w-7" />
         </div>
       }

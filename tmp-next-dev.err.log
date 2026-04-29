@@ -1,0 +1,105 @@
+⚠ Port 3000 is in use by process 33988, using available port 3001 instead.
+[next-auth][error][JWT_SESSION_ERROR] 
+https://next-auth.js.org/errors#jwt_session_error decryption operation failed {
+  message: 'decryption operation failed',
+  stack: 'JWEDecryptionFailed: decryption operation failed\n' +
+    '    at gcmDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/runtime/decrypt.js:67:15)\n' +
+    '    at decrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/runtime/decrypt.js:92:20)\n' +
+    '    at flattenedDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwe/flattened/decrypt.js:143:52)\n' +
+    '    at async compactDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwe/compact/decrypt.js:18:23)\n' +
+    '    at async jwtDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwt/decrypt.js:8:23)\n' +
+    '    at async Object.decode (webpack-internal:///(rsc)/./node_modules/next-auth/jwt/index.js:56:7)\n' +
+    '    at async Object.session (webpack-internal:///(rsc)/./node_modules/next-auth/core/routes/session.js:48:28)\n' +
+    '    at async AuthHandler (webpack-internal:///(rsc)/./node_modules/next-auth/core/index.js:136:27)\n' +
+    '    at async getServerSession (webpack-internal:///(rsc)/./node_modules/next-auth/next/index.js:129:19)\n' +
+    '    at async HomePage (webpack-internal:///(rsc)/./app/page.js:121:21)',
+  name: 'JWEDecryptionFailed'
+}
+connection error:  MongoServerSelectionError: connect ECONNREFUSED 127.0.0.1:27017
+    at <unknown> (MongoServerSelectionError: connect ECONNREFUSED 127.0.0.1:27017)
+    at async dbConnect (server\dbConnect.js:44:17)
+    at async HomePage (app\page.js:119:5)
+  42 |     console.log('dbConnect: ожидаем соединения (повторно)')
+  43 |   }
+> 44 |   cached.conn = await cached.promise
+     |                 ^
+  45 |   return cached
+  46 | }
+  47 | {
+  errorLabelSet: Set(0) {},
+  reason: TopologyDescription {
+    type: 'Unknown',
+    servers: Map(1) { '127.0.0.1:27017' => [ServerDescription] },
+    stale: false,
+    compatible: true,
+    heartbeatFrequencyMS: 10000,
+    localThresholdMS: 15,
+    setName: null,
+    maxElectionId: null,
+    maxSetVersion: null,
+    commonWireVersion: 0,
+    logicalSessionTimeoutMinutes: null
+  },
+  code: undefined,
+  [cause]: MongoNetworkError: connect ECONNREFUSED 127.0.0.1:27017
+      at <unknown> (MongoNetworkError: connect ECONNREFUSED 127.0.0.1:27017) {
+    errorLabelSet: Set(3) { 'SystemOverloadedError', 'RetryableError', 'ResetPool' },
+    beforeHandshake: false,
+    [cause]: Error: connect ECONNREFUSED 127.0.0.1:27017
+        at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:27017) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 27017
+    }
+  }
+}
+[next-auth][error][JWT_SESSION_ERROR] 
+https://next-auth.js.org/errors#jwt_session_error decryption operation failed {
+  message: 'decryption operation failed',
+  stack: 'JWEDecryptionFailed: decryption operation failed\n' +
+    '    at gcmDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/runtime/decrypt.js:67:15)\n' +
+    '    at decrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/runtime/decrypt.js:92:20)\n' +
+    '    at flattenedDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwe/flattened/decrypt.js:143:52)\n' +
+    '    at async compactDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwe/compact/decrypt.js:18:23)\n' +
+    '    at async jwtDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwt/decrypt.js:8:23)\n' +
+    '    at async Object.decode (webpack-internal:///(rsc)/./node_modules/next-auth/jwt/index.js:56:7)\n' +
+    '    at async Object.session (webpack-internal:///(rsc)/./node_modules/next-auth/core/routes/session.js:48:28)\n' +
+    '    at async AuthHandler (webpack-internal:///(rsc)/./node_modules/next-auth/core/index.js:136:27)\n' +
+    '    at async getServerSession (webpack-internal:///(rsc)/./node_modules/next-auth/next/index.js:129:19)\n' +
+    '    at async HomePage (webpack-internal:///(rsc)/./app/page.js:121:21)',
+  name: 'JWEDecryptionFailed'
+}
+[next-auth][error][JWT_SESSION_ERROR] 
+https://next-auth.js.org/errors#jwt_session_error decryption operation failed {
+  message: 'decryption operation failed',
+  stack: 'JWEDecryptionFailed: decryption operation failed\n' +
+    '    at gcmDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/runtime/decrypt.js:67:15)\n' +
+    '    at decrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/runtime/decrypt.js:92:20)\n' +
+    '    at flattenedDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwe/flattened/decrypt.js:143:52)\n' +
+    '    at async compactDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwe/compact/decrypt.js:18:23)\n' +
+    '    at async jwtDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwt/decrypt.js:8:23)\n' +
+    '    at async Object.decode (webpack-internal:///(rsc)/./node_modules/next-auth/jwt/index.js:56:7)\n' +
+    '    at async Object.session (webpack-internal:///(rsc)/./node_modules/next-auth/core/routes/session.js:48:28)\n' +
+    '    at async AuthHandler (webpack-internal:///(rsc)/./node_modules/next-auth/core/index.js:136:27)\n' +
+    '    at async getServerSession (webpack-internal:///(rsc)/./node_modules/next-auth/next/index.js:129:19)\n' +
+    '    at async Login (webpack-internal:///(rsc)/./app/login/page.js:31:19)',
+  name: 'JWEDecryptionFailed'
+}
+[next-auth][error][JWT_SESSION_ERROR] 
+https://next-auth.js.org/errors#jwt_session_error decryption operation failed {
+  message: 'decryption operation failed',
+  stack: 'JWEDecryptionFailed: decryption operation failed\n' +
+    '    at gcmDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/runtime/decrypt.js:67:15)\n' +
+    '    at decrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/runtime/decrypt.js:92:20)\n' +
+    '    at flattenedDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwe/flattened/decrypt.js:143:52)\n' +
+    '    at async compactDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwe/compact/decrypt.js:18:23)\n' +
+    '    at async jwtDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwt/decrypt.js:8:23)\n' +
+    '    at async Object.decode (webpack-internal:///(rsc)/./node_modules/next-auth/jwt/index.js:56:7)\n' +
+    '    at async Object.session (webpack-internal:///(rsc)/./node_modules/next-auth/core/routes/session.js:48:28)\n' +
+    '    at async AuthHandler (webpack-internal:///(rsc)/./node_modules/next-auth/core/index.js:136:27)\n' +
+    '    at async getServerSession (webpack-internal:///(rsc)/./node_modules/next-auth/next/index.js:129:19)\n' +
+    '    at async Login (webpack-internal:///(rsc)/./app/login/page.js:31:19)',
+  name: 'JWEDecryptionFailed'
+}
