@@ -14,6 +14,33 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## YooKassa
+
+Required production environment variables:
+
+```bash
+YOOKASSA_SHOP_ID=
+YOOKASSA_SECRET_KEY=
+YOOKASSA_RETURN_URL=https://artistcrm.ru/cabinet/tariff-select?payment=yookassa
+YOOKASSA_WEBHOOK_SECRET=
+```
+
+Webhook URL in YooKassa:
+
+```text
+https://artistcrm.ru/api/billing/yookassa/webhook?token=YOOKASSA_WEBHOOK_SECRET
+```
+
+Optional receipt variables, if YooKassa fiscalization is enabled:
+
+```bash
+YOOKASSA_SEND_RECEIPT=true
+YOOKASSA_VAT_CODE=1
+NEXT_PUBLIC_LEGAL_NAME=
+NEXT_PUBLIC_LEGAL_INN=
+NEXT_PUBLIC_SUPPORT_EMAIL=support@artistcrm.ru
+```
+
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.

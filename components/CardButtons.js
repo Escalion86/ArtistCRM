@@ -10,6 +10,7 @@ import {
   faExternalLinkAlt,
   faMoneyBill,
   faPencilAlt,
+  faKey,
   faUser,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -206,6 +207,7 @@ const CardButtons = ({
             showDeleteButton && canManageItem && item.status !== 'closed',
           userBilling: typeOfItem === 'user' && canManageUsers,
           userTariff: typeOfItem === 'user' && canManageUsers,
+          setPasswordBtn: typeOfItem === 'user' && canManageUsers,
           userEvents: typeOfItem === 'client',
         }
     : {
@@ -213,7 +215,7 @@ const CardButtons = ({
         userActionsHistory: typeOfItem === 'user',
         userBilling: typeOfItem === 'user' && canManageUsers,
         userTariff: typeOfItem === 'user' && canManageUsers,
-        setPasswordBtn: true,
+        setPasswordBtn: typeOfItem === 'user' && canManageUsers,
         addToCalendar: typeOfItem === 'event',
         openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
         additionalEvents: typeOfItem === 'event',
@@ -330,6 +332,16 @@ const CardButtons = ({
           }}
           color="blue"
           tooltipText="Сменить тариф"
+        />
+      )}
+      {show.setPasswordBtn && (
+        <ItemComponent
+          icon={faKey}
+          onClick={() => {
+            modalsFunc[typeOfItem].passwordChange(item._id)
+          }}
+          color="purple"
+          tooltipText="Смена пароля"
         />
       )}
       {show.userEvents && (

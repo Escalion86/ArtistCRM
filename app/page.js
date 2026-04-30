@@ -568,6 +568,14 @@ export default async function HomePage() {
             >
               Пользовательское соглашение
             </Link>
+            <Link
+              href="/payment"
+              className="text-general"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Оплата и возвраты
+            </Link>
           </div>
         </div>
       </footer>

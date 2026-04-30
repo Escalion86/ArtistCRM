@@ -6,6 +6,8 @@ const PaymentsSchema = new mongoose.Schema(paymentsSchema, {
 })
 
 PaymentsSchema.index({ tenantId: 1, userId: 1, createdAt: -1 })
+PaymentsSchema.index({ provider: 1, providerPaymentId: 1 })
+PaymentsSchema.index({ idempotenceKey: 1 })
 
 export default mongoose.models.Payments ||
   mongoose.model('Payments', PaymentsSchema)

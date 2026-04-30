@@ -88,6 +88,31 @@ const TariffSelectContent = () => {
     setIsSaving(false)
   }
 
+  const handleTariffPayment = async ({ tariffId, amount }) => {
+    if (!tariffId) return
+    setIsSaving(true)
+    try {
+      const response = await fetch('/api/billing/yookassa/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purpose: 'tariff',
+          tariffId,
+          amount,
+        }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      const confirmationUrl = payload?.data?.confirmationUrl
+      if (!response.ok || !payload?.success || !confirmationUrl) {
+        snackbar.error(payload?.error || 'Не удалось создать платеж')
+        return
+      }
+      window.location.href = confirmationUrl
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const handleSelect = async (tariffId) => {
     if (!loggedUser?._id) return
     const selectedTariff = tariffs.find(
@@ -155,10 +180,14 @@ const TariffSelectContent = () => {
           onConfirm: true,
           showDecline: false,
           bottomLeftButtonProps: {
-            name: 'Пополнить баланс',
+            name: 'Оплатить через ЮKassa',
             classBgColor: 'bg-general',
             className: 'modal-action-button',
-            onClick: () => modalsFunc.user?.topupInfo(loggedUser?._id),
+            onClick: () =>
+              handleTariffPayment({
+                tariffId,
+                amount: missing,
+              }),
           },
         })
         return
