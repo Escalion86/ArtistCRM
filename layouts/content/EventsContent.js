@@ -1589,12 +1589,12 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 </div>
               </div>
             </SectionCard>
-            <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-gray-200 bg-white">
-              <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-gray-200 bg-gray-50/95 shadow-sm backdrop-blur">
+            <div className="event-month-calendar min-h-0 flex-1 overflow-auto rounded-lg border bg-white">
+              <div className="event-month-calendar__weekdays sticky top-0 z-10 grid grid-cols-7 border-b shadow-sm backdrop-blur">
                 {DAYS_OF_WEEK.map((dayName) => (
                   <div
                     key={dayName}
-                    className="px-1.5 py-1.5 text-center text-[11px] font-semibold text-gray-600"
+                    className="px-1.5 py-1.5 text-center text-[11px] font-semibold"
                   >
                     {dayName}
                   </div>
@@ -1622,26 +1622,26 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   return (
                     <div
                       key={day.key}
-                      className={`min-h-[62px] border-r border-b border-gray-100 p-1 ${
+                      className={`event-month-calendar__day min-h-[62px] border-r border-b p-1 ${
                         day.inCurrentMonth
                           ? isPastDay
-                            ? 'bg-gray-50'
+                            ? 'event-month-calendar__day--past'
                             : isToday
-                              ? 'bg-white'
-                              : 'bg-white'
-                          : 'bg-gray-50/60'
-                      } ${hasDayContent ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                              ? 'event-month-calendar__day--today'
+                              : 'event-month-calendar__day--current'
+                          : 'event-month-calendar__day--outside'
+                      } ${hasDayContent ? 'cursor-pointer event-month-calendar__day--interactive' : ''}`}
                       onClick={() => openDayEventsModal(day)}
                     >
                       <div
-                        className={`mb-1 inline-flex h-5 min-w-5 items-center justify-center rounded px-1 text-xs font-semibold ${
+                        className={`event-month-calendar__day-number mb-1 inline-flex h-5 min-w-5 items-center justify-center rounded px-1 text-xs font-semibold ${
                           isToday
-                            ? 'border border-general/40 bg-general/10 text-general'
+                            ? 'event-month-calendar__day-number--today'
                             : day.inCurrentMonth
                               ? isPastDay
-                                ? 'text-gray-400'
-                                : 'text-gray-800'
-                              : 'text-gray-400'
+                                ? 'event-month-calendar__day-number--past'
+                                : 'event-month-calendar__day-number--current'
+                              : 'event-month-calendar__day-number--outside'
                         }`}
                       >
                         {day.date.getDate()}

@@ -190,7 +190,7 @@ const eventFunc = (
       scope: 'all',
       enabled: false,
     })
-    const events = eventsPayload?.data ?? []
+    const events = useMemo(() => eventsPayload?.data ?? [], [eventsPayload?.data])
     const deleteTransactionMutation = useDeleteTransactionMutation()
     const closeModalRef = useRef(closeModal)
 

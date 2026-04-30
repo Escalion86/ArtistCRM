@@ -15,6 +15,7 @@ export const POST = async () => {
   await dbConnect()
   const result = await sendPushToTenant({
     tenantId,
+    source: 'test',
     payload: {
       title: 'Тест push-уведомления',
       body: 'Проверка канала уведомлений для API-заявок',

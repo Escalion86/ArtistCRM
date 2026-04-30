@@ -78,7 +78,7 @@ const upcomingEventsOverviewFunc = () => {
       scope: 'upcoming',
       enabled: false,
     })
-    const events = eventsPayload?.data ?? []
+    const events = useMemo(() => eventsPayload?.data ?? [], [eventsPayload?.data])
     const { data: transactions = [] } = useTransactionsQuery(undefined, {
       enabled: false,
     })

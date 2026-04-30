@@ -39,7 +39,7 @@ const buildApiLeadPushPayload = ({ event, normalizedData }) => {
 const notifyApiLeadCreated = async ({ tenantId, event, normalizedData }) => {
   if (!tenantId || !event?._id) return null
   const payload = buildApiLeadPushPayload({ event, normalizedData })
-  return sendPushToTenant({ tenantId, payload })
+  return sendPushToTenant({ tenantId, payload, source: 'public_lead' })
 }
 
 export { notifyApiLeadCreated }

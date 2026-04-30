@@ -26,7 +26,7 @@ const ClientsContent = () => {
     scope: 'all',
     enabled: false,
   })
-  const events = eventsPayload?.data ?? []
+  const events = useMemo(() => eventsPayload?.data ?? [], [eventsPayload?.data])
   const modalsFunc = useAtomValue(modalsFuncAtom)
 
   const [search, setSearch] = useState('')

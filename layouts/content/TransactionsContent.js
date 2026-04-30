@@ -33,7 +33,7 @@ const TransactionsContent = () => {
     scope: 'all',
     enabled: false,
   })
-  const events = eventsPayload?.data ?? []
+  const events = useMemo(() => eventsPayload?.data ?? [], [eventsPayload?.data])
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const [typeFilter, setTypeFilter] = useState({
     income: true,

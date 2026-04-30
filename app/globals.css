@@ -529,6 +529,105 @@ body.theme-dark input[type='date']::-webkit-calendar-picker-indicator {
   opacity: 0.9;
 }
 
+.event-month-calendar {
+  border-color: #c3c8d0;
+}
+
+.event-month-calendar__weekdays {
+  border-color: #b8bec8;
+  background-color: rgba(243, 244, 246, 0.98);
+  color: #4b5563;
+}
+
+.event-month-calendar__day {
+  border-color: #c7ccd4;
+}
+
+.event-month-calendar__day--current,
+.event-month-calendar__day--today {
+  background-color: #ffffff;
+}
+
+.event-month-calendar__day--past {
+  background-color: #f7f8fa;
+}
+
+.event-month-calendar__day--outside {
+  background-color: #eceff3;
+}
+
+.event-month-calendar__day--interactive:hover {
+  background-color: #f3f5f8;
+}
+
+.event-month-calendar__day-number--current {
+  color: #111827;
+}
+
+.event-month-calendar__day-number--past {
+  color: #6b7280;
+}
+
+.event-month-calendar__day-number--outside {
+  color: #4b5563;
+}
+
+.event-month-calendar__day-number--today {
+  border: 1px solid rgba(125, 100, 53, 0.45);
+  background-color: rgba(125, 100, 53, 0.12);
+  color: #7d6435;
+}
+
+body.theme-dark .event-month-calendar {
+  border-color: rgba(235, 211, 165, 0.24);
+  background-color: #11100d;
+}
+
+body.theme-dark .event-month-calendar__weekdays {
+  border-color: rgba(235, 211, 165, 0.24);
+  background-color: rgba(15, 12, 9, 0.96);
+  color: #d9c6a4;
+}
+
+body.theme-dark .event-month-calendar__day {
+  border-color: rgba(235, 211, 165, 0.22);
+}
+
+body.theme-dark .event-month-calendar__day--current,
+body.theme-dark .event-month-calendar__day--today {
+  background-color: #11100d;
+}
+
+body.theme-dark .event-month-calendar__day--past {
+  background-color: #17130f;
+}
+
+body.theme-dark .event-month-calendar__day--outside {
+  background-color: #363432;
+}
+
+body.theme-dark .event-month-calendar__day--interactive:hover {
+  background-color: #241e16;
+}
+
+body.theme-dark .event-month-calendar__day-number--current {
+  color: #f7efe1;
+}
+
+body.theme-dark .event-month-calendar__day-number--past {
+  color: #b8ab96;
+}
+
+body.theme-dark .event-month-calendar__day-number--outside {
+  color: #f1e7d4;
+}
+
+body.theme-dark .event-month-calendar__day-number--today {
+  border-color: rgba(235, 211, 165, 0.72);
+  background-color: rgba(235, 211, 165, 0.18);
+  color: #ffe5ad;
+}
+
 .hide-number-spin::-webkit-outer-spin-button,
 .hide-number-spin::-webkit-inner-spin-button {
   -webkit-appearance: none;

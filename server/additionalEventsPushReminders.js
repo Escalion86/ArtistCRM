@@ -183,6 +183,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
       const result = await sendPushToTenant({
         tenantId: event.tenantId,
         payload,
+        source: 'additional_event_reminder',
       })
 
       if (!result?.ok) {

@@ -25,9 +25,24 @@ const PushNotificationsSettings = () => {
   const [pushSubscribed, setPushSubscribed] = useState(false)
   const [pushPermission, setPushPermission] = useState('default')
   const [pushAvailable, setPushAvailable] = useState(false)
+  const [pushLogs, setPushLogs] = useState([])
+  const [pushLogsLoading, setPushLogsLoading] = useState(false)
   const customSettings = siteSettings?.custom ?? {}
   const isPushEnabled =
     getCustomValue(customSettings, 'publicLeadPushEnabled') === true
+
+  const refreshPushLogs = useCallback(async () => {
+    setPushLogsLoading(true)
+    try {
+      const response = await fetch('/api/push/logs?limit=10')
+      const payload = await response.json().catch(() => ({}))
+      if (response.ok && payload?.success && Array.isArray(payload?.data)) {
+        setPushLogs(payload.data)
+      }
+    } finally {
+      setPushLogsLoading(false)
+    }
+  }, [])
 
   const saveCustom = useCallback(
     async (patch) => {
@@ -87,7 +102,8 @@ const PushNotificationsSettings = () => {
 
   useEffect(() => {
     refreshPushState()
-  }, [refreshPushState])
+    refreshPushLogs()
+  }, [refreshPushLogs, refreshPushState])
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -133,6 +149,7 @@ const PushNotificationsSettings = () => {
 
       await saveCustom({ publicLeadPushEnabled: true })
       setPushSubscribed(true)
+      refreshPushLogs()
       snackbar.success('Push-уведомления включены')
     } catch (error) {
       snackbar.error(
@@ -167,6 +184,7 @@ const PushNotificationsSettings = () => {
 
       await saveCustom({ publicLeadPushEnabled: false })
       setPushSubscribed(false)
+      refreshPushLogs()
       snackbar.success('Push-уведомления отключены')
     } catch (error) {
       snackbar.error('Не удалось отключить push-уведомления')
@@ -209,6 +227,7 @@ const PushNotificationsSettings = () => {
               retryPayload?.data?.sent || 0
             )}`
           )
+          refreshPushLogs()
           return
         }
       }
@@ -221,9 +240,11 @@ const PushNotificationsSettings = () => {
       const sent = Number(payload?.data?.sent || 0)
       if (sent <= 0) {
         snackbar.warning('Тест отправлен, но активных подписок не найдено')
+        refreshPushLogs()
         return
       }
       snackbar.success(`Тест отправлен: ${sent}`)
+      refreshPushLogs()
     } catch (error) {
       snackbar.error('Не удалось отправить тест push')
     } finally {
@@ -286,6 +307,65 @@ const PushNotificationsSettings = () => {
         >
           {pushBusy && pushAction === 'test' ? 'Отправка...' : 'Тест push'}
         </button>
+      </div>
+      <div className="mt-2 rounded border border-gray-200 bg-white/70 p-3 text-xs">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="font-semibold text-gray-800">Последние события push</div>
+          <button
+            type="button"
+            className="cursor-pointer text-general hover:underline"
+            onClick={refreshPushLogs}
+            disabled={pushLogsLoading}
+          >
+            {pushLogsLoading ? 'Обновляем...' : 'Обновить'}
+          </button>
+        </div>
+        {pushLogs.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {pushLogs.map((log) => {
+              const createdAt = log?.createdAt
+                ? new Date(log.createdAt).toLocaleString('ru-RU')
+                : ''
+              const counts =
+                log?.sent !== null || log?.failed !== null
+                  ? ` | отправлено: ${Number(log?.sent || 0)}, ошибок: ${Number(log?.failed || 0)}, отключено: ${Number(log?.deactivated || 0)}`
+                  : ''
+              return (
+                <div
+                  key={log._id}
+                  className="rounded border border-gray-100 bg-gray-50 px-2 py-1.5"
+                >
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-semibold text-gray-800">
+                      {log.status}
+                    </span>
+                    <span className="text-gray-500">{createdAt}</span>
+                    {log.source ? (
+                      <span className="text-gray-500">Источник: {log.source}</span>
+                    ) : null}
+                    {log.statusCode ? (
+                      <span className="text-gray-500">HTTP {log.statusCode}</span>
+                    ) : null}
+                  </div>
+                  <div className="mt-1 text-gray-600">
+                    {log.message || log.eventType}
+                    {counts}
+                  </div>
+                  {log.endpointHost || log.endpointHash ? (
+                    <div className="mt-1 text-gray-400">
+                      Endpoint: {log.endpointHost || 'unknown'}{' '}
+                      {log.endpointHash ? `#${log.endpointHash}` : ''}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="text-gray-500">
+            Событий пока нет. Нажмите «Тест push», чтобы проверить доставку.
+          </div>
+        )}
       </div>
     </div>
   )

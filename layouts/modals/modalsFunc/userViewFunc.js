@@ -37,7 +37,7 @@ const userViewFunc = (userId, params = {}) => {
       scope: 'all',
       enabled: false,
     })
-    const events = eventsPayload?.data ?? []
+    const events = useMemo(() => eventsPayload?.data ?? [], [eventsPayload?.data])
 
     useEffect(() => {
       if (!user) closeModal()

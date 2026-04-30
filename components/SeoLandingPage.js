@@ -77,7 +77,7 @@ const SeoLandingPage = ({ page }) => {
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
         <Link href="/" className="flex items-center gap-3 cursor-pointer">
           <Image
-            src="/img/logo-96.png"
+            src="/img/logo-48.png"
             alt="ArtistCRM"
             width={40}
             height={40}
