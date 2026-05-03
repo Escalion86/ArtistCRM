@@ -7,6 +7,7 @@ import {
   faBell,
   faLock,
   faMars,
+  faPhone,
   faPlay,
   faVenus,
 } from '@fortawesome/free-solid-svg-icons'
@@ -722,6 +723,14 @@ export const pages = [
     name: 'Клиенты',
     href: 'clients',
     icon: faUser,
+  },
+  {
+    id: 14,
+    group: 4,
+    name: 'Звонки',
+    href: 'calls',
+    icon: faPhone,
+    accessRoles: ['dev'],
   },
   {
     id: 11,

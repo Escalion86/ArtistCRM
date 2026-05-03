@@ -107,6 +107,12 @@
 
 Минимальные endpoint'ы:
 
+- `POST /api/telephony/generic/webhook`
+  - provider-neutral webhook для будущих adapter'ов IP-телефонии;
+  - требует `TELEPHONY_WEBHOOK_SECRET` через `x-telephony-secret` или `Authorization: Bearer ...`;
+  - принимает нормализованный payload с `tenantId`, телефоном, датой, направлением, transcript и provider call id;
+  - делает upsert по `tenantId + provider + providerCallId`.
+
 - `POST /api/telephony/telefonip/webhook`
   - принимает событие звонка от Telefon-IP;
   - проверяет подпись/секрет;
@@ -216,12 +222,12 @@ Mobile-first:
 
 ### Этап 1. Call log без AI
 
-- Добавить `Call` schema/model.
-- Добавить webhook endpoint.
-- Сохранять звонки.
-- Показывать список последних звонков.
-- Связывать звонок с клиентом по телефону.
-- Дать ручные действия: создать заявку, связать, игнорировать.
+- [x] Добавить `Call` schema/model.
+- [x] Добавить provider-neutral webhook endpoint.
+- [x] Сохранять звонки.
+- [x] Показывать список последних звонков.
+- [x] Связывать звонок с клиентом по телефону.
+- [x] Дать ручные действия: создать заявку, создать клиента, игнорировать.
 
 Критерий готовности: после тестового webhook звонок появляется в CRM и может быть вручную связан с клиентом/заявкой.
 
@@ -238,12 +244,41 @@ Mobile-first:
 
 ### Этап 3. AI-черновик заявки
 
-- Из transcript получать structured JSON.
-- Маппить поля в текущую форму мероприятия.
-- Предлагать `additionalEvents` для следующего контакта.
-- Создавать мероприятие только после подтверждения пользователя.
+- [x] Из transcript получать structured JSON через AI adapter.
+- [x] Маппить поля в текущую форму мероприятия.
+- [x] Предлагать `additionalEvents` для следующего контакта.
+- [x] Создавать мероприятие только после подтверждения пользователя.
 
 Критерий готовности: из звонка можно открыть предзаполненную форму заявки и сохранить ее без ручного копирования текста.
+
+---
+
+## Текущее состояние реализации
+
+Реализован provider-neutral MVP без привязки к Telefon-IP:
+
+- модель `Calls`;
+- защищенные API `/api/calls`, доступные только пользователю с ролью `dev`;
+- generic webhook `/api/telephony/generic/webhook`, доступный только для tenant'ов разработчика;
+- экран кабинета `Звонки`, скрытый для всех ролей кроме `dev`;
+- ручное добавление звонка/transcript;
+- AI-анализ transcript через DeepSeek/OpenAI-compatible adapter;
+- fallback-черновик без внешнего AI, если ключ не настроен;
+- создание клиента и подтверждаемой заявки из звонка.
+
+Нужные env для текущего MVP:
+
+- `TELEPHONY_WEBHOOK_SECRET` — секрет generic webhook;
+- `AI_ANALYSIS_PROVIDER=deepseek` — провайдер AI-анализа, по умолчанию DeepSeek;
+- `DEEPSEEK_API_KEY` — ключ DeepSeek для AI-анализа transcript;
+- `DEEPSEEK_CALL_ANALYSIS_MODEL=deepseek-v4-flash` — модель DeepSeek, необязательно;
+- `AI_ANALYSIS_API_URL` — кастомный endpoint OpenAI-compatible API, необязательно.
+
+Для fallback на OpenAI можно использовать:
+
+- `AI_ANALYSIS_PROVIDER=openai`;
+- `OPENAI_API_KEY`;
+- `OPENAI_CALL_ANALYSIS_MODEL=gpt-4o-mini`.
 
 ### Этап 4. Уведомления и умные напоминания
 

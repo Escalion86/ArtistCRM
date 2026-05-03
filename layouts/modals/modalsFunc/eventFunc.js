@@ -170,7 +170,9 @@ const eventFunc = (
     setDisableDecline,
     setComponentInFooter,
   }) => {
-    const { data: event } = useEventQuery(eventId)
+    const { data: eventFromQuery } = useEventQuery(eventId)
+    const event = eventId ? eventFromQuery : (options?.initialEvent ?? null)
+    const hasInitialEvent = Boolean(options?.initialEvent)
     const itemsFunc = useAtomValue(itemsFuncAtom)
     const setEvent = itemsFunc?.event?.set
     const { data: clients = [] } = useClientsQuery()
@@ -410,6 +412,7 @@ const eventFunc = (
 
     const isFormChanged = useMemo(
       () =>
+        (!eventId && hasInitialEvent) ||
         initialEventValues.clientId !== clientId ||
         initialEventValues.eventDate !== eventDate ||
         initialEventValues.dateEnd !== dateEnd ||
@@ -468,6 +471,7 @@ const eventFunc = (
         status,
         requestCreatedAt,
         additionalEvents,
+        hasInitialEvent,
       ]
     )
 
@@ -747,6 +751,9 @@ const eventFunc = (
         const hasAdditionalEvents =
           (payload?.additionalEvents?.length ?? 0) > 0
         const savedEvent = await setEvent(payload, clone)
+        if (typeof options?.onSaved === 'function') {
+          await options.onSaved(savedEvent)
+        }
 
         if (
           !isCreatingDraftRequest ||

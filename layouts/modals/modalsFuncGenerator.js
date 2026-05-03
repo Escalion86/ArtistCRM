@@ -194,6 +194,13 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
     event: {
       add: (eventId) => addModal(eventFunc(eventId, true)),
       create: () => addModal(eventFunc(null, false, 'draft')),
+      createFromDraft: (initialEvent, onSaved) =>
+        addModal(
+          eventFunc(null, false, initialEvent?.status || 'draft', {
+            initialEvent,
+            onSaved,
+          })
+        ),
       edit: (eventId, options) => addModal(eventFunc(eventId, false, null, options)),
       history: (eventId) => addModal(eventHistoryFunc(eventId)),
       statusEdit: (eventId) => addModal(eventStatusEditFunc(eventId)),
