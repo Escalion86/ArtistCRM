@@ -357,16 +357,29 @@ const StatisticsContent = () => {
       .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0)
     const paymentLeft = filteredEvents.reduce((sum, event) => {
       const contractSum = Number(event?.contractSum ?? 0)
-      const paid = transactionsByEvent.get(event?._id)?.income ?? 0
+      const paid = Math.max(transactionsByEvent.get(event?._id)?.income ?? 0, 0)
       return sum + Math.max(contractSum - paid, 0)
     }, 0)
-    const depositLeft = filteredEvents.reduce((sum, event) => {
-      const status = getEventComputedStatus(event)
-      if (status !== 'active' && status !== 'draft') return sum
-      if (!event?.waitDeposit) return sum
-      const amount = Number(event?.depositExpectedAmount ?? 0)
-      return sum + (Number.isFinite(amount) && amount > 0 ? amount : 0)
-    }, 0)
+    const upcomingEventIds = new Set(
+      filteredEvents
+        .filter((event) => {
+          const status = getEventComputedStatus(event)
+          return status === 'active' || status === 'draft'
+        })
+        .map((event) => event?._id)
+        .filter(Boolean)
+    )
+    const depositPaid = filteredTransactions
+      .filter(
+        (tx) =>
+          tx?.type === 'income' &&
+          tx?.eventId &&
+          upcomingEventIds.has(tx.eventId)
+      )
+      .reduce((sum, tx) => {
+        const amount = Number(tx.amount ?? 0)
+        return sum + (Number.isFinite(amount) && amount > 0 ? amount : 0)
+      }, 0)
     const netProfit = totalIncome - totalExpense
     const margin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0
 
@@ -376,7 +389,7 @@ const StatisticsContent = () => {
       taxes,
       commissions,
       paymentLeft,
-      depositLeft,
+      depositPaid,
       netProfit,
       margin,
     }
@@ -720,11 +733,11 @@ const StatisticsContent = () => {
                   </div>
                 </SurfaceCard>
               ) : null}
-              {financeSummary.depositLeft > 0 ? (
+              {financeSummary.depositPaid > 0 ? (
                 <SurfaceCard className="rounded" paddingClassName="p-3">
                   <div className="text-xs text-gray-500">Задаток</div>
                   <div className="text-lg font-semibold text-cyan-700">
-                    {formatCurrency(financeSummary.depositLeft)}
+                    {formatCurrency(financeSummary.depositPaid)}
                   </div>
                 </SurfaceCard>
               ) : null}
