@@ -12,8 +12,10 @@ import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import SectionCard from '@components/SectionCard'
 import SurfaceCard from '@components/SurfaceCard'
+import EventCard from '@layouts/cards/EventCard'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
+import { modalsFuncAtom } from '@state/atoms'
 import { MONTHS_FULL_1, TRANSACTION_CATEGORIES } from '@helpers/constants'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { useRouter } from 'next/navigation'
@@ -63,6 +65,7 @@ const formatCurrency = (value) =>
 const StatisticsContent = () => {
   const tariffsRaw = useAtomValue(tariffsAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
+  const modalsFunc = useAtomValue(modalsFuncAtom)
   const statisticsQuery = useStatisticsQuery()
   const statisticsData = statisticsQuery.data ?? {}
 
@@ -245,6 +248,43 @@ const StatisticsContent = () => {
     return map
   }, [filteredEvents, filteredTransactions])
 
+  const paymentLeftEvents = useMemo(
+    () =>
+      filteredEvents
+        .map((event) => {
+          const finance = eventFinanceMap.get(event?._id) || {
+            income: 0,
+            expense: 0,
+          }
+          const paid = Math.max(finance.income, 0)
+          const paymentLeft = Math.max(Number(event?.contractSum ?? 0) - paid, 0)
+          return { event, paymentLeft }
+        })
+        .filter(({ event, paymentLeft }) => event?._id && paymentLeft > 0),
+    [eventFinanceMap, filteredEvents]
+  )
+
+  const depositPaidEvents = useMemo(() => {
+    const incomeByEvent = new Map()
+    filteredTransactions.forEach((tx) => {
+      if (tx?.type !== 'income' || !tx?.eventId) return
+      const amount = Number(tx.amount ?? 0)
+      if (!Number.isFinite(amount) || amount <= 0) return
+      incomeByEvent.set(tx.eventId, (incomeByEvent.get(tx.eventId) || 0) + amount)
+    })
+
+    return filteredEvents
+      .map((event) => {
+        const status = getEventComputedStatus(event)
+        const depositPaid =
+          status === 'active' || status === 'draft'
+            ? incomeByEvent.get(event?._id) || 0
+            : 0
+        return { event, depositPaid }
+      })
+      .filter(({ event, depositPaid }) => event?._id && depositPaid > 0)
+  }, [filteredEvents, filteredTransactions])
+
   const stats = useMemo(() => {
     if (!selectedYear) return []
     const byMonth = new Map()
@@ -275,12 +315,28 @@ const StatisticsContent = () => {
           isOpenMonth: isOpenCurrentMonth(date.getMonth()),
           isUnfinished: isUnfinishedMonth(date.getMonth()),
           plannedIncome: 0,
+          paymentLeft: 0,
         })
       }
       const bucket = byMonth.get(key)
       if (bucket.isFuture) {
-        const amount = Number(event.contractSum ?? 0)
-        bucket.plannedIncome += Number.isFinite(amount) ? amount : 0
+        const finance = eventFinanceMap.get(event?._id) || {
+          income: 0,
+          expense: 0,
+        }
+        const paid = Math.max(finance.income, 0)
+        const contractSum = Number(event?.contractSum ?? 0)
+        bucket.plannedIncome += finance.income - finance.expense
+        bucket.paymentLeft += Math.max(contractSum - paid, 0)
+      }
+      if (!bucket.isFuture && getEventComputedStatus(event) === 'finished') {
+        const finance = eventFinanceMap.get(event?._id) || {
+          income: 0,
+          expense: 0,
+        }
+        const paid = Math.max(finance.income, 0)
+        const paymentLeft = Math.max(Number(event?.contractSum ?? 0) - paid, 0)
+        bucket.paymentLeft += paymentLeft
       }
     })
 
@@ -301,6 +357,7 @@ const StatisticsContent = () => {
           isOpenMonth: isOpenCurrentMonth(date.getMonth()),
           isUnfinished: isUnfinishedMonth(date.getMonth()),
           plannedIncome: 0,
+          paymentLeft: 0,
         })
       }
       const bucket = byMonth.get(key)
@@ -323,22 +380,15 @@ const StatisticsContent = () => {
         }
         return value
       })
-  }, [eventsMap, filteredEvents, filteredTransactions, selectedYear])
+  }, [
+    eventFinanceMap,
+    eventsMap,
+    filteredEvents,
+    filteredTransactions,
+    selectedYear,
+  ])
 
   const financeSummary = useMemo(() => {
-    const transactionsByEvent = new Map()
-    filteredTransactions.forEach((tx) => {
-      if (!tx?.eventId) return
-      const current = transactionsByEvent.get(tx.eventId) || {
-        income: 0,
-        expense: 0,
-      }
-      const amount = Number(tx.amount ?? 0)
-      if (tx.type === 'income') current.income += amount
-      if (tx.type === 'expense') current.expense += amount
-      transactionsByEvent.set(tx.eventId, current)
-    })
-
     const totalIncome = filteredTransactions
       .filter((tx) => tx?.type === 'income')
       .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0)
@@ -355,31 +405,14 @@ const StatisticsContent = () => {
           (tx?.category === 'referral_out' || tx?.category === 'organizer')
       )
       .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0)
-    const paymentLeft = filteredEvents.reduce((sum, event) => {
-      const contractSum = Number(event?.contractSum ?? 0)
-      const paid = Math.max(transactionsByEvent.get(event?._id)?.income ?? 0, 0)
-      return sum + Math.max(contractSum - paid, 0)
-    }, 0)
-    const upcomingEventIds = new Set(
-      filteredEvents
-        .filter((event) => {
-          const status = getEventComputedStatus(event)
-          return status === 'active' || status === 'draft'
-        })
-        .map((event) => event?._id)
-        .filter(Boolean)
+    const paymentLeft = paymentLeftEvents.reduce(
+      (sum, item) => sum + item.paymentLeft,
+      0
     )
-    const depositPaid = filteredTransactions
-      .filter(
-        (tx) =>
-          tx?.type === 'income' &&
-          tx?.eventId &&
-          upcomingEventIds.has(tx.eventId)
-      )
-      .reduce((sum, tx) => {
-        const amount = Number(tx.amount ?? 0)
-        return sum + (Number.isFinite(amount) && amount > 0 ? amount : 0)
-      }, 0)
+    const depositPaid = depositPaidEvents.reduce(
+      (sum, item) => sum + item.depositPaid,
+      0
+    )
     const netProfit = totalIncome - totalExpense
     const margin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0
 
@@ -393,7 +426,7 @@ const StatisticsContent = () => {
       netProfit,
       margin,
     }
-  }, [filteredEvents, filteredTransactions])
+  }, [depositPaidEvents, filteredTransactions, paymentLeftEvents])
 
   const expenseCategoryLabels = useMemo(() => {
     const map = new Map()
@@ -617,6 +650,49 @@ const StatisticsContent = () => {
     )
   }
 
+  const openEventsDetailsModal = (title, items) => {
+    if (!Array.isArray(items) || items.length === 0) return
+
+    const EventsDetailsModal = () => (
+      <div className="space-y-2 pb-2">
+        {items.map(({ event }) => (
+          <EventCard
+            key={event._id}
+            eventId={event._id}
+            event={event}
+            transactions={filteredTransactions}
+          />
+        ))}
+      </div>
+    )
+
+    modalsFunc.custom?.({
+      title,
+      Children: EventsDetailsModal,
+      declineButtonShow: false,
+      closeButtonName: 'Закрыть',
+    })
+  }
+
+  const renderMetricTitle = (label, count, onCountClick) => (
+    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+      <span>{label}</span>
+      {count > 0 ? (
+        <button
+          type="button"
+          className="flex h-5 min-w-5 cursor-pointer items-center justify-center rounded-full bg-general px-1.5 text-[11px] font-semibold leading-none text-white transition hover:scale-105"
+          onClick={(event) => {
+            event.stopPropagation()
+            onCountClick?.()
+          }}
+          aria-label={`${label}: открыть мероприятия`}
+        >
+          {count}
+        </button>
+      ) : null}
+    </div>
+  )
+
   return (
     <div className="flex h-full flex-col gap-4">
       {!canShowStatistics ? (
@@ -725,9 +801,15 @@ const StatisticsContent = () => {
               </SurfaceCard>
               {financeSummary.paymentLeft > 0 ? (
                 <SurfaceCard className="rounded" paddingClassName="p-3">
-                  <div className="text-xs text-gray-500">
-                    Остаток по оплате
-                  </div>
+                  {renderMetricTitle(
+                    'Остаток по оплате',
+                    paymentLeftEvents.length,
+                    () =>
+                      openEventsDetailsModal(
+                        'Мероприятия с остатком по оплате',
+                        paymentLeftEvents
+                      )
+                  )}
                   <div className="text-lg font-semibold text-amber-700">
                     {formatCurrency(financeSummary.paymentLeft)}
                   </div>
@@ -735,7 +817,12 @@ const StatisticsContent = () => {
               ) : null}
               {financeSummary.depositPaid > 0 ? (
                 <SurfaceCard className="rounded" paddingClassName="p-3">
-                  <div className="text-xs text-gray-500">Задаток</div>
+                  {renderMetricTitle('Задаток', depositPaidEvents.length, () =>
+                    openEventsDetailsModal(
+                      'Предстоящие мероприятия с оплатами',
+                      depositPaidEvents
+                    )
+                  )}
                   <div className="text-lg font-semibold text-cyan-700">
                     {formatCurrency(financeSummary.depositPaid)}
                   </div>
@@ -747,6 +834,10 @@ const StatisticsContent = () => {
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded bg-blue-600" />
                 <span>Прибыль</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded bg-red-600" />
+                <span>Недооплачено</span>
               </div>
               <div className="flex items-center gap-2">
                 <span
@@ -785,11 +876,13 @@ const StatisticsContent = () => {
                     width={chartWidth}
                     height={320}
                     data={stats}
-                    keys={['profit']}
+                    keys={['profit', 'paymentLeft']}
                     indexBy="month"
                     margin={{ top: 20, right: 20, bottom: 60, left: 70 }}
                     padding={0.2}
-                    colors={['#2563eb']}
+                    colors={({ id }) =>
+                      id === 'paymentLeft' ? '#dc2626' : '#2563eb'
+                    }
                     defs={[
                       {
                         id: 'futurePattern',
@@ -840,13 +933,13 @@ const StatisticsContent = () => {
                       legendOffset: -55,
                     }}
                     enableLabel={false}
-                    groupMode="grouped"
+                    groupMode="stacked"
                     valueFormat={(value) => value.toLocaleString('ru-RU')}
                     tooltip={({ id, value, indexValue }) => (
                       <div className="statistics-tooltip rounded border border-gray-200 px-2 py-1 text-xs text-gray-700 shadow">
                         <div className="font-semibold">{indexValue}</div>
                         <div>
-                          {id === 'profit' ? 'Прибыль' : id}:{' '}
+                          {id === 'profit' ? 'Прибыль' : 'Недооплачено'}:{' '}
                           {Number(value).toLocaleString('ru-RU')} ₽
                         </div>
                       </div>
