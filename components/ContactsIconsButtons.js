@@ -61,6 +61,7 @@ const ContactsIconsButtons = ({
   message,
   smsViaPhone,
   forceWhatsApp = true,
+  forceTelegram = true,
 }) => {
   const Btn = withTitle ? ContactIconBtnWithTitle : ContactIconBtn
 
@@ -104,7 +105,8 @@ const ContactsIconsButtons = ({
           title={'+' + user.whatsapp}
         />
       ) : (
-        forceWhatsApp && (
+        forceWhatsApp &&
+        user?.phone && (
           <Btn
             icon={faWhatsapp}
             className="text-red-400"
@@ -124,14 +126,25 @@ const ContactsIconsButtons = ({
         />
       )}
 
-      {!message && user?.telegram && (
-        <Btn
-          icon={faTelegramPlane}
-          className="text-blue-600"
-          url={`https://t.me/${user.telegram}`}
-          title={'@' + user.telegram}
-        />
-      )}
+      {!message &&
+        (user?.telegram ? (
+          <Btn
+            icon={faTelegramPlane}
+            className="text-blue-600"
+            url={`https://t.me/${user.telegram}`}
+            title={'@' + user.telegram}
+          />
+        ) : (
+          forceTelegram &&
+          user?.phone && (
+            <Btn
+              icon={faTelegramPlane}
+              className="text-red-400"
+              url={`https://t.me/+${user.phone}`}
+              title={'+' + user.phone}
+            />
+          )
+        ))}
       {!message && user?.instagram && (
         <Btn
           icon={faInstagram}

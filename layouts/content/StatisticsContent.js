@@ -7,6 +7,7 @@ import { useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
 import ComboBox from '@components/ComboBox'
 import Button from '@components/Button'
+import CheckBox from '@components/CheckBox'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import SectionCard from '@components/SectionCard'
@@ -121,7 +122,7 @@ const StatisticsContent = () => {
 
   const [selectedYear, setSelectedYear] = useState(null)
   const [selectedTown, setSelectedTown] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [includeRequests, setIncludeRequests] = useState(false)
   const chartContainerRef = useRef(null)
   const [chartWidth, setChartWidth] = useState(0)
 
@@ -147,7 +148,7 @@ const StatisticsContent = () => {
   }, [
     selectedYear,
     selectedTown,
-    selectedStatus,
+    includeRequests,
     events.length,
     transactions.length,
   ])
@@ -180,18 +181,6 @@ const StatisticsContent = () => {
     setSelectedTown('')
   }, [selectedTown, townsOptions])
 
-  const statusOptions = useMemo(
-    () => [
-      { value: 'all', name: 'Все статусы' },
-      { value: 'draft', name: 'Заявки' },
-      { value: 'active', name: 'Активные' },
-      { value: 'finished', name: 'Завершенные' },
-      { value: 'closed', name: 'Закрытые' },
-      { value: 'canceled', name: 'Отмененные' },
-    ],
-    []
-  )
-
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
       if (!isValidDate(event?.eventDate)) return false
@@ -199,13 +188,16 @@ const StatisticsContent = () => {
       if (selectedYear && eventDate.getFullYear() !== selectedYear) return false
       if (selectedTown && (event?.address?.town ?? '') !== selectedTown)
         return false
-      if (selectedStatus !== 'all') {
-        const eventStatus = getEventComputedStatus(event)
-        if (eventStatus !== selectedStatus) return false
-      }
-      return true
+      const eventStatus = getEventComputedStatus(event)
+      if (
+        eventStatus === 'active' ||
+        eventStatus === 'finished' ||
+        eventStatus === 'closed'
+      )
+        return true
+      return includeRequests && eventStatus === 'draft'
     })
-  }, [events, selectedStatus, selectedTown, selectedYear])
+  }, [events, includeRequests, selectedTown, selectedYear])
 
   const filteredEventIds = useMemo(
     () => new Set(filteredEvents.map((event) => event?._id).filter(Boolean)),
@@ -221,18 +213,19 @@ const StatisticsContent = () => {
   )
 
   const filteredRequests = useMemo(
-    () =>
-      requests.filter((request) => {
+    () => {
+      if (!includeRequests) return []
+      return requests.filter((request) => {
         const dateRaw = request?.eventDate ?? request?.createdAt
         if (selectedYear && !isValidDate(dateRaw)) return false
         if (selectedYear && new Date(dateRaw).getFullYear() !== selectedYear)
           return false
         if (selectedTown && (request?.address?.town ?? '') !== selectedTown)
           return false
-        if (selectedStatus !== 'all' && selectedStatus !== 'draft') return false
         return true
-      }),
-    [requests, selectedYear, selectedTown, selectedStatus]
+      })
+    },
+    [includeRequests, requests, selectedYear, selectedTown]
   )
 
   const eventFinanceMap = useMemo(() => {
@@ -333,6 +326,19 @@ const StatisticsContent = () => {
   }, [eventsMap, filteredEvents, filteredTransactions, selectedYear])
 
   const financeSummary = useMemo(() => {
+    const transactionsByEvent = new Map()
+    filteredTransactions.forEach((tx) => {
+      if (!tx?.eventId) return
+      const current = transactionsByEvent.get(tx.eventId) || {
+        income: 0,
+        expense: 0,
+      }
+      const amount = Number(tx.amount ?? 0)
+      if (tx.type === 'income') current.income += amount
+      if (tx.type === 'expense') current.expense += amount
+      transactionsByEvent.set(tx.eventId, current)
+    })
+
     const totalIncome = filteredTransactions
       .filter((tx) => tx?.type === 'income')
       .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0)
@@ -349,6 +355,18 @@ const StatisticsContent = () => {
           (tx?.category === 'referral_out' || tx?.category === 'organizer')
       )
       .reduce((sum, tx) => sum + Number(tx.amount ?? 0), 0)
+    const paymentLeft = filteredEvents.reduce((sum, event) => {
+      const contractSum = Number(event?.contractSum ?? 0)
+      const paid = transactionsByEvent.get(event?._id)?.income ?? 0
+      return sum + Math.max(contractSum - paid, 0)
+    }, 0)
+    const depositLeft = filteredEvents.reduce((sum, event) => {
+      const status = getEventComputedStatus(event)
+      if (status !== 'active' && status !== 'draft') return sum
+      if (!event?.waitDeposit) return sum
+      const amount = Number(event?.depositExpectedAmount ?? 0)
+      return sum + (Number.isFinite(amount) && amount > 0 ? amount : 0)
+    }, 0)
     const netProfit = totalIncome - totalExpense
     const margin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0
 
@@ -357,10 +375,12 @@ const StatisticsContent = () => {
       totalExpense,
       taxes,
       commissions,
+      paymentLeft,
+      depositLeft,
       netProfit,
       margin,
     }
-  }, [filteredTransactions])
+  }, [filteredEvents, filteredTransactions])
 
   const expenseCategoryLabels = useMemo(() => {
     const map = new Map()
@@ -569,8 +589,8 @@ const StatisticsContent = () => {
 
     const suffixYear = selectedYear ? String(selectedYear) : 'all'
     const suffixTown = selectedTown ? selectedTown.replace(/\s+/g, '_') : 'all'
-    const suffixStatus = selectedStatus || 'all'
-    const fileSuffix = `${suffixYear}-${suffixTown}-${suffixStatus}`
+    const suffixRequests = includeRequests ? 'with-requests' : 'without-requests'
+    const fileSuffix = `${suffixYear}-${suffixTown}-${suffixRequests}`
     downloadCsv(`artistcrm-events-${fileSuffix}.csv`, eventsHeaders, eventsRows)
     downloadCsv(
       `artistcrm-requests-${fileSuffix}.csv`,
@@ -637,16 +657,13 @@ const StatisticsContent = () => {
                       noMargin
                     />
                   </div>
-                  <div className="w-48">
-                    <ComboBox
-                      label="Статус"
-                      items={statusOptions}
-                      value={selectedStatus}
-                      onChange={(value) => setSelectedStatus(value ?? 'all')}
-                      fullWidth
-                      noMargin
-                    />
-                  </div>
+                  <CheckBox
+                    checked={includeRequests}
+                    onClick={() => setIncludeRequests((value) => !value)}
+                    label="Учитывать заявки"
+                    noMargin
+                    wrapperClassName="min-h-[40px] pb-1"
+                  />
                 </div>
               }
               right={<Button name="Экспорт CSV" onClick={handleExport} />}
@@ -693,6 +710,24 @@ const StatisticsContent = () => {
                   {formatCurrency(financeSummary.commissions)}
                 </div>
               </SurfaceCard>
+              {financeSummary.paymentLeft > 0 ? (
+                <SurfaceCard className="rounded" paddingClassName="p-3">
+                  <div className="text-xs text-gray-500">
+                    Остаток по оплате
+                  </div>
+                  <div className="text-lg font-semibold text-amber-700">
+                    {formatCurrency(financeSummary.paymentLeft)}
+                  </div>
+                </SurfaceCard>
+              ) : null}
+              {financeSummary.depositLeft > 0 ? (
+                <SurfaceCard className="rounded" paddingClassName="p-3">
+                  <div className="text-xs text-gray-500">Задаток</div>
+                  <div className="text-lg font-semibold text-cyan-700">
+                    {formatCurrency(financeSummary.depositLeft)}
+                  </div>
+                </SurfaceCard>
+              ) : null}
             </div>
 
             <div className="mb-3 flex flex-wrap items-center gap-4 text-sm text-gray-700">
