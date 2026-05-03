@@ -14,6 +14,7 @@ import modalsFuncAtom from '@state/atoms/modalsFuncAtom'
 import cn from 'classnames'
 import { useEffect, useMemo, useState } from 'react'
 import { useAtomValue } from 'jotai'
+import useSnackbar from '@helpers/useSnackbar'
 
 const userBillingFunc = (userId) => {
   const UserBillingModal = ({ closeModal }) => {
@@ -22,9 +23,11 @@ const userBillingFunc = (userId) => {
     const user = useAtomValue(userSelector(userId))
     const tariffs = useAtomValue(tariffsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
+    const snackbar = useSnackbar()
 
     const [payments, setPayments] = useState([])
     const [isPaymentsLoading, setIsPaymentsLoading] = useState(false)
+    const [syncingPaymentId, setSyncingPaymentId] = useState('')
     const [typeFilter, setTypeFilter] = useState('all')
     const [fromDate, setFromDate] = useState('')
     const [toDate, setToDate] = useState('')
@@ -56,6 +59,13 @@ const userBillingFunc = (userId) => {
       return 'Операция'
     }
 
+    const paymentStatusLabel = (status) => {
+      if (status === 'pending') return 'Ожидает подтверждения'
+      if (status === 'canceled') return 'Отменен'
+      if (status === 'failed') return 'Ошибка'
+      return 'Проведен'
+    }
+
     const filteredPayments = useMemo(() => {
       const startDate = fromDate ? new Date(fromDate) : null
       if (startDate) startDate.setHours(0, 0, 0, 0)
@@ -79,6 +89,27 @@ const userBillingFunc = (userId) => {
       const data = await getData('/api/payments', { userId: user._id })
       setPayments(Array.isArray(data) ? data : [])
       setIsPaymentsLoading(false)
+    }
+
+    const syncPayment = async (paymentId) => {
+      if (!paymentId) return
+      setSyncingPaymentId(paymentId)
+      try {
+        const response = await fetch('/api/billing/yookassa/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId }),
+        })
+        const payload = await response.json().catch(() => ({}))
+        if (!response.ok || !payload?.success) {
+          snackbar.error(payload?.error || 'Не удалось синхронизировать платеж')
+          return
+        }
+        snackbar.success('Платеж синхронизирован')
+        await loadPayments()
+      } finally {
+        setSyncingPaymentId('')
+      }
     }
 
     useEffect(() => {
@@ -162,11 +193,33 @@ const userBillingFunc = (userId) => {
                       {formatDate(payment.createdAt)}{' '}
                       {payment.comment ? `• ${payment.comment}` : ''}
                     </div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      Статус: {paymentStatusLabel(payment.status)}
+                      {payment.source ? ` • ${payment.source}` : ''}
+                    </div>
+                    {payment.source === 'yookassa' &&
+                    payment.status === 'pending' ? (
+                      <button
+                        type="button"
+                        className="mt-1 cursor-pointer text-xs font-semibold text-general hover:underline"
+                        disabled={syncingPaymentId === payment._id}
+                        onClick={() => syncPayment(payment._id)}
+                      >
+                        {syncingPaymentId === payment._id
+                          ? 'Синхронизация...'
+                          : 'Синхронизировать с ЮKassa'}
+                      </button>
+                    ) : null}
                   </div>
                   <div
                     className={cn(
                       'text-sm font-semibold',
-                      payment.type === 'charge'
+                      payment.status === 'pending'
+                        ? 'text-gray-500'
+                        : payment.status === 'failed' ||
+                            payment.status === 'canceled'
+                          ? 'text-red-600'
+                          : payment.type === 'charge'
                         ? 'text-red-600'
                         : 'text-green-600'
                     )}

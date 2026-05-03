@@ -134,6 +134,10 @@ const CardButtons = ({
   const device = useAtomValue(windowDimensionsTailwindSelector)
 
   const canManageUsers = ['dev', 'admin'].includes(loggedUser?.role)
+  const canCopyId =
+    loggedUser?.role === 'dev' &&
+    ['event', 'transaction', 'user', 'client'].includes(typeOfItem) &&
+    Boolean(item?._id)
   const canManageItem =
     typeOfItem !== 'user' && typeOfItem !== 'tariff' ? true : canManageUsers
   const isEventEditTabsMenu =
@@ -177,6 +181,7 @@ const CardButtons = ({
   const show = minimalActions
     ? isEventEditTabsMenu
       ? {
+          copyId: canCopyId,
           editBtn: showEditButton,
           editClientContacts: showEditButton && Boolean(onEditClientContacts),
           editFinanceDocs: showEditButton && Boolean(onEditFinanceDocs),
@@ -193,6 +198,7 @@ const CardButtons = ({
             showDeleteButton && canManageItem && item.status !== 'closed',
         }
       : {
+          copyId: canCopyId,
           editBtn: showEditButton && canManageItem,
           cloneBtn:
             showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
@@ -211,7 +217,7 @@ const CardButtons = ({
           userEvents: typeOfItem === 'client',
         }
     : {
-        copyId: true,
+        copyId: canCopyId,
         userActionsHistory: typeOfItem === 'user',
         userBilling: typeOfItem === 'user' && canManageUsers,
         userTariff: typeOfItem === 'user' && canManageUsers,
