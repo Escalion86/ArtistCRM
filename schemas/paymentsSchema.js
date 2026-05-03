@@ -64,6 +64,20 @@ const paymentsSchema = {
     type: String,
     default: '',
   },
+  paymentMethodType: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  paymentMethodTitle: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  paymentMethodDetails: {
+    type: Schema.Types.Mixed,
+    default: undefined,
+  },
   comment: {
     type: String,
     default: '',

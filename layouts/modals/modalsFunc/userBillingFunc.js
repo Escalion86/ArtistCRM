@@ -196,6 +196,9 @@ const userBillingFunc = (userId) => {
                     <div className="mt-1 text-xs text-gray-500">
                       Статус: {paymentStatusLabel(payment.status)}
                       {payment.source ? ` • ${payment.source}` : ''}
+                      {payment.paymentMethodTitle
+                        ? ` • ${payment.paymentMethodTitle}`
+                        : ''}
                     </div>
                     {payment.source === 'yookassa' &&
                     payment.status === 'pending' ? (

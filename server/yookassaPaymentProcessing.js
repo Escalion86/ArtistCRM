@@ -3,6 +3,48 @@ import Users from '@models/Users'
 import { applyTariffPurchase } from '@server/billing'
 import { getYookassaPayment, normalizeAmount } from '@server/yookassa'
 
+const SBP_BONUS_RATE = 0.02
+
+const getPaymentMethodInfo = (providerPayment) => {
+  const method = providerPayment?.payment_method || {}
+  const type = String(method?.type || '').trim()
+  if (type === 'bank_card') {
+    const card = method?.card || {}
+    const cardType = String(card?.card_type || '').trim()
+    const last4 = String(card?.last4 || '').trim()
+    return {
+      type,
+      title: [cardType || 'Банковская карта', last4 ? `**** ${last4}` : '']
+        .filter(Boolean)
+        .join(' '),
+      details: {
+        first6: card?.first6 || '',
+        last4,
+        cardType,
+        issuerCountry: card?.issuer_country || '',
+      },
+    }
+  }
+  if (type === 'sbp') {
+    return {
+      type,
+      title: 'СБП',
+      details: {},
+    }
+  }
+  return {
+    type,
+    title: type || '',
+    details: {},
+  }
+}
+
+const getSbpBonusAmount = (amount) => {
+  const value = Number(amount)
+  if (!Number.isFinite(value) || value <= 0) return 0
+  return Math.round(value * SBP_BONUS_RATE * 100) / 100
+}
+
 const processSucceededYookassaPayment = async ({ payment, providerPayment }) => {
   if (payment.status === 'succeeded') {
     return { ok: true, alreadyProcessed: true }
@@ -27,15 +69,41 @@ const processSucceededYookassaPayment = async ({ payment, providerPayment }) => 
     return { ok: false, error: 'user_not_found' }
   }
 
-  user.balance = Number(user.balance ?? 0) + Number(payment.amount ?? 0)
+  const methodInfo = getPaymentMethodInfo(providerPayment)
+  const bonusAmount =
+    payment.purpose === 'balance' && methodInfo.type === 'sbp'
+      ? getSbpBonusAmount(payment.amount)
+      : 0
+
+  user.balance =
+    Number(user.balance ?? 0) + Number(payment.amount ?? 0) + bonusAmount
   await user.save()
 
   payment.status = 'succeeded'
   payment.rawProviderStatus = providerPayment?.status || ''
+  payment.paymentMethodType = methodInfo.type
+  payment.paymentMethodTitle = methodInfo.title
+  payment.paymentMethodDetails = methodInfo.details
   payment.paidAt = providerPayment?.captured_at
     ? new Date(providerPayment.captured_at)
     : new Date()
   await payment.save()
+
+  if (bonusAmount > 0) {
+    await Payments.create({
+      userId: payment.userId,
+      tenantId: payment.tenantId,
+      tariffId: null,
+      amount: bonusAmount,
+      type: 'topup',
+      source: 'system',
+      status: 'succeeded',
+      purpose: 'balance',
+      comment: `Бонус 2% за оплату через СБП по платежу ${payment.providerPaymentId}`,
+      paymentMethodType: methodInfo.type,
+      paymentMethodTitle: methodInfo.title,
+    })
+  }
 
   if (payment.purpose === 'tariff' && payment.tariffId) {
     const result = await applyTariffPurchase({
@@ -49,7 +117,7 @@ const processSucceededYookassaPayment = async ({ payment, providerPayment }) => 
     }
   }
 
-  return { ok: true }
+  return { ok: true, bonusAmount }
 }
 
 const syncYookassaPayment = async ({ providerPaymentId, paymentId }) => {
@@ -85,4 +153,9 @@ const syncYookassaPayment = async ({ providerPaymentId, paymentId }) => {
   return { ok: true, status: providerPayment?.status || payment.status }
 }
 
-export { processSucceededYookassaPayment, syncYookassaPayment }
+export {
+  SBP_BONUS_RATE,
+  getSbpBonusAmount,
+  processSucceededYookassaPayment,
+  syncYookassaPayment,
+}

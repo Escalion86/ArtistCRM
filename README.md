@@ -31,6 +31,9 @@ Webhook URL in YooKassa:
 https://artistcrm.ru/api/billing/yookassa/webhook?token=YOOKASSA_WEBHOOK_SECRET
 ```
 
+For balance top-ups paid through SBP, the app credits an additional 2% bonus
+after YooKassa returns a successful payment with `payment_method.type = sbp`.
+
 Optional receipt variables, if YooKassa fiscalization is enabled:
 
 ```bash

@@ -5,8 +5,10 @@ import Input from '@components/Input'
 import UserName from '@components/UserName'
 import useSnackbar from '@helpers/useSnackbar'
 import userSelector from '@state/selectors/userSelector'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAtomValue } from 'jotai'
+
+const SBP_BONUS_RATE = 0.02
 
 const userTopupInfoFunc = (userId) => {
   const UserTopupInfoModal = ({ closeModal }) => {
@@ -18,6 +20,16 @@ const userTopupInfoFunc = (userId) => {
     useEffect(() => {
       if (!user) closeModal()
     }, [user])
+
+    const amountValue = Number(amount)
+    const sbpBonus = useMemo(() => {
+      if (!Number.isFinite(amountValue) || amountValue <= 0) return 0
+      return Math.round(amountValue * SBP_BONUS_RATE * 100) / 100
+    }, [amountValue])
+    const totalWithSbpBonus =
+      Number.isFinite(amountValue) && amountValue > 0
+        ? amountValue + sbpBonus
+        : 0
 
     if (!user) return null
 
@@ -54,6 +66,16 @@ const userTopupInfoFunc = (userId) => {
         <UserName user={user} className="text-lg font-bold" />
         <div className="text-sm text-gray-700">
           Деньги зачислятся на баланс после подтверждения оплаты ЮKassa.
+        </div>
+        <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          При оплате через СБП начислим бонус 2% к сумме пополнения.
+          {totalWithSbpBonus > 0 ? (
+            <div className="mt-1 font-semibold">
+              К зачислению через СБП:{' '}
+              {totalWithSbpBonus.toLocaleString('ru-RU')} руб. включая бонус{' '}
+              {sbpBonus.toLocaleString('ru-RU')} руб.
+            </div>
+          ) : null}
         </div>
         <Input
           label="Сумма (руб.)"
