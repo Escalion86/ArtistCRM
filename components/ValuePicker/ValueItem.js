@@ -15,14 +15,14 @@ const ValueItem = ({
 }) => (
   <button
     className={cn(
-      `h-[30px] flex min-w-22 duration-300 outline-none items-center justify-center border px-2 py-0.5 rounded gap-x-2 flex-nowrap border-${color} group`,
+      'value-picker-item group flex h-[30px] min-w-22 flex-nowrap items-center justify-center gap-x-2 rounded border px-2 py-0.5 outline-none duration-300',
       active
-        ? `text-white bg-${color}`
+        ? 'value-picker-item--active'
         : onClick
-          ? `text-${color} bg-white`
-          : `text-gray-500 bg-gray-200`,
+          ? 'value-picker-item--idle'
+          : 'value-picker-item--disabled',
       onClick ? 'cursor-pointer' : 'cursor-not-allowed',
-      hoverable ? `hover:text-white hover:bg-${color}` : '',
+      hoverable ? 'value-picker-item--hoverable' : '',
       className
     )}
     onClick={onClick ? () => onClick(value) : null}
@@ -35,9 +35,9 @@ const ValueItem = ({
     )}
     <div
       className={cn(
-        'whitespace-nowrap duration-300 select-none',
-        active ? 'text-white' : `text-input`,
-        hoverable ? `group-hover:text-white` : ''
+        'value-picker-item__label whitespace-nowrap duration-300 select-none',
+        active ? 'value-picker-item__label--active' : '',
+        hoverable ? 'value-picker-item__label--hoverable' : ''
       )}
     >
       {name}
