@@ -148,9 +148,8 @@ const getSuggestedDecisionAdditionalEventDate = (eventDateValue) => {
   latestAllowed.setDate(latestAllowed.getDate() - 1)
   latestAllowed.setSeconds(0, 0)
 
-  return (suggested.getTime() > latestAllowed.getTime()
-    ? latestAllowed
-    : suggested
+  return (
+    suggested.getTime() > latestAllowed.getTime() ? latestAllowed : suggested
   ).toISOString()
 }
 
@@ -192,7 +191,10 @@ const eventFunc = (
       scope: 'all',
       enabled: false,
     })
-    const events = useMemo(() => eventsPayload?.data ?? [], [eventsPayload?.data])
+    const events = useMemo(
+      () => eventsPayload?.data ?? [],
+      [eventsPayload?.data]
+    )
     const deleteTransactionMutation = useDeleteTransactionMutation()
     const closeModalRef = useRef(closeModal)
 
@@ -709,7 +711,9 @@ const eventFunc = (
             description: item.description?.trim() ?? '',
             date: item.date ?? null,
             done: Boolean(item.done),
-            doneAt: item.done ? item.doneAt ?? new Date().toISOString() : null,
+            doneAt: item.done
+              ? (item.doneAt ?? new Date().toISOString())
+              : null,
             googleCalendarEventId: item.googleCalendarEventId?.trim() ?? '',
           }))
           .filter((item) => item.title || item.description || item.date)
@@ -748,8 +752,7 @@ const eventFunc = (
         }
         const isCreatingDraftRequest =
           !payload?._id && !clone && payload.status === 'draft'
-        const hasAdditionalEvents =
-          (payload?.additionalEvents?.length ?? 0) > 0
+        const hasAdditionalEvents = (payload?.additionalEvents?.length ?? 0) > 0
         const savedEvent = await setEvent(payload, clone)
         if (typeof options?.onSaved === 'function') {
           await options.onSaved(savedEvent)
@@ -1629,7 +1632,8 @@ const eventFunc = (
                 ) : null}
                 {isClosed ? (
                   <div className="mt-2 text-xs text-red-700">
-                    Статус «Закрыто»: редактирование полей мероприятия недоступно.
+                    Статус «Закрыто»: редактирование полей мероприятия
+                    недоступно.
                   </div>
                 ) : null}
               </div>
@@ -1643,111 +1647,111 @@ const eventFunc = (
                 required
                 onClearError={() => removeError('servicesIds')}
               />
-              <div className="flex items-end mt-4 gap-x-1">
-              <ComboBox
-                label="Что за событие?"
-                items={eventTypeOptions}
-                value={eventType}
-                onChange={(value) => {
-                  removeError('eventType')
-                  setEventType(value ?? '')
-                }}
-                placeholder="Выберите тип события"
-                fullWidth
-                noMargin
-                className="flex-1 min-w-38"
-                error={errors.eventType}
-                required
-              />
-              <AddIconButton
-                onClick={handleCreateEventType}
-                title="Добавить тип события"
-                size="md"
-              />
-            </div>
+              <div className="mt-4 flex items-end gap-x-1">
+                <ComboBox
+                  label="Что за событие?"
+                  items={eventTypeOptions}
+                  value={eventType}
+                  onChange={(value) => {
+                    removeError('eventType')
+                    setEventType(value ?? '')
+                  }}
+                  placeholder="Выберите тип события"
+                  fullWidth
+                  noMargin
+                  className="min-w-38 flex-1"
+                  error={errors.eventType}
+                  required
+                />
+                <AddIconButton
+                  onClick={handleCreateEventType}
+                  title="Добавить тип события"
+                  size="md"
+                />
+              </div>
 
-            <div className="flex flex-wrap items-center gap-x-1">
-              <DateTimePicker
-                value={eventDate}
-                onChange={(value) => {
-                  removeError('eventDate')
-                  const nextStart = value ?? null
-                  setDateEnd(
-                    (prevEnd) =>
-                      shiftEndByStartChange(eventDate, nextStart, prevEnd) ??
-                      prevEnd
-                  )
-                  setEventDate(nextStart)
-                }}
-                label="Дата начала"
-                error={errors.eventDate}
+              <div className="flex flex-wrap items-center gap-x-1">
+                <DateTimePicker
+                  value={eventDate}
+                  onChange={(value) => {
+                    removeError('eventDate')
+                    const nextStart = value ?? null
+                    setDateEnd(
+                      (prevEnd) =>
+                        shiftEndByStartChange(eventDate, nextStart, prevEnd) ??
+                        prevEnd
+                    )
+                    setEventDate(nextStart)
+                  }}
+                  label="Дата начала"
+                  error={errors.eventDate}
+                />
+                <DateTimePicker
+                  value={dateEnd}
+                  onChange={(value) => {
+                    setDateEndTouched(true)
+                    setDateEnd(value ?? null)
+                  }}
+                  label="Дата окончания"
+                />
+              </div>
+              <AddressPicker
+                address={address}
+                onChange={setAddress}
+                label="Локация"
+                required={false}
+                errors={errors}
+                townOptions={townOptions}
+                onCreateTown={handleCreateTown}
               />
-              <DateTimePicker
-                value={dateEnd}
-                onChange={(value) => {
-                  setDateEndTouched(true)
-                  setDateEnd(value ?? null)
-                }}
-                label="Дата окончания"
+              <Textarea
+                label="Описание"
+                onChange={setDescription}
+                value={description}
+                rows={3}
               />
-            </div>
-            <AddressPicker
-              address={address}
-              onChange={setAddress}
-              label="Локация"
-              required={false}
-              errors={errors}
-              townOptions={townOptions}
-              onCreateTown={handleCreateTown}
-            />
-            <Textarea
-              label="Описание"
-              onChange={setDescription}
-              value={description}
-              rows={3}
-            />
-            <IconCheckBox
-              checked={isTransferred}
-              onClick={() => {
-                setIsTransferred((prev) => !prev)
-                removeError('colleagueId')
-              }}
-              label="Передано коллеге"
-              checkedIcon={faCircleCheck}
-              checkedIconColor="#F97316"
-            />
-            {isTransferred && (
-              <ColleaguePicker
-                selectedColleague={selectedColleague}
-                selectedColleagueId={colleagueId}
-                onSelectClick={openColleagueSelectModal}
-                label="Коллега"
-                required={isTransferred}
-                error={errors.colleagueId}
-                compact
-                paddingY
-                fullWidth
-              />
-            )}
-            {!calendarImportChecked && (
               <IconCheckBox
-                checked={calendarImportChecked}
-                onClick={() => setCalendarImportChecked(true)}
-                label={
-                  importedFromCalendar
-                    ? 'Импорт из календаря проверен'
-                    : 'Проверка мероприятия завершена'
-                }
+                checked={isTransferred}
+                onClick={() => {
+                  setIsTransferred((prev) => !prev)
+                  removeError('colleagueId')
+                }}
+                label="Передано коллеге"
                 checkedIcon={faCircleCheck}
-                checkedIconColor="#10B981"
+                checkedIconColor="#F97316"
               />
-            )}
-            <DateTimePicker
-              value={requestCreatedAt}
-              onChange={(value) => setRequestCreatedAt(value ?? null)}
-              label="Дата заявки"
-            />
-            <ErrorsList errors={errors} />
+              {isTransferred && (
+                <ColleaguePicker
+                  selectedColleague={selectedColleague}
+                  selectedColleagueId={colleagueId}
+                  onSelectClick={openColleagueSelectModal}
+                  label="Коллега"
+                  required={isTransferred}
+                  error={errors.colleagueId}
+                  compact
+                  paddingY
+                  fullWidth
+                />
+              )}
+              {!calendarImportChecked && (
+                <IconCheckBox
+                  checked={calendarImportChecked}
+                  onClick={() => setCalendarImportChecked(true)}
+                  label={
+                    importedFromCalendar
+                      ? 'Импорт из календаря проверен'
+                      : 'Проверка мероприятия завершена'
+                  }
+                  checkedIcon={faCircleCheck}
+                  checkedIconColor="#10B981"
+                />
+              )}
+              <DateTimePicker
+                value={requestCreatedAt}
+                onChange={(value) => setRequestCreatedAt(value ?? null)}
+                label="Дата заявки"
+              />
+              <ErrorsList errors={errors} />
             </div>
           </FormWrapper>
         </TabPanel>
@@ -1782,13 +1786,14 @@ const eventFunc = (
                 onRemoveContact={handleOtherContactRemove}
                 onEditContact={(index) => {
                   const contact = otherContacts[index]
-                  if (contact?.clientId) modalsFunc.client?.edit(contact.clientId)
+                  if (contact?.clientId)
+                    modalsFunc.client?.edit(contact.clientId)
                 }}
                 onAddContact={handleOtherContactAdd}
               />
               <LabeledContainer label="Доп. события">
-                <div className="flex flex-col w-full gap-2">
-                  <div className="flex justify-end w-full">
+                <div className="flex w-full flex-col gap-2">
+                  <div className="flex w-full justify-end">
                     <AddIconButton
                       onClick={() => handleAdditionalEventAdd()}
                       title="Добавить событие"
@@ -1798,7 +1803,9 @@ const eventFunc = (
                   {hasDoneAdditionalEvents ? (
                     <IconCheckBox
                       checked={showDoneAdditionalEvents}
-                      onClick={() => setShowDoneAdditionalEvents((prev) => !prev)}
+                      onClick={() =>
+                        setShowDoneAdditionalEvents((prev) => !prev)
+                      }
                       label="Показывать выполненные"
                       checkedIcon={faCircleCheck}
                       checkedIconColor="#16A34A"
@@ -1806,13 +1813,13 @@ const eventFunc = (
                     />
                   ) : null}
 
-                  {additionalEvents.length === 0 ? null : filteredAdditionalEvents.length ===
-                    0 ? (
+                  {additionalEvents.length ===
+                  0 ? null : filteredAdditionalEvents.length === 0 ? (
                     <div className="text-sm text-gray-500">
                       Нет событий для выбранного фильтра
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
+                    <div className="tablet:grid-cols-2 laptop:grid-cols-3 grid grid-cols-1 gap-2">
                       {filteredAdditionalEvents.map(({ item, index }) => (
                         <div
                           key={`additional-event-${index}`}
@@ -1825,7 +1832,9 @@ const eventFunc = (
                           <div className="flex items-start gap-2">
                             <button
                               type="button"
-                              onClick={() => handleAdditionalEventToggleDone(index)}
+                              onClick={() =>
+                                handleAdditionalEventToggleDone(index)
+                              }
                               title={
                                 item?.done
                                   ? 'Отметить как не выполнено'
@@ -1858,13 +1867,16 @@ const eventFunc = (
                                 </div>
                                 <div className="text-xs text-gray-600">
                                   {item?.date
-                                    ? new Date(item.date).toLocaleString('ru-RU', {
-                                        day: '2-digit',
-                                        month: '2-digit',
-                                        year: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                      })
+                                    ? new Date(item.date).toLocaleString(
+                                        'ru-RU',
+                                        {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        }
+                                      )
                                     : 'Дата не указана'}
                                 </div>
                                 {item?.description ? (
@@ -1876,7 +1888,9 @@ const eventFunc = (
                               <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                                 <IconActionButton
                                   icon={faPencilAlt}
-                                  onClick={() => handleAdditionalEventEdit(index)}
+                                  onClick={() =>
+                                    handleAdditionalEventEdit(index)
+                                  }
                                   title="Редактировать событие"
                                   variant="warning"
                                   size="xs"
@@ -1884,7 +1898,9 @@ const eventFunc = (
                                 />
                                 <IconActionButton
                                   icon={faTrashAlt}
-                                  onClick={() => handleAdditionalEventRemove(index)}
+                                  onClick={() =>
+                                    handleAdditionalEventRemove(index)
+                                  }
                                   title="Удалить событие"
                                   variant="danger"
                                   size="xs"
@@ -1999,12 +2015,12 @@ const eventFunc = (
               </div>
             )}
             {isDraft ? (
-              <div className="px-3 py-2 text-sm border rounded-md border-amber-200 bg-amber-50 text-amber-800">
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 {`Для заявки финансы, транзакции и документы недоступны. Переведите тип в "Мероприятие"`}
               </div>
             ) : null}
             {isByContract && !isDraft && canUseDocuments && (
-              <div className="flex flex-col gap-3 mt-3">
+              <div className="mt-3 flex flex-col gap-3">
                 <LinksListEditor
                   label="Ссылки на договора"
                   links={contractLinks}
@@ -2041,12 +2057,7 @@ const eventFunc = (
                   <AddIconButton
                     onClick={() => openTransactionModal()}
                     disabled={
-                      isDraft ||
-                      clone ||
-                      isFormChanged ||
-                      financeLoading ||
-                      !sourceEventId ||
-                      !clientId
+                      isDraft || clone || financeLoading || !sourceEventId
                     }
                     title="Добавить транзакцию"
                     size="sm"
@@ -2055,12 +2066,12 @@ const eventFunc = (
                 </div>
 
                 {financeError && (
-                  <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
+                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                     {financeError}
                   </div>
                 )}
 
-                <div className="bg-white border border-gray-200 rounded shadow-sm">
+                <div className="rounded border border-gray-200 bg-white shadow-sm">
                   {eventTransactions.length === 0 ? (
                     <div className="px-3 py-4 text-sm text-gray-500">
                       Пока никаких транзакций небыло
@@ -2078,9 +2089,9 @@ const eventFunc = (
                         incomeTransactions.map((transaction) => (
                           <div
                             key={transaction._id}
-                            className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
+                            className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
                           >
-                            <div className="flex flex-wrap flex-1 gap-3 text-sm">
+                            <div className="flex flex-1 flex-wrap gap-3 text-sm">
                               <span className="font-semibold text-gray-900">
                                 {transaction.amount.toLocaleString()} руб.
                               </span>
@@ -2155,9 +2166,9 @@ const eventFunc = (
                         expenseTransactions.map((transaction) => (
                           <div
                             key={transaction._id}
-                            className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
+                            className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
                           >
-                            <div className="flex flex-wrap flex-1 gap-3 text-sm">
+                            <div className="flex flex-1 flex-wrap gap-3 text-sm">
                               <span className="font-semibold text-gray-900">
                                 {transaction.amount.toLocaleString()} руб.
                               </span>
@@ -2236,7 +2247,7 @@ const eventFunc = (
               </div>
               <button
                 type="button"
-                className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+                className="h-8 rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                 onClick={() => {
                   if (!navigator?.clipboard) return
                   navigator.clipboard.writeText(googleCalendarResponseText)
@@ -2245,7 +2256,7 @@ const eventFunc = (
                 Скопировать
               </button>
             </div>
-            <pre className="w-full p-3 overflow-auto text-xs text-gray-800 whitespace-pre-wrap border border-gray-200 rounded max-h-72 bg-gray-50">
+            <pre className="max-h-72 w-full overflow-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs whitespace-pre-wrap text-gray-800">
               {googleCalendarResponseText}
             </pre>
           </TabPanel>
