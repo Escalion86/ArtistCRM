@@ -6,6 +6,9 @@ const isPushSupported = () =>
   'PushManager' in window &&
   'Notification' in window
 
+const isProductionSW =
+  typeof process !== 'undefined' && process.env.NODE_ENV === 'production'
+
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/')
@@ -39,15 +42,20 @@ const getSubscriptionApplicationServerKey = (subscription) => {
 
 const getPushRegistration = async () => {
   if (!isPushSupported()) return null
+  if (!isProductionSW) return null
 
   const existing = await navigator.serviceWorker.getRegistration('/')
   if (existing?.active) return existing
 
   if (!existing) {
-    await navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => null)
+    await navigator.serviceWorker
+      .register('/sw.js', { scope: '/' })
+      .catch(() => null)
   }
 
-  const readyRegistration = await navigator.serviceWorker.ready.catch(() => null)
+  const readyRegistration = await navigator.serviceWorker.ready.catch(
+    () => null
+  )
   if (readyRegistration?.active) return readyRegistration
   return existing || readyRegistration
 }
@@ -100,7 +108,8 @@ const syncPushSubscription = async ({
   }
 
   if (currentSubscription && publicKeyBytes) {
-    const subscriptionKey = getSubscriptionApplicationServerKey(currentSubscription)
+    const subscriptionKey =
+      getSubscriptionApplicationServerKey(currentSubscription)
     const keyChanged =
       subscriptionKey && !areByteArraysEqual(subscriptionKey, publicKeyBytes)
 
