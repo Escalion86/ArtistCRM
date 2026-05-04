@@ -1283,16 +1283,12 @@ const eventFunc = (
         setFinanceError('В копии транзакции недоступны до сохранения')
         return
       }
-      if (isFormChanged) {
-        setFinanceError('Сначала сохраните изменения мероприятия')
-        return
-      }
       if (isDraft) {
         setFinanceError('Транзакции недоступны для заявки')
         return
       }
-      if (!sourceEventId || !clientId) {
-        setFinanceError('Сначала сохраните мероприятие и выберите клиента')
+      if (!sourceEventId) {
+        setFinanceError('Сначала сохраните мероприятие')
         return
       }
       setFinanceError('')
