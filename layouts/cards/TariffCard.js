@@ -79,6 +79,18 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
             readOnly
             noMargin
           />
+          <IconCheckBox
+            checked={tariff.allowTelephony}
+            label="IP-телефония"
+            readOnly
+            noMargin
+          />
+          <IconCheckBox
+            checked={tariff.allowAi}
+            label="ИИ-возможности"
+            readOnly
+            noMargin
+          />
         </div>
       </div>
       <div className="card-title absolute right-4 bottom-4 text-lg font-semibold">
@@ -97,6 +109,8 @@ TariffCard.propTypes = {
     allowCalendarSync: PropTypes.bool,
     allowStatistics: PropTypes.bool,
     allowDocuments: PropTypes.bool,
+    allowTelephony: PropTypes.bool,
+    allowAi: PropTypes.bool,
     hidden: PropTypes.bool,
   }).isRequired,
   style: PropTypes.shape({}),

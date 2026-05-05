@@ -4,12 +4,20 @@ import getTenantContext from '@server/getTenantContext'
 import { sendAdditionalEventsPushReminders } from '@server/additionalEventsPushReminders'
 
 const canRun = async (req) => {
-  const secret = process.env.PUSH_REMINDERS_CRON_SECRET || ''
+  const secret =
+    process.env.PUSH_REMINDERS_CRON_SECRET || process.env.CRON_SECRET || ''
   const headerToken = req.headers.get('x-cron-secret') || ''
+  const authorization = req.headers.get('authorization') || ''
+  const bearerToken = authorization.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length).trim()
+    : ''
   const url = new URL(req.url)
   const queryToken = url.searchParams.get('token') || ''
 
-  if (secret && (headerToken === secret || queryToken === secret)) {
+  if (
+    secret &&
+    (headerToken === secret || bearerToken === secret || queryToken === secret)
+  ) {
     return { ok: true }
   }
 
@@ -21,7 +29,7 @@ const canRun = async (req) => {
   return { ok: false }
 }
 
-export const POST = async (req) => {
+const handleRequest = async (req) => {
   const access = await canRun(req)
   if (!access.ok) {
     return NextResponse.json(
@@ -41,3 +49,6 @@ export const POST = async (req) => {
     { status: 200 }
   )
 }
+
+export const GET = handleRequest
+export const POST = handleRequest

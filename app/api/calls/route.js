@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import Calls from '@models/Calls'
 import dbConnect from '@server/dbConnect'
 import { normalizeCallInput, normalizeCallStatus } from '@server/calls'
-import { requireTelephonyDevAccess } from '@server/telephonyAccess'
+import { requireTelephonyTariffAccess } from '@server/telephonyAccess'
 
 const parsePositiveInt = (value, fallback) => {
   const n = Number(value)
@@ -11,7 +11,7 @@ const parsePositiveInt = (value, fallback) => {
 }
 
 export const GET = async (req) => {
-  const access = await requireTelephonyDevAccess()
+  const access = await requireTelephonyTariffAccess()
   if (!access.ok) {
     return NextResponse.json(
       { success: false, error: access.error },
@@ -48,7 +48,7 @@ export const GET = async (req) => {
 
 export const POST = async (req) => {
   const body = await req.json()
-  const access = await requireTelephonyDevAccess()
+  const access = await requireTelephonyTariffAccess()
   if (!access.ok) {
     return NextResponse.json(
       { success: false, error: access.error },

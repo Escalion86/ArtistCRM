@@ -1,6 +1,10 @@
 import mongoose from 'mongoose'
 import Clients from '@models/Clients'
 import Events from '@models/Events'
+import Calls from '@models/Calls'
+import { analyzeCallTranscript } from '@server/callAiAnalysis'
+import { transcribeCallRecording } from '@server/callTranscription'
+import { getTenantAiSettings } from '@server/aiSettings'
 
 const DEFAULT_CALL_ADDRESS = Object.freeze({
   town: '',
@@ -153,5 +157,45 @@ export const buildEventDraftFromCall = async (call, tenantId) => {
       : '',
     additionalEvents,
     sourceCallId: call?._id ?? null,
+  }
+}
+
+export const processCallRecording = async (callId, tenantId) => {
+  const call = await Calls.findOne({ _id: callId, tenantId }).lean()
+  if (!call) throw new Error('CALL_NOT_FOUND')
+  if (!call.recordingUrl) throw new Error('RECORDING_URL_REQUIRED')
+
+  await Calls.findOneAndUpdate(
+    { _id: callId, tenantId },
+    { status: 'processing', processingError: '' }
+  )
+
+  try {
+    const aiSettings = await getTenantAiSettings(tenantId)
+    const transcript = await transcribeCallRecording(call.recordingUrl, aiSettings)
+    const analysis = await analyzeCallTranscript(transcript, aiSettings)
+    return Calls.findOneAndUpdate(
+      { _id: callId, tenantId },
+      {
+        status: 'ready',
+        transcript,
+        aiSummary: analysis.summary,
+        aiExtractedFields: analysis.extractedFields,
+        processingError: '',
+      },
+      { returnDocument: 'after' }
+    ).lean()
+  } catch (error) {
+    await Calls.findOneAndUpdate(
+      { _id: callId, tenantId },
+      {
+        status: 'failed',
+        processingError:
+          error?.message === 'TRANSCRIPTION_API_KEY_REQUIRED'
+            ? 'Не настроен провайдер распознавания аудио'
+            : 'Не удалось распознать запись звонка',
+      }
+    )
+    throw error
   }
 }

@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server'
 import Calls from '@models/Calls'
 import dbConnect from '@server/dbConnect'
 import { analyzeCallTranscript } from '@server/callAiAnalysis'
-import { requireTelephonyDevAccess } from '@server/telephonyAccess'
+import { getTenantAiSettings } from '@server/aiSettings'
+import { requireAiTariffAccess } from '@server/telephonyAccess'
 
 export const POST = async (req, { params }) => {
   const { id } = await params
-  const access = await requireTelephonyDevAccess()
+  const access = await requireAiTariffAccess()
   if (!access.ok) {
     return NextResponse.json(
       { success: false, error: access.error },
@@ -30,7 +31,8 @@ export const POST = async (req, { params }) => {
   )
 
   try {
-    const analysis = await analyzeCallTranscript(call.transcript)
+    const aiSettings = await getTenantAiSettings(access.tenantId)
+    const analysis = await analyzeCallTranscript(call.transcript, aiSettings)
     const updatedCall = await Calls.findOneAndUpdate(
       { _id: id, tenantId },
       {

@@ -280,38 +280,109 @@ const addBlankEventToCalendar = async (tenantId, user) => {
 }
 
 const deleteEventFromCalendar = async (googleCalendarId, calendarId, user) => {
-  if (!googleCalendarId || !calendarId) return
+  if (!googleCalendarId) return
   const context = await getCalendarContext(user)
   if (!context) return undefined
   const { calendar } = context
+  const calendarIds = Array.from(
+    new Set([calendarId, context.calendarId].filter(Boolean))
+  )
+  if (calendarIds.length === 0) return undefined
 
-  const calendarEventData = await new Promise((resolve, reject) => {
-    calendar.events.delete(
-      {
-        calendarId,
-        eventId: googleCalendarId,
-      },
-      (error, result) => {
-        if (error) {
-          console.log({ error })
-          reject(error)
-          // res.send(JSON.stringify({ error: error }))
-        } else {
-          if (result) {
-            console.log(result)
-            resolve(result)
-            // res.send(JSON.stringify({ events: result.data.items }))
-          } else {
-            console.log({ message: 'Что-то пошло не так' })
-            reject('Что-то пошло не так')
-            // res.send(JSON.stringify({ message: 'No upcoming events found.' }))
+  let lastError = null
+  for (const effectiveCalendarId of calendarIds) {
+    try {
+      const calendarEventData = await new Promise((resolve, reject) => {
+        calendar.events.delete(
+          {
+            calendarId: effectiveCalendarId,
+            eventId: googleCalendarId,
+          },
+          (error, result) => {
+            if (error) {
+              console.log({ error })
+              reject(error)
+              // res.send(JSON.stringify({ error: error }))
+            } else {
+              if (result) {
+                console.log(result)
+                resolve(result)
+                // res.send(JSON.stringify({ events: result.data.items }))
+              } else {
+                console.log({ message: 'Что-то пошло не так' })
+                reject('Что-то пошло не так')
+                // res.send(JSON.stringify({ message: 'No upcoming events found.' }))
+              }
+            }
           }
-        }
-      }
-    )
-  })
+        )
+      })
 
-  return calendarEventData
+      return calendarEventData
+    } catch (error) {
+      lastError = error
+      if (error?.code !== 404 && error?.code !== 410) throw error
+    }
+  }
+
+  if (lastError) throw lastError
+  return undefined
+}
+
+const deleteRelatedEventsFromCalendar = async (eventId, calendarId, user) => {
+  if (!eventId) return
+  const context = await getCalendarContext(user)
+  if (!context) return undefined
+  const { calendar } = context
+  const calendarIds = Array.from(
+    new Set([calendarId, context.calendarId].filter(Boolean))
+  )
+  if (calendarIds.length === 0) return undefined
+
+  const eventIdText = String(eventId)
+  const linkNeedle = `/event/${eventIdText}`
+  const deletedIds = new Set()
+
+  for (const effectiveCalendarId of calendarIds) {
+    const listResult = await new Promise((resolve, reject) => {
+      calendar.events.list(
+        {
+          calendarId: effectiveCalendarId,
+          maxResults: 2500,
+          q: eventIdText,
+          showDeleted: false,
+          singleEvents: true,
+          timeMin: '2000-01-01T00:00:00.000Z',
+          timeMax: '2100-01-01T00:00:00.000Z',
+        },
+        (error, result) => {
+          if (error) return reject(error)
+          return resolve(result)
+        }
+      )
+    })
+
+    const items = Array.isArray(listResult?.data?.items)
+      ? listResult.data.items
+      : []
+    const relatedItems = items.filter((item) => {
+      const description =
+        typeof item?.description === 'string' ? item.description : ''
+      return item?.id && description.includes(linkNeedle)
+    })
+
+    for (const item of relatedItems) {
+      if (deletedIds.has(item.id)) continue
+      try {
+        await deleteEventFromCalendar(item.id, effectiveCalendarId, user)
+        deletedIds.add(item.id)
+      } catch (error) {
+        if (error?.code !== 404 && error?.code !== 410) throw error
+      }
+    }
+  }
+
+  return deletedIds.size
 }
 
 const updateEventInCalendar = async (event, req, user, previousEvent = null) => {
@@ -930,6 +1001,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
 export {
   addBlankEventToCalendar,
   deleteEventFromCalendar,
+  deleteRelatedEventsFromCalendar,
   updateEventInCalendar,
 }
 

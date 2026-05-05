@@ -32,7 +32,7 @@ const setCallInQueries = (queryClient, call) => {
   })
 }
 
-export const useCallsQuery = ({ status = 'all', limit = 80 } = {}) =>
+export const useCallsQuery = ({ status = 'all', limit = 80, ...options } = {}) =>
   useQuery({
     queryKey: queryKeys.calls({ status, limit }),
     queryFn: async () => {
@@ -41,6 +41,7 @@ export const useCallsQuery = ({ status = 'all', limit = 80 } = {}) =>
       if (limit) search.set('limit', String(limit))
       return normalizeCallsPayload(await apiJson(`/api/calls?${search}`))
     },
+    ...options,
   })
 
 export const useCallActions = () => {
@@ -71,6 +72,17 @@ export const useCallActions = () => {
   const { mutateAsync: analyzeCall } = useMutation({
     mutationFn: async (callId) => {
       const payload = await apiJson(`/api/calls/${callId}/analyze`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+      return payload?.data
+    },
+    onSuccess: (call) => setCallInQueries(queryClient, call),
+  })
+
+  const { mutateAsync: processRecording } = useMutation({
+    mutationFn: async (callId) => {
+      const payload = await apiJson(`/api/calls/${callId}/process-recording`, {
         method: 'POST',
         body: JSON.stringify({}),
       })
@@ -113,10 +125,19 @@ export const useCallActions = () => {
       create: createCall,
       update: (callId, patch) => updateCall({ callId, patch }),
       analyze: analyzeCall,
+      processRecording,
       ignore: ignoreCall,
       link: (callId, data) => linkCall({ callId, ...data }),
       getEventDraft,
     }),
-    [analyzeCall, createCall, getEventDraft, ignoreCall, linkCall, updateCall]
+    [
+      analyzeCall,
+      createCall,
+      getEventDraft,
+      ignoreCall,
+      linkCall,
+      processRecording,
+      updateCall,
+    ]
   )
 }

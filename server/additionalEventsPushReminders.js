@@ -1,7 +1,9 @@
 import Events from '@models/Events'
 import SiteSettings from '@models/SiteSettings'
 import PushReminderLogs from '@models/PushReminderLogs'
-import { sendPushToTenant } from '@server/pushNotifications'
+import { logPushDelivery, sendPushToTenant } from '@server/pushNotifications'
+
+const DEFAULT_TIME_ZONE = 'Asia/Krasnoyarsk'
 
 const toDate = (value) => {
   if (!value) return null
@@ -9,28 +11,46 @@ const toDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-const toDateKey = (value) => {
+const getZonedParts = (value, timeZone = DEFAULT_TIME_ZONE) => {
   const date = toDate(value)
   if (!date) return null
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const map = Object.fromEntries(
+    parts.map((part) => [part.type, part.value])
+  )
+  return {
+    year: Number(map.year),
+    month: Number(map.month),
+    day: Number(map.day),
+  }
 }
 
-const buildDateBounds = (now = new Date()) => {
-  const startOfToday = new Date(now)
-  startOfToday.setHours(0, 0, 0, 0)
-  const startOfTomorrow = new Date(startOfToday)
-  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
-  const startOfDayAfterTomorrow = new Date(startOfTomorrow)
-  startOfDayAfterTomorrow.setDate(startOfDayAfterTomorrow.getDate() + 1)
-  return {
-    now,
-    startOfToday,
-    startOfTomorrow,
-    startOfDayAfterTomorrow,
-  }
+const toDateKey = (value, timeZone = DEFAULT_TIME_ZONE) => {
+  const parts = getZonedParts(value, timeZone)
+  if (!parts) return null
+  return [
+    String(parts.year).padStart(4, '0'),
+    String(parts.month).padStart(2, '0'),
+    String(parts.day).padStart(2, '0'),
+  ].join('-')
+}
+
+const addDaysToDateKey = (dateKey, days) => {
+  const [year, month, day] = String(dateKey || '')
+    .split('-')
+    .map((value) => Number(value))
+  if (!year || !month || !day) return null
+  const date = new Date(Date.UTC(year, month - 1, day + days))
+  return [
+    String(date.getUTCFullYear()).padStart(4, '0'),
+    String(date.getUTCMonth() + 1).padStart(2, '0'),
+    String(date.getUTCDate()).padStart(2, '0'),
+  ].join('-')
 }
 
 const canSendForTenant = (siteSettings) => {
@@ -48,7 +68,12 @@ const canSendForTenant = (siteSettings) => {
   return true
 }
 
-const buildReminderPayload = ({ event, additionalEvent, reminderType }) => {
+const buildReminderPayload = ({
+  event,
+  additionalEvent,
+  reminderType,
+  timeZone = DEFAULT_TIME_ZONE,
+}) => {
   const eventId = String(event?._id || '')
   const title =
     reminderType === 'overdue'
@@ -62,12 +87,14 @@ const buildReminderPayload = ({ event, additionalEvent, reminderType }) => {
     ? eventDate.toLocaleTimeString('ru-RU', {
         hour: '2-digit',
         minute: '2-digit',
+        timeZone,
       })
     : '--:--'
   const dateLabel = eventDate
     ? eventDate.toLocaleDateString('ru-RU', {
         day: '2-digit',
         month: '2-digit',
+        timeZone,
       })
     : '--.--'
   const body =
@@ -80,7 +107,7 @@ const buildReminderPayload = ({ event, additionalEvent, reminderType }) => {
     body,
     icon: '/icons/AppImages/android/android-launchericon-192-192.png',
     badge: '/icons/AppImages/android/android-launchericon-192-192.png',
-    tag: `additional-${reminderType}-${eventId}-${toDateKey(additionalEvent?.date) || Date.now()}`,
+    tag: `additional-${reminderType}-${eventId}-${toDateKey(additionalEvent?.date, timeZone) || Date.now()}`,
     renotify: false,
     requireInteraction: reminderType === 'overdue',
     data: {
@@ -92,21 +119,21 @@ const buildReminderPayload = ({ event, additionalEvent, reminderType }) => {
 }
 
 const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
-  const {
-    startOfTomorrow,
-    startOfDayAfterTomorrow,
-    now: nowDate,
-  } = buildDateBounds(now)
+  const nowDate = toDate(now) || new Date()
 
   const siteSettings = await SiteSettings.find({
     'custom.publicLeadPushEnabled': true,
   })
-    .select('tenantId custom')
+    .select('tenantId custom timeZone')
     .lean()
 
-  const tenantIds = siteSettings
-    .filter((item) => canSendForTenant(item))
-    .map((item) => String(item.tenantId))
+  const enabledTenantSettings = siteSettings.filter((item) =>
+    canSendForTenant(item)
+  )
+  const tenantIds = enabledTenantSettings.map((item) => String(item.tenantId))
+  const settingsByTenant = new Map(
+    enabledTenantSettings.map((item) => [String(item.tenantId), item])
+  )
 
   if (tenantIds.length === 0) {
     return {
@@ -131,8 +158,30 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
   let sentReminders = 0
   let skippedByDedup = 0
   let failed = 0
+  const tenantStats = new Map()
+
+  const getTenantStats = (tenantId) => {
+    const key = String(tenantId)
+    if (!tenantStats.has(key)) {
+      tenantStats.set(key, {
+        processedEvents: 0,
+        dueCandidates: 0,
+        sentReminders: 0,
+        skippedByDedup: 0,
+        failed: 0,
+      })
+    }
+    return tenantStats.get(key)
+  }
 
   for (const event of events) {
+    const tenantSettings = settingsByTenant.get(String(event.tenantId))
+    const timeZone = tenantSettings?.timeZone || DEFAULT_TIME_ZONE
+    const todayKey = toDateKey(nowDate, timeZone)
+    const tomorrowKey = addDaysToDateKey(todayKey, 1)
+    const stats = getTenantStats(event.tenantId)
+    stats.processedEvents += 1
+
     const additionalEvents = Array.isArray(event?.additionalEvents)
       ? event.additionalEvents
       : []
@@ -145,20 +194,19 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
 
       let reminderType = ''
       let dateKey = ''
+      const itemDateKey = toDateKey(date, timeZone)
       if (date.getTime() < nowDate.getTime()) {
         reminderType = 'overdue'
-        dateKey = toDateKey(nowDate)
-      } else if (
-        date.getTime() >= startOfTomorrow.getTime() &&
-        date.getTime() < startOfDayAfterTomorrow.getTime()
-      ) {
+        dateKey = todayKey
+      } else if (itemDateKey && itemDateKey === tomorrowKey) {
         reminderType = 'tomorrow'
-        dateKey = toDateKey(date)
+        dateKey = itemDateKey
       } else {
         continue
       }
 
       dueCandidates += 1
+      stats.dueCandidates += 1
 
       const dedupKey = {
         tenantId: event.tenantId,
@@ -171,6 +219,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
       const exists = await PushReminderLogs.findOne(dedupKey).lean()
       if (exists) {
         skippedByDedup += 1
+        stats.skippedByDedup += 1
         continue
       }
 
@@ -178,6 +227,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
         event,
         additionalEvent: item,
         reminderType,
+        timeZone,
       })
 
       const result = await sendPushToTenant({
@@ -188,6 +238,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
 
       if (!result?.ok) {
         failed += 1
+        stats.failed += 1
         continue
       }
 
@@ -200,7 +251,22 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
         sentAt: new Date(),
       })
       sentReminders += 1
+      stats.sentReminders += 1
     }
+  }
+
+  for (const [tenantId, stats] of tenantStats) {
+    await logPushDelivery({
+      tenantId,
+      source: 'additional_event_reminder',
+      eventType: 'summary',
+      status: stats.failed > 0 ? 'partial' : 'ok',
+      payloadType: 'additional_event_reminder',
+      sent: stats.sentReminders,
+      failed: stats.failed,
+      message: `Итог напоминаний: кандидатов ${stats.dueCandidates}, отправлено ${stats.sentReminders}, дублей ${stats.skippedByDedup}, ошибок ${stats.failed}`,
+      meta: stats,
+    })
   }
 
   return {

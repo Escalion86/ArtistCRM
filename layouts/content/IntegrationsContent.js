@@ -9,9 +9,12 @@ import IconActionButton from '@components/IconActionButton'
 import LabeledContainer from '@components/LabeledContainer'
 import GoogleCalendarSettings from '@components/GoogleCalendarSettings'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
+import loggedUserAtom from '@state/atoms/loggedUserAtom'
+import tariffsAtom from '@state/atoms/tariffsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
 import useSnackbar from '@helpers/useSnackbar'
+import { getUserTariffAccess } from '@helpers/tariffAccess'
 import ReactMarkdown from 'react-markdown'
 
 const getCustomValue = (custom, key) => {
@@ -38,6 +41,16 @@ const generateApiKeyId = () => {
     return crypto.randomUUID()
   }
   return `key_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
+}
+
+const generateNovofonSecret = () => {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
+    return `novofon_${crypto.randomUUID().replace(/-/g, '')}`
+  }
+  return `novofon_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
 }
 
 const normalizePublicLeadApiKeys = (customSettings) => {
@@ -258,7 +271,10 @@ const ApiKeyEditorModal = ({
 
 const IntegrationsContent = () => {
   const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
+  const loggedUser = useAtomValue(loggedUserAtom)
+  const tariffs = useAtomValue(tariffsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const snackbar = useSnackbar()
   const [isSaving, setIsSaving] = useState(false)
 
   const customSettings = useMemo(
@@ -269,11 +285,39 @@ const IntegrationsContent = () => {
     () => normalizePublicLeadApiKeys(customSettings),
     [customSettings]
   )
+  const tariffAccess = useMemo(
+    () => getUserTariffAccess(loggedUser, tariffs),
+    [loggedUser, tariffs]
+  )
+  const canUseTelephony = Boolean(tariffAccess?.allowTelephony)
+  const canUseAi = Boolean(tariffAccess?.allowAi)
   const isEnabled = getCustomValue(customSettings, 'publicLeadEnabled') === true
   const endpointUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/api/public/lead'
     return `${window.location.origin}/api/public/lead`
   }, [])
+  const novofonEnabled = getCustomValue(customSettings, 'novofonEnabled') === true
+  const novofonApiKey = String(getCustomValue(customSettings, 'novofonApiKey') || '')
+  const novofonWebhookSecret = String(
+    getCustomValue(customSettings, 'novofonWebhookSecret') || ''
+  )
+  const aitunnelKey = String(getCustomValue(customSettings, 'aitunnelKey') || '')
+  const aiTranscriptionModel = String(
+    getCustomValue(customSettings, 'aiTranscriptionModel') || 'whisper-1'
+  )
+  const aiAnalysisModel = String(
+    getCustomValue(customSettings, 'aiAnalysisModel') || 'gpt-4o-mini'
+  )
+  const novofonWebhookUrl = useMemo(() => {
+    const tenantId = loggedUser?.tenantId || loggedUser?._id || ''
+    const path = '/api/telephony/novofon/webhook'
+    if (!tenantId) return path
+    const params = new URLSearchParams({ tenantId })
+    if (novofonWebhookSecret) params.set('secret', novofonWebhookSecret)
+    const relative = `${path}?${params.toString()}`
+    if (typeof window === 'undefined') return relative
+    return `${window.location.origin}${relative}`
+  }, [loggedUser?._id, loggedUser?.tenantId, novofonWebhookSecret])
 
   const saveCustom = async (patch) => {
     setIsSaving(true)
@@ -453,6 +497,192 @@ const IntegrationsContent = () => {
                 Открыть инструкцию API
               </button>
             </div>
+          </div>
+        </LabeledContainer>
+
+        <LabeledContainer label="Novofon IP-телефония" noMargin>
+          <div className="flex flex-col gap-3">
+            <div className="text-sm text-gray-600">
+              Каждый пользователь подключает свой аккаунт Novofon и использует
+              индивидуальный webhook URL. Сейчас интеграция принимает события
+              звонков и ссылки на записи, а AI-черновик создается из transcript.
+            </div>
+            {!canUseTelephony && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                IP-телефония доступна на тарифе с включенной опцией
+                IP-телефония.
+              </div>
+            )}
+
+            <IconCheckBox
+              label="Включить интеграцию Novofon"
+              checked={novofonEnabled}
+              disabled={!canUseTelephony}
+              onClick={() =>
+                canUseTelephony &&
+                saveCustom({
+                  novofonEnabled: !novofonEnabled,
+                  novofonWebhookSecret:
+                    novofonWebhookSecret || generateNovofonSecret(),
+                })
+              }
+              noMargin
+            />
+
+            <Input
+              label="Novofon API key"
+              value={novofonApiKey}
+              onChange={(value) =>
+                canUseTelephony && saveCustom({ novofonApiKey: value })
+              }
+              disabled={!canUseTelephony}
+              noMargin
+              fullWidth
+            />
+
+            <div className="flex items-start gap-2">
+              <Input
+                label="Webhook secret"
+                value={novofonWebhookSecret}
+                onChange={() => {}}
+                disabled
+                noMargin
+                fullWidth
+              />
+              <IconActionButton
+                icon={faCopy}
+                size="md"
+                variant="success"
+                title="Скопировать secret"
+                className="shrink-0"
+                onClick={async () => {
+                  if (
+                    !canUseTelephony ||
+                    !novofonWebhookSecret ||
+                    !navigator?.clipboard
+                  )
+                    return
+                  await navigator.clipboard.writeText(novofonWebhookSecret)
+                  snackbar.success('Secret скопирован')
+                }}
+              />
+            </div>
+
+            <div className="flex items-start gap-2">
+              <Input
+                label="Webhook URL для Novofon"
+                value={novofonWebhookUrl}
+                onChange={() => {}}
+                disabled
+                noMargin
+                fullWidth
+              />
+              <IconActionButton
+                icon={faCopy}
+                size="md"
+                variant="success"
+                title="Скопировать webhook URL"
+                className="shrink-0"
+                onClick={async () => {
+                  if (!canUseTelephony || !novofonWebhookUrl || !navigator?.clipboard)
+                    return
+                  await navigator.clipboard.writeText(novofonWebhookUrl)
+                  snackbar.success('Webhook URL скопирован')
+                }}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+                onClick={() =>
+                  canUseTelephony &&
+                  saveCustom({ novofonWebhookSecret: generateNovofonSecret() })
+                }
+                disabled={isSaving || !canUseTelephony}
+              >
+                Перегенерировать secret
+              </button>
+            </div>
+          </div>
+        </LabeledContainer>
+
+        <LabeledContainer label="AITunnel для AI и распознавания речи" noMargin>
+          <div className="flex flex-col gap-3">
+            <div className="text-sm text-gray-600">
+              Ключ AITunnel хранится в настройках пользователя и используется для
+              распознавания записей звонков через Whisper и AI-анализа transcript.
+            </div>
+            {!canUseTelephony && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                AI-обработка звонков доступна на тарифе с включенной опцией
+                IP-телефония.
+              </div>
+            )}
+            {canUseTelephony && !canUseAi && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                AI-обработка звонков доступна на тарифе с включенной опцией
+                ИИ-возможности.
+              </div>
+            )}
+            <Input
+              label="AITunnel key"
+              value={aitunnelKey}
+              onChange={(value) =>
+                canUseTelephony && canUseAi && saveCustom({ aitunnelKey: value })
+              }
+              disabled={!canUseTelephony || !canUseAi}
+              noMargin
+              fullWidth
+            />
+            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+              <Input
+                label="Модель распознавания"
+                value={aiTranscriptionModel}
+                onChange={(value) =>
+                  canUseTelephony &&
+                  canUseAi &&
+                  saveCustom({
+                    aiTranscriptionProvider: 'aitunnel',
+                    aiTranscriptionModel: value,
+                  })
+                }
+                disabled={!canUseTelephony || !canUseAi}
+                noMargin
+                fullWidth
+              />
+              <Input
+                label="Модель AI-анализа"
+                value={aiAnalysisModel}
+                onChange={(value) =>
+                  canUseTelephony &&
+                  canUseAi &&
+                  saveCustom({
+                    aiAnalysisProvider: 'aitunnel',
+                    aiAnalysisModel: value,
+                  })
+                }
+                disabled={!canUseTelephony || !canUseAi}
+                noMargin
+                fullWidth
+              />
+            </div>
+            <button
+              type="button"
+              className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+              disabled={!canUseTelephony || !canUseAi || isSaving}
+              onClick={() =>
+                saveCustom({
+                  aiTranscriptionProvider: 'aitunnel',
+                  aiTranscriptionModel: aiTranscriptionModel || 'whisper-1',
+                  aiAnalysisProvider: 'aitunnel',
+                  aiAnalysisModel: aiAnalysisModel || 'gpt-4o-mini',
+                })
+              }
+            >
+              Использовать AITunnel
+            </button>
           </div>
         </LabeledContainer>
       </div>

@@ -7,6 +7,7 @@ import {
   faPlus,
   faUserPlus,
   faWandMagicSparkles,
+  faFileAudio,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import AppButton from '@components/AppButton'
@@ -15,8 +16,11 @@ import Textarea from '@components/Textarea'
 import { modalsFuncAtom } from '@state/atoms'
 import { useCallActions, useCallsQuery } from '@helpers/useCallsQuery'
 import { useClientActions, useClientsQuery } from '@helpers/useClientsQuery'
+import { getUserTariffAccess } from '@helpers/tariffAccess'
 import getPersonFullName from '@helpers/getPersonFullName'
 import useSnackbar from '@helpers/useSnackbar'
+import loggedUserAtom from '@state/atoms/loggedUserAtom'
+import tariffsAtom from '@state/atoms/tariffsAtom'
 
 const STATUS_LABELS = {
   new: 'Новый',
@@ -194,7 +198,18 @@ const CallEditorModal = ({
 
 const CallsContent = () => {
   const [status, setStatus] = useState('all')
-  const { data: callsPayload, isLoading, refetch } = useCallsQuery({ status })
+  const loggedUser = useAtomValue(loggedUserAtom)
+  const tariffs = useAtomValue(tariffsAtom)
+  const tariffAccess = useMemo(
+    () => getUserTariffAccess(loggedUser, tariffs),
+    [loggedUser, tariffs]
+  )
+  const canUseTelephony = Boolean(tariffAccess?.allowTelephony)
+  const canUseAi = Boolean(tariffAccess?.allowAi)
+  const { data: callsPayload, isLoading, refetch } = useCallsQuery({
+    status,
+    enabled: canUseTelephony,
+  })
   const calls = callsPayload?.data ?? []
   const { data: clients = [] } = useClientsQuery()
   const callActions = useCallActions()
@@ -272,6 +287,12 @@ const CallsContent = () => {
     refetch()
   }
 
+  const processRecording = async (call) => {
+    await callActions.processRecording(call._id)
+    snackbar.success('Запись распознана и проанализирована')
+    refetch()
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between">
@@ -281,7 +302,11 @@ const CallsContent = () => {
             Журнал разговоров и AI-черновики заявок
           </div>
         </div>
-        <AppButton onClick={() => openCallEditor()} className="gap-2">
+        <AppButton
+          onClick={() => openCallEditor()}
+          className="gap-2"
+          disabled={!canUseTelephony}
+        >
           <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
           Добавить звонок
         </AppButton>
@@ -305,8 +330,22 @@ const CallsContent = () => {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {isLoading && <div className="py-6 text-gray-600">Загрузка...</div>}
-        {!isLoading && calls.length === 0 && (
+        {!canUseTelephony && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+            IP-телефония, журнал звонков и AI-заявки доступны на тарифе с
+            включенной опцией IP-телефония.
+          </div>
+        )}
+        {canUseTelephony && !canUseAi && (
+          <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+            AI-анализ звонков и распознавание записей доступны на тарифе с
+            включенной опцией ИИ-возможности.
+          </div>
+        )}
+        {canUseTelephony && isLoading && (
+          <div className="py-6 text-gray-600">Загрузка...</div>
+        )}
+        {canUseTelephony && !isLoading && calls.length === 0 && (
           <div className="rounded-md border border-dashed border-gray-300 p-5 text-sm text-gray-600">
             Звонков пока нет. До подключения IP-телефонии можно добавить тестовый
             звонок вручную и проверить AI-черновик.
@@ -394,7 +433,9 @@ const CallsContent = () => {
                   <AppButton
                     size="sm"
                     variant="secondary"
-                    disabled={!call.transcript || call.status === 'processing'}
+                    disabled={
+                      !canUseAi || !call.transcript || call.status === 'processing'
+                    }
                     onClick={() => analyzeCall(call)}
                     className="gap-2"
                   >
@@ -404,6 +445,21 @@ const CallsContent = () => {
                     />
                     AI-анализ
                   </AppButton>
+                  {call.recordingUrl && (
+                    <AppButton
+                      size="sm"
+                      variant="secondary"
+                      disabled={!canUseAi || call.status === 'processing'}
+                      onClick={() => processRecording(call)}
+                      className="gap-2"
+                    >
+                      <FontAwesomeIcon
+                        icon={faFileAudio}
+                        className="h-3.5 w-3.5"
+                      />
+                      Распознать запись
+                    </AppButton>
+                  )}
                   {!call.linkedClientId && (
                     <AppButton
                       size="sm"

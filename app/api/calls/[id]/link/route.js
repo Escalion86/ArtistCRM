@@ -3,12 +3,12 @@ import Calls from '@models/Calls'
 import Clients from '@models/Clients'
 import Events from '@models/Events'
 import dbConnect from '@server/dbConnect'
-import { requireTelephonyDevAccess } from '@server/telephonyAccess'
+import { requireTelephonyTariffAccess } from '@server/telephonyAccess'
 
 export const POST = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const access = await requireTelephonyDevAccess()
+  const access = await requireTelephonyTariffAccess()
   if (!access.ok) {
     return NextResponse.json(
       { success: false, error: access.error },

@@ -13,6 +13,8 @@ const buildAccess = (user, tariff) => {
     allowCalendarSync: trialActive || Boolean(tariff?.allowCalendarSync),
     allowStatistics: trialActive || Boolean(tariff?.allowStatistics),
     allowDocuments: trialActive || Boolean(tariff?.allowDocuments),
+    allowTelephony: Boolean(tariff?.allowTelephony),
+    allowAi: Boolean(tariff?.allowAi),
     eventsPerMonth: trialActive ? Infinity : Number(tariff?.eventsPerMonth ?? 0),
   }
 }

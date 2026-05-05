@@ -268,6 +268,18 @@ const TariffSelectContent = () => {
                     readOnly
                     noMargin
                   />
+                  <IconCheckBox
+                    checked={tariff.allowTelephony}
+                    label="IP-телефония"
+                    readOnly
+                    noMargin
+                  />
+                  <IconCheckBox
+                    checked={tariff.allowAi}
+                    label="ИИ-возможности"
+                    readOnly
+                    noMargin
+                  />
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   {loggedUser?.tariffId === tariff._id && (

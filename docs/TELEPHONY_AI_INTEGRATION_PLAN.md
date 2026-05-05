@@ -113,6 +113,15 @@
   - принимает нормализованный payload с `tenantId`, телефоном, датой, направлением, transcript и provider call id;
   - делает upsert по `tenantId + provider + providerCallId`.
 
+- `POST /api/telephony/novofon/webhook`
+  - adapter под Novofon/Zadarma HTTP-уведомления;
+  - принимает JSON или `application/x-www-form-urlencoded`;
+  - основной режим: проверяет индивидуальный secret пользователя из `SiteSettings.custom.novofonWebhookSecret`;
+  - fallback для dev-тестов: `NOVOFON_WEBHOOK_SECRET` или общий `TELEPHONY_WEBHOOK_SECRET`;
+  - секрет можно передать через `x-novofon-secret`, `x-telephony-secret`, `Authorization: Bearer ...`, `secret` или `token`;
+  - `tenantId` можно передать в query/body как `tenantId`, `tenant_id` или `crm_tenant_id`;
+  - сохраняет ссылку записи из `file_link`/`record_file_link`/`recording_url`/`record_link`.
+
 - `POST /api/telephony/telefonip/webhook`
   - принимает событие звонка от Telefon-IP;
   - проверяет подпись/секрет;
@@ -128,6 +137,12 @@
 
 - `POST /api/calls/[id]/process`
   - ручной запуск/повтор обработки записи.
+
+- `POST /api/calls/[id]/process-recording`
+  - скачивает запись по `recordingUrl`;
+  - распознает аудио через `AI_TRANSCRIPTION_PROVIDER`;
+  - сохраняет transcript;
+  - запускает AI-анализ transcript и обновляет поля звонка.
 
 - `POST /api/calls/[id]/ignore`
   - пометить звонок как не относящийся к клиентам.
@@ -258,21 +273,33 @@ Mobile-first:
 Реализован provider-neutral MVP без привязки к Telefon-IP:
 
 - модель `Calls`;
-- защищенные API `/api/calls`, доступные только пользователю с ролью `dev`;
+- защищенные API `/api/calls`, доступные только при тарифном доступе `allowTelephony` в рамках своего `tenantId`;
 - generic webhook `/api/telephony/generic/webhook`, доступный только для tenant'ов разработчика;
-- экран кабинета `Звонки`, скрытый для всех ролей кроме `dev`;
+- Novofon webhook `/api/telephony/novofon/webhook` с индивидуальной настройкой tenant'а;
+- настройки Novofon в `Интеграции`: включение, API key, webhook secret и готовый webhook URL;
+- тарифный доступ: IP-телефония доступна только на тарифах с `allowTelephony=true`;
+- AI-возможности доступны только на тарифах с `allowAi=true`;
+- экран кабинета `Звонки` для журнала звонков пользователя;
 - ручное добавление звонка/transcript;
-- AI-анализ transcript через DeepSeek/OpenAI-compatible adapter;
+- ручной запуск распознавания записи из карточки звонка;
+- AI-анализ transcript через AITunnel/DeepSeek/OpenAI-compatible adapter;
 - fallback-черновик без внешнего AI, если ключ не настроен;
 - создание клиента и подтверждаемой заявки из звонка.
 
 Нужные env для текущего MVP:
 
 - `TELEPHONY_WEBHOOK_SECRET` — секрет generic webhook;
-- `AI_ANALYSIS_PROVIDER=deepseek` — провайдер AI-анализа, по умолчанию DeepSeek;
+- `NOVOFON_WEBHOOK_SECRET` — fallback-секрет Novofon webhook для dev-тестов, необязательно;
+- `AITUNNEL_KEY` — fallback-ключ AITunnel для dev/default сценариев;
+- `AI_ANALYSIS_PROVIDER=deepseek` — fallback-провайдер AI-анализа, если у tenant не задан AITunnel key;
 - `DEEPSEEK_API_KEY` — ключ DeepSeek для AI-анализа transcript;
 - `DEEPSEEK_CALL_ANALYSIS_MODEL=deepseek-v4-flash` — модель DeepSeek, необязательно;
 - `AI_ANALYSIS_API_URL` — кастомный endpoint OpenAI-compatible API, необязательно.
+- `AI_TRANSCRIPTION_PROVIDER=aitunnel` — fallback-провайдер speech-to-text для записей;
+- `OPENAI_API_KEY` — ключ для speech-to-text, если выбран OpenAI;
+- `OPENAI_TRANSCRIPTION_MODEL=whisper-1` — модель speech-to-text, необязательно.
+
+В пользовательском сценарии AITunnel key хранится индивидуально в `SiteSettings.custom.aitunnelKey`. Если ключ задан у tenant, распознавание и AI-анализ по умолчанию используют AITunnel.
 
 Для fallback на OpenAI можно использовать:
 

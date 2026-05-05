@@ -573,6 +573,8 @@ export const DEFAULT_TARIFF = Object.freeze({
   allowCalendarSync: false,
   allowStatistics: false,
   allowDocuments: false,
+  allowTelephony: false,
+  allowAi: false,
   hidden: false,
 })
 
@@ -730,7 +732,6 @@ export const pages = [
     name: 'Звонки',
     href: 'calls',
     icon: faPhone,
-    accessRoles: ['dev'],
   },
   {
     id: 11,

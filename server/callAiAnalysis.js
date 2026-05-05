@@ -22,6 +22,12 @@ const AI_PROVIDERS = Object.freeze({
     modelEnv: 'DEEPSEEK_CALL_ANALYSIS_MODEL',
     defaultModel: 'deepseek-v4-flash',
   },
+  aitunnel: {
+    apiUrl: 'https://api.aitunnel.ru/v1/chat/completions',
+    apiKeyEnv: 'AITUNNEL_KEY',
+    modelEnv: 'AITUNNEL_CALL_ANALYSIS_MODEL',
+    defaultModel: 'gpt-4o-mini',
+  },
 })
 
 const trimText = (value, maxLength = 12000) =>
@@ -96,8 +102,10 @@ const buildFallbackAnalysis = (transcript) => {
   })
 }
 
-const getAiProviderConfig = () => {
-  const providerName = String(process.env.AI_ANALYSIS_PROVIDER || 'deepseek')
+const getAiProviderConfig = (settings = {}) => {
+  const providerName = String(
+    settings.aiAnalysisProvider || process.env.AI_ANALYSIS_PROVIDER || 'deepseek'
+  )
     .trim()
     .toLowerCase()
   const provider = AI_PROVIDERS[providerName] || AI_PROVIDERS.deepseek
@@ -110,8 +118,14 @@ const getAiProviderConfig = () => {
       process.env.AI_ANALYSIS_API_URL ||
       process.env[`${normalizedProviderName.toUpperCase()}_API_URL`] ||
       provider.apiUrl,
-    apiKey: process.env[provider.apiKeyEnv],
-    model: process.env[provider.modelEnv] || provider.defaultModel,
+    apiKey:
+      normalizedProviderName === 'aitunnel'
+        ? settings.aitunnelKey || process.env[provider.apiKeyEnv]
+        : process.env[provider.apiKeyEnv],
+    model:
+      settings.aiAnalysisModel ||
+      process.env[provider.modelEnv] ||
+      provider.defaultModel,
   }
 }
 
@@ -162,13 +176,13 @@ Transcript:
 ${transcript}
 `
 
-export const analyzeCallTranscript = async (transcript) => {
+export const analyzeCallTranscript = async (transcript, settings = {}) => {
   const cleanTranscript = trimText(transcript)
   if (!cleanTranscript) {
     return buildFallbackAnalysis('')
   }
 
-  const provider = getAiProviderConfig()
+  const provider = getAiProviderConfig(settings)
   if (!provider.apiKey) return buildFallbackAnalysis(cleanTranscript)
 
   const response = await fetch(provider.apiUrl, {

@@ -1,4 +1,8 @@
-import { sendPushToTenant } from '@server/pushNotifications'
+import {
+  countActivePushSubscriptions,
+  logPushDelivery,
+  sendPushToTenant,
+} from '@server/pushNotifications'
 
 const formatPhone = (value) => {
   const digits = String(value || '').replace(/\D/g, '')
@@ -42,4 +46,54 @@ const notifyApiLeadCreated = async ({ tenantId, event, normalizedData }) => {
   return sendPushToTenant({ tenantId, payload, source: 'public_lead' })
 }
 
-export { notifyApiLeadCreated }
+const resolvePublicLeadPushEnabled = async ({ tenantId, configured }) => {
+  if (configured === true) return true
+  if (configured === false) {
+    const activeSubscriptions = await countActivePushSubscriptions(tenantId)
+    return activeSubscriptions > 0
+  }
+  return false
+}
+
+const logPublicLeadPushSkipped = async ({
+  tenantId,
+  event,
+  reason,
+  configured,
+}) => {
+  await logPushDelivery({
+    tenantId,
+    source: 'public_lead',
+    eventType: 'send',
+    status: 'skipped',
+    payloadType: 'api_lead',
+    message: `Push по API-заявке пропущен: ${reason}`,
+    meta: {
+      eventId: String(event?._id || ''),
+      configured,
+      reason,
+    },
+  })
+}
+
+const logPublicLeadPushError = async ({ tenantId, event, error }) => {
+  await logPushDelivery({
+    tenantId,
+    source: 'public_lead',
+    eventType: 'send',
+    status: 'failed',
+    payloadType: 'api_lead',
+    failed: 1,
+    message: error?.message || 'Ошибка отправки push по API-заявке',
+    meta: {
+      eventId: String(event?._id || ''),
+    },
+  })
+}
+
+export {
+  notifyApiLeadCreated,
+  resolvePublicLeadPushEnabled,
+  logPublicLeadPushSkipped,
+  logPublicLeadPushError,
+}

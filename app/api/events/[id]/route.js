@@ -4,7 +4,11 @@ import Events from '@models/Events'
 import Transactions from '@models/Transactions'
 import Histories from '@models/Histories'
 import dbConnect from '@server/dbConnect'
-import { deleteEventFromCalendar, updateEventInCalendar } from '@server/CRUD'
+import {
+  deleteEventFromCalendar,
+  deleteRelatedEventsFromCalendar,
+  updateEventInCalendar,
+} from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
@@ -352,12 +356,47 @@ export const DELETE = async (req, { params }) => {
     data: [deleted.toJSON?.() ?? deleted],
     userId: String(user._id),
   })
-  if (deleted.googleCalendarId) {
+  const additionalCalendarEventIds = Array.isArray(deleted.additionalEvents)
+    ? deleted.additionalEvents
+        .map((item) =>
+          typeof item?.googleCalendarEventId === 'string'
+            ? item.googleCalendarEventId.trim()
+            : ''
+        )
+        .filter(Boolean)
+    : []
+  const calendarEventIds = [
+    deleted.googleCalendarId,
+    ...additionalCalendarEventIds,
+  ].filter(Boolean)
+  if (
+    calendarEventIds.length > 0 ||
+    deleted.calendarImportChecked ||
+    deleted.importedFromCalendar
+  ) {
     try {
       const access = await getUserTariffAccess(user._id)
       if (access?.allowCalendarSync) {
-        await deleteEventFromCalendar(
-          deleted.googleCalendarId,
+        const uniqueCalendarEventIds = Array.from(new Set(calendarEventIds))
+        for (const googleCalendarId of uniqueCalendarEventIds) {
+          try {
+            await deleteEventFromCalendar(
+              googleCalendarId,
+              deleted.googleCalendarCalendarId,
+              user
+            )
+          } catch (error) {
+            if (error?.code !== 404 && error?.code !== 410) {
+              console.log('Google Calendar delete event item error', {
+                eventId: deleted?._id,
+                googleCalendarId,
+                error,
+              })
+            }
+          }
+        }
+        await deleteRelatedEventsFromCalendar(
+          deleted._id,
           deleted.googleCalendarCalendarId,
           user
         )

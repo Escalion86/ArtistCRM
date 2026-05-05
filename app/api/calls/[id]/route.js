@@ -9,7 +9,7 @@ import {
   parseOptionalDate,
   parseOptionalNumber,
 } from '@server/calls'
-import { requireTelephonyDevAccess } from '@server/telephonyAccess'
+import { requireTelephonyTariffAccess } from '@server/telephonyAccess'
 
 const applyStringUpdate = (update, body, key) => {
   if (body[key] !== undefined) update[key] = String(body[key] || '').trim()
@@ -17,7 +17,7 @@ const applyStringUpdate = (update, body, key) => {
 
 export const GET = async (req, { params }) => {
   const { id } = await params
-  const access = await requireTelephonyDevAccess()
+  const access = await requireTelephonyTariffAccess()
   if (!access.ok) {
     return NextResponse.json(
       { success: false, error: access.error },
@@ -41,7 +41,7 @@ export const GET = async (req, { params }) => {
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const access = await requireTelephonyDevAccess()
+  const access = await requireTelephonyTariffAccess()
   if (!access.ok) {
     return NextResponse.json(
       { success: false, error: access.error },

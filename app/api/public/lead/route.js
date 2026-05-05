@@ -11,7 +11,12 @@ import {
   resolvePublicLeadTenant,
   upsertPublicLeadClient,
 } from '@server/publicLeadService'
-import { notifyApiLeadCreated } from '@server/publicLeadPush'
+import {
+  logPublicLeadPushError,
+  logPublicLeadPushSkipped,
+  notifyApiLeadCreated,
+  resolvePublicLeadPushEnabled,
+} from '@server/publicLeadPush'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -36,7 +41,7 @@ export const POST = async (req) => {
       )
     }
     const tenantId = accessData.tenantId
-    const pushEnabled =
+    const configuredPushEnabled =
       readCustomValue(accessData?.siteSettings?.custom, 'publicLeadPushEnabled') ===
       true
 
@@ -106,6 +111,10 @@ export const POST = async (req) => {
       apiKeyData: accessData.apiKeyData,
     })
 
+    const pushEnabled = await resolvePublicLeadPushEnabled({
+      tenantId,
+      configured: configuredPushEnabled,
+    })
     let pushStatus = {
       enabled: pushEnabled,
       sent: 0,
@@ -151,6 +160,7 @@ export const POST = async (req) => {
         }
       } catch (error) {
         console.error('public lead push notify error', error)
+        await logPublicLeadPushError({ tenantId, event, error })
         pushStatus = {
           enabled: true,
           sent: 0,
@@ -160,10 +170,11 @@ export const POST = async (req) => {
         }
       }
     } else {
-      console.warn('public lead push skipped', {
-        tenantId: String(tenantId),
-        eventId: String(event?._id || ''),
+      await logPublicLeadPushSkipped({
+        tenantId,
+        event,
         reason: 'disabled',
+        configured: configuredPushEnabled,
       })
     }
 

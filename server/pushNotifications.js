@@ -145,6 +145,14 @@ const deactivatePushSubscription = async ({ tenantId, endpoint }) => {
   return Number(result?.modifiedCount || 0)
 }
 
+const countActivePushSubscriptions = async (tenantId) => {
+  if (!tenantId) return 0
+  return PushSubscriptions.countDocuments({
+    tenantId,
+    isActive: true,
+  })
+}
+
 const sendPushToTenant = async ({ tenantId, payload, source = 'unknown' }) => {
   if (!tenantId || !payload || typeof payload !== 'object') {
     return { ok: false, sent: 0, failed: 0, deactivated: 0 }
@@ -279,6 +287,7 @@ export {
   parseSubscription,
   savePushSubscription,
   deactivatePushSubscription,
+  countActivePushSubscriptions,
   sendPushToTenant,
   getPushPublicKey,
   logPushDelivery,

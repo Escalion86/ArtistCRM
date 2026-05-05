@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import Calls from '@models/Calls'
 import dbConnect from '@server/dbConnect'
-import { requireTelephonyDevAccess } from '@server/telephonyAccess'
+import { requireTelephonyTariffAccess } from '@server/telephonyAccess'
 
 export const POST = async (req, { params }) => {
   const { id } = await params
-  const access = await requireTelephonyDevAccess()
+  const access = await requireTelephonyTariffAccess()
   if (!access.ok) {
     return NextResponse.json(
       { success: false, error: access.error },

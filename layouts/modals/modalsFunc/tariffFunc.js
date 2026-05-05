@@ -33,6 +33,12 @@ const tariffFunc = (tariffId, clone = false) => {
     const [allowDocuments, setAllowDocuments] = useState(
       tariff?.allowDocuments ?? DEFAULT_TARIFF.allowDocuments
     )
+    const [allowTelephony, setAllowTelephony] = useState(
+      tariff?.allowTelephony ?? DEFAULT_TARIFF.allowTelephony
+    )
+    const [allowAi, setAllowAi] = useState(
+      tariff?.allowAi ?? DEFAULT_TARIFF.allowAi
+    )
     const [hidden, setHidden] = useState(
       tariff?.hidden ?? DEFAULT_TARIFF.hidden
     )
@@ -51,6 +57,8 @@ const tariffFunc = (tariffId, clone = false) => {
             allowCalendarSync,
             allowStatistics,
             allowDocuments,
+            allowTelephony,
+            allowAi,
             hidden,
           },
           clone
@@ -60,6 +68,8 @@ const tariffFunc = (tariffId, clone = false) => {
       allowCalendarSync,
       allowDocuments,
       allowStatistics,
+      allowTelephony,
+      allowAi,
       checkErrors,
       closeModal,
       eventsPerMonth,
@@ -78,6 +88,8 @@ const tariffFunc = (tariffId, clone = false) => {
         tariff?.allowCalendarSync !== allowCalendarSync ||
         tariff?.allowStatistics !== allowStatistics ||
         tariff?.allowDocuments !== allowDocuments ||
+        tariff?.allowTelephony !== allowTelephony ||
+        tariff?.allowAi !== allowAi ||
         tariff?.hidden !== hidden
 
       setOnConfirmFunc(isFormChanged ? onClickConfirm : undefined)
@@ -87,6 +99,8 @@ const tariffFunc = (tariffId, clone = false) => {
       allowCalendarSync,
       allowDocuments,
       allowStatistics,
+      allowTelephony,
+      allowAi,
       eventsPerMonth,
       hidden,
       onClickConfirm,
@@ -96,6 +110,8 @@ const tariffFunc = (tariffId, clone = false) => {
       setOnShowOnCloseConfirmDialog,
       tariff?.allowCalendarSync,
       tariff?.allowDocuments,
+      tariff?.allowTelephony,
+      tariff?.allowAi,
       tariff?.allowStatistics,
       tariff?.eventsPerMonth,
       tariff?.hidden,
@@ -159,6 +175,18 @@ const tariffFunc = (tariffId, clone = false) => {
               checked={allowDocuments}
               onClick={() => setAllowDocuments((prev) => !prev)}
               label="Работа с документами"
+              noMargin
+            />
+            <IconCheckBox
+              checked={allowTelephony}
+              onClick={() => setAllowTelephony((prev) => !prev)}
+              label="IP-телефония"
+              noMargin
+            />
+            <IconCheckBox
+              checked={allowAi}
+              onClick={() => setAllowAi((prev) => !prev)}
+              label="ИИ-возможности"
               noMargin
             />
             <IconCheckBox
