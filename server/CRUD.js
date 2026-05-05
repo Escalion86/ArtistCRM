@@ -394,6 +394,8 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   const previousAdditionalEvents = Array.isArray(previousEvent?.additionalEvents)
     ? previousEvent.additionalEvents
     : []
+  const settings = normalizeCalendarSettings(user)
+  const syncSettings = settings?.syncSettings ?? {}
 
   // calendar.events.list(
   //   {
@@ -425,7 +427,9 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
     return text.slice(0, markerIndex).trim()
   }
 
-  var preparedText = stripCalendarResponse(event.description ?? '')
+  var preparedText = syncSettings.showDescription
+    ? stripCalendarResponse(event.description ?? '')
+    : ''
   const extraDescriptionLines = []
   let clientName = ''
   let clientContactLines = []
@@ -437,13 +441,15 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       .select('firstName secondName phone whatsapp viber telegram instagram vk email')
       .lean()
     clientName = [client?.firstName, client?.secondName].filter(Boolean).join(' ')
-    if (clientName) extraDescriptionLines.push(`Клиент: ${clientName}`)
+    if (syncSettings.showClient && clientName) {
+      extraDescriptionLines.push(`Клиент: ${clientName}`)
+    }
     clientContactLines = buildClientContactsLines(client)
-    if (clientContactLines.length) {
+    if (syncSettings.showClient && clientContactLines.length) {
       extraDescriptionLines.push(clientContactLines.join('\n'))
     }
   }
-  if (event?.isTransferred && event?.colleagueId) {
+  if (syncSettings.showColleague && event?.isTransferred && event?.colleagueId) {
     await dbConnect()
     const colleague = await Clients.findById(event.colleagueId)
       .select('firstName secondName phone whatsapp viber telegram instagram vk email')
@@ -461,7 +467,11 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       }
     }
   }
-  if (Array.isArray(event?.otherContacts) && event.otherContacts.length) {
+  if (
+    syncSettings.showOtherContacts &&
+    Array.isArray(event?.otherContacts) &&
+    event.otherContacts.length
+  ) {
     await dbConnect()
     const contactIds = event.otherContacts
       .map((item) => item?.clientId)
@@ -508,13 +518,17 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   const transactionCategoryMap = new Map(
     TRANSACTION_CATEGORIES.map((item) => [item.value, item.name])
   )
-  if (typeof event?.contractSum === 'number' && event.contractSum > 0) {
+  if (
+    syncSettings.showContractSum &&
+    typeof event?.contractSum === 'number' &&
+    event.contractSum > 0
+  ) {
     financeLines.push(`Договорная сумма: ${event.contractSum.toLocaleString()}`)
   }
-  if (event?.financeComment) {
+  if (syncSettings.showFinanceComment && event?.financeComment) {
     financeLines.push(`Комментарий по финансам: ${event.financeComment}`)
   }
-  if (event?._id) {
+  if (syncSettings.showTransactions && event?._id) {
     await dbConnect()
     const transactions = await Transactions.find({ eventId: event._id })
       .select('amount type category date comment')
@@ -550,19 +564,21 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   const additionalEventsDescription = formatAdditionalEventsForMainDescription(
     event?.additionalEvents
   )
-  if (additionalEventsDescription) {
+  if (syncSettings.showAdditionalEvents && additionalEventsDescription) {
     preparedText = [preparedText, additionalEventsDescription]
       .filter(Boolean)
       .join('\n\n')
   }
 
   const navigationLinks = buildNavigationLinks(event?.address)
-  if (navigationLinks.length > 0) {
+  if (syncSettings.showNavigationLinks && navigationLinks.length > 0) {
     preparedText = [preparedText, `Навигатор:\n${navigationLinks.join('\n')}`]
       .filter(Boolean)
       .join('\n\n')
   }
-  const aTags = event.description.match(/<a[^>]*>([^<]+)<\/a>/g)
+  const aTags = String(event.description ?? '').match(
+    /<a[^>]*>([^<]+)<\/a>/g
+  )
   // const linksReformated = []
   if (aTags?.length > 0) {
     for (let i = 0; i < aTags.length; i++)
@@ -627,12 +643,27 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       .join(', ')
   }
 
-  const titleParts = []
-  if (eventTypeTitle) titleParts.push(eventTypeTitle)
-  if (servicesTitle) titleParts.push(servicesTitle)
-  const calendarTitle = titleParts.length > 0 ? titleParts.join(' • ') : 'Мероприятие'
+  const buildCalendarTitle = () => {
+    const eventTitle =
+      typeof event?.title === 'string' ? event.title.trim() : ''
+    const titleMode = syncSettings.titleMode || 'eventType_services'
+    const modes = {
+      eventType_services: [eventTypeTitle, servicesTitle],
+      services_eventType: [servicesTitle, eventTypeTitle],
+      eventType: [eventTypeTitle],
+      services: [servicesTitle],
+      eventTitle: [eventTitle],
+      client_eventType: [clientName, eventTypeTitle],
+    }
+    const titleParts = modes[titleMode] ?? modes.eventType_services
+    const title = titleParts.filter(Boolean).join(' • ')
+    if (title) return title
+    return [eventTypeTitle, servicesTitle, eventTitle, clientName]
+      .filter(Boolean)
+      .join(' • ') || 'Мероприятие'
+  }
+  const calendarTitle = buildCalendarTitle()
 
-  const settings = normalizeCalendarSettings(user)
   const reminders = settings?.reminders ?? {}
   const statusColors = settings?.statusColors ?? {}
   const deleteCanceledFromCalendar = Boolean(
@@ -658,7 +689,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         : ''
   const calendarEvent = {
     summary: `${statusPrefix}${calendarTitle}`,
-    description:
+    description: [
       sanitizeToPlainText(
         preparedText
           .replaceAll('<p><br></p>', '\n')
@@ -671,10 +702,13 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
           .replaceAll('<br>', '\n')
           .replaceAll('&nbsp;', ' ')
           .trim('\n')
-      ) +
-      `\n\nСсылка на мероприятие:\n${
-        process.env.DOMAIN + '/event/' + event._id
-      }`,
+      ),
+      syncSettings.showEventLink
+        ? `Ссылка на мероприятие:\n${process.env.DOMAIN + '/event/' + event._id}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n'),
     start: {
       dateTime: startDateTime,
       timeZone,
@@ -700,12 +734,12 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         minute: '2-digit',
       })
     : 'не указана'
-  const clientBlock = clientName
+  const clientBlock = syncSettings.showClient && clientName
     ? `Клиент: ${clientName}${
         clientContactLines.length ? `\n${clientContactLines.join('\n')}` : ''
       }`
     : ''
-  const colleagueBlock = isTransferred
+  const colleagueBlock = syncSettings.showColleague && isTransferred
     ? `Передано: ${colleagueName || 'Контакт не указан'}${
         colleagueContactLines.length
           ? `\n${colleagueContactLines.join('\n')}`
@@ -727,7 +761,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
     }`,
     clientBlock,
     colleagueBlock,
-    `Ссылка на мероприятие:\n${eventLink}`,
+    syncSettings.showEventLink ? `Ссылка на мероприятие:\n${eventLink}` : '',
   ].filter(Boolean)
 
   const toAdditionalEventPayload = (item) => {

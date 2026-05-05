@@ -31,6 +31,7 @@ export const GET = async () => {
         connectedAt: settings.connectedAt,
         reminders: settings.reminders,
         statusColors: settings.statusColors,
+        syncSettings: settings.syncSettings,
         deleteCanceledFromCalendar: settings.deleteCanceledFromCalendar,
       },
     },

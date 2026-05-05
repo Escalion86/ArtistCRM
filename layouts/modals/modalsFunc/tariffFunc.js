@@ -6,7 +6,7 @@ import { DEFAULT_TARIFF } from '@helpers/constants'
 import useErrors from '@helpers/useErrors'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import tariffSelector from '@state/selectors/tariffSelector'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
 
 const tariffFunc = (tariffId, clone = false) => {
@@ -44,25 +44,28 @@ const tariffFunc = (tariffId, clone = false) => {
     )
 
     const [errors, checkErrors, , removeError] = useErrors()
+    const onClickConfirmRef = useRef(null)
 
-    const onClickConfirm = useCallback(async () => {
-      if (!checkErrors({ title })) {
-        closeModal()
-        setTariff(
-          {
-            _id: tariff?._id,
-            title,
-            eventsPerMonth,
-            price,
-            allowCalendarSync,
-            allowStatistics,
-            allowDocuments,
-            allowTelephony,
-            allowAi,
-            hidden,
-          },
-          clone
-        )
+    useEffect(() => {
+      onClickConfirmRef.current = async () => {
+        if (!checkErrors({ title })) {
+          closeModal()
+          setTariff(
+            {
+              _id: tariff?._id,
+              title,
+              eventsPerMonth,
+              price,
+              allowCalendarSync,
+              allowStatistics,
+              allowDocuments,
+              allowTelephony,
+              allowAi,
+              hidden,
+            },
+            clone
+          )
+        }
       }
     }, [
       allowCalendarSync,
@@ -92,7 +95,9 @@ const tariffFunc = (tariffId, clone = false) => {
         tariff?.allowAi !== allowAi ||
         tariff?.hidden !== hidden
 
-      setOnConfirmFunc(isFormChanged ? onClickConfirm : undefined)
+      setOnConfirmFunc(
+        isFormChanged ? () => onClickConfirmRef.current?.() : undefined
+      )
       setOnShowOnCloseConfirmDialog(isFormChanged)
       setDisableConfirm(!isFormChanged)
     }, [
@@ -103,7 +108,6 @@ const tariffFunc = (tariffId, clone = false) => {
       allowAi,
       eventsPerMonth,
       hidden,
-      onClickConfirm,
       price,
       setDisableConfirm,
       setOnConfirmFunc,

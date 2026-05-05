@@ -2,11 +2,20 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
-import { faCopy, faPencilAlt, faTrash } from '@fortawesome/free-solid-svg-icons'
+import {
+  faChevronDown,
+  faCheckCircle,
+  faBookOpen,
+  faCopy,
+  faPencilAlt,
+  faTriangleExclamation,
+  faSpinner,
+  faTrash,
+} from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Input from '@components/Input'
 import IconCheckBox from '@components/IconCheckBox'
 import IconActionButton from '@components/IconActionButton'
-import LabeledContainer from '@components/LabeledContainer'
 import GoogleCalendarSettings from '@components/GoogleCalendarSettings'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
@@ -320,6 +329,78 @@ const AITunnelGuide = () => (
   </div>
 )
 
+const IntegrationAccordion = ({
+  title,
+  description,
+  children,
+  connected = false,
+  warning = false,
+  loading = false,
+  defaultOpen = false,
+}) => {
+  const [open, setOpen] = useState(defaultOpen)
+
+  return (
+    <section className="shrink-0 overflow-hidden rounded border border-gray-200 bg-white">
+      <button
+        type="button"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left hover:bg-gray-50"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-gray-900">{title}</div>
+          {description ? (
+            <div className="mt-1 text-xs leading-5 text-gray-500">
+              {description}
+            </div>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          {loading ? (
+            <FontAwesomeIcon
+              icon={faSpinner}
+              className="h-4 w-4 animate-spin text-gray-500"
+              title="Проверяем подключение"
+            />
+          ) : warning ? (
+            <FontAwesomeIcon
+              icon={faTriangleExclamation}
+              className="h-4 w-4 text-amber-500"
+              title="Нужно заполнить ключ"
+            />
+          ) : connected ? (
+            <FontAwesomeIcon
+              icon={faCheckCircle}
+              className="h-4 w-4 text-emerald-600"
+              title="Подключено"
+            />
+          ) : null}
+          <FontAwesomeIcon
+            icon={faChevronDown}
+            className={`h-4 w-4 text-gray-500 transition-transform ${
+              open ? 'rotate-180' : ''
+            }`}
+          />
+        </div>
+      </button>
+      {open ? (
+        <div className="border-t border-gray-100 px-4 py-4">{children}</div>
+      ) : null}
+    </section>
+  )
+}
+
+const InstructionButton = ({ children, onClick }) => (
+  <button
+    type="button"
+    className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded px-3 text-sm font-semibold"
+    onClick={onClick}
+  >
+    <FontAwesomeIcon icon={faBookOpen} className="h-4 w-4" />
+    <span>{children}</span>
+  </button>
+)
+
 const IntegrationsContent = () => {
   const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
@@ -327,6 +408,8 @@ const IntegrationsContent = () => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const snackbar = useSnackbar()
   const [isSaving, setIsSaving] = useState(false)
+  const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false)
+  const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false)
 
   const customSettings = useMemo(
     () => siteSettings?.custom ?? {},
@@ -340,6 +423,7 @@ const IntegrationsContent = () => {
     () => getUserTariffAccess(loggedUser, tariffs),
     [loggedUser, tariffs]
   )
+  const canUseCalendar = Boolean(tariffAccess?.allowCalendarSync)
   const canUseTelephony = Boolean(tariffAccess?.allowTelephony)
   const canUseAi = Boolean(tariffAccess?.allowAi)
   const isEnabled = getCustomValue(customSettings, 'publicLeadEnabled') === true
@@ -359,6 +443,18 @@ const IntegrationsContent = () => {
   const aiAnalysisModel = String(
     getCustomValue(customSettings, 'aiAnalysisModel') || 'gpt-4o-mini'
   )
+  const aiTranscriptionProvider = String(
+    getCustomValue(customSettings, 'aiTranscriptionProvider') || ''
+  )
+  const aiAnalysisProvider = String(
+    getCustomValue(customSettings, 'aiAnalysisProvider') || ''
+  )
+  const aitunnelEnabled =
+    getCustomValue(customSettings, 'aitunnelEnabled') === true ||
+    aiTranscriptionProvider === 'aitunnel' ||
+    aiAnalysisProvider === 'aitunnel'
+  const isAITunnelConnected =
+    Boolean(aitunnelKey) && aitunnelEnabled
   const novofonWebhookUrl = useMemo(() => {
     const tenantId = loggedUser?.tenantId || loggedUser?._id || ''
     const path = '/api/telephony/novofon/webhook'
@@ -369,6 +465,28 @@ const IntegrationsContent = () => {
     if (typeof window === 'undefined') return relative
     return `${window.location.origin}${relative}`
   }, [loggedUser?._id, loggedUser?.tenantId, novofonWebhookSecret])
+
+  useEffect(() => {
+    let active = true
+    const loadGoogleCalendarStatus = async () => {
+      setGoogleCalendarLoading(true)
+      try {
+        const response = await fetch('/api/google-calendar/status')
+        const result = await response.json()
+        if (!active) return
+        setGoogleCalendarConnected(Boolean(result?.data?.connected))
+      } catch (error) {
+        if (active) setGoogleCalendarConnected(false)
+      } finally {
+        if (active) setGoogleCalendarLoading(false)
+      }
+    }
+
+    if (canUseCalendar) loadGoogleCalendarStatus()
+    return () => {
+      active = false
+    }
+  }, [canUseCalendar])
 
   const saveCustom = async (patch, options = {}) => {
     let saved = false
@@ -453,11 +571,23 @@ const IntegrationsContent = () => {
   return (
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <LabeledContainer label="Google Calendar" noMargin>
-          <GoogleCalendarSettings redirectPath="/cabinet/integrations" />
-        </LabeledContainer>
+        {canUseCalendar ? (
+          <IntegrationAccordion
+            title="Google Calendar"
+            description="Синхронизация мероприятий, уведомления, цвета и состав данных."
+            connected={googleCalendarConnected}
+            loading={googleCalendarLoading}
+            defaultOpen
+          >
+            <GoogleCalendarSettings redirectPath="/cabinet/integrations" />
+          </IntegrationAccordion>
+        ) : null}
 
-        <LabeledContainer label="Интеграция входящих заявок API" noMargin>
+        <IntegrationAccordion
+          title="Входящие заявки API"
+          description="Ключи для сайта, Tilda и других источников заявок."
+          connected={isEnabled && apiKeys.some((item) => item.enabled)}
+        >
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-600">
               Создайте отдельный ключ для каждого источника заявок. Название
@@ -544,9 +674,7 @@ const IntegrationsContent = () => {
               >
                 Добавить ключ
               </button>
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+              <InstructionButton
                 onClick={() =>
                   modalsFunc.add({
                     title: 'Инструкция API',
@@ -557,227 +685,217 @@ const IntegrationsContent = () => {
                 }
               >
                 Открыть инструкцию API
-              </button>
+              </InstructionButton>
             </div>
           </div>
-        </LabeledContainer>
+        </IntegrationAccordion>
 
-        <LabeledContainer label="Novofon IP-телефония" noMargin>
-          <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-600">
-              Подключите свой аккаунт Novofon, чтобы звонки попадали в CRM.
-              После разговора можно будет открыть звонок, добавить заметку,
-              распознать запись и подготовить черновик заявки.
-            </div>
-            {!canUseTelephony && (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                IP-телефония доступна на тарифе с включенной опцией
-                IP-телефония.
+        {canUseTelephony ? (
+          <IntegrationAccordion
+            title="Novofon IP-телефония"
+            description="Прием звонков в CRM и подготовка заявки после разговора."
+            connected={novofonEnabled && Boolean(novofonApiKey)}
+            warning={novofonEnabled && !novofonApiKey}
+          >
+            <div className="flex flex-col gap-3">
+              <div className="text-sm text-gray-600">
+                Подключите свой аккаунт Novofon, чтобы звонки попадали в CRM.
+                После разговора можно будет открыть звонок, добавить заметку,
+                распознать запись и подготовить черновик заявки.
               </div>
-            )}
 
-            <IconCheckBox
-              label="Включить интеграцию Novofon"
-              checked={novofonEnabled}
-              disabled={!canUseTelephony}
-              onClick={() =>
-                canUseTelephony &&
-                saveCustom({
-                  novofonEnabled: !novofonEnabled,
-                  novofonWebhookSecret:
-                    novofonWebhookSecret || generateNovofonSecret(),
-                })
-              }
-              noMargin
-            />
-
-            <Input
-              label="Ключ Novofon"
-              value={novofonApiKey}
-              onChange={(value) =>
-                canUseTelephony && saveCustom({ novofonApiKey: value })
-              }
-              disabled={!canUseTelephony}
-              noMargin
-              fullWidth
-            />
-
-            <div className="flex items-start gap-2">
-              <Input
-                label="Секретный ключ"
-                value={novofonWebhookSecret}
-                onChange={() => {}}
-                disabled
-                noMargin
-                fullWidth
-              />
-              <IconActionButton
-                icon={faCopy}
-                size="md"
-                variant="success"
-                title="Скопировать секретный ключ"
-                className="shrink-0"
-                onClick={async () => {
-                  if (
-                    !canUseTelephony ||
-                    !novofonWebhookSecret ||
-                    !navigator?.clipboard
-                  )
-                    return
-                  await navigator.clipboard.writeText(novofonWebhookSecret)
-                  snackbar.success('Секретный ключ скопирован')
-                }}
-              />
-            </div>
-
-            <div className="flex items-start gap-2">
-              <Input
-                label="Адрес для уведомлений Novofon"
-                value={novofonWebhookUrl}
-                onChange={() => {}}
-                disabled
-                noMargin
-                fullWidth
-              />
-              <IconActionButton
-                icon={faCopy}
-                size="md"
-                variant="success"
-                title="Скопировать адрес"
-                className="shrink-0"
-                onClick={async () => {
-                  if (!canUseTelephony || !novofonWebhookUrl || !navigator?.clipboard)
-                    return
-                  await navigator.clipboard.writeText(novofonWebhookUrl)
-                  snackbar.success('Адрес скопирован')
-                }}
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+              <IconCheckBox
+                label="Включить интеграцию Novofon"
+                checked={novofonEnabled}
                 onClick={() =>
-                  canUseTelephony &&
-                  saveCustom({ novofonWebhookSecret: generateNovofonSecret() })
+                  saveCustom({
+                    novofonEnabled: !novofonEnabled,
+                    novofonWebhookSecret:
+                      novofonWebhookSecret || generateNovofonSecret(),
+                  })
                 }
-                disabled={isSaving || !canUseTelephony}
-              >
-                Обновить секретный ключ
-              </button>
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+                noMargin
+              />
+
+              <Input
+                label="Ключ Novofon"
+                value={novofonApiKey}
+                onChange={(value) => saveCustom({ novofonApiKey: value })}
+                noMargin
+                fullWidth
+              />
+
+              <div className="flex items-start gap-2">
+                <Input
+                  label="Секретный ключ"
+                  value={novofonWebhookSecret}
+                  onChange={() => {}}
+                  disabled
+                  noMargin
+                  fullWidth
+                />
+                <IconActionButton
+                  icon={faCopy}
+                  size="md"
+                  variant="success"
+                  title="Скопировать секретный ключ"
+                  className="shrink-0"
+                  onClick={async () => {
+                    if (!novofonWebhookSecret || !navigator?.clipboard) return
+                    await navigator.clipboard.writeText(novofonWebhookSecret)
+                    snackbar.success('Секретный ключ скопирован')
+                  }}
+                />
+              </div>
+
+              <div className="flex items-start gap-2">
+                <Input
+                  label="Адрес для уведомлений Novofon"
+                  value={novofonWebhookUrl}
+                  onChange={() => {}}
+                  disabled
+                  noMargin
+                  fullWidth
+                />
+                <IconActionButton
+                  icon={faCopy}
+                  size="md"
+                  variant="success"
+                  title="Скопировать адрес"
+                  className="shrink-0"
+                  onClick={async () => {
+                    if (!novofonWebhookUrl || !navigator?.clipboard) return
+                    await navigator.clipboard.writeText(novofonWebhookUrl)
+                    snackbar.success('Адрес скопирован')
+                  }}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+                  onClick={() =>
+                    saveCustom({ novofonWebhookSecret: generateNovofonSecret() })
+                  }
+                  disabled={isSaving}
+                >
+                  Обновить секретный ключ
+                </button>
+                <InstructionButton
+                  onClick={() =>
+                    modalsFunc.add({
+                      title: 'Как подключить Novofon',
+                      showDecline: true,
+                      declineButtonName: 'Закрыть',
+                      Children: NovofonGuide,
+                    })
+                  }
+                >
+                  Как подключить
+                </InstructionButton>
+              </div>
+            </div>
+          </IntegrationAccordion>
+        ) : null}
+
+        {canUseAi ? (
+          <IntegrationAccordion
+            title="AITunnel для AI и распознавания речи"
+            description="Распознавание записей звонков и AI-черновики заявок."
+            connected={isAITunnelConnected}
+            warning={aitunnelEnabled && !aitunnelKey}
+          >
+            <div className="flex flex-col gap-3">
+              <div className="text-sm text-gray-600">
+                Подключите AITunnel, чтобы CRM могла распознавать записи звонков
+                и готовить черновик заявки по разговору. Ключ хранится в ваших
+                настройках и используется только для обработки ваших звонков.
+              </div>
+              {!canUseTelephony && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                  AI-обработка звонков будет работать после подключения тарифа с
+                  IP-телефонией.
+                </div>
+              )}
+              <IconCheckBox
+                label="Включить интеграцию AITunnel"
+                checked={aitunnelEnabled}
+                onClick={() =>
+                  saveCustom(
+                    {
+                      aitunnelEnabled: !aitunnelEnabled,
+                      aiTranscriptionProvider: !aitunnelEnabled
+                        ? 'aitunnel'
+                        : '',
+                      aiAnalysisProvider: !aitunnelEnabled ? 'aitunnel' : '',
+                      aiTranscriptionModel:
+                        aiTranscriptionModel || 'whisper-1',
+                      aiAnalysisModel: aiAnalysisModel || 'gpt-4o-mini',
+                    },
+                    {
+                      successMessage: !aitunnelEnabled
+                        ? 'AITunnel включен'
+                        : 'AITunnel отключен',
+                    }
+                  )
+                }
+                noMargin
+              />
+              <Input
+                label="Ключ AITunnel"
+                value={aitunnelKey}
+                onChange={(value) => saveCustom({ aitunnelKey: value })}
+                noMargin
+                fullWidth
+              />
+              <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+                <Input
+                  label="Модель распознавания"
+                  value={aiTranscriptionModel}
+                  onChange={(value) =>
+                    saveCustom({
+                      aiTranscriptionProvider: 'aitunnel',
+                      aiTranscriptionModel: value,
+                    })
+                  }
+                  noMargin
+                  fullWidth
+                />
+                <Input
+                  label="Модель AI-анализа"
+                  value={aiAnalysisModel}
+                  onChange={(value) =>
+                    saveCustom({
+                      aiAnalysisProvider: 'aitunnel',
+                      aiAnalysisModel: value,
+                    })
+                  }
+                  noMargin
+                  fullWidth
+                />
+              </div>
+              <InstructionButton
                 onClick={() =>
                   modalsFunc.add({
-                    title: 'Как подключить Novofon',
+                    title: 'Как подключить AITunnel',
                     showDecline: true,
                     declineButtonName: 'Закрыть',
-                    Children: NovofonGuide,
+                    Children: AITunnelGuide,
                   })
                 }
               >
                 Как подключить
-              </button>
+              </InstructionButton>
             </div>
+          </IntegrationAccordion>
+        ) : null}
+        {!canUseCalendar && !canUseTelephony && !canUseAi ? (
+          <div className="shrink-0 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Google Calendar, IP-телефония и AI-интеграции доступны только на
+            тарифах с соответствующими опциями.
           </div>
-        </LabeledContainer>
-
-        <LabeledContainer label="AITunnel для AI и распознавания речи" noMargin>
-          <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-600">
-              Подключите AITunnel, чтобы CRM могла распознавать записи звонков и
-              готовить черновик заявки по разговору. Ключ хранится в ваших
-              настройках и используется только для обработки ваших звонков.
-            </div>
-            {!canUseTelephony && (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                AI-обработка звонков доступна на тарифе с включенной опцией
-                IP-телефония.
-              </div>
-            )}
-            {canUseTelephony && !canUseAi && (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                AI-обработка звонков доступна на тарифе с включенной опцией
-                ИИ-возможности.
-              </div>
-            )}
-            <Input
-              label="Ключ AITunnel"
-              value={aitunnelKey}
-              onChange={(value) =>
-                canUseTelephony && canUseAi && saveCustom({ aitunnelKey: value })
-              }
-              disabled={!canUseTelephony || !canUseAi}
-              noMargin
-              fullWidth
-            />
-            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
-              <Input
-                label="Модель распознавания"
-                value={aiTranscriptionModel}
-                onChange={(value) =>
-                  canUseTelephony &&
-                  canUseAi &&
-                  saveCustom({
-                    aiTranscriptionProvider: 'aitunnel',
-                    aiTranscriptionModel: value,
-                  })
-                }
-                disabled={!canUseTelephony || !canUseAi}
-                noMargin
-                fullWidth
-              />
-              <Input
-                label="Модель AI-анализа"
-                value={aiAnalysisModel}
-                onChange={(value) =>
-                  canUseTelephony &&
-                  canUseAi &&
-                  saveCustom({
-                    aiAnalysisProvider: 'aitunnel',
-                    aiAnalysisModel: value,
-                  })
-                }
-                disabled={!canUseTelephony || !canUseAi}
-                noMargin
-                fullWidth
-              />
-            </div>
-            <button
-              type="button"
-              className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
-              disabled={!canUseTelephony || !canUseAi || isSaving}
-              onClick={() =>
-                saveCustom({
-                  aiTranscriptionProvider: 'aitunnel',
-                  aiTranscriptionModel: aiTranscriptionModel || 'whisper-1',
-                  aiAnalysisProvider: 'aitunnel',
-                  aiAnalysisModel: aiAnalysisModel || 'gpt-4o-mini',
-                }, {
-                  successMessage: 'AITunnel выбран для обработки звонков',
-                })
-              }
-            >
-              Использовать AITunnel
-            </button>
-            <button
-              type="button"
-              className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
-              onClick={() =>
-                modalsFunc.add({
-                  title: 'Как подключить AITunnel',
-                  showDecline: true,
-                  declineButtonName: 'Закрыть',
-                  Children: AITunnelGuide,
-                })
-              }
-            >
-              Как подключить
-            </button>
-          </div>
-        </LabeledContainer>
+        ) : null}
       </div>
     </div>
   )

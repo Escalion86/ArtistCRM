@@ -12,6 +12,23 @@ const normalizeTowns = (towns = []) =>
     )
   )
 
+const normalizeAddress = (address) => {
+  if (!address || typeof address !== 'object') return null
+  return {
+    town: String(address.town ?? '').trim(),
+    street: String(address.street ?? '').trim(),
+    house: String(address.house ?? '').trim(),
+    entrance: String(address.entrance ?? '').trim(),
+    floor: String(address.floor ?? '').trim(),
+    flat: String(address.flat ?? '').trim(),
+    comment: String(address.comment ?? '').trim(),
+    link2Gis: String(address.link2Gis ?? '').trim(),
+    linkYandexNavigator: String(address.linkYandexNavigator ?? '').trim(),
+    latitude: String(address.latitude ?? '').trim(),
+    longitude: String(address.longitude ?? '').trim(),
+  }
+}
+
 export const GET = async () => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) {
@@ -63,6 +80,56 @@ export const POST = async (req) => {
     update.timeZone = body.timeZone ?? 'Asia/Krasnoyarsk'
   if (body.storeCalendarResponse !== undefined)
     update.storeCalendarResponse = Boolean(body.storeCalendarResponse)
+  if (body.addresses !== undefined) {
+    const rawAddresses = Array.isArray(body.addresses) ? body.addresses : []
+    update.addresses = rawAddresses
+      .map(normalizeAddress)
+      .filter((addr) => addr && (addr.town || addr.street || addr.house))
+  }
+  if (body.addAddress !== undefined) {
+    const newAddress = normalizeAddress(body.addAddress)
+    if (
+      newAddress &&
+      (newAddress.town || newAddress.street || newAddress.house)
+    ) {
+      const existing = await SiteSettings.findOne({ tenantId }).lean()
+      const existingAddresses = Array.isArray(existing?.addresses)
+        ? existing.addresses
+        : []
+      const isDuplicate = existingAddresses.some(
+        (addr) =>
+          addr.town === newAddress.town &&
+          addr.street === newAddress.street &&
+          addr.house === newAddress.house
+      )
+      if (!isDuplicate) {
+        await SiteSettings.findOneAndUpdate(
+          { tenantId },
+          { $push: { addresses: newAddress }, $set: { tenantId } },
+          { upsert: true }
+        )
+        const updated = await SiteSettings.findOne({ tenantId }).lean()
+        return NextResponse.json(
+          { success: true, data: updated },
+          { status: 200 }
+        )
+      }
+    }
+  }
+  if (body.removeAddress !== undefined) {
+    const addressToRemove = normalizeAddress(body.removeAddress)
+    if (addressToRemove) {
+      await SiteSettings.findOneAndUpdate(
+        { tenantId },
+        { $pull: { addresses: addressToRemove } }
+      )
+      const updated = await SiteSettings.findOne({ tenantId }).lean()
+      return NextResponse.json(
+        { success: true, data: updated },
+        { status: 200 }
+      )
+    }
+  }
 
   const siteSettings = await SiteSettings.findOneAndUpdate(
     { tenantId },

@@ -10,6 +10,29 @@ const DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS = Object.freeze({
   closed: '10',
 })
 
+const DEFAULT_GOOGLE_CALENDAR_SYNC_SETTINGS = Object.freeze({
+  titleMode: 'eventType_services',
+  showDescription: true,
+  showClient: true,
+  showOtherContacts: true,
+  showColleague: true,
+  showContractSum: true,
+  showFinanceComment: true,
+  showTransactions: true,
+  showAdditionalEvents: true,
+  showNavigationLinks: true,
+  showEventLink: true,
+})
+
+const GOOGLE_CALENDAR_TITLE_MODES = new Set([
+  'eventType_services',
+  'services_eventType',
+  'eventType',
+  'services',
+  'eventTitle',
+  'client_eventType',
+])
+
 const getOAuthClient = () => {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET
@@ -58,6 +81,28 @@ const normalizeCalendarStatusColors = (value) => {
   }
 }
 
+const normalizeCalendarSyncSettings = (value) => {
+  const source = value && typeof value === 'object' ? value : {}
+  const titleMode = GOOGLE_CALENDAR_TITLE_MODES.has(source.titleMode)
+    ? source.titleMode
+    : DEFAULT_GOOGLE_CALENDAR_SYNC_SETTINGS.titleMode
+  const boolValue = (key) =>
+    Boolean(source[key] ?? DEFAULT_GOOGLE_CALENDAR_SYNC_SETTINGS[key])
+  return {
+    titleMode,
+    showDescription: boolValue('showDescription'),
+    showClient: boolValue('showClient'),
+    showOtherContacts: boolValue('showOtherContacts'),
+    showColleague: boolValue('showColleague'),
+    showContractSum: boolValue('showContractSum'),
+    showFinanceComment: boolValue('showFinanceComment'),
+    showTransactions: boolValue('showTransactions'),
+    showAdditionalEvents: boolValue('showAdditionalEvents'),
+    showNavigationLinks: boolValue('showNavigationLinks'),
+    showEventLink: boolValue('showEventLink'),
+  }
+}
+
 const normalizeCalendarSettings = (user) => {
   const settings = user?.googleCalendar ?? {}
   const deleteCanceledFromCalendar =
@@ -75,6 +120,7 @@ const normalizeCalendarSettings = (user) => {
     email: settings.email || '',
     reminders: normalizeCalendarReminders(settings.reminders),
     statusColors: normalizeCalendarStatusColors(settings.statusColors),
+    syncSettings: normalizeCalendarSyncSettings(settings.syncSettings),
     deleteCanceledFromCalendar,
   }
 }
@@ -128,7 +174,9 @@ export {
   listUserCalendars,
   normalizeCalendarReminders,
   normalizeCalendarStatusColors,
+  normalizeCalendarSyncSettings,
   normalizeCalendarSettings,
   getUserCalendarId,
   DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS,
+  DEFAULT_GOOGLE_CALENDAR_SYNC_SETTINGS,
 }

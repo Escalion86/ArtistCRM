@@ -1,6 +1,7 @@
 import cn from 'classnames'
 import InputWrapper from './InputWrapper'
 import { useMemo } from 'react'
+import NativeSelect from './NativeSelect'
 
 const ComboBox = ({
   label,
@@ -56,7 +57,8 @@ const ComboBox = ({
       required={required}
       value={value}
     >
-      <select
+      <NativeSelect
+        wrapperClassName="flex flex-1"
         className={cn(
           'h-7 flex-1 cursor-pointer bg-transparent px-1 outline-none',
           (
@@ -100,7 +102,7 @@ const ComboBox = ({
             {item.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </InputWrapper>
   )
 }

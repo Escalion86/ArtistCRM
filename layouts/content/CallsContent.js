@@ -12,6 +12,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import AppButton from '@components/AppButton'
 import Input from '@components/Input'
+import NativeSelect from '@components/NativeSelect'
 import Textarea from '@components/Textarea'
 import { modalsFuncAtom } from '@state/atoms'
 import { useCallActions, useCallsQuery } from '@helpers/useCallsQuery'
@@ -153,7 +154,7 @@ const CallEditorModal = ({
         />
         <label className="flex flex-col gap-1 text-sm text-gray-700">
           Направление
-          <select
+          <NativeSelect
             className="h-10 rounded border border-gray-300 bg-white px-2 text-black"
             value={direction}
             onChange={(event) => setDirection(event.target.value)}
@@ -161,7 +162,7 @@ const CallEditorModal = ({
             <option value="incoming">Входящий</option>
             <option value="outgoing">Исходящий</option>
             <option value="unknown">Неизвестно</option>
-          </select>
+          </NativeSelect>
         </label>
       </div>
       <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">

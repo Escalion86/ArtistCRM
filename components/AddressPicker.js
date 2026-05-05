@@ -20,6 +20,7 @@ const AddressPicker = ({
   townOptions = [],
   onCreateTown,
   allowTownCreate = true,
+  noWrapper = false,
 }) => {
   const townItems = useMemo(() => {
     const items = new Set()
@@ -93,7 +94,7 @@ const AddressPicker = ({
             )}
           </div>
         </FormWrapper>
-        <FormWrapper className="mt-1 mb-1 grid grid-cols-2 gap-x-2 gap-y-3">
+        <FormWrapper className="grid grid-cols-2 mt-1 mb-1 gap-x-2 gap-y-3">
           <Input
             label="Улица"
             type="text"
@@ -115,7 +116,7 @@ const AddressPicker = ({
             fullWidth
           />
         </FormWrapper>
-        <FormWrapper className="mt-1 mb-1 grid grid-cols-3 gap-x-2 gap-y-3">
+        <FormWrapper className="grid grid-cols-3 mt-1 mb-1 gap-x-2 gap-y-3">
           <Input
             label="Подъезд"
             type="text"
@@ -156,7 +157,7 @@ const AddressPicker = ({
           error={errors?.address?.comment}
           fullWidth
         />
-        <FormWrapper className="mt-1 mb-1 grid grid-cols-2 gap-x-2 gap-y-3">
+        <FormWrapper className="grid grid-cols-2 mt-1 mb-1 gap-x-2 gap-y-3">
           <Input
             label="Широта"
             type="text"

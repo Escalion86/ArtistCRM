@@ -47,6 +47,24 @@ const siteSettingsSchema = {
     type: [String],
     default: [],
   },
+  addresses: {
+    type: [
+      {
+        town: { type: String, default: '' },
+        street: { type: String, default: '' },
+        house: { type: String, default: '' },
+        entrance: { type: String, default: '' },
+        floor: { type: String, default: '' },
+        flat: { type: String, default: '' },
+        comment: { type: String, default: '' },
+        link2Gis: { type: String, default: '' },
+        linkYandexNavigator: { type: String, default: '' },
+        latitude: { type: String, default: '' },
+        longitude: { type: String, default: '' },
+      },
+    ],
+    default: [],
+  },
   defaultTown: {
     type: String,
     default: '',

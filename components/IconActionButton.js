@@ -33,6 +33,7 @@ const IconActionButton = ({
   className = '',
   iconClassName = '',
   type = 'button',
+  label = '',
 }) => (
   <button
     type={type}
@@ -50,6 +51,16 @@ const IconActionButton = ({
       className={cn(ICON_CLASS[size] || ICON_CLASS.md, iconClassName)}
       icon={icon}
     />
+    {label && (
+      <span
+        className={cn(
+          'ml-1.5 font-medium whitespace-nowrap',
+          size === 'xs' ? 'text-xs' : 'text-sm'
+        )}
+      >
+        {label}
+      </span>
+    )}
   </button>
 )
 
@@ -63,6 +74,7 @@ IconActionButton.propTypes = {
   className: PropTypes.string,
   iconClassName: PropTypes.string,
   type: PropTypes.oneOf(['button', 'submit', 'reset']),
+  label: PropTypes.string,
 }
 
 IconActionButton.defaultProps = {
@@ -74,6 +86,7 @@ IconActionButton.defaultProps = {
   className: '',
   iconClassName: '',
   type: 'button',
+  label: '',
 }
 
 export default IconActionButton
