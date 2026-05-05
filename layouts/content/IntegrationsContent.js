@@ -269,6 +269,57 @@ const ApiKeyEditorModal = ({
   )
 }
 
+const NovofonGuide = () => (
+  <div className="flex flex-col gap-3 text-sm leading-6 text-gray-700">
+    <p>
+      Эта интеграция нужна, чтобы звонки попадали в раздел Звонки в CRM. После
+      разговора вы сможете сохранить заметку, распознать запись и подготовить
+      черновик заявки.
+    </p>
+    <ol className="list-decimal space-y-2 pl-5">
+      <li>Включите интеграцию Novofon в ArtistCRM.</li>
+      <li>Скопируйте адрес из поля Адрес для уведомлений Novofon.</li>
+      <li>
+        В личном кабинете Novofon откройте настройки интеграции с собственной
+        CRM и вставьте этот адрес в поле для уведомлений о звонках.
+      </li>
+      <li>
+        Если Novofon попросит секретный ключ, скопируйте значение из поля
+        Секретный ключ и вставьте его в настройках Novofon.
+      </li>
+      <li>Сохраните настройки в Novofon и сделайте тестовый звонок.</li>
+    </ol>
+    <p>
+      Если звонок появился в CRM, подключение работает. Записи звонков будут
+      обрабатываться только если Novofon передает ссылку на запись.
+    </p>
+  </div>
+)
+
+const AITunnelGuide = () => (
+  <div className="flex flex-col gap-3 text-sm leading-6 text-gray-700">
+    <p>
+      AITunnel нужен для распознавания записей звонков и подготовки текста
+      заявки. Без него звонки можно видеть в CRM, но автоматический разбор
+      разговора работать не будет.
+    </p>
+    <ol className="list-decimal space-y-2 pl-5">
+      <li>Зарегистрируйтесь или войдите в AITunnel.</li>
+      <li>Создайте ключ доступа в личном кабинете AITunnel.</li>
+      <li>Вставьте ключ в поле Ключ AITunnel в ArtistCRM.</li>
+      <li>
+        Оставьте модель распознавания whisper-1, если не планируете менять ее
+        специально.
+      </li>
+      <li>Нажмите Использовать AITunnel.</li>
+    </ol>
+    <p>
+      После этого в разделе Звонки можно будет распознавать записи и создавать
+      черновики заявок на основе разговора.
+    </p>
+  </div>
+)
+
 const IntegrationsContent = () => {
   const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
@@ -319,22 +370,33 @@ const IntegrationsContent = () => {
     return `${window.location.origin}${relative}`
   }, [loggedUser?._id, loggedUser?.tenantId, novofonWebhookSecret])
 
-  const saveCustom = async (patch) => {
+  const saveCustom = async (patch, options = {}) => {
+    let saved = false
     setIsSaving(true)
-    await postData(
-      '/api/site',
-      {
-        custom: {
-          ...(siteSettings?.custom ?? {}),
-          ...patch,
+    try {
+      await postData(
+        '/api/site',
+        {
+          custom: {
+            ...(siteSettings?.custom ?? {}),
+            ...patch,
+          },
         },
-      },
-      (data) => setSiteSettings(data),
-      null,
-      false,
-      null
-    )
-    setIsSaving(false)
+        (data) => {
+          setSiteSettings(data)
+          saved = true
+        },
+        () => snackbar.error('Не удалось сохранить настройки'),
+        false,
+        null
+      )
+      if (saved && options?.successMessage) {
+        snackbar.success(options.successMessage)
+      }
+    } finally {
+      setIsSaving(false)
+    }
+    return saved
   }
 
   const saveApiKeys = (nextApiKeys) => {
@@ -503,9 +565,9 @@ const IntegrationsContent = () => {
         <LabeledContainer label="Novofon IP-телефония" noMargin>
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-600">
-              Каждый пользователь подключает свой аккаунт Novofon и использует
-              индивидуальный webhook URL. Сейчас интеграция принимает события
-              звонков и ссылки на записи, а AI-черновик создается из transcript.
+              Подключите свой аккаунт Novofon, чтобы звонки попадали в CRM.
+              После разговора можно будет открыть звонок, добавить заметку,
+              распознать запись и подготовить черновик заявки.
             </div>
             {!canUseTelephony && (
               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -530,7 +592,7 @@ const IntegrationsContent = () => {
             />
 
             <Input
-              label="Novofon API key"
+              label="Ключ Novofon"
               value={novofonApiKey}
               onChange={(value) =>
                 canUseTelephony && saveCustom({ novofonApiKey: value })
@@ -542,7 +604,7 @@ const IntegrationsContent = () => {
 
             <div className="flex items-start gap-2">
               <Input
-                label="Webhook secret"
+                label="Секретный ключ"
                 value={novofonWebhookSecret}
                 onChange={() => {}}
                 disabled
@@ -553,7 +615,7 @@ const IntegrationsContent = () => {
                 icon={faCopy}
                 size="md"
                 variant="success"
-                title="Скопировать secret"
+                title="Скопировать секретный ключ"
                 className="shrink-0"
                 onClick={async () => {
                   if (
@@ -563,14 +625,14 @@ const IntegrationsContent = () => {
                   )
                     return
                   await navigator.clipboard.writeText(novofonWebhookSecret)
-                  snackbar.success('Secret скопирован')
+                  snackbar.success('Секретный ключ скопирован')
                 }}
               />
             </div>
 
             <div className="flex items-start gap-2">
               <Input
-                label="Webhook URL для Novofon"
+                label="Адрес для уведомлений Novofon"
                 value={novofonWebhookUrl}
                 onChange={() => {}}
                 disabled
@@ -581,13 +643,13 @@ const IntegrationsContent = () => {
                 icon={faCopy}
                 size="md"
                 variant="success"
-                title="Скопировать webhook URL"
+                title="Скопировать адрес"
                 className="shrink-0"
                 onClick={async () => {
                   if (!canUseTelephony || !novofonWebhookUrl || !navigator?.clipboard)
                     return
                   await navigator.clipboard.writeText(novofonWebhookUrl)
-                  snackbar.success('Webhook URL скопирован')
+                  snackbar.success('Адрес скопирован')
                 }}
               />
             </div>
@@ -602,7 +664,21 @@ const IntegrationsContent = () => {
                 }
                 disabled={isSaving || !canUseTelephony}
               >
-                Перегенерировать secret
+                Обновить секретный ключ
+              </button>
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+                onClick={() =>
+                  modalsFunc.add({
+                    title: 'Как подключить Novofon',
+                    showDecline: true,
+                    declineButtonName: 'Закрыть',
+                    Children: NovofonGuide,
+                  })
+                }
+              >
+                Как подключить
               </button>
             </div>
           </div>
@@ -611,8 +687,9 @@ const IntegrationsContent = () => {
         <LabeledContainer label="AITunnel для AI и распознавания речи" noMargin>
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-600">
-              Ключ AITunnel хранится в настройках пользователя и используется для
-              распознавания записей звонков через Whisper и AI-анализа transcript.
+              Подключите AITunnel, чтобы CRM могла распознавать записи звонков и
+              готовить черновик заявки по разговору. Ключ хранится в ваших
+              настройках и используется только для обработки ваших звонков.
             </div>
             {!canUseTelephony && (
               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -627,7 +704,7 @@ const IntegrationsContent = () => {
               </div>
             )}
             <Input
-              label="AITunnel key"
+              label="Ключ AITunnel"
               value={aitunnelKey}
               onChange={(value) =>
                 canUseTelephony && canUseAi && saveCustom({ aitunnelKey: value })
@@ -678,10 +755,26 @@ const IntegrationsContent = () => {
                   aiTranscriptionModel: aiTranscriptionModel || 'whisper-1',
                   aiAnalysisProvider: 'aitunnel',
                   aiAnalysisModel: aiAnalysisModel || 'gpt-4o-mini',
+                }, {
+                  successMessage: 'AITunnel выбран для обработки звонков',
                 })
               }
             >
               Использовать AITunnel
+            </button>
+            <button
+              type="button"
+              className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+              onClick={() =>
+                modalsFunc.add({
+                  title: 'Как подключить AITunnel',
+                  showDecline: true,
+                  declineButtonName: 'Закрыть',
+                  Children: AITunnelGuide,
+                })
+              }
+            >
+              Как подключить
             </button>
           </div>
         </LabeledContainer>
