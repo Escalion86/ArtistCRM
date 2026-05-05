@@ -31,7 +31,7 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && onEdit?.()}
-      className="card-body-pad group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
+      className="card-body-pad group flex w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
@@ -44,9 +44,9 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
           onDelete={onDelete}
         />
       </CardActions>
-      <div className="flex h-full w-full flex-col gap-3 pr-24">
+      <div className="flex w-full flex-col gap-3 pr-12 sm:pr-24">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <div className="card-title text-base">
               {tariff.title || 'Без названия'}
             </div>
@@ -54,11 +54,16 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
               {formatEventsLimit(tariff.eventsPerMonth)}
             </div>
           </div>
-          {tariff.hidden && (
-            <span className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
-              Скрытый
-            </span>
-          )}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {tariff.hidden && (
+              <span className="rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
+                Скрытый
+              </span>
+            )}
+            <div className="card-title text-lg font-semibold">
+              {formatPrice(tariff.price)}
+            </div>
+          </div>
         </div>
         <div className="card-meta grid gap-2 text-sm sm:grid-cols-2">
           <IconCheckBox
@@ -92,9 +97,6 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
             noMargin
           />
         </div>
-      </div>
-      <div className="card-title absolute right-4 bottom-4 text-lg font-semibold">
-        {formatPrice(tariff.price)}
       </div>
     </CardWrapper>
   )

@@ -275,9 +275,7 @@ export const PUT = async (req, { params }) => {
 
     Object.assign(update, body)
     delete update._id
-    if (shouldApplyTariff) {
-      delete update.tariffId
-    }
+    delete update.skipCompensation
     if (normalizedPhone !== null) update.phone = normalizedPhone
     if (update.password) {
       update.password = await bcrypt.hash(update.password, 10)

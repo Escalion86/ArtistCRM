@@ -145,6 +145,8 @@ const CardButtons = ({
     typeOfItem === 'event' &&
     canManageItem &&
     Boolean(onEditClientContacts || onEditFinanceDocs)
+  const canEditStatus =
+    showStatusButton && ['event', 'serviceUser'].includes(typeOfItem)
 
   const copyId = useCopyToClipboard(item._id, 'ID скопирован в буфер обмена')
   const additionalEventsSummary = getAdditionalEventsSummary([item], new Date())
@@ -190,10 +192,7 @@ const CardButtons = ({
           openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
           additionalEvents: typeOfItem === 'event',
           historyBtn: showHistoryButton && typeOfItem === 'event',
-          statusBtn:
-            showStatusButton &&
-            typeOfItem !== 'client' &&
-            typeOfItem !== 'service',
+          statusBtn: canEditStatus,
           deleteBtn:
             showDeleteButton && canManageItem && item.status !== 'closed',
         }
@@ -205,10 +204,7 @@ const CardButtons = ({
           openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
           additionalEvents: typeOfItem === 'event',
           historyBtn: showHistoryButton && typeOfItem === 'event',
-          statusBtn:
-            showStatusButton &&
-            typeOfItem !== 'client' &&
-            typeOfItem !== 'service',
+          statusBtn: canEditStatus,
           deleteBtn:
             showDeleteButton && canManageItem && item.status !== 'closed',
           userBilling: typeOfItem === 'user' && canManageUsers,
@@ -232,10 +228,7 @@ const CardButtons = ({
         cloneBtn:
           showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
         showOnSiteBtn: showOnSiteOnClick,
-        statusBtn:
-          showStatusButton &&
-          typeOfItem !== 'client' &&
-          typeOfItem !== 'service',
+        statusBtn: canEditStatus,
         deleteBtn:
           showDeleteButton && canManageItem && item.status !== 'closed',
         userEvents: typeOfItem === 'client',

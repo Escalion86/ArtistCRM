@@ -1,7 +1,5 @@
 'use client'
 
-import { useCallback } from 'react'
-import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import AddIconButton from '@components/AddIconButton'
 import EmptyState from '@components/EmptyState'
@@ -13,14 +11,11 @@ import { modalsFuncAtom } from '@state/atoms'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import { useAtomValue } from 'jotai'
-import useUiDensity from '@helpers/useUiDensity'
 
 const TariffsContent = () => {
-  const { isCompact } = useUiDensity()
   const tariffs = useAtomValue(tariffsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
-  const itemHeight = isCompact ? 136 : 156
   const canEdit =
     loggedUserActiveRole?.dev || loggedUserActiveRole?.users?.setRole
 
@@ -29,21 +24,6 @@ const TariffsContent = () => {
     if (priceDiff !== 0) return priceDiff
     return (a.title || '').localeCompare(b.title || '', 'ru')
   })
-
-  const RowComponent = useCallback(
-    ({ index, style }) => {
-      const tariff = sortedTariffs[index]
-      return (
-        <TariffCard
-          style={style}
-          tariff={tariff}
-          onEdit={() => modalsFunc.tariff?.edit(tariff._id)}
-          onDelete={() => modalsFunc.tariff?.delete(tariff._id)}
-        />
-      )
-    },
-    [modalsFunc.tariff, sortedTariffs]
-  )
 
   if (!canEdit) {
     return (
@@ -75,15 +55,18 @@ const TariffsContent = () => {
           }
         />
       </ContentHeader>
-      <SectionCard className="flex-1 min-h-0 overflow-hidden">
+      <SectionCard className="flex-1 min-h-0 overflow-y-auto">
         {sortedTariffs.length > 0 ? (
-          <List
-            rowCount={sortedTariffs.length}
-            rowHeight={itemHeight}
-            rowComponent={RowComponent}
-            rowProps={{}}
-                                    style={{ height: '100%', width: '100%' }}
-          />
+          <div className="flex flex-col gap-3">
+            {sortedTariffs.map((tariff) => (
+              <TariffCard
+                key={tariff._id}
+                tariff={tariff}
+                onEdit={() => modalsFunc.tariff?.edit(tariff._id)}
+                onDelete={() => modalsFunc.tariff?.delete(tariff._id)}
+              />
+            ))}
+          </div>
         ) : (
           <EmptyState text="Тарифы не настроены" bordered={false} />
         )}
