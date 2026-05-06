@@ -26,8 +26,11 @@ export const POST = async (req) => {
     body?.code_verifier || body?.codeVerifier || ''
   ).trim()
   const state = String(body?.state || '').trim()
+  const accessToken = String(
+    body?.access_token || body?.accessToken || ''
+  ).trim()
 
-  if (!code || !deviceId) {
+  if ((!code || !deviceId) && !accessToken) {
     return buildError(
       'INVALID_VK_PAYLOAD',
       400,
@@ -36,27 +39,33 @@ export const POST = async (req) => {
   }
 
   try {
-    const exchangeResult = await exchangeVkCode({
-      code,
-      deviceId,
-      codeVerifier,
-      state,
-    })
-    if (!exchangeResult.success) {
-      const errorType = exchangeResult.data?.error?.type || 'VK_EXCHANGE_FAILED'
-      console.error('[vk-id/auth] exchange failed', {
-        errorType,
-        vkError: exchangeResult.data?.error?.vkError || '',
+    let resolvedAccessToken = accessToken
+
+    if (!resolvedAccessToken) {
+      const exchangeResult = await exchangeVkCode({
+        code,
+        deviceId,
+        codeVerifier,
+        state,
       })
-      return buildError(
-        errorType,
-        errorType === 'VK_CONFIG_MISSING' ? 503 : 401,
-        'Не удалось получить токен VK ID'
-      )
+      if (!exchangeResult.success) {
+        const errorType =
+          exchangeResult.data?.error?.type || 'VK_EXCHANGE_FAILED'
+        console.error('[vk-id/auth] exchange failed', {
+          errorType,
+          vkError: exchangeResult.data?.error?.vkError || '',
+        })
+        return buildError(
+          errorType,
+          errorType === 'VK_CONFIG_MISSING' ? 503 : 401,
+          'Не удалось получить токен VK ID'
+        )
+      }
+      resolvedAccessToken = exchangeResult.data.accessToken
     }
 
     const userInfoResult = await fetchVkUserInfo({
-      accessToken: exchangeResult.data.accessToken,
+      accessToken: resolvedAccessToken,
     })
     if (!userInfoResult.success) {
       const errorType = userInfoResult.data?.error?.type || 'VK_USERINFO_FAILED'

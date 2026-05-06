@@ -139,6 +139,7 @@ const LoginInputs = () => {
     scope: 'phone email',
   })
   const [vkLoading, setVkLoading] = useState(false)
+  const [vkRenderNonce, setVkRenderNonce] = useState(0)
   const [mode, setMode] = useState('login')
   const canUseVkOneTap = mode === 'login' || mode === 'register'
   const vkAuthEnabled = vkConfig.loaded && vkConfig.allowVkAuth
@@ -708,14 +709,23 @@ const LoginInputs = () => {
                 throw new Error('VKID payload is missing code/device_id')
               }
 
+              const codeVerifier =
+                payload?.code_verifier || payload?.codeVerifier || ''
+              let accessToken = ''
+              if (!codeVerifier && VKID?.Auth?.exchangeCode) {
+                const exchangeData = await VKID.Auth.exchangeCode(code, deviceId)
+                accessToken =
+                  exchangeData?.access_token || exchangeData?.accessToken || ''
+              }
+
               const authResponse = await fetch('/api/vk-id/auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   code,
                   deviceId,
-                  codeVerifier:
-                    payload?.code_verifier || payload?.codeVerifier || '',
+                  codeVerifier,
+                  accessToken,
                   state: payload?.state || '',
                   mode,
                 }),
@@ -739,7 +749,8 @@ const LoginInputs = () => {
               window.location.replace('/cabinet')
             } catch (error) {
               console.error('[VK One Tap] auth error', error)
-              alert('Не удалось авторизоваться через VK ID')
+              alert(error?.message || 'Не удалось авторизоваться через VK ID')
+              if (isMounted) setVkRenderNonce((prev) => prev + 1)
             } finally {
               if (isMounted) setVkLoading(false)
             }
@@ -770,7 +781,7 @@ const LoginInputs = () => {
     return () => {
       isMounted = false
     }
-  }, [canUseVkOneTap, mode, vkAuthEnabled, vkConfig])
+  }, [canUseVkOneTap, mode, vkAuthEnabled, vkConfig, vkRenderNonce])
 
   const VkAuthBlock = ({ label }) =>
     vkAuthEnabled ? (

@@ -25,13 +25,28 @@ const buildError = (type, message, details = {}) =>
     },
   })
 
-const postVkForm = async (path, params) => {
-  const response = await fetch(`${getVkIdBaseUrl()}${path}`, {
+const toFormBody = (data = {}) => {
+  const form = new URLSearchParams()
+  Object.entries(data).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '') return
+    form.append(key, String(value))
+  })
+  return form
+}
+
+const vkOAuthRequest = async ({ path, query = {}, body = {} }) => {
+  const url = new URL(`${getVkIdBaseUrl()}${path}`)
+  Object.entries(query).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '') return
+    url.searchParams.set(key, String(value))
+  })
+
+  const response = await fetch(url.toString(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: new URLSearchParams(params),
+    body: toFormBody(body),
     cache: 'no-store',
   })
   const json = await response.json().catch(() => ({}))
@@ -45,10 +60,9 @@ export const exchangeVkCode = async ({
   state,
 } = {}) => {
   const appId = process.env.VK_ID_APP_ID || process.env.NEXT_PUBLIC_VK_ID_APP_ID
-  const clientSecret = process.env.VK_ID_CLIENT_SECRET
   const redirectUri = process.env.VK_ID_REDIRECT_URI
 
-  if (!appId || !clientSecret || !redirectUri) {
+  if (!appId || !process.env.VK_ID_CLIENT_SECRET || !redirectUri) {
     return buildError(
       'VK_CONFIG_MISSING',
       'VK ID auth is not configured on the server'
@@ -59,19 +73,18 @@ export const exchangeVkCode = async ({
     return buildError('INVALID_VK_PAYLOAD', 'VK ID payload is incomplete')
   }
 
-  const params = {
-    grant_type: 'authorization_code',
-    client_id: appId,
-    client_secret: clientSecret,
-    redirect_uri: redirectUri,
-    code,
-    device_id: deviceId,
-  }
-
-  if (codeVerifier) params.code_verifier = codeVerifier
-  if (state) params.state = state
-
-  const { response, json } = await postVkForm('/oauth2/auth', params)
+  const { response, json } = await vkOAuthRequest({
+    path: '/oauth2/auth',
+    query: {
+      client_id: appId,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      device_id: deviceId,
+      state: state || 'vkid_state',
+      code_verifier: codeVerifier,
+    },
+    body: { code },
+  })
 
   if (!response.ok || json?.error) {
     return buildError('VK_EXCHANGE_FAILED', 'VK ID code exchange failed', {
@@ -107,9 +120,14 @@ export const fetchVkUserInfo = async ({ accessToken } = {}) => {
     return buildError('INVALID_VK_PAYLOAD', 'VK ID access token is missing')
   }
 
-  const { response, json } = await postVkForm('/oauth2/user_info', {
-    client_id: appId,
-    access_token: accessToken,
+  const { response, json } = await vkOAuthRequest({
+    path: '/oauth2/user_info',
+    query: {
+      client_id: appId,
+    },
+    body: {
+      access_token: accessToken,
+    },
   })
 
   if (!response.ok || json?.error) {
