@@ -136,6 +136,13 @@ export const POST = async (req) => {
       { status: 201 }
     )
   } catch (error) {
+    console.error('Tochka payment create failed', {
+      paymentId: String(payment._id),
+      userId: String(dbUser._id),
+      amount,
+      purpose,
+      message: error?.message || 'Точка',
+    })
     payment.status = 'failed'
     payment.rawProviderStatus = 'create_failed'
     payment.comment = `${description}. Ошибка создания платежа: ${error?.message || 'Точка'}`

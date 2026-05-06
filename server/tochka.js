@@ -30,6 +30,12 @@ const normalizeAmount = (amount) => {
   return value.toFixed(2)
 }
 
+const normalizeCustomerCode = (customerCode) => {
+  const value = String(customerCode || '').trim()
+  if (/^\d+$/.test(value)) return Number(value)
+  return value
+}
+
 const normalizePhone = (phone) => String(phone || '').replace(/\D/g, '')
 
 const getAuthHeaders = () => {
@@ -51,6 +57,32 @@ const readPayload = async (response) => {
   }
 }
 
+const extractTochkaError = (payload) => {
+  const errors = payload?.Errors || payload?.errors || payload?.Data?.Errors
+  if (Array.isArray(errors) && errors.length > 0) {
+    return errors
+      .map((item) =>
+        [
+          item?.code || item?.Code,
+          item?.message || item?.Message || item?.error || item?.Error,
+        ]
+          .filter(Boolean)
+          .join(': ')
+      )
+      .filter(Boolean)
+      .join('; ')
+  }
+  return (
+    payload?.message ||
+    payload?.Message ||
+    payload?.error_description ||
+    payload?.error ||
+    payload?.Error ||
+    payload?.raw ||
+    ''
+  )
+}
+
 const getValue = (source, paths) => {
   for (const path of paths) {
     const value = path.split('.').reduce((acc, key) => acc?.[key], source)
@@ -70,14 +102,7 @@ const createTochkaRequest = async ({ pathName, method = 'GET', body }) => {
   })
   const payload = await readPayload(response)
   if (!response.ok) {
-    throw new Error(
-      payload?.message ||
-        payload?.error_description ||
-        payload?.error ||
-        payload?.Errors?.[0]?.message ||
-        payload?.raw ||
-        'Ошибка Точки'
-    )
+    throw new Error(extractTochkaError(payload) || 'Ошибка Точки')
   }
   return payload
 }
@@ -96,13 +121,12 @@ const buildReceiptItems = ({ amount, description }) => {
   return [
     {
       name: itemName,
-      price: normalizeAmount(amount),
-      quantity: 1,
       amount: normalizeAmount(amount),
+      quantity: 1,
       vatType: process.env.TOCHKA_VAT_TYPE || 'none',
       paymentMethod: process.env.TOCHKA_PAYMENT_METHOD || 'full_payment',
       paymentObject: process.env.TOCHKA_PAYMENT_OBJECT || 'service',
-      measure: process.env.TOCHKA_MEASURE || 'piece',
+      measure: process.env.TOCHKA_MEASURE || 'шт.',
     },
   ]
 }
@@ -127,18 +151,21 @@ const createTochkaPayment = async ({
 
   const body = {
     Data: {
-      customerCode: config.customerCode,
-      merchantId: config.merchantId,
+      customerCode: normalizeCustomerCode(config.customerCode),
       amount: value,
       purpose: String(description || 'Оплата ArtistCRM').slice(0, 140),
       redirectUrl: returnUrl || config.returnUrl,
+      failRedirectUrl: returnUrl || config.returnUrl,
+      paymentMode: ['sbp', 'card'],
+      merchantId: config.merchantId,
       ttl: Number(process.env.TOCHKA_PAYMENT_TTL || 1440),
       taxSystemCode: process.env.TOCHKA_TAX_SYSTEM_CODE || 'npd',
       Client: client,
       Items: buildReceiptItems({ amount, description }),
-      Metadata: metadata,
+      preAuthorization: false,
     },
   }
+  if (metadata) body.Data.metadata = metadata
   if (idempotenceKey) body.Data.orderId = idempotenceKey
   if (process.env.TOCHKA_SEND_RECEIPT !== 'true') {
     delete body.Data.Client

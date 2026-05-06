@@ -726,15 +726,17 @@ const LoginInputs = () => {
               const codeVerifier =
                 payload?.code_verifier || payload?.codeVerifier || ''
               let accessToken = ''
+              let idToken = ''
               if (!codeVerifier && VKID?.Auth?.exchangeCode) {
                 const exchangeData = await VKID.Auth.exchangeCode(code, deviceId)
                 accessToken =
                   exchangeData?.access_token || exchangeData?.accessToken || ''
+                idToken = exchangeData?.id_token || exchangeData?.idToken || ''
                 if (vkConfig.debug) {
                   console.log('[VK One Tap debug] client exchange result', {
                     keys: Object.keys(exchangeData || {}),
                     hasAccessToken: Boolean(accessToken),
-                    hasIdToken: Boolean(exchangeData?.id_token),
+                    hasIdToken: Boolean(idToken),
                     hasUserId: Boolean(
                       exchangeData?.user_id || exchangeData?.userId
                     ),
@@ -755,6 +757,7 @@ const LoginInputs = () => {
                   deviceId,
                   codeVerifier,
                   accessToken,
+                  idToken,
                   state: payload?.state || '',
                   mode,
                 }),

@@ -29,6 +29,7 @@ export const POST = async (req) => {
   const accessToken = String(
     body?.access_token || body?.accessToken || ''
   ).trim()
+  let idToken = String(body?.id_token || body?.idToken || '').trim()
 
   if ((!code || !deviceId) && !accessToken) {
     return buildError(
@@ -62,10 +63,12 @@ export const POST = async (req) => {
         )
       }
       resolvedAccessToken = exchangeResult.data.accessToken
+      idToken = exchangeResult.data.idToken || idToken
     }
 
     const userInfoResult = await fetchVkUserInfo({
       accessToken: resolvedAccessToken,
+      idToken,
     })
     if (!userInfoResult.success) {
       const errorType = userInfoResult.data?.error?.type || 'VK_USERINFO_FAILED'

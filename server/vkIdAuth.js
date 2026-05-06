@@ -43,6 +43,21 @@ const getPossiblePhoneDebug = (json) => {
 const getFirstValue = (...values) =>
   values.find((value) => value !== null && value !== undefined && value !== '')
 
+const decodeJwtPayload = (token) => {
+  try {
+    const payload = String(token || '').split('.')[1]
+    if (!payload) return null
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(
+      normalized.length + ((4 - (normalized.length % 4)) % 4),
+      '='
+    )
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'))
+  } catch {
+    return null
+  }
+}
+
 const logVkDebug = (label, data) => {
   if (!isVkDebugEnabled()) return
   console.log(`[VK ID debug] ${label}`, data)
@@ -165,7 +180,7 @@ export const exchangeVkCode = async ({
   })
 }
 
-export const fetchVkUserInfo = async ({ accessToken } = {}) => {
+export const fetchVkUserInfo = async ({ accessToken, idToken = '' } = {}) => {
   const appId = process.env.VK_ID_APP_ID || process.env.NEXT_PUBLIC_VK_ID_APP_ID
 
   if (!appId) {
@@ -197,6 +212,7 @@ export const fetchVkUserInfo = async ({ accessToken } = {}) => {
   }
 
   const user = json?.user || json?.data?.user || json?.data || json || {}
+  const idTokenPayload = decodeJwtPayload(idToken)
   const rawPhone = getFirstValue(
     user?.phone,
     user?.phone_number,
@@ -242,6 +258,11 @@ export const fetchVkUserInfo = async ({ accessToken } = {}) => {
     phonePresent: Boolean(rawPhone),
     normalizedPhonePresent: Boolean(phone),
     normalizedPhoneMasked: maskPhone(phone),
+    idTokenKeys: getObjectKeys(idTokenPayload),
+    idTokenPhonePresent: Boolean(
+      idTokenPayload?.phone || idTokenPayload?.phone_number
+    ),
+    idTokenEmailPresent: Boolean(idTokenPayload?.email),
   })
 
   if (!phone) {
