@@ -742,6 +742,7 @@ const LoginInputs = () => {
                     hasPhone: Boolean(
                       exchangeData?.phone || exchangeData?.phone_number
                     ),
+                    scope: exchangeData?.scope || '',
                   })
                 }
               }

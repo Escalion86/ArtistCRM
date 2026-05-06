@@ -40,6 +40,9 @@ const getPossiblePhoneDebug = (json) => {
   )
 }
 
+const getFirstValue = (...values) =>
+  values.find((value) => value !== null && value !== undefined && value !== '')
+
 const logVkDebug = (label, data) => {
   if (!isVkDebugEnabled()) return
   console.log(`[VK ID debug] ${label}`, data)
@@ -103,7 +106,8 @@ const vkOAuthRequest = async ({ path, query = {}, body = {} }) => {
     hasError: Boolean(json?.error),
     error: json?.error || '',
     errorDescription: json?.error_description || '',
-    possiblePhones: path === '/oauth2/user_info' ? getPossiblePhoneDebug(json) : undefined,
+    possiblePhones:
+      path === '/oauth2/user_info' ? getPossiblePhoneDebug(json) : undefined,
   })
   return { response, json }
 }
@@ -193,13 +197,49 @@ export const fetchVkUserInfo = async ({ accessToken } = {}) => {
   }
 
   const user = json?.user || json?.data?.user || json?.data || json || {}
-  const phone = normalizeVkPhone(user?.phone || user?.phone_number)
+  const rawPhone = getFirstValue(
+    user?.phone,
+    user?.phone_number,
+    json?.phone,
+    json?.phone_number,
+    json?.user?.phone,
+    json?.user?.phone_number,
+    json?.data?.phone,
+    json?.data?.phone_number,
+    json?.data?.user?.phone,
+    json?.data?.user?.phone_number
+  )
+  const phone = normalizeVkPhone(rawPhone)
+  const rawEmail = getFirstValue(
+    user?.email,
+    json?.email,
+    json?.user?.email,
+    json?.data?.email,
+    json?.data?.user?.email
+  )
+  const rawVkId = getFirstValue(
+    user?.user_id,
+    user?.id,
+    user?.sub,
+    json?.user_id,
+    json?.id,
+    json?.sub,
+    json?.user?.user_id,
+    json?.user?.id,
+    json?.user?.sub,
+    json?.data?.user_id,
+    json?.data?.id,
+    json?.data?.sub,
+    json?.data?.user?.user_id,
+    json?.data?.user?.id,
+    json?.data?.user?.sub
+  )
 
   logVkDebug('user_info parsed', {
     selectedUserKeys: getObjectKeys(user),
-    vkIdPresent: Boolean(user?.user_id || user?.id || user?.sub),
-    emailPresent: Boolean(user?.email),
-    phonePresent: Boolean(user?.phone || user?.phone_number),
+    vkIdPresent: Boolean(rawVkId),
+    emailPresent: Boolean(rawEmail),
+    phonePresent: Boolean(rawPhone),
     normalizedPhonePresent: Boolean(phone),
     normalizedPhoneMasked: maskPhone(phone),
   })
@@ -209,9 +249,9 @@ export const fetchVkUserInfo = async ({ accessToken } = {}) => {
   }
 
   return buildResult(true, {
-    vkId: String(user?.user_id || user?.id || user?.sub || '').trim(),
+    vkId: String(rawVkId || '').trim(),
     phone,
-    email: normalizeEmail(user?.email),
+    email: normalizeEmail(rawEmail),
     firstName: user?.first_name || user?.firstName || '',
     secondName: user?.last_name || user?.lastName || '',
     image: user?.avatar || user?.photo_200 || user?.picture || '',
