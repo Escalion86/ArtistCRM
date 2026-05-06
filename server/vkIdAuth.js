@@ -4,6 +4,47 @@ const VK_ID_DOMAIN = process.env.VK_ID_DOMAIN || 'id.vk.ru'
 
 const getVkIdBaseUrl = () => `https://${VK_ID_DOMAIN.replace(/^https?:\/\//, '')}`
 
+const isVkDebugEnabled = () =>
+  process.env.VK_DEBUG_LOGS === 'true' ||
+  process.env.NEXT_PUBLIC_VK_DEBUG_LOGS === 'true'
+
+const maskPhone = (value) => {
+  const digits = String(value || '').replace(/[^\d]/g, '')
+  if (digits.length < 4) return ''
+  return `${digits.slice(0, 1)}***${digits.slice(-4)}`
+}
+
+const getObjectKeys = (value) =>
+  value && typeof value === 'object' ? Object.keys(value) : []
+
+const getPossiblePhoneDebug = (json) => {
+  const candidates = {
+    'json.phone': json?.phone,
+    'json.phone_number': json?.phone_number,
+    'json.user.phone': json?.user?.phone,
+    'json.user.phone_number': json?.user?.phone_number,
+    'json.data.phone': json?.data?.phone,
+    'json.data.phone_number': json?.data?.phone_number,
+    'json.data.user.phone': json?.data?.user?.phone,
+    'json.data.user.phone_number': json?.data?.user?.phone_number,
+  }
+
+  return Object.fromEntries(
+    Object.entries(candidates).map(([key, value]) => [
+      key,
+      {
+        present: Boolean(value),
+        masked: maskPhone(value),
+      },
+    ])
+  )
+}
+
+const logVkDebug = (label, data) => {
+  if (!isVkDebugEnabled()) return
+  console.log(`[VK ID debug] ${label}`, data)
+}
+
 const normalizeEmail = (value) => {
   if (!value) return ''
   return String(value).trim().toLowerCase()
@@ -50,6 +91,20 @@ const vkOAuthRequest = async ({ path, query = {}, body = {} }) => {
     cache: 'no-store',
   })
   const json = await response.json().catch(() => ({}))
+  logVkDebug('oauth response', {
+    path,
+    status: response.status,
+    ok: response.ok,
+    responseKeys: getObjectKeys(json),
+    userKeys: getObjectKeys(json?.user),
+    dataKeys: getObjectKeys(json?.data),
+    dataUserKeys: getObjectKeys(json?.data?.user),
+    hasAccessToken: Boolean(json?.access_token || json?.accessToken),
+    hasError: Boolean(json?.error),
+    error: json?.error || '',
+    errorDescription: json?.error_description || '',
+    possiblePhones: path === '/oauth2/user_info' ? getPossiblePhoneDebug(json) : undefined,
+  })
   return { response, json }
 }
 
@@ -139,6 +194,15 @@ export const fetchVkUserInfo = async ({ accessToken } = {}) => {
 
   const user = json?.user || json?.data?.user || json?.data || json || {}
   const phone = normalizeVkPhone(user?.phone || user?.phone_number)
+
+  logVkDebug('user_info parsed', {
+    selectedUserKeys: getObjectKeys(user),
+    vkIdPresent: Boolean(user?.user_id || user?.id || user?.sub),
+    emailPresent: Boolean(user?.email),
+    phonePresent: Boolean(user?.phone || user?.phone_number),
+    normalizedPhonePresent: Boolean(phone),
+    normalizedPhoneMasked: maskPhone(phone),
+  })
 
   if (!phone) {
     return buildError('VK_PHONE_REQUIRED', 'VK ID profile has no phone number')

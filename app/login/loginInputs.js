@@ -137,6 +137,7 @@ const LoginInputs = () => {
     appId: '',
     redirectUri: '',
     scope: 'phone email',
+    debug: false,
   })
   const [vkLoading, setVkLoading] = useState(false)
   const [vkRenderNonce, setVkRenderNonce] = useState(0)
@@ -652,6 +653,7 @@ const LoginInputs = () => {
           appId: json?.data?.appId || '',
           redirectUri: json?.data?.redirectUri || '',
           scope: json?.data?.scope || 'phone email',
+          debug: Boolean(json?.data?.debug),
         })
       })
       .catch(() => {
@@ -705,6 +707,18 @@ const LoginInputs = () => {
               setVkLoading(true)
               const code = payload?.code
               const deviceId = payload?.device_id
+              if (vkConfig.debug) {
+                console.log('[VK One Tap debug] LOGIN_SUCCESS payload', {
+                  keys: Object.keys(payload || {}),
+                  hasCode: Boolean(code),
+                  hasDeviceId: Boolean(deviceId),
+                  hasCodeVerifier: Boolean(
+                    payload?.code_verifier || payload?.codeVerifier
+                  ),
+                  hasState: Boolean(payload?.state),
+                  type: payload?.type || '',
+                })
+              }
               if (!code || !deviceId) {
                 throw new Error('VKID payload is missing code/device_id')
               }
@@ -716,6 +730,20 @@ const LoginInputs = () => {
                 const exchangeData = await VKID.Auth.exchangeCode(code, deviceId)
                 accessToken =
                   exchangeData?.access_token || exchangeData?.accessToken || ''
+                if (vkConfig.debug) {
+                  console.log('[VK One Tap debug] client exchange result', {
+                    keys: Object.keys(exchangeData || {}),
+                    hasAccessToken: Boolean(accessToken),
+                    hasIdToken: Boolean(exchangeData?.id_token),
+                    hasUserId: Boolean(
+                      exchangeData?.user_id || exchangeData?.userId
+                    ),
+                    hasEmail: Boolean(exchangeData?.email),
+                    hasPhone: Boolean(
+                      exchangeData?.phone || exchangeData?.phone_number
+                    ),
+                  })
+                }
               }
 
               const authResponse = await fetch('/api/vk-id/auth', {
