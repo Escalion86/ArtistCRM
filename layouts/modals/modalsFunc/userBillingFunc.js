@@ -91,11 +91,13 @@ const userBillingFunc = (userId) => {
       setIsPaymentsLoading(false)
     }
 
-    const syncPayment = async (paymentId) => {
+    const syncPayment = async (payment) => {
+      const paymentId = payment?._id
       if (!paymentId) return
+      const provider = payment.source === 'tochka' ? 'tochka' : 'yookassa'
       setSyncingPaymentId(paymentId)
       try {
-        const response = await fetch('/api/billing/yookassa/sync', {
+        const response = await fetch(`/api/billing/${provider}/sync`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paymentId }),
@@ -200,17 +202,19 @@ const userBillingFunc = (userId) => {
                         ? ` • ${payment.paymentMethodTitle}`
                         : ''}
                     </div>
-                    {payment.source === 'yookassa' &&
+                    {['yookassa', 'tochka'].includes(payment.source) &&
                     payment.status === 'pending' ? (
                       <button
                         type="button"
                         className="mt-1 cursor-pointer text-xs font-semibold text-general hover:underline"
                         disabled={syncingPaymentId === payment._id}
-                        onClick={() => syncPayment(payment._id)}
+                        onClick={() => syncPayment(payment)}
                       >
                         {syncingPaymentId === payment._id
                           ? 'Синхронизация...'
-                          : 'Синхронизировать с ЮKassa'}
+                          : `Синхронизировать с ${
+                              payment.source === 'tochka' ? 'Точкой' : 'ЮKassa'
+                            }`}
                       </button>
                     ) : null}
                   </div>

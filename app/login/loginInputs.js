@@ -62,6 +62,14 @@ const getVkAuthErrorCode = (json) =>
 const getVkAuthErrorMessage = (json) => {
   const code = getVkAuthErrorCode(json)
   if (code === 'VK_PROFILE_NOT_FOUND') return 'Профиль VK не найден'
+  if (code === 'VK_PHONE_REQUIRED')
+    return 'VK ID не передал номер телефона. Проверьте настройки профиля VK.'
+  if (code === 'VK_CONFIG_MISSING')
+    return 'Авторизация VK ID временно недоступна'
+  if (code === 'VK_EXCHANGE_FAILED')
+    return 'Не удалось подтвердить вход через VK ID'
+  if (code === 'VK_USERINFO_FAILED')
+    return 'Не удалось получить профиль VK ID'
   if (code === 'VK_USER_CREATE_FAILED')
     return 'Не удалось создать аккаунт через VK ID'
   if (code === 'VK_USER_DUPLICATE_CONFLICT')
@@ -122,11 +130,18 @@ function validate_login(
 }
 
 const LoginInputs = () => {
-  const vkAuthEnabled = process.env.NEXT_PUBLIC_VK_AUTH_ENABLED === 'true'
   const vkOneTapContainerRef = useRef(null)
+  const [vkConfig, setVkConfig] = useState({
+    loaded: false,
+    allowVkAuth: false,
+    appId: '',
+    redirectUri: '',
+    scope: 'phone email',
+  })
   const [vkLoading, setVkLoading] = useState(false)
   const [mode, setMode] = useState('login')
   const canUseVkOneTap = mode === 'login' || mode === 'register'
+  const vkAuthEnabled = vkConfig.loaded && vkConfig.allowVkAuth
   const [loginPhone, setLoginPhone] = useState(null)
   const [loginPassword, setLoginPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -624,15 +639,40 @@ const LoginInputs = () => {
   )
 
   useEffect(() => {
+    let isMounted = true
+
+    fetch('/api/global/auth/vk-status', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((json) => {
+        if (!isMounted) return
+        setVkConfig({
+          loaded: true,
+          allowVkAuth: Boolean(json?.data?.allowVkAuth),
+          appId: json?.data?.appId || '',
+          redirectUri: json?.data?.redirectUri || '',
+          scope: json?.data?.scope || 'phone email',
+        })
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setVkConfig((prev) => ({ ...prev, loaded: true, allowVkAuth: false }))
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
     if (!vkAuthEnabled || !canUseVkOneTap) return
     if (typeof window === 'undefined') return
-    const appId = Number(process.env.NEXT_PUBLIC_VK_APP_ID || 0)
+    const appId = Number(vkConfig.appId || 0)
     if (!Number.isFinite(appId) || appId <= 0) return
     const redirectUrl =
-      process.env.NEXT_PUBLIC_VK_REDIRECT_URL ||
-      `${window.location.origin}/api/vk-id/callback`
+      vkConfig.redirectUri || `${window.location.origin}/api/vk-id/callback`
     const container = vkOneTapContainerRef.current
     if (!container) return
+    container.innerHTML = ''
 
     let isMounted = true
     const scriptId = 'vkid-sdk-script'
@@ -647,7 +687,7 @@ const LoginInputs = () => {
           redirectUrl,
           responseMode: VKID.ConfigResponseMode.Callback,
           source: VKID.ConfigSource.LOWCODE,
-          scope: '',
+          scope: vkConfig.scope || 'phone email',
         })
 
         const oneTap = new VKID.OneTap()
@@ -668,11 +708,17 @@ const LoginInputs = () => {
                 throw new Error('VKID payload is missing code/device_id')
               }
 
-              const exchangeData = await VKID.Auth.exchangeCode(code, deviceId)
               const authResponse = await fetch('/api/vk-id/auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(exchangeData),
+                body: JSON.stringify({
+                  code,
+                  deviceId,
+                  codeVerifier:
+                    payload?.code_verifier || payload?.codeVerifier || '',
+                  state: payload?.state || '',
+                  mode,
+                }),
               })
               const authJson = await authResponse.json().catch(() => ({}))
               if (!authResponse.ok || authJson?.success === false) {
@@ -713,7 +759,7 @@ const LoginInputs = () => {
 
     const script = document.createElement('script')
     script.id = scriptId
-    script.src = 'https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js'
+    script.src = 'https://unpkg.com/@vkid/sdk@2.6.5/dist-sdk/umd/index.js'
     script.async = true
     script.onload = () => bootstrapVkOneTap()
     script.onerror = () => {
@@ -724,7 +770,20 @@ const LoginInputs = () => {
     return () => {
       isMounted = false
     }
-  }, [canUseVkOneTap, mode, vkAuthEnabled])
+  }, [canUseVkOneTap, mode, vkAuthEnabled, vkConfig])
+
+  const VkAuthBlock = ({ label }) =>
+    vkAuthEnabled ? (
+      <div className="flex flex-col gap-2">
+        <div className="text-center text-xs text-gray-500">{label}</div>
+        <div ref={vkOneTapContainerRef} className="w-full" />
+        {vkLoading ? (
+          <div className="text-center text-xs text-gray-500">
+            Авторизация VK ID...
+          </div>
+        ) : null}
+      </div>
+    ) : null
 
   return (
     <div className="relative flex min-h-[100dvh] w-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#f7efe1] via-[#ebd3a5] to-[#d8ba86] px-4 py-10">
@@ -745,10 +804,14 @@ const LoginInputs = () => {
           </h1>
           <p className="mt-2 text-sm text-gray-500">
             {mode === 'login'
-              ? 'Введите телефон и пароль, чтобы продолжить работу.'
+              ? vkAuthEnabled
+                ? 'Войдите через VK ID или используйте телефон и пароль.'
+                : 'Введите телефон и пароль, чтобы продолжить работу.'
               : mode === 'reset'
               ? 'Подтвердите номер и задайте новый пароль.'
-              : 'Подтвердите номер телефона и создайте аккаунт.'}
+              : vkAuthEnabled
+                ? 'Зарегистрируйтесь через VK ID или подтвердите телефон вручную.'
+                : 'Подтвердите номер телефона и создайте аккаунт.'}
           </p>
         </div>
 
@@ -766,6 +829,16 @@ const LoginInputs = () => {
             }
             className="flex flex-col gap-4"
           >
+            <VkAuthBlock label="Войти или зарегистрироваться через VK ID" />
+
+            {vkAuthEnabled ? (
+              <div className="flex items-center gap-3 text-xs text-gray-400">
+                <div className="h-px flex-1 bg-gray-200" />
+                <span>или по номеру телефона и паролю</span>
+                <div className="h-px flex-1 bg-gray-200" />
+              </div>
+            ) : null}
+
             <Input
               label="Телефон"
               value={loginPhone}
@@ -798,20 +871,6 @@ const LoginInputs = () => {
             >
               {isSubmitting ? 'Вход...' : 'Войти'}
             </button>
-
-            {vkAuthEnabled ? (
-              <div className="flex flex-col gap-2">
-                <div className="text-center text-xs text-gray-500">
-                  Войти или зарегистрироваться через VK ID
-                </div>
-                <div ref={vkOneTapContainerRef} className="w-full" />
-                {vkLoading ? (
-                  <div className="text-center text-xs text-gray-500">
-                    Авторизация VK ID...
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
           </form>
         ) : mode === 'reset' ? (
           <form onSubmit={submitReset} className="flex flex-col gap-4">
@@ -873,6 +932,16 @@ const LoginInputs = () => {
           </form>
         ) : (
           <form onSubmit={submitRegister} className="flex flex-col gap-4">
+            <VkAuthBlock label="Зарегистрироваться или войти через VK ID" />
+
+            {vkAuthEnabled ? (
+              <div className="flex items-center gap-3 text-xs text-gray-400">
+                <div className="h-px flex-1 bg-gray-200" />
+                <span>или по номеру телефона</span>
+                <div className="h-px flex-1 bg-gray-200" />
+              </div>
+            ) : null}
+
             <Input
               label="Телефон"
               value={registerPhone}
@@ -988,22 +1057,9 @@ const LoginInputs = () => {
                     : 'Подтвердить номер'
                   : isRegisterLoading
                   ? 'Создание...'
-                  : 'Создать аккаунт'}
+                : 'Создать аккаунт'}
               </button>
             )}
-            {vkAuthEnabled ? (
-              <div className="flex flex-col gap-2">
-                <div className="text-center text-xs text-gray-500">
-                  Или зарегистрируйтесь через VK ID
-                </div>
-                <div ref={vkOneTapContainerRef} className="w-full" />
-                {vkLoading ? (
-                  <div className="text-center text-xs text-gray-500">
-                    Авторизация VK ID...
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
           </form>
         )}
 

@@ -1,5 +1,10 @@
 import Users from '@models/Users'
 import Tariffs from '@models/Tariffs'
+import {
+  findUserByPhone,
+  isValidNormalizedPhone,
+  normalizePhone,
+} from '@server/phoneVerification'
 
 const normalizeEmail = (value) => {
   if (!value) return ''
@@ -8,7 +13,7 @@ const normalizeEmail = (value) => {
 
 const buildPatch = (user, profile) => {
   const patch = {}
-  if (!user.vkId && profile.vkId) patch.vkId = profile.vkId
+  if (profile.vkId && user.vkId !== profile.vkId) patch.vkId = profile.vkId
   if (profile.email && !user.email) patch.email = profile.email
   if (profile.firstName && !user.firstName) patch.firstName = profile.firstName
   if (profile.secondName && !user.secondName)
@@ -25,21 +30,24 @@ const buildPatch = (user, profile) => {
 
 export const ensureVkUser = async ({
   vkId = '',
+  phone = '',
   email = '',
   firstName = '',
   secondName = '',
   image = '',
 }) => {
   const normalizedVkId = String(vkId || '').trim()
-  if (!normalizedVkId) return null
+  const normalizedPhone = normalizePhone(phone)
+  if (!isValidNormalizedPhone(normalizedPhone)) return null
   const normalizedEmail = normalizeEmail(email)
 
-  let user = await Users.findOne({ vkId: normalizedVkId })
-  if (!user && normalizedEmail) {
-    user = await Users.findOne({ email: normalizedEmail })
-  }
+  let user = await findUserByPhone(normalizedPhone)
 
   if (!user) {
+    if (normalizedVkId) {
+      await Users.updateMany({ vkId: normalizedVkId }, { $unset: { vkId: 1 } })
+    }
+
     const cheapestTariff = await Tariffs.findOne({
       hidden: { $ne: true },
     })
@@ -51,11 +59,9 @@ export const ensureVkUser = async ({
 
     try {
       user = await Users.create({
-        vkId: normalizedVkId,
+        ...(normalizedVkId ? { vkId: normalizedVkId } : {}),
         email: normalizedEmail,
-        // Временное уникальное значение, чтобы не словить E11000 на sparse phone index.
-        // Сразу после создания поле удаляется.
-        phone: `vkid_${normalizedVkId}`,
+        phone: normalizedPhone,
         firstName,
         secondName,
         images: image ? [image] : [],
@@ -73,34 +79,24 @@ export const ensureVkUser = async ({
       })
     } catch (error) {
       if (error?.code === 11000) {
-        const conflictByVk = await Users.findOne({ vkId: normalizedVkId })
-        if (conflictByVk) {
-          user = conflictByVk
-        } else if (normalizedEmail) {
-          const conflictByEmail = await Users.findOne({ email: normalizedEmail })
-          if (conflictByEmail) {
-            user = conflictByEmail
-          } else {
-            throw error
-          }
-        } else {
-          throw error
-        }
+        const conflictByPhone = await findUserByPhone(normalizedPhone)
+        if (!conflictByPhone) throw error
+        user = conflictByPhone
       } else {
         throw error
       }
     }
-
-    if (user?.phone && String(user.phone).startsWith('vkid_')) {
-      user = await Users.findByIdAndUpdate(
-        user._id,
-        { $unset: { phone: 1 } },
-        { returnDocument: 'after' }
+  } else {
+    if (normalizedVkId) {
+      await Users.updateMany(
+        { _id: { $ne: user._id }, vkId: normalizedVkId },
+        { $unset: { vkId: 1 } }
       )
     }
-  } else {
+
     const patch = buildPatch(user, {
       vkId: normalizedVkId,
+      phone: normalizedPhone,
       email: normalizedEmail,
       firstName,
       secondName,

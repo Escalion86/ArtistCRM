@@ -29,7 +29,7 @@ const paymentsSchema = {
   source: {
     type: String,
     required: true,
-    enum: ['manual', 'system', 'yookassa'],
+    enum: ['manual', 'system', 'yookassa', 'tochka'],
   },
   status: {
     type: String,

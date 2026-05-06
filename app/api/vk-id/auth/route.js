@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
 import { ensureVkUser } from '@server/ensureVkUser'
+import { exchangeVkCode, fetchVkUserInfo } from '@server/vkIdAuth'
 import { createVkIdAuthToken } from '@server/vkidAuthToken'
 import getAuthSecret from '@server/getAuthSecret'
-
-const VK_API_VERSION = '5.199'
 
 const buildError = (code, status, message) =>
   NextResponse.json(
     {
       success: false,
       error: {
+        type: code,
         code,
         message,
       },
@@ -18,37 +18,16 @@ const buildError = (code, status, message) =>
     { status }
   )
 
-const normalizeEmail = (value) => {
-  if (!value) return ''
-  return String(value).trim().toLowerCase()
-}
-
-const fetchVkProfile = async (accessToken, userId) => {
-  if (!accessToken || !userId) return null
-  const url = new URL('https://api.vk.com/method/users.get')
-  url.searchParams.set('user_ids', String(userId))
-  url.searchParams.set('fields', 'photo_200')
-  url.searchParams.set('access_token', accessToken)
-  url.searchParams.set('v', VK_API_VERSION)
-  const response = await fetch(url.toString(), { method: 'GET' })
-  const json = await response.json().catch(() => ({}))
-  const user = Array.isArray(json?.response) ? json.response[0] : null
-  if (!user?.id) return null
-  return {
-    vkId: String(user.id),
-    firstName: user.first_name || '',
-    secondName: user.last_name || '',
-    image: user.photo_200 || '',
-  }
-}
-
 export const POST = async (req) => {
   const body = await req.json().catch(() => ({}))
-  const accessToken = String(body?.access_token || body?.accessToken || '').trim()
-  const vkUserId = String(body?.user_id || body?.userId || '').trim()
-  const email = normalizeEmail(body?.email)
+  const code = String(body?.code || '').trim()
+  const deviceId = String(body?.device_id || body?.deviceId || '').trim()
+  const codeVerifier = String(
+    body?.code_verifier || body?.codeVerifier || ''
+  ).trim()
+  const state = String(body?.state || '').trim()
 
-  if (!accessToken || !vkUserId) {
+  if (!code || !deviceId) {
     return buildError(
       'INVALID_VK_PAYLOAD',
       400,
@@ -57,24 +36,50 @@ export const POST = async (req) => {
   }
 
   try {
-    const vkProfile = await fetchVkProfile(accessToken, vkUserId)
-    if (!vkProfile?.vkId) {
-      console.error('[vk-id/auth] profile not found', {
-        vkUserId,
-        hasEmail: Boolean(email),
+    const exchangeResult = await exchangeVkCode({
+      code,
+      deviceId,
+      codeVerifier,
+      state,
+    })
+    if (!exchangeResult.success) {
+      const errorType = exchangeResult.data?.error?.type || 'VK_EXCHANGE_FAILED'
+      console.error('[vk-id/auth] exchange failed', {
+        errorType,
+        vkError: exchangeResult.data?.error?.vkError || '',
       })
-      return buildError('VK_PROFILE_NOT_FOUND', 401, 'Профиль VK не найден')
+      return buildError(
+        errorType,
+        errorType === 'VK_CONFIG_MISSING' ? 503 : 401,
+        'Не удалось получить токен VK ID'
+      )
+    }
+
+    const userInfoResult = await fetchVkUserInfo({
+      accessToken: exchangeResult.data.accessToken,
+    })
+    if (!userInfoResult.success) {
+      const errorType = userInfoResult.data?.error?.type || 'VK_USERINFO_FAILED'
+      console.error('[vk-id/auth] user_info failed', {
+        errorType,
+        vkError: userInfoResult.data?.error?.vkError || '',
+      })
+      return buildError(
+        errorType,
+        errorType === 'VK_PHONE_REQUIRED' ? 400 : 401,
+        errorType === 'VK_PHONE_REQUIRED'
+          ? 'VK ID не передал номер телефона'
+          : 'Не удалось получить профиль VK ID'
+      )
     }
 
     await dbConnect()
     const user = await ensureVkUser({
-      ...vkProfile,
-      email,
+      ...userInfoResult.data,
     })
     if (!user?._id) {
       console.error('[vk-id/auth] ensureVkUser returned empty user', {
-        vkId: vkProfile.vkId,
-        hasEmail: Boolean(email),
+        hasVkId: Boolean(userInfoResult.data?.vkId),
       })
       return buildError(
         'VK_USER_CREATE_FAILED',

@@ -1,14 +1,15 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { postData } from '@helpers/CRUD'
+import { getData, postData } from '@helpers/CRUD'
 import { modalsFuncAtom } from '@state/atoms'
 import eventsAtom from '@state/atoms/eventsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import servicesAtom from '@state/atoms/servicesAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import cn from 'classnames'
-import { useAtom, useAtomValue } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import useSnackbar from '@helpers/useSnackbar'
 
 const getCustomValue = (custom, key) => {
   if (!custom) return undefined
@@ -24,15 +25,19 @@ const hasAdditionalEvents = (events = []) =>
 
 const ReleaseOnboardingCoach = () => {
   const router = useRouter()
+  const snackbar = useSnackbar()
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
   const services = useAtomValue(servicesAtom)
+  const setServices = useSetAtom(servicesAtom)
   const events = useAtomValue(eventsAtom)
   const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
   const [collapsed, setCollapsed] = useState(false)
   const [showPreviousSteps, setShowPreviousSteps] = useState(false)
   const [selectedStepIndex, setSelectedStepIndex] = useState(null)
   const [forceShow, setForceShow] = useState(false)
+  const [servicesLoaded, setServicesLoaded] = useState(false)
+  const manualStepSelectionRef = useRef(false)
   const saveInProgressRef = useRef(false)
 
   const firstName = loggedUser?.firstName?.trim() ?? ''
@@ -125,6 +130,25 @@ const ReleaseOnboardingCoach = () => {
     currentStepIndex > 0 ? steps.slice(0, currentStepIndex) : []
 
   useEffect(() => {
+    if (servicesLoaded) return undefined
+    if (Array.isArray(services) && services.length > 0) {
+      setServicesLoaded(true)
+      return
+    }
+
+    let cancelled = false
+    getData('/api/services').then((items) => {
+      if (cancelled) return
+      if (Array.isArray(items)) setServices(items)
+      setServicesLoaded(true)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [services, servicesLoaded, setServices])
+
+  useEffect(() => {
     if (forceShowToken) {
       setForceShow(true)
       setCollapsed(false)
@@ -140,11 +164,19 @@ const ReleaseOnboardingCoach = () => {
   useEffect(() => {
     if (fallbackStepIndex < 0) return
     setSelectedStepIndex((prev) => {
-      if (prev === null) return fallbackStepIndex
+      if (prev === null || !manualStepSelectionRef.current) {
+        return fallbackStepIndex
+      }
       if (prev < 0 || prev >= steps.length) return fallbackStepIndex
       return prev
     })
   }, [fallbackStepIndex, steps.length])
+
+  useEffect(() => {
+    if (collapsed || fallbackStepIndex < 0) return
+    manualStepSelectionRef.current = false
+    setSelectedStepIndex(fallbackStepIndex)
+  }, [collapsed, fallbackStepIndex])
 
   useEffect(() => {
     if (currentStepIndex <= 0) {
@@ -198,7 +230,26 @@ const ReleaseOnboardingCoach = () => {
     )
   }
 
-  if (!profileReady) return null
+  const closeCoach = () => {
+    setForceShow(false)
+    snackbar.info('Мастер запуска можно снова открыть в меню настроек')
+    postData(
+      '/api/site',
+      {
+        custom: {
+          ...(siteSettings?.custom ?? {}),
+          releaseOnboardingCompleted: true,
+          releaseOnboardingShowToken: null,
+        },
+      },
+      (data) => setSiteSettings(data),
+      null,
+      false,
+      null
+    )
+  }
+
+  if (!profileReady || !servicesLoaded) return null
   if (!forceShow && (isCompleted || !currentStep)) return null
   if (!viewedStep) return null
 
@@ -223,13 +274,22 @@ const ReleaseOnboardingCoach = () => {
               ? `Все шаги выполнены (${steps.length}/${steps.length})`
               : `Шаг ${viewedStepIndex + 1} из ${steps.length}`}
           </div>
-          <button
-            type="button"
-            className="text-xs text-gray-500 hover:text-gray-700"
-            onClick={() => setCollapsed(true)}
-          >
-            Свернуть
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="cursor-pointer text-xs text-gray-500 hover:text-gray-700"
+              onClick={closeCoach}
+            >
+              Закрыть
+            </button>
+            <button
+              type="button"
+              className="cursor-pointer text-xs font-semibold text-gray-500 hover:text-gray-700"
+              onClick={() => setCollapsed(true)}
+            >
+              Свернуть
+            </button>
+          </div>
         </div>
 
         <div className="text-sm font-semibold text-gray-900">
@@ -259,14 +319,17 @@ const ReleaseOnboardingCoach = () => {
               Завершить мастера запуска
             </button>
           ) : null}
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             {steps.map((step, idx) => (
               <button
                 type="button"
                 key={step.id}
-                onClick={() => setSelectedStepIndex(idx)}
+                onClick={() => {
+                  manualStepSelectionRef.current = true
+                  setSelectedStepIndex(idx)
+                }}
                 className={cn(
-                  'h-1.5 w-6 rounded-full transition hover:opacity-90',
+                  'h-5 w-8 cursor-pointer rounded-full py-1.5 transition hover:opacity-90',
                   idx < currentStepIndex || isAllStepsDone
                     ? 'bg-emerald-500'
                     : idx === currentStepIndex

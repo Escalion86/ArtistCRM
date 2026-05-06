@@ -44,6 +44,34 @@ NEXT_PUBLIC_LEGAL_INN=
 NEXT_PUBLIC_SUPPORT_EMAIL=support@artistcrm.ru
 ```
 
+## Tochka acquiring
+
+Required production environment variables:
+
+```bash
+TOCHKA_API_TOKEN=
+TOCHKA_CLIENT_ID=
+TOCHKA_CUSTOMER_CODE=302258794
+TOCHKA_MERCHANT_ID=200000000037708
+TOCHKA_RETURN_URL=https://artistcrm.ru/cabinet/tariff-select?payment=tochka
+TOCHKA_SEND_RECEIPT=true
+TOCHKA_TAX_SYSTEM_CODE=npd
+TOCHKA_VAT_TYPE=none
+TOCHKA_RECEIPT_ITEM_NAME=Оплата ArtistCRM
+```
+
+Webhook URL in Tochka:
+
+```text
+https://artistcrm.ru/api/billing/tochka/webhook
+```
+
+Use the local diagnostic command to check available companies and retailers:
+
+```bash
+npm run tochka:discover
+```
+
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.

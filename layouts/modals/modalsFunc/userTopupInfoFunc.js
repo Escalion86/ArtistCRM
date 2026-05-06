@@ -4,6 +4,7 @@ import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
 import UserName from '@components/UserName'
 import useSnackbar from '@helpers/useSnackbar'
+import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 import userSelector from '@state/selectors/userSelector'
 import { useEffect, useMemo, useState } from 'react'
 import { useAtomValue } from 'jotai'
@@ -13,6 +14,7 @@ const SBP_BONUS_RATE = 0.02
 const userTopupInfoFunc = (userId) => {
   const UserTopupInfoModal = ({ closeModal }) => {
     const user = useAtomValue(userSelector(userId))
+    const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
     const snackbar = useSnackbar()
     const [amount, setAmount] = useState('')
     const [isSaving, setIsSaving] = useState(false)
@@ -33,7 +35,7 @@ const userTopupInfoFunc = (userId) => {
 
     if (!user) return null
 
-    const handleTopup = async () => {
+    const handleTopup = async (provider = 'yookassa') => {
       const value = Number(amount)
       if (!Number.isFinite(value) || value <= 0) {
         snackbar.error('Укажите сумму пополнения')
@@ -41,7 +43,7 @@ const userTopupInfoFunc = (userId) => {
       }
       setIsSaving(true)
       try {
-        const response = await fetch('/api/billing/yookassa/create', {
+        const response = await fetch(`/api/billing/${provider}/create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -84,11 +86,20 @@ const userTopupInfoFunc = (userId) => {
           onChange={setAmount}
           step={100}
         />
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
+          {loggedUserActiveRole?.dev ? (
+            <Button
+              name="Оплатить через Точку"
+              className="h-9 px-4 text-sm"
+              onClick={() => handleTopup('tochka')}
+              disabled={isSaving}
+              loading={isSaving}
+            />
+          ) : null}
           <Button
-            name="Перейти к оплате"
+            name="Оплатить через ЮKassa"
             className="h-9 px-4 text-sm"
-            onClick={handleTopup}
+            onClick={() => handleTopup('yookassa')}
             disabled={isSaving}
             loading={isSaving}
           />
