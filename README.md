@@ -55,10 +55,16 @@ TOCHKA_CUSTOMER_CODE=302258794
 TOCHKA_MERCHANT_ID=200000000037708
 TOCHKA_RETURN_URL=https://artistcrm.ru/cabinet/tariff-select?payment=tochka
 TOCHKA_SEND_RECEIPT=true
-TOCHKA_TAX_SYSTEM_CODE=npd
+TOCHKA_TAX_SYSTEM_CODE=usn_income
 TOCHKA_VAT_TYPE=none
 TOCHKA_RECEIPT_ITEM_NAME=Оплата ArtistCRM
+TOCHKA_RECEIPT_EMAIL=support@artistcrm.ru
 ```
+
+Tochka receipt API accepts `TOCHKA_TAX_SYSTEM_CODE` values:
+`osn`, `usn_income`, `usn_income_outcome`, `esn`, `patent`.
+`npd` is not accepted by `payments_with_receipt`; use
+`TOCHKA_SEND_RECEIPT=false` for Tochka payment-link tests without fiscal receipt.
 
 Webhook URL in Tochka:
 
