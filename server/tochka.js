@@ -30,13 +30,9 @@ const normalizeAmount = (amount) => {
   return value.toFixed(2)
 }
 
-const normalizeCustomerCode = (customerCode) => {
-  const value = String(customerCode || '').trim()
-  if (/^\d+$/.test(value)) return Number(value)
-  return value
-}
-
 const normalizePhone = (phone) => String(phone || '').replace(/\D/g, '')
+
+const normalizeEmail = (email) => String(email || '').trim()
 
 const getAuthHeaders = () => {
   const { token } = getTochkaConfig()
@@ -109,8 +105,12 @@ const createTochkaRequest = async ({ pathName, method = 'GET', body }) => {
 
 const buildReceiptClient = (user) => {
   const phone = normalizePhone(user?.phone)
-  if (!phone) return null
-  return { phone }
+  const email = normalizeEmail(user?.email || process.env.TOCHKA_RECEIPT_EMAIL)
+  if (!phone && !email) return null
+  return {
+    ...(phone ? { phone } : {}),
+    ...(email ? { email } : {}),
+  }
 }
 
 const buildReceiptItems = ({ amount, description }) => {
@@ -146,12 +146,32 @@ const createTochkaPayment = async ({
 
   const client = buildReceiptClient(user)
   if (process.env.TOCHKA_SEND_RECEIPT === 'true' && !client) {
-    throw new Error('Для чека Точки нужен телефон пользователя')
+    throw new Error('Для чека Точки нужен телефон или email пользователя')
+  }
+  if (process.env.TOCHKA_SEND_RECEIPT === 'true' && !client?.email) {
+    throw new Error('Для чека Точки нужен email пользователя')
+  }
+
+  const taxSystemCode = process.env.TOCHKA_TAX_SYSTEM_CODE || 'npd'
+  const allowedTaxSystemCodes = new Set([
+    'osn',
+    'usn_income',
+    'usn_income_outcome',
+    'esn',
+    'patent',
+  ])
+  if (
+    process.env.TOCHKA_SEND_RECEIPT === 'true' &&
+    !allowedTaxSystemCodes.has(taxSystemCode)
+  ) {
+    throw new Error(
+      `Точка не поддерживает taxSystemCode=${taxSystemCode}. Доступны: osn, usn_income, usn_income_outcome, esn, patent`
+    )
   }
 
   const body = {
     Data: {
-      customerCode: normalizeCustomerCode(config.customerCode),
+      customerCode: config.customerCode,
       amount: value,
       purpose: String(description || 'Оплата ArtistCRM').slice(0, 140),
       redirectUrl: returnUrl || config.returnUrl,
@@ -159,7 +179,7 @@ const createTochkaPayment = async ({
       paymentMode: ['sbp', 'card'],
       merchantId: config.merchantId,
       ttl: Number(process.env.TOCHKA_PAYMENT_TTL || 1440),
-      taxSystemCode: process.env.TOCHKA_TAX_SYSTEM_CODE || 'npd',
+      taxSystemCode,
       Client: client,
       Items: buildReceiptItems({ amount, description }),
       preAuthorization: false,
