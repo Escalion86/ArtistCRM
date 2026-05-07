@@ -1,9 +1,8 @@
 import Payments from '@models/Payments'
 import Users from '@models/Users'
 import { applyTariffPurchase } from '@server/billing'
+import { SBP_BONUS_RATE, getSbpBonusAmount } from '@server/billingConfig'
 import { getYookassaPayment, normalizeAmount } from '@server/yookassa'
-
-const SBP_BONUS_RATE = 0.02
 
 const getPaymentMethodInfo = (providerPayment) => {
   const method = providerPayment?.payment_method || {}
@@ -37,12 +36,6 @@ const getPaymentMethodInfo = (providerPayment) => {
     title: type || '',
     details: {},
   }
-}
-
-const getSbpBonusAmount = (amount) => {
-  const value = Number(amount)
-  if (!Number.isFinite(value) || value <= 0) return 0
-  return Math.round(value * SBP_BONUS_RATE * 100) / 100
 }
 
 const processSucceededYookassaPayment = async ({ payment, providerPayment }) => {

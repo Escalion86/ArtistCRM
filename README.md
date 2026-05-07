@@ -32,7 +32,14 @@ https://artistcrm.ru/api/billing/yookassa/webhook?token=YOOKASSA_WEBHOOK_SECRET
 ```
 
 For balance top-ups paid through SBP, the app credits an additional 2% bonus
-after YooKassa returns a successful payment with `payment_method.type = sbp`.
+after YooKassa or Tochka returns a successful SBP payment only when enabled:
+
+```bash
+BILLING_SBP_BONUS_ENABLED=true
+```
+
+Leave unset or set to `false` to hide the SBP bonus notice and disable bonus
+accrual.
 
 Optional receipt variables, if YooKassa fiscalization is enabled:
 

@@ -2,14 +2,13 @@ import crypto from 'crypto'
 import Payments from '@models/Payments'
 import Users from '@models/Users'
 import { applyTariffPurchase } from '@server/billing'
+import { SBP_BONUS_RATE, getSbpBonusAmount } from '@server/billingConfig'
 import {
   TOCHKA_WEBHOOK_JWK,
   extractTochkaPayment,
   getTochkaPayment,
   normalizeAmount,
 } from '@server/tochka'
-
-const SBP_BONUS_RATE = 0.02
 
 const base64UrlDecode = (value) =>
   Buffer.from(
@@ -61,12 +60,6 @@ const getPaymentMethodInfo = (providerPayment) => {
     return { type: 'card', title: 'Банковская карта', details: {} }
   }
   return { type: paymentType, title: paymentType, details: {} }
-}
-
-const getSbpBonusAmount = (amount) => {
-  const value = Number(amount)
-  if (!Number.isFinite(value) || value <= 0) return 0
-  return Math.round(value * SBP_BONUS_RATE * 100) / 100
 }
 
 const getProviderAmount = (providerPayment) => {
