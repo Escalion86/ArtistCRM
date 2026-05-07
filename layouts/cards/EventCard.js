@@ -41,6 +41,16 @@ import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 
 const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
 
+const formatCardDateTime = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return `${formatDate(date, false, true)} ${date.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`
+}
+
 const getEventStatusMarkerClassName = ({
   isCanceled,
   isClosed,
@@ -156,14 +166,13 @@ const EventCard = ({
   const eventStart = event?.eventDate ? new Date(event.eventDate) : null
   const eventEnd = event?.dateEnd ? new Date(event.dateEnd) : eventStart
   const now = new Date()
-  const eventDateLabel = event?.eventDate
-    ? `${formatDate(event.eventDate, false, true)} ${new Date(
-        event.eventDate
-      ).toLocaleTimeString('ru-RU', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}`
-    : '-'
+  const eventDateTimeLabel = formatCardDateTime(event?.eventDate)
+  const createdDateTimeLabel = formatCardDateTime(
+    event?.requestCreatedAt ?? event?.createdAt
+  )
+  const eventDateLabel =
+    eventDateTimeLabel ??
+    (createdDateTimeLabel ? `Создано: ${createdDateTimeLabel}` : '-')
 
   const rawStatus = status?.value ?? event.status
   const needsCheck = event?.calendarImportChecked === false
