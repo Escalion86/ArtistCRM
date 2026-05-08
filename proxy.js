@@ -2,11 +2,26 @@ import { NextResponse } from 'next/server'
 
 const PRODUCTION_HOST = 'artistcrm.ru'
 const LEGACY_HOSTS = new Set(['www.artistcrm.ru'])
+const PARTYCRM_HOST = process.env.PARTYCRM_DOMAIN || 'partycrm.ru'
+
+const normalizeHost = (host) =>
+  String(host || '')
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/:\d+$/, '')
+    .replace(/\/$/, '')
 
 export function proxy(request) {
-  const host = request.headers.get('host')?.toLowerCase() || ''
+  const host = normalizeHost(request.headers.get('host'))
   const forwardedProto = request.headers.get('x-forwarded-proto') || ''
   const url = request.nextUrl
+  const partyHost = normalizeHost(PARTYCRM_HOST)
+
+  if (partyHost && host === partyHost && url.pathname === '/') {
+    const rewriteUrl = url.clone()
+    rewriteUrl.pathname = '/party'
+    return NextResponse.rewrite(rewriteUrl)
+  }
 
   const isProductionHost = host === PRODUCTION_HOST || LEGACY_HOSTS.has(host)
   if (!isProductionHost) return NextResponse.next()

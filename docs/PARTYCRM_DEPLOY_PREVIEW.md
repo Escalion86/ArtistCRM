@@ -1,0 +1,139 @@
+# PartyCRM Technical Preview Deploy
+
+PartyCRM пока деплоится из того же репозитория и того же Next.js приложения, что и ArtistCRM. Это не два отдельных build-процесса, а один production build с двумя доменами и разными БД.
+
+## Целевая схема
+
+```txt
+Один репозиторий
+Один Next.js build
+Один Node/Next runtime
+
+artistcrm.ru -> текущий ArtistCRM
+partycrm.ru  -> PartyCRM landing через rewrite на /party
+
+ArtistCRM DB -> MONGODB_URI / MONGODB_DBNAME
+PartyCRM DB  -> PARTYCRM_MONGODB_URI / PARTYCRM_MONGODB_DBNAME
+```
+
+## DNS
+
+`partycrm.ru` нужно направить туда же, куда сейчас направлен `artistcrm.ru`:
+
+- если используется VPS: A-запись на тот же IP;
+- если используется reverse proxy: добавить `server_name partycrm.ru`;
+- если используется PaaS: добавить `partycrm.ru` как дополнительный custom domain к этому же приложению.
+
+## ENV production
+
+Обязательные переменные ArtistCRM остаются как есть:
+
+```env
+MONGODB_URI=...
+MONGODB_DBNAME=...
+DOMAIN=artistcrm.ru
+NEXTAUTH_SECRET=...
+```
+
+Новые переменные PartyCRM:
+
+```env
+PARTYCRM_DOMAIN=partycrm.ru
+PARTYCRM_MONGODB_URI=...
+PARTYCRM_MONGODB_DBNAME=...
+PARTYCRM_BOOTSTRAP_SECRET=...
+```
+
+`PARTYCRM_BOOTSTRAP_SECRET` нужен только для ручного создания первого tenant в production.
+
+## Reverse proxy
+
+Оба домена должны проксироваться в один и тот же Next.js process.
+
+Пример логики:
+
+```txt
+artistcrm.ru -> http://127.0.0.1:3000
+partycrm.ru  -> http://127.0.0.1:3000
+```
+
+Внутри приложения `proxy.js` переписывает корень `partycrm.ru/` на `/party`.
+
+## Проверка после деплоя
+
+1. ArtistCRM:
+
+```txt
+https://artistcrm.ru
+https://artistcrm.ru/cabinet
+```
+
+2. PartyCRM landing:
+
+```txt
+https://partycrm.ru
+```
+
+3. PartyCRM DB health:
+
+```txt
+https://partycrm.ru/api/party/health
+```
+
+Ожидаемо:
+
+- `200`, если PartyCRM DB настроена и доступна;
+- `503 partycrm_db_unavailable`, если env/БД не настроены.
+
+4. PartyCRM текущий доступ:
+
+```txt
+https://partycrm.ru/api/party/me
+```
+
+Ожидаемо:
+
+- `401`, если не авторизован;
+- `403 partycrm_access_not_configured`, если пользователь есть, но PartyCRM tenant еще не создан;
+- `200`, если пользователь привязан к PartyCRM staff.
+
+## Bootstrap первого tenant
+
+После входа под нужным аккаунтом:
+
+```bash
+curl -X POST https://partycrm.ru/api/party/bootstrap \
+  -H "Content-Type: application/json" \
+  -H "x-partycrm-bootstrap-secret: <PARTYCRM_BOOTSTRAP_SECRET>" \
+  -d "{\"title\":\"Название компании\"}"
+```
+
+После bootstrap:
+
+- создается `PartyCompanies`;
+- создается `PartyStaff` с ролью `owner`;
+- `/company` начинает показывать точки и сотрудников.
+
+## Что менять в существующих deploy-скриптах
+
+Build/start команды остаются теми же:
+
+```bash
+npm install
+npm run build
+npm run start
+```
+
+Нужно добавить только:
+
+- env-переменные PartyCRM;
+- домен `partycrm.ru` в DNS/reverse proxy/PaaS;
+- SSL-сертификат для `partycrm.ru`;
+- после деплоя выполнить bootstrap первого tenant.
+
+## Что не делать на technical preview
+
+- Не поднимать отдельный process только для PartyCRM.
+- Не делать отдельный репозиторий.
+- Не смешивать PartyCRM и ArtistCRM DB.
+- Не давать публичный доступ клиентам до готовности onboarding и тарифов.
