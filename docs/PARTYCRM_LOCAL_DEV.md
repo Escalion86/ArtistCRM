@@ -118,6 +118,16 @@ PATCH  /api/party/staff/:id
 DELETE /api/party/staff/:id
 ```
 
+Заказы:
+
+```txt
+GET    /api/party/orders
+POST   /api/party/orders
+GET    /api/party/orders/:id
+PATCH  /api/party/orders/:id
+DELETE /api/party/orders/:id
+```
+
 Правила доступа:
 
 - `owner` и `admin` могут управлять точками и сотрудниками.
@@ -125,6 +135,7 @@ DELETE /api/party/staff/:id
 - Все запросы фильтруются по `tenantId` текущей PartyCRM-компании.
 - `DELETE` архивирует запись через `status: archived`.
 - Последнего `owner` нельзя удалить или понизить.
+- Заказ может быть без исполнителей, с точкой компании или с выездным адресом.
 
 ## Правило изоляции
 

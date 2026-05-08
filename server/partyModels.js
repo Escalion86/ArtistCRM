@@ -3,6 +3,7 @@ import { getProductModel } from './productDbConnect'
 import partyAssignmentsSchema from '@schemas/partyAssignmentsSchema'
 import partyCompaniesSchema from '@schemas/partyCompaniesSchema'
 import partyLocationsSchema from '@schemas/partyLocationsSchema'
+import partyOrdersSchema from '@schemas/partyOrdersSchema'
 import partyStaffSchema from '@schemas/partyStaffSchema'
 
 export const PARTY_STAFF_ROLES = Object.freeze({
@@ -57,5 +58,19 @@ export const getPartyAssignmentModel = () =>
       schema.index({ tenantId: 1, eventId: 1 })
       schema.index({ tenantId: 1, staffId: 1 })
       schema.index({ tenantId: 1, eventId: 1, staffId: 1 }, { unique: true })
+    },
+  })
+
+export const getPartyOrderModel = () =>
+  getProductModel({
+    product: PRODUCTS.PARTYCRM,
+    name: 'PartyOrders',
+    schemaDefinition: partyOrdersSchema,
+    schemaOptions: { timestamps: true },
+    configureSchema: (schema) => {
+      schema.index({ tenantId: 1, eventDate: -1 })
+      schema.index({ tenantId: 1, status: 1, eventDate: -1 })
+      schema.index({ tenantId: 1, locationId: 1, eventDate: 1 })
+      schema.index({ tenantId: 1, 'assignedStaff.staffId': 1, eventDate: 1 })
     },
   })

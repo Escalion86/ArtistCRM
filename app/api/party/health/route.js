@@ -5,24 +5,33 @@ import {
   getPartyAssignmentModel,
   getPartyCompanyModel,
   getPartyLocationModel,
+  getPartyOrderModel,
   getPartyStaffModel,
 } from '@server/partyModels'
 
 export async function GET() {
   try {
     const connection = await getProductDbConnection(PRODUCTS.PARTYCRM)
-    const [Companies, Staff, Locations, Assignments] = await Promise.all([
+    const [Companies, Staff, Locations, Assignments, Orders] = await Promise.all([
       getPartyCompanyModel(),
       getPartyStaffModel(),
       getPartyLocationModel(),
       getPartyAssignmentModel(),
+      getPartyOrderModel(),
     ])
-    const [companiesCount, staffCount, locationsCount, assignmentsCount] =
+    const [
+      companiesCount,
+      staffCount,
+      locationsCount,
+      assignmentsCount,
+      ordersCount,
+    ] =
       await Promise.all([
         Companies.estimatedDocumentCount(),
         Staff.estimatedDocumentCount(),
         Locations.estimatedDocumentCount(),
         Assignments.estimatedDocumentCount(),
+        Orders.estimatedDocumentCount(),
       ])
 
     return NextResponse.json({
@@ -35,6 +44,7 @@ export async function GET() {
         staff: staffCount,
         locations: locationsCount,
         assignments: assignmentsCount,
+        orders: ordersCount,
       },
     })
   } catch (error) {

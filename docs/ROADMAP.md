@@ -265,6 +265,8 @@
 - 2026-05-09: для PartyCRM начат PC-CW3 — добавлен контекст доступа `getPartyTenantContext`, `/api/party/me` и bootstrap первой компании для dev/секретного production-запуска.
 - 2026-05-09: для PartyCRM добавлены защищенные CRUD API точек и сотрудников; закрыты PC-CW2 и PC-LB1, PC-SA1 начат на API-уровне.
 - 2026-05-09: для PartyCRM добавлен technical preview UI `/company` для bootstrap, точек и сотрудников; создан план деплоя `docs/PARTYCRM_DEPLOY_PREVIEW.md`.
+- 2026-05-09: для PartyCRM technical preview добавлены nginx-конфиг без SSL и production env checklist.
+- 2026-05-09: для PartyCRM добавлен базовый company order flow: заказы, точка/выезд, клиентская сумма, предоплата, исполнители и выплаты.
 - 2026-02-13: создан единый roadmap/checklist файл с текущим состоянием и согласованным планом.
 - 2026-02-13: добавлен отдельный трек разработки полноценного мобильного приложения (React Native + Expo).
 - 2026-02-13: начат M1-T1, добавлен базовый `mobile/` scaffold и документ `docs/MOBILE_APP_ARCHITECTURE.md`.

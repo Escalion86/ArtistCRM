@@ -22,8 +22,43 @@ const EMPTY_STAFF = {
   role: 'performer',
 }
 
+const EMPTY_ORDER = {
+  title: '',
+  client: {
+    name: '',
+    phone: '',
+  },
+  eventDate: '',
+  placeType: 'company_location',
+  locationId: '',
+  customAddress: '',
+  serviceTitle: '',
+  clientPayment: {
+    totalAmount: '',
+    prepaidAmount: '',
+    status: 'none',
+  },
+  assignedStaff: [],
+}
+
 const getErrorMessage = (error) =>
   error?.message || 'Не удалось выполнить действие'
+
+const formatMoney = (value) =>
+  `${Number(value || 0).toLocaleString('ru-RU')} ₽`
+
+const formatDateTime = (value) => {
+  if (!value) return 'Дата не указана'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Дата не указана'
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 const Field = ({
   label,
@@ -65,8 +100,10 @@ export default function CompanyWorkspaceClient() {
   const [context, setContext] = useState(null)
   const [locations, setLocations] = useState([])
   const [staff, setStaff] = useState([])
+  const [orders, setOrders] = useState([])
   const [locationDraft, setLocationDraft] = useState(EMPTY_LOCATION)
   const [staffDraft, setStaffDraft] = useState(EMPTY_STAFF)
+  const [orderDraft, setOrderDraft] = useState(EMPTY_ORDER)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -81,12 +118,14 @@ export default function CompanyWorkspaceClient() {
       const me = await apiJson('/api/party/me', { cache: 'no-store' })
       setContext(me.data)
 
-      const [locationsResponse, staffResponse] = await Promise.all([
+      const [locationsResponse, staffResponse, ordersResponse] = await Promise.all([
         apiJson('/api/party/locations', { cache: 'no-store' }),
         apiJson('/api/party/staff', { cache: 'no-store' }),
+        apiJson('/api/party/orders', { cache: 'no-store' }),
       ])
       setLocations(locationsResponse.data ?? [])
       setStaff(staffResponse.data ?? [])
+      setOrders(ordersResponse.data ?? [])
     } catch (loadError) {
       if (loadError.status === 403) {
         setContext(null)
@@ -159,6 +198,24 @@ export default function CompanyWorkspaceClient() {
     }
   }
 
+  const addOrder = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const response = await apiJson('/api/party/orders', {
+        method: 'POST',
+        body: JSON.stringify(orderDraft),
+      })
+      setOrders((items) => [response.data, ...items])
+      setOrderDraft(EMPTY_ORDER)
+    } catch (saveError) {
+      setError(getErrorMessage(saveError))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const archiveLocation = async (id) => {
     setSaving(true)
     setError('')
@@ -183,6 +240,51 @@ export default function CompanyWorkspaceClient() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const archiveOrder = async (id) => {
+    setSaving(true)
+    setError('')
+    try {
+      await apiJson(`/api/party/orders/${id}`, { method: 'DELETE' })
+      setOrders((items) => items.filter((item) => item._id !== id))
+    } catch (archiveError) {
+      setError(getErrorMessage(archiveError))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const setOrderStaff = (staffId, checked) => {
+    setOrderDraft((draft) => {
+      if (!checked) {
+        return {
+          ...draft,
+          assignedStaff: draft.assignedStaff.filter(
+            (item) => item.staffId !== staffId
+          ),
+        }
+      }
+      if (draft.assignedStaff.some((item) => item.staffId === staffId)) {
+        return draft
+      }
+      return {
+        ...draft,
+        assignedStaff: [
+          ...draft.assignedStaff,
+          { staffId, role: 'performer', payoutAmount: 0 },
+        ],
+      }
+    })
+  }
+
+  const setOrderStaffPayout = (staffId, payoutAmount) => {
+    setOrderDraft((draft) => ({
+      ...draft,
+      assignedStaff: draft.assignedStaff.map((item) =>
+        item.staffId === staffId ? { ...item, payoutAmount } : item
+      ),
+    }))
   }
 
   if (loading) {
@@ -252,7 +354,248 @@ export default function CompanyWorkspaceClient() {
         </div>
       )}
 
-      <div className="grid gap-5 mt-8 lg:grid-cols-2">
+      <div className="p-5 mt-8 bg-white border rounded-lg border-black/10">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold">Заказы</h2>
+          <span className="text-sm text-black/55">{orders.length}</span>
+        </div>
+
+        {canManage && (
+          <form onSubmit={addOrder} className="grid gap-4 mt-5">
+            <div className="grid gap-3 md:grid-cols-3">
+              <Field
+                label="Название"
+                value={orderDraft.title}
+                placeholder="День рождения"
+                onChange={(value) =>
+                  setOrderDraft((draft) => ({ ...draft, title: value }))
+                }
+              />
+              <Field
+                label="Клиент"
+                value={orderDraft.client.name}
+                onChange={(value) =>
+                  setOrderDraft((draft) => ({
+                    ...draft,
+                    client: { ...draft.client, name: value },
+                  }))
+                }
+              />
+              <Field
+                label="Телефон клиента"
+                value={orderDraft.client.phone}
+                onChange={(value) =>
+                  setOrderDraft((draft) => ({
+                    ...draft,
+                    client: { ...draft.client, phone: value },
+                  }))
+                }
+              />
+              <Field
+                label="Дата и время"
+                type="datetime-local"
+                value={orderDraft.eventDate}
+                onChange={(value) =>
+                  setOrderDraft((draft) => ({ ...draft, eventDate: value }))
+                }
+              />
+              <Field
+                label="Услуга/программа"
+                value={orderDraft.serviceTitle}
+                onChange={(value) =>
+                  setOrderDraft((draft) => ({ ...draft, serviceTitle: value }))
+                }
+              />
+              <SelectField
+                label="Место"
+                value={orderDraft.placeType}
+                onChange={(value) =>
+                  setOrderDraft((draft) => ({
+                    ...draft,
+                    placeType: value,
+                    locationId:
+                      value === 'company_location' ? draft.locationId : '',
+                  }))
+                }
+                options={[
+                  { value: 'company_location', label: 'Точка компании' },
+                  { value: 'client_address', label: 'Выезд к клиенту' },
+                ]}
+              />
+              {orderDraft.placeType === 'company_location' ? (
+                <SelectField
+                  label="Точка"
+                  value={orderDraft.locationId}
+                  onChange={(value) =>
+                    setOrderDraft((draft) => ({ ...draft, locationId: value }))
+                  }
+                  options={[
+                    { value: '', label: 'Без точки' },
+                    ...locations.map((location) => ({
+                      value: location._id,
+                      label: location.title,
+                    })),
+                  ]}
+                />
+              ) : (
+                <Field
+                  label="Адрес клиента"
+                  value={orderDraft.customAddress}
+                  onChange={(value) =>
+                    setOrderDraft((draft) => ({
+                      ...draft,
+                      customAddress: value,
+                    }))
+                  }
+                />
+              )}
+              <Field
+                label="Сумма клиента"
+                type="number"
+                value={orderDraft.clientPayment.totalAmount}
+                onChange={(value) =>
+                  setOrderDraft((draft) => ({
+                    ...draft,
+                    clientPayment: {
+                      ...draft.clientPayment,
+                      totalAmount: value,
+                    },
+                  }))
+                }
+              />
+              <Field
+                label="Предоплата"
+                type="number"
+                value={orderDraft.clientPayment.prepaidAmount}
+                onChange={(value) =>
+                  setOrderDraft((draft) => ({
+                    ...draft,
+                    clientPayment: {
+                      ...draft.clientPayment,
+                      prepaidAmount: value,
+                    },
+                  }))
+                }
+              />
+            </div>
+
+            <div className="grid gap-3">
+              <p className="text-sm font-medium text-black/65">
+                Исполнители и выплаты
+              </p>
+              {staff.filter((person) => person.role !== 'owner').length === 0 && (
+                <p className="text-sm text-black/55">
+                  Добавьте исполнителей в блоке сотрудников ниже.
+                </p>
+              )}
+              <div className="grid gap-2 md:grid-cols-2">
+                {staff
+                  .filter((person) => person.role !== 'owner')
+                  .map((person) => {
+                    const assigned = orderDraft.assignedStaff.find(
+                      (item) => item.staffId === person._id
+                    )
+                    return (
+                      <div
+                        key={person._id}
+                        className="grid gap-2 p-3 border rounded-md border-black/10"
+                      >
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(assigned)}
+                            onChange={(event) =>
+                              setOrderStaff(person._id, event.target.checked)
+                            }
+                          />
+                          <span>
+                            {[person.secondName, person.firstName]
+                              .filter(Boolean)
+                              .join(' ') ||
+                              person.phone ||
+                              person.email ||
+                              'Без имени'}
+                          </span>
+                        </label>
+                        {assigned && (
+                          <Field
+                            label="Выплата"
+                            type="number"
+                            value={assigned.payoutAmount}
+                            onChange={(value) =>
+                              setOrderStaffPayout(person._id, value)
+                            }
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="cursor-pointer ui-btn ui-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Добавить заказ
+            </button>
+          </form>
+        )}
+
+        <div className="grid gap-3 mt-5">
+          {orders.length === 0 && (
+            <p className="text-sm text-black/55">Заказы еще не добавлены.</p>
+          )}
+          {orders.map((order) => {
+            const location = locations.find(
+              (item) => item._id === order.locationId
+            )
+            const payoutTotal = (order.assignedStaff ?? []).reduce(
+              (sum, item) => sum + Number(item.payoutAmount || 0),
+              0
+            )
+            return (
+              <div key={order._id} className="p-4 border rounded-md border-black/10">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="font-semibold">
+                      {order.title || order.serviceTitle || 'Заказ'}
+                    </p>
+                    <p className="mt-1 text-sm text-black/60">
+                      {formatDateTime(order.eventDate)} ·{' '}
+                      {order.placeType === 'company_location'
+                        ? location?.title || 'Точка не выбрана'
+                        : order.customAddress || 'Выездной адрес не указан'}
+                    </p>
+                    <p className="mt-1 text-sm text-black/60">
+                      Клиент: {order.client?.name || 'не указан'} ·{' '}
+                      {order.client?.phone || 'телефон не указан'}
+                    </p>
+                    <p className="mt-1 text-sm text-black/60">
+                      Сумма: {formatMoney(order.clientPayment?.totalAmount)} ·
+                      предоплата:{' '}
+                      {formatMoney(order.clientPayment?.prepaidAmount)} ·
+                      выплаты: {formatMoney(payoutTotal)}
+                    </p>
+                  </div>
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => archiveOrder(order._id)}
+                      className="text-sm cursor-pointer text-danger md:mt-1"
+                    >
+                      Отменить
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="grid gap-5 mt-5 lg:grid-cols-2">
         <div className="p-5 bg-white border rounded-lg border-black/10">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Точки</h2>

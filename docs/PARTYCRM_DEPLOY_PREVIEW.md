@@ -16,6 +16,14 @@ ArtistCRM DB -> MONGODB_URI / MONGODB_DBNAME
 PartyCRM DB  -> PARTYCRM_MONGODB_URI / PARTYCRM_MONGODB_DBNAME
 ```
 
+Для текущего сервера:
+
+```txt
+Next.js process -> 127.0.0.1:3006
+Project path    -> /home/apps/artistcrm
+Nginx config    -> /etc/nginx/sites-available/artistcrm
+```
+
 ## DNS
 
 `partycrm.ru` нужно направить туда же, куда сейчас направлен `artistcrm.ru`:
@@ -26,12 +34,18 @@ PartyCRM DB  -> PARTYCRM_MONGODB_URI / PARTYCRM_MONGODB_DBNAME
 
 ## ENV production
 
+Общий checklist по переменным окружения:
+
+```txt
+docs/PRODUCTION_ENV_CHECKLIST.md
+```
+
 Обязательные переменные ArtistCRM остаются как есть:
 
 ```env
 MONGODB_URI=...
 MONGODB_DBNAME=...
-DOMAIN=artistcrm.ru
+DOMAIN=https://artistcrm.ru
 NEXTAUTH_SECRET=...
 ```
 
@@ -46,6 +60,15 @@ PARTYCRM_BOOTSTRAP_SECRET=...
 
 `PARTYCRM_BOOTSTRAP_SECRET` нужен только для ручного создания первого tenant в production.
 
+Рекомендуемые auth-переменные для текущей схемы:
+
+```env
+NEXTAUTH_URL=https://artistcrm.ru
+NEXTAUTH_URL_INTERNAL=http://127.0.0.1:3006
+```
+
+Пока auth общий, логин остается привязан к `artistcrm.ru`. PartyCRM technical preview использует тот же runtime/session.
+
 ## Reverse proxy
 
 Оба домена должны проксироваться в один и тот же Next.js process.
@@ -53,11 +76,28 @@ PARTYCRM_BOOTSTRAP_SECRET=...
 Пример логики:
 
 ```txt
-artistcrm.ru -> http://127.0.0.1:3000
-partycrm.ru  -> http://127.0.0.1:3000
+artistcrm.ru -> http://127.0.0.1:3006
+partycrm.ru  -> http://127.0.0.1:3006
 ```
 
 Внутри приложения `proxy.js` переписывает корень `partycrm.ru/` на `/party`.
+
+Готовый HTTP-only nginx-конфиг без сертификатов лежит в:
+
+```txt
+docs/PARTYCRM_NGINX_PREVIEW.conf
+```
+
+Установка на сервер:
+
+```bash
+sudo cp docs/PARTYCRM_NGINX_PREVIEW.conf /etc/nginx/sites-available/artistcrm
+sudo ln -s /etc/nginx/sites-available/artistcrm /etc/nginx/sites-enabled/artistcrm
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Если symlink уже существует, повторно создавать его не нужно.
 
 ## Проверка после деплоя
 
@@ -121,7 +161,7 @@ Build/start команды остаются теми же:
 ```bash
 npm install
 npm run build
-npm run start
+PORT=3006 npm run start
 ```
 
 Нужно добавить только:
