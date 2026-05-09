@@ -66,8 +66,7 @@ self.addEventListener('push', (event) => {
   const options = {
     body: payload?.body || '',
     icon: payload?.icon || '/icons/AppImages/android/android-launchericon-192-192.png',
-    badge:
-      payload?.badge || '/icons/AppImages/android/android-launchericon-192-192.png',
+    badge: payload?.badge || '/icons/notification-badge.svg',
     tag: payload?.tag || undefined,
     data: payload?.data || {},
     renotify: Boolean(payload?.renotify),

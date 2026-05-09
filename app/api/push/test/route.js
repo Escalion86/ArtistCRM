@@ -20,7 +20,7 @@ export const POST = async () => {
       title: 'Тест push-уведомления',
       body: 'Проверка канала уведомлений для API-заявок',
       icon: '/icons/AppImages/android/android-launchericon-192-192.png',
-      badge: '/icons/AppImages/android/android-launchericon-192-192.png',
+      badge: '/icons/notification-badge.svg',
       tag: `push-test-${Date.now()}`,
       data: {
         url: '/cabinet/eventsUpcoming',

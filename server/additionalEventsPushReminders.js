@@ -106,7 +106,7 @@ const buildReminderPayload = ({
     title,
     body,
     icon: '/icons/AppImages/android/android-launchericon-192-192.png',
-    badge: '/icons/AppImages/android/android-launchericon-192-192.png',
+    badge: '/icons/notification-badge.svg',
     tag: `additional-${reminderType}-${eventId}-${toDateKey(additionalEvent?.date, timeZone) || Date.now()}`,
     renotify: false,
     requireInteraction: reminderType === 'overdue',
