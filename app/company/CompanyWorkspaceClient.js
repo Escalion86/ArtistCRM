@@ -460,7 +460,10 @@ export default function CompanyWorkspaceClient() {
             {error}
           </div>
         )}
-        <Link href="/login" className={`inline-flex mt-6 ${primaryButtonClass}`}>
+        <Link
+          href="/login?callbackUrl=/company"
+          className={`inline-flex mt-6 ${primaryButtonClass}`}
+        >
           Войти или зарегистрироваться
         </Link>
       </section>
@@ -1012,7 +1015,7 @@ export default function CompanyWorkspaceClient() {
                         'Без имени'}
                     </p>
                     <p className="mt-1 text-sm text-black/60">
-                      {person.role} · {[person.phone, person.email].filter(Boolean).join(' · ') ||
+                      {roleLabels[person.role] || person.role} · {[person.phone, person.email].filter(Boolean).join(' · ') ||
                         'контакты не указаны'}
                     </p>
                   </div>

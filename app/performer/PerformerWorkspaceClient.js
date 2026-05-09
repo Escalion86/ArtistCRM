@@ -19,6 +19,19 @@ const formatDateTime = (value) => {
 const formatMoney = (value) =>
   `${Number(value || 0).toLocaleString('ru-RU')} ₽`
 
+const confirmationLabels = {
+  pending: 'Ждет подтверждения',
+  confirmed: 'Участие подтверждено',
+  declined: 'Участие отклонено',
+  done: 'Выполнено',
+}
+
+const primaryButtonClass =
+  'px-4 py-2 text-sm font-semibold text-white transition-colors rounded-md cursor-pointer bg-sky-600 hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60'
+
+const secondaryButtonClass =
+  'px-4 py-2 text-sm font-semibold transition-colors bg-white border rounded-md cursor-pointer text-sky-700 border-sky-200 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60'
+
 const getAddressText = (order) => {
   if (order.placeType === 'client_address') {
     return order.customAddress || 'Выездной адрес не указан'
@@ -37,6 +50,7 @@ export default function PerformerWorkspaceClient() {
   const [context, setContext] = useState(null)
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [savingOrderId, setSavingOrderId] = useState('')
   const [error, setError] = useState('')
 
   const loadData = useCallback(async () => {
@@ -69,6 +83,37 @@ export default function PerformerWorkspaceClient() {
     [orders]
   )
 
+  const updateConfirmationStatus = async (orderId, confirmationStatus) => {
+    setSavingOrderId(orderId)
+    setError('')
+    try {
+      const response = await apiJson(
+        `/api/party/performer/orders/${orderId}/status`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ confirmationStatus }),
+        }
+      )
+      setOrders((items) =>
+        items.map((order) =>
+          order._id === orderId
+            ? {
+                ...order,
+                assignment: {
+                  ...order.assignment,
+                  confirmationStatus: response.data.confirmationStatus,
+                },
+              }
+            : order
+        )
+      )
+    } catch (saveError) {
+      setError(saveError.message || 'Не удалось обновить статус участия')
+    } finally {
+      setSavingOrderId('')
+    }
+  }
+
   if (loading) {
     return (
       <section className="max-w-5xl px-5 py-10 mx-auto">
@@ -80,7 +125,7 @@ export default function PerformerWorkspaceClient() {
   return (
     <section className="max-w-5xl px-5 py-10 mx-auto">
       <p className="text-sm font-semibold uppercase text-sky-700">
-        Performer workspace
+        Кабинет исполнителя
       </p>
       <h1 className="mt-3 text-3xl font-semibold font-futuraPT sm:text-4xl">
         Кабинет исполнителя
@@ -119,39 +164,73 @@ export default function PerformerWorkspaceClient() {
             </p>
           </div>
         )}
-        {orders.map((order) => (
-          <div key={order._id} className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-lg font-semibold">{order.title}</p>
-                <p className="mt-1 text-sm text-black/60">
-                  {formatDateTime(order.eventDate)}
-                </p>
-                <p className="mt-1 text-sm text-black/60">
-                  {getAddressText(order)}
-                </p>
-                <p className="mt-1 text-sm text-black/60">
-                  Клиент: {order.client?.name || 'не указан'} ·{' '}
-                  {order.client?.phone || 'телефон не указан'}
-                </p>
-                {order.adminComment && (
-                  <p className="mt-2 text-sm text-black/70">
-                    {order.adminComment}
+        {orders.map((order) => {
+          const confirmationStatus =
+            order.assignment?.confirmationStatus || 'pending'
+          const isSaving = savingOrderId === order._id
+          return (
+            <div
+              key={order._id}
+              className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-lg font-semibold">{order.title}</p>
+                  <p className="mt-1 text-sm text-black/60">
+                    {formatDateTime(order.eventDate)}
                   </p>
-                )}
-              </div>
-              <div className="sm:text-right">
-                <p className="text-sm text-black/55">Выплата</p>
-                <p className="text-2xl font-semibold">
-                  {formatMoney(order.assignment?.payoutAmount)}
-                </p>
-                <p className="mt-1 text-xs text-black/50">
-                  {order.assignment?.confirmationStatus || 'pending'}
-                </p>
+                  <p className="mt-1 text-sm text-black/60">
+                    {getAddressText(order)}
+                  </p>
+                  <p className="mt-1 text-sm text-black/60">
+                    Клиент: {order.client?.name || 'не указан'} ·{' '}
+                    {order.client?.phone || 'телефон не указан'}
+                  </p>
+                  {order.adminComment && (
+                    <p className="mt-2 text-sm text-black/70">
+                      {order.adminComment}
+                    </p>
+                  )}
+                </div>
+                <div className="sm:text-right">
+                  <p className="text-sm text-black/55">Выплата</p>
+                  <p className="text-2xl font-semibold">
+                    {formatMoney(order.assignment?.payoutAmount)}
+                  </p>
+                  <p className="mt-1 text-xs text-black/50">
+                    {confirmationLabels[confirmationStatus] || confirmationStatus}
+                  </p>
+                  <div className="flex flex-col gap-2 mt-4 sm:items-end">
+                    {confirmationStatus === 'pending' && (
+                      <button
+                        type="button"
+                        disabled={isSaving}
+                        onClick={() =>
+                          updateConfirmationStatus(order._id, 'confirmed')
+                        }
+                        className={primaryButtonClass}
+                      >
+                        Подтвердить участие
+                      </button>
+                    )}
+                    {confirmationStatus !== 'done' && (
+                      <button
+                        type="button"
+                        disabled={isSaving}
+                        onClick={() =>
+                          updateConfirmationStatus(order._id, 'done')
+                        }
+                        className={secondaryButtonClass}
+                      >
+                        Отметить выполненным
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )

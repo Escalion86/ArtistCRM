@@ -98,7 +98,8 @@ function validate_login(
   password,
   setSubmitting,
   phoneDigits,
-  setPhoneHint
+  setPhoneHint,
+  callbackUrl
 ) {
   event.preventDefault()
   if (!phone || !password) return
@@ -118,7 +119,7 @@ function validate_login(
         alert('Неверный телефон или пароль')
       } else {
         reachGoal('login_success', { method: 'credentials' })
-        window.location.replace('/cabinet')
+        window.location.replace(callbackUrl)
       }
     })
     .catch((err) => {
@@ -129,7 +130,7 @@ function validate_login(
     })
 }
 
-const LoginInputs = () => {
+const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
   const vkOneTapContainerRef = useRef(null)
   const [vkConfig, setVkConfig] = useState({
     loaded: false,
@@ -453,7 +454,7 @@ const LoginInputs = () => {
       }
 
       reachGoalOnce('registration_success', { method: 'phone' })
-      window.location.replace('/cabinet')
+      window.location.replace(callbackUrl)
     } catch (error) {
       alert('Не удалось зарегистрироваться')
     } finally {
@@ -778,7 +779,7 @@ const LoginInputs = () => {
               })
               if (result?.error) throw new Error(result.error)
               reachGoal('login_success', { method: 'vkid' })
-              window.location.replace('/cabinet')
+              window.location.replace(callbackUrl)
             } catch (error) {
               console.error('[VK One Tap] auth error', error)
               alert(error?.message || 'Не удалось авторизоваться через VK ID')
@@ -813,7 +814,7 @@ const LoginInputs = () => {
     return () => {
       isMounted = false
     }
-  }, [canUseVkOneTap, mode, vkAuthEnabled, vkConfig, vkRenderNonce])
+  }, [callbackUrl, canUseVkOneTap, mode, vkAuthEnabled, vkConfig, vkRenderNonce])
 
   const VkAuthBlock = ({ label }) =>
     vkAuthEnabled ? (
@@ -867,7 +868,8 @@ const LoginInputs = () => {
                 loginPassword,
                 setIsSubmitting,
                 loginPhoneDigits,
-                setLoginPhoneHint
+                setLoginPhoneHint,
+                callbackUrl
               )
             }
             className="flex flex-col gap-4"

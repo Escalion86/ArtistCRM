@@ -14,8 +14,17 @@ export const metadata = {
   },
 }
 
-export default async function Login() {
+const normalizeCallbackUrl = (value) => {
+  if (typeof value !== 'string') return '/cabinet'
+  if (!value.startsWith('/')) return '/cabinet'
+  if (value.startsWith('//')) return '/cabinet'
+  return value
+}
+
+export default async function Login({ searchParams }) {
   let session = null
+  const params = await searchParams
+  const callbackUrl = normalizeCallbackUrl(params?.callbackUrl)
 
   try {
     session = await getServerSession(authOptions)
@@ -23,7 +32,7 @@ export default async function Login() {
     console.error('Ошибка получения сессии в /login', error)
   }
 
-  if (session) return redirect('/cabinet')
+  if (session) return redirect(callbackUrl)
 
-  return <LoginInputs />
+  return <LoginInputs callbackUrl={callbackUrl} />
 }
