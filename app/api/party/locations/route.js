@@ -33,8 +33,8 @@ const normalizeLocationPayload = (body) => ({
         : null,
 })
 
-export async function GET() {
-  const { context, error } = await getPartyRequestContext()
+export async function GET(req) {
+  const { context, error } = await getPartyRequestContext({ req })
   if (error) return error
 
   const PartyLocations = await getPartyLocationModel()
@@ -50,6 +50,7 @@ export async function GET() {
 
 export async function POST(req) {
   const { context, error } = await getPartyRequestContext({
+    req,
     managementOnly: true,
   })
   if (error) return error

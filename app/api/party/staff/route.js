@@ -34,8 +34,9 @@ const normalizeStaffPayload = (body) => ({
       : true,
 })
 
-export async function GET() {
+export async function GET(req) {
   const { context, error } = await getPartyRequestContext({
+    req,
     managementOnly: true,
   })
   if (error) return error
@@ -53,6 +54,7 @@ export async function GET() {
 
 export async function POST(req) {
   const { context, error } = await getPartyRequestContext({
+    req,
     managementOnly: true,
   })
   if (error) return error

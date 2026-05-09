@@ -46,7 +46,25 @@ const EMPTY_ORDER = {
 
 const EMPTY_COMPANY = {
   title: '',
+  initialLocation: {
+    title: '',
+    address: {
+      town: '',
+      street: '',
+      house: '',
+      room: '',
+    },
+  },
+  initialStaff: {
+    firstName: '',
+    secondName: '',
+    phone: '',
+    email: '',
+    role: 'performer',
+  },
 }
+
+const ACTIVE_COMPANY_STORAGE_KEY = 'partycrm.activeCompanyId'
 
 const getErrorMessage = (error) =>
   error?.message || 'Не удалось выполнить действие'
@@ -90,6 +108,139 @@ const roleLabels = {
   owner: 'Владелец',
   admin: 'Администратор',
   performer: 'Исполнитель',
+}
+
+const paymentStatusLabels = {
+  none: 'Не задано',
+  wait_prepayment: 'Ждем предоплату',
+  prepaid: 'Предоплата внесена',
+  paid: 'Оплачено',
+}
+
+const startOfDay = (date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+const addDays = (date, days) => {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
+
+const isSameDay = (value, day) => {
+  if (!value) return false
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return false
+  return startOfDay(date).getTime() === startOfDay(day).getTime()
+}
+
+const getOrderRange = (order) => {
+  const start = order.eventDate ? new Date(order.eventDate) : null
+  const end = order.dateEnd ? new Date(order.dateEnd) : null
+  if (!start || Number.isNaN(start.getTime())) return null
+  if (!end || Number.isNaN(end.getTime())) {
+    return { start, end: new Date(start.getTime() + 60 * 60 * 1000) }
+  }
+  return { start, end }
+}
+
+const rangesOverlap = (first, second) =>
+  first && second && first.start < second.end && second.start < first.end
+
+const getAssignedStaffIds = (order) =>
+  new Set((order.assignedStaff ?? []).map((item) => String(item.staffId)))
+
+const hasOrderConflict = (order, orders) => {
+  const range = getOrderRange(order)
+  if (!range) return false
+  const orderStaffIds = getAssignedStaffIds(order)
+
+  return orders.some((other) => {
+    if (String(other._id) === String(order._id)) return false
+    if (other.status === 'canceled' || other.status === 'closed') return false
+    if (!rangesOverlap(range, getOrderRange(other))) return false
+
+    const sameLocation =
+      order.placeType === 'company_location' &&
+      other.placeType === 'company_location' &&
+      order.locationId &&
+      String(order.locationId) === String(other.locationId)
+
+    const otherStaffIds = getAssignedStaffIds(other)
+    const sameStaff = [...orderStaffIds].some((id) => otherStaffIds.has(id))
+
+    return Boolean(sameLocation || sameStaff)
+  })
+}
+
+const getOrderPayoutTotal = (order) =>
+  (order.assignedStaff ?? []).reduce(
+    (sum, item) => sum + Number(item.payoutAmount || 0),
+    0
+  )
+
+const buildFinanceSummary = (orders) =>
+  orders.reduce(
+    (summary, order) => {
+      const totalAmount = Number(order.clientPayment?.totalAmount || 0)
+      const prepaidAmount = Number(order.clientPayment?.prepaidAmount || 0)
+      const payoutAmount = getOrderPayoutTotal(order)
+
+      return {
+        orderCount: summary.orderCount + 1,
+        totalAmount: summary.totalAmount + totalAmount,
+        prepaidAmount: summary.prepaidAmount + prepaidAmount,
+        balanceAmount:
+          summary.balanceAmount + Math.max(totalAmount - prepaidAmount, 0),
+        payoutAmount: summary.payoutAmount + payoutAmount,
+        grossMargin: summary.grossMargin + totalAmount - payoutAmount,
+      }
+    },
+    {
+      orderCount: 0,
+      totalAmount: 0,
+      prepaidAmount: 0,
+      balanceAmount: 0,
+      payoutAmount: 0,
+      grossMargin: 0,
+    }
+  )
+
+const FinanceSummary = ({ summary }) => {
+  const marginPercent =
+    summary.totalAmount > 0
+      ? Math.round((summary.grossMargin / summary.totalAmount) * 100)
+      : 0
+
+  const items = [
+    ['Заказов', summary.orderCount],
+    ['Выручка', formatMoney(summary.totalAmount)],
+    ['Предоплаты', formatMoney(summary.prepaidAmount)],
+    ['Остаток к получению', formatMoney(summary.balanceAmount)],
+    ['Выплаты исполнителям', formatMoney(summary.payoutAmount)],
+    ['Валовая маржа', `${formatMoney(summary.grossMargin)} · ${marginPercent}%`],
+  ]
+
+  return (
+    <div className="p-5 mt-8 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase text-sky-700">
+            Финансы
+          </p>
+          <h2 className="mt-1 text-xl font-semibold">Сводка по заказам</h2>
+        </div>
+        <p className="text-sm text-slate-500">Без отмененных заказов</p>
+      </div>
+      <div className="grid gap-px mt-5 overflow-hidden border rounded-lg border-sky-100 bg-sky-100 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map(([title, value]) => (
+          <div key={title} className="p-4 bg-white">
+            <p className="text-sm text-slate-500">{title}</p>
+            <p className="mt-1 text-xl font-semibold text-slate-950">{value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 const OnboardingChecklist = ({ locations, staff, orders }) => {
@@ -187,8 +338,18 @@ const SelectField = ({ label, value, onChange, options }) => (
   </label>
 )
 
+const buildCompanyRequestOptions = (companyId, options = {}) => ({
+  ...options,
+  headers: {
+    ...(options.headers ?? {}),
+    ...(companyId ? { 'x-partycrm-company-id': companyId } : {}),
+  },
+})
+
 export default function CompanyWorkspaceClient() {
   const [context, setContext] = useState(null)
+  const [memberships, setMemberships] = useState([])
+  const [activeCompanyId, setActiveCompanyId] = useState('')
   const [locations, setLocations] = useState([])
   const [staff, setStaff] = useState([])
   const [orders, setOrders] = useState([])
@@ -201,22 +362,69 @@ export default function CompanyWorkspaceClient() {
   const [error, setError] = useState('')
   const [conflictInfo, setConflictInfo] = useState('')
   const [accessStatus, setAccessStatus] = useState('loading')
+  const [orderFilter, setOrderFilter] = useState('all')
 
   const hasAccess = Boolean(context?.tenantId && context?.staff)
   const canManage = ['owner', 'admin'].includes(context?.role)
 
-  const loadWorkspace = useCallback(async () => {
+  const loadWorkspace = useCallback(async (preferredCompanyId = '') => {
     setLoading(true)
     setError('')
     try {
-      const me = await apiJson('/api/party/me', { cache: 'no-store' })
-      setContext(me.data)
+      const membershipsResponse = await apiJson('/api/party/memberships', {
+        cache: 'no-store',
+      })
+      const availableMemberships = membershipsResponse.data?.memberships ?? []
+      setMemberships(availableMemberships)
+
+      if (availableMemberships.length === 0) {
+        setContext(null)
+        setLocations([])
+        setStaff([])
+        setOrders([])
+        setActiveCompanyId('')
+        setAccessStatus('not_configured')
+        return
+      }
+
+      const storedCompanyId =
+        typeof window !== 'undefined'
+          ? window.localStorage.getItem(ACTIVE_COMPANY_STORAGE_KEY) || ''
+          : ''
+      const requestedCompanyId = preferredCompanyId || storedCompanyId
+      const selectedMembership =
+        availableMemberships.find(
+          (membership) => membership.tenantId === requestedCompanyId
+        ) ||
+        availableMemberships.find((membership) => membership.isAdmin) ||
+        availableMemberships[0]
+      const selectedCompanyId = selectedMembership.tenantId
+
+      setActiveCompanyId(selectedCompanyId)
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(ACTIVE_COMPANY_STORAGE_KEY, selectedCompanyId)
+      }
+      setContext({
+        tenantId: selectedMembership.tenantId,
+        role: selectedMembership.role,
+        staff: selectedMembership.staff,
+        company: selectedMembership.company,
+      })
       setAccessStatus('ready')
 
       const [locationsResponse, staffResponse, ordersResponse] = await Promise.all([
-        apiJson('/api/party/locations', { cache: 'no-store' }),
-        apiJson('/api/party/staff', { cache: 'no-store' }),
-        apiJson('/api/party/orders', { cache: 'no-store' }),
+        apiJson(
+          '/api/party/locations',
+          buildCompanyRequestOptions(selectedCompanyId, { cache: 'no-store' })
+        ),
+        apiJson(
+          '/api/party/staff',
+          buildCompanyRequestOptions(selectedCompanyId, { cache: 'no-store' })
+        ),
+        apiJson(
+          '/api/party/orders',
+          buildCompanyRequestOptions(selectedCompanyId, { cache: 'no-store' })
+        ),
       ])
       setLocations(locationsResponse.data ?? [])
       setStaff(staffResponse.data ?? [])
@@ -241,10 +449,101 @@ export default function CompanyWorkspaceClient() {
     loadWorkspace()
   }, [loadWorkspace])
 
+  const switchCompany = (companyId) => {
+    setActiveCompanyId(companyId)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(ACTIVE_COMPANY_STORAGE_KEY, companyId)
+    }
+    loadWorkspace(companyId)
+  }
+
   const companyTitle = useMemo(
     () => context?.company?.title || 'PartyCRM',
     [context]
   )
+
+  const financeSummary = useMemo(() => buildFinanceSummary(orders), [orders])
+
+  const orderFilters = useMemo(() => {
+    const today = new Date()
+    const tomorrow = addDays(today, 1)
+    const filterChecks = {
+      all: () => true,
+      new: (order) => order.status === 'draft',
+      without_staff: (order) => (order.assignedStaff ?? []).length === 0,
+      conflict: (order) => hasOrderConflict(order, orders),
+      wait_prepayment: (order) =>
+        order.clientPayment?.status === 'wait_prepayment' ||
+        (Number(order.clientPayment?.totalAmount || 0) > 0 &&
+          Number(order.clientPayment?.prepaidAmount || 0) <= 0 &&
+          order.clientPayment?.status !== 'paid'),
+      today: (order) => isSameDay(order.eventDate, today),
+      tomorrow: (order) => isSameDay(order.eventDate, tomorrow),
+    }
+
+    return [
+      { value: 'all', label: 'Все', count: orders.length },
+      {
+        value: 'new',
+        label: 'Новые',
+        count: orders.filter(filterChecks.new).length,
+      },
+      {
+        value: 'without_staff',
+        label: 'Без исполнителя',
+        count: orders.filter(filterChecks.without_staff).length,
+      },
+      {
+        value: 'conflict',
+        label: 'Конфликты',
+        count: orders.filter(filterChecks.conflict).length,
+      },
+      {
+        value: 'wait_prepayment',
+        label: 'Ждем предоплату',
+        count: orders.filter(filterChecks.wait_prepayment).length,
+      },
+      {
+        value: 'today',
+        label: 'Сегодня',
+        count: orders.filter(filterChecks.today).length,
+      },
+      {
+        value: 'tomorrow',
+        label: 'Завтра',
+        count: orders.filter(filterChecks.tomorrow).length,
+      },
+    ]
+  }, [orders])
+
+  const filteredOrders = useMemo(() => {
+    if (orderFilter === 'all') return orders
+    const activeFilter = orderFilters.find((item) => item.value === orderFilter)
+    if (!activeFilter) return orders
+    const today = new Date()
+    const tomorrow = addDays(today, 1)
+
+    return orders.filter((order) => {
+      if (orderFilter === 'new') return order.status === 'draft'
+      if (orderFilter === 'without_staff') {
+        return (order.assignedStaff ?? []).length === 0
+      }
+      if (orderFilter === 'conflict') return hasOrderConflict(order, orders)
+      if (orderFilter === 'wait_prepayment') {
+        return (
+          order.clientPayment?.status === 'wait_prepayment' ||
+          (Number(order.clientPayment?.totalAmount || 0) > 0 &&
+            Number(order.clientPayment?.prepaidAmount || 0) <= 0 &&
+            order.clientPayment?.status !== 'paid')
+        )
+      }
+      if (orderFilter === 'today') return isSameDay(order.eventDate, today)
+      if (orderFilter === 'tomorrow') {
+        return isSameDay(order.eventDate, tomorrow)
+      }
+      return true
+    })
+  }, [orderFilter, orderFilters, orders])
 
   const bootstrapCompany = async () => {
     setSaving(true)
@@ -254,6 +553,8 @@ export default function CompanyWorkspaceClient() {
         method: 'POST',
         body: JSON.stringify({
           title: companyDraft.title.trim() || 'Моя компания',
+          initialLocation: companyDraft.initialLocation,
+          initialStaff: companyDraft.initialStaff,
         }),
       })
       await loadWorkspace()
@@ -275,6 +576,9 @@ export default function CompanyWorkspaceClient() {
     try {
       const response = await apiJson('/api/party/locations', {
         method: 'POST',
+        headers: activeCompanyId
+          ? { 'x-partycrm-company-id': activeCompanyId }
+          : undefined,
         body: JSON.stringify(locationDraft),
       })
       setLocations((items) => [...items, response.data])
@@ -293,6 +597,9 @@ export default function CompanyWorkspaceClient() {
     try {
       const response = await apiJson('/api/party/staff', {
         method: 'POST',
+        headers: activeCompanyId
+          ? { 'x-partycrm-company-id': activeCompanyId }
+          : undefined,
         body: JSON.stringify(staffDraft),
       })
       setStaff((items) => [...items, response.data])
@@ -326,6 +633,9 @@ export default function CompanyWorkspaceClient() {
     try {
       const response = await apiJson('/api/party/orders', {
         method: 'POST',
+        headers: activeCompanyId
+          ? { 'x-partycrm-company-id': activeCompanyId }
+          : undefined,
         body: JSON.stringify(buildOrderPayload()),
       })
       setOrders((items) => [response.data, ...items])
@@ -344,6 +654,9 @@ export default function CompanyWorkspaceClient() {
     try {
       const response = await apiJson('/api/party/orders/check-conflicts', {
         method: 'POST',
+        headers: activeCompanyId
+          ? { 'x-partycrm-company-id': activeCompanyId }
+          : undefined,
         body: JSON.stringify(buildOrderPayload()),
       })
       if (response.data?.hasConflicts) {
@@ -367,7 +680,10 @@ export default function CompanyWorkspaceClient() {
     setSaving(true)
     setError('')
     try {
-      await apiJson(`/api/party/locations/${id}`, { method: 'DELETE' })
+      await apiJson(
+        `/api/party/locations/${id}`,
+        buildCompanyRequestOptions(activeCompanyId, { method: 'DELETE' })
+      )
       setLocations((items) => items.filter((item) => item._id !== id))
     } catch (archiveError) {
       setError(getErrorMessage(archiveError))
@@ -380,7 +696,10 @@ export default function CompanyWorkspaceClient() {
     setSaving(true)
     setError('')
     try {
-      await apiJson(`/api/party/staff/${id}`, { method: 'DELETE' })
+      await apiJson(
+        `/api/party/staff/${id}`,
+        buildCompanyRequestOptions(activeCompanyId, { method: 'DELETE' })
+      )
       setStaff((items) => items.filter((item) => item._id !== id))
     } catch (archiveError) {
       setError(getErrorMessage(archiveError))
@@ -393,7 +712,10 @@ export default function CompanyWorkspaceClient() {
     setSaving(true)
     setError('')
     try {
-      await apiJson(`/api/party/orders/${id}`, { method: 'DELETE' })
+      await apiJson(
+        `/api/party/orders/${id}`,
+        buildCompanyRequestOptions(activeCompanyId, { method: 'DELETE' })
+      )
       setOrders((items) => items.filter((item) => item._id !== id))
     } catch (archiveError) {
       setError(getErrorMessage(archiveError))
@@ -504,7 +826,8 @@ export default function CompanyWorkspaceClient() {
         </h1>
         <p className="max-w-2xl mt-4 leading-7 text-black/70">
           Укажите название компании. После создания вы станете владельцем и
-          сможете добавить помещения, сотрудников и первый заказ.
+          сможете сразу начать работу: первая точка и сотрудник необязательны,
+          но помогут быстрее собрать рабочий кабинет.
         </p>
         {error && (
           <div className="max-w-2xl p-3 mt-5 text-sm border rounded-md border-danger/30 bg-danger/10 text-danger">
@@ -526,6 +849,159 @@ export default function CompanyWorkspaceClient() {
               setCompanyDraft((draft) => ({ ...draft, title: value }))
             }
           />
+          <div className="grid gap-3 pt-4 border-t border-sky-100">
+            <div>
+              <p className="font-semibold">Первая точка</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Можно пропустить и добавить позже.
+              </p>
+            </div>
+            <Field
+              label="Название точки"
+              value={companyDraft.initialLocation.title}
+              placeholder="Игровая на Мира"
+              onChange={(value) =>
+                setCompanyDraft((draft) => ({
+                  ...draft,
+                  initialLocation: {
+                    ...draft.initialLocation,
+                    title: value,
+                  },
+                }))
+              }
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label="Город"
+                value={companyDraft.initialLocation.address.town}
+                onChange={(value) =>
+                  setCompanyDraft((draft) => ({
+                    ...draft,
+                    initialLocation: {
+                      ...draft.initialLocation,
+                      address: {
+                        ...draft.initialLocation.address,
+                        town: value,
+                      },
+                    },
+                  }))
+                }
+              />
+              <Field
+                label="Улица"
+                value={companyDraft.initialLocation.address.street}
+                onChange={(value) =>
+                  setCompanyDraft((draft) => ({
+                    ...draft,
+                    initialLocation: {
+                      ...draft.initialLocation,
+                      address: {
+                        ...draft.initialLocation.address,
+                        street: value,
+                      },
+                    },
+                  }))
+                }
+              />
+              <Field
+                label="Дом"
+                value={companyDraft.initialLocation.address.house}
+                onChange={(value) =>
+                  setCompanyDraft((draft) => ({
+                    ...draft,
+                    initialLocation: {
+                      ...draft.initialLocation,
+                      address: {
+                        ...draft.initialLocation.address,
+                        house: value,
+                      },
+                    },
+                  }))
+                }
+              />
+              <Field
+                label="Зал/комната"
+                value={companyDraft.initialLocation.address.room}
+                onChange={(value) =>
+                  setCompanyDraft((draft) => ({
+                    ...draft,
+                    initialLocation: {
+                      ...draft.initialLocation,
+                      address: {
+                        ...draft.initialLocation.address,
+                        room: value,
+                      },
+                    },
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <div className="grid gap-3 pt-4 border-t border-sky-100">
+            <div>
+              <p className="font-semibold">Первый сотрудник</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Добавьте администратора или исполнителя, если данные уже есть.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label="Имя"
+                value={companyDraft.initialStaff.firstName}
+                onChange={(value) =>
+                  setCompanyDraft((draft) => ({
+                    ...draft,
+                    initialStaff: { ...draft.initialStaff, firstName: value },
+                  }))
+                }
+              />
+              <Field
+                label="Фамилия"
+                value={companyDraft.initialStaff.secondName}
+                onChange={(value) =>
+                  setCompanyDraft((draft) => ({
+                    ...draft,
+                    initialStaff: { ...draft.initialStaff, secondName: value },
+                  }))
+                }
+              />
+              <Field
+                label="Телефон"
+                value={companyDraft.initialStaff.phone}
+                onChange={(value) =>
+                  setCompanyDraft((draft) => ({
+                    ...draft,
+                    initialStaff: { ...draft.initialStaff, phone: value },
+                  }))
+                }
+              />
+              <Field
+                label="Email"
+                type="email"
+                value={companyDraft.initialStaff.email}
+                onChange={(value) =>
+                  setCompanyDraft((draft) => ({
+                    ...draft,
+                    initialStaff: { ...draft.initialStaff, email: value },
+                  }))
+                }
+              />
+            </div>
+            <SelectField
+              label="Роль"
+              value={companyDraft.initialStaff.role}
+              onChange={(value) =>
+                setCompanyDraft((draft) => ({
+                  ...draft,
+                  initialStaff: { ...draft.initialStaff, role: value },
+                }))
+              }
+              options={[
+                { value: 'performer', label: 'Исполнитель' },
+                { value: 'admin', label: 'Администратор' },
+              ]}
+            />
+          </div>
           <button type="submit" disabled={saving} className={primaryButtonClass}>
             {saving ? 'Создаем...' : 'Создать компанию'}
           </button>
@@ -548,13 +1024,32 @@ export default function CompanyWorkspaceClient() {
             Ваша роль: {roleLabels[context.role] || context.role}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={loadWorkspace}
-          className={secondaryButtonClass}
-        >
-          Обновить
-        </button>
+        <div className="flex flex-col gap-2 sm:items-end">
+          {memberships.length > 1 && (
+            <label className="grid gap-1 text-sm">
+              <span className="font-medium text-black/65">Компания</span>
+              <select
+                value={activeCompanyId}
+                onChange={(event) => switchCompany(event.target.value)}
+                className="h-10 px-3 bg-white border rounded-md outline-none cursor-pointer min-w-56 border-sky-100 focus:border-sky-500"
+              >
+                {memberships.map((membership) => (
+                  <option key={membership.staffId} value={membership.tenantId}>
+                    {membership.company?.title || 'Компания'} ·{' '}
+                    {roleLabels[membership.role] || membership.role}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <button
+            type="button"
+            onClick={() => loadWorkspace(activeCompanyId)}
+            className={secondaryButtonClass}
+          >
+            Обновить
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -564,6 +1059,8 @@ export default function CompanyWorkspaceClient() {
       )}
 
       <OnboardingChecklist locations={locations} staff={staff} orders={orders} />
+
+      <FinanceSummary summary={financeSummary} />
 
       <div className="p-5 mt-8 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
         <div className="flex items-center justify-between gap-3">
@@ -699,6 +1196,28 @@ export default function CompanyWorkspaceClient() {
                   }))
                 }
               />
+              <SelectField
+                label="Статус оплаты"
+                value={orderDraft.clientPayment.status}
+                onChange={(value) =>
+                  setOrderDraft((draft) => ({
+                    ...draft,
+                    clientPayment: {
+                      ...draft.clientPayment,
+                      status: value,
+                    },
+                  }))
+                }
+                options={[
+                  { value: 'none', label: paymentStatusLabels.none },
+                  {
+                    value: 'wait_prepayment',
+                    label: paymentStatusLabels.wait_prepayment,
+                  },
+                  { value: 'prepaid', label: paymentStatusLabels.prepaid },
+                  { value: 'paid', label: paymentStatusLabels.paid },
+                ]}
+              />
             </div>
 
             <div className="grid gap-3">
@@ -778,25 +1297,64 @@ export default function CompanyWorkspaceClient() {
           </form>
         )}
 
+        <div className="flex flex-wrap gap-2 mt-5">
+          {orderFilters.map((filter) => (
+            <button
+              key={filter.value}
+              type="button"
+              onClick={() => setOrderFilter(filter.value)}
+              className={`px-3 py-2 text-sm font-semibold transition-colors border rounded-md cursor-pointer ${
+                orderFilter === filter.value
+                  ? 'border-sky-600 bg-sky-600 text-white'
+                  : 'border-sky-100 bg-white text-slate-700 hover:bg-sky-50'
+              }`}
+            >
+              {filter.label}
+              <span
+                className={`ml-2 ${
+                  orderFilter === filter.value ? 'text-white/80' : 'text-slate-400'
+                }`}
+              >
+                {filter.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
         <div className="grid gap-3 mt-5">
           {orders.length === 0 && (
             <p className="text-sm text-black/55">Заказы еще не добавлены.</p>
           )}
-          {orders.map((order) => {
+          {orders.length > 0 && filteredOrders.length === 0 && (
+            <p className="text-sm text-black/55">
+              По выбранному фильтру заказов нет.
+            </p>
+          )}
+          {filteredOrders.map((order) => {
             const location = locations.find(
               (item) => item._id === order.locationId
             )
-            const payoutTotal = (order.assignedStaff ?? []).reduce(
-              (sum, item) => sum + Number(item.payoutAmount || 0),
-              0
-            )
+            const payoutTotal = getOrderPayoutTotal(order)
+            const hasConflict = hasOrderConflict(order, orders)
             return (
               <div key={order._id} className="p-4 border rounded-md border-sky-100">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <p className="font-semibold">
-                      {order.title || order.serviceTitle || 'Заказ'}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold">
+                        {order.title || order.serviceTitle || 'Заказ'}
+                      </p>
+                      {hasConflict && (
+                        <span className="px-2 py-1 text-xs font-semibold rounded bg-danger/10 text-danger">
+                          Конфликт
+                        </span>
+                      )}
+                      {(order.assignedStaff ?? []).length === 0 && (
+                        <span className="px-2 py-1 text-xs font-semibold rounded bg-amber-100 text-amber-700">
+                          Без исполнителя
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-1 text-sm text-black/60">
                       {formatDateTime(order.eventDate)} ·{' '}
                       {order.placeType === 'company_location'
@@ -811,6 +1369,10 @@ export default function CompanyWorkspaceClient() {
                       Сумма: {formatMoney(order.clientPayment?.totalAmount)} ·
                       предоплата:{' '}
                       {formatMoney(order.clientPayment?.prepaidAmount)} ·
+                      статус:{' '}
+                      {paymentStatusLabels[order.clientPayment?.status] ||
+                        paymentStatusLabels.none}{' '}
+                      ·
                       выплаты: {formatMoney(payoutTotal)}
                     </p>
                   </div>

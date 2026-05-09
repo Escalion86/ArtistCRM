@@ -17,8 +17,8 @@ const getId = async (params) => {
   return resolved?.id
 }
 
-export async function GET(_req, { params }) {
-  const { context, error } = await getPartyRequestContext()
+export async function GET(req, { params }) {
+  const { context, error } = await getPartyRequestContext({ req })
   if (error) return error
 
   const id = await getId(params)
@@ -41,6 +41,7 @@ export async function GET(_req, { params }) {
 
 export async function PATCH(req, { params }) {
   const { context, error } = await getPartyRequestContext({
+    req,
     managementOnly: true,
   })
   if (error) return error
@@ -98,8 +99,9 @@ export async function PATCH(req, { params }) {
   return NextResponse.json({ success: true, data: order })
 }
 
-export async function DELETE(_req, { params }) {
+export async function DELETE(req, { params }) {
   const { context, error } = await getPartyRequestContext({
+    req,
     managementOnly: true,
   })
   if (error) return error

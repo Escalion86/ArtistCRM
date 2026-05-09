@@ -153,6 +153,20 @@ const countActivePushSubscriptions = async (tenantId) => {
   })
 }
 
+const normalizeWebPushTopic = (value) => {
+  const rawTopic = String(value || '').trim()
+  if (!rawTopic) return undefined
+  const normalizedTopic = rawTopic.replace(/[^\w.-]/g, '-')
+  if (normalizedTopic.length <= 32) return normalizedTopic
+
+  const hash = crypto
+    .createHash('sha256')
+    .update(normalizedTopic)
+    .digest('hex')
+    .slice(0, 8)
+  return `${normalizedTopic.slice(0, 23)}-${hash}`
+}
+
 const sendPushToTenant = async ({ tenantId, payload, source = 'unknown' }) => {
   if (!tenantId || !payload || typeof payload !== 'object') {
     return { ok: false, sent: 0, failed: 0, deactivated: 0 }
@@ -207,7 +221,7 @@ const sendPushToTenant = async ({ tenantId, payload, source = 'unknown' }) => {
     urgencyValue === 'high'
       ? urgencyValue
       : 'high'
-  const topic = String(payload?.tag || payload?.topic || '').trim() || undefined
+  const topic = normalizeWebPushTopic(payload?.topic || payload?.tag)
 
   for (const doc of docs) {
     const subscription = parseSubscription(doc)

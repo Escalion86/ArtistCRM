@@ -10,6 +10,7 @@ import { normalizeOrderPayload, validateOrderReferences } from '../route'
 
 export async function POST(req) {
   const { context, error } = await getPartyRequestContext({
+    req,
     managementOnly: true,
   })
   if (error) return error

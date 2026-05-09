@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import { NextResponse } from 'next/server'
+import getPartyMembershipContext from './getPartyMembershipContext'
 import getPartyTenantContext from './getPartyTenantContext'
 
 export const PARTY_MANAGEMENT_ROLES = Object.freeze(['owner', 'admin'])
@@ -21,10 +22,69 @@ export const partyError = (status, code, message, type = 'server', extra = {}) =
 export const isValidObjectId = (value) =>
   Boolean(value && mongoose.Types.ObjectId.isValid(String(value)))
 
+const getRequestedCompanyId = (req) =>
+  String(req?.headers?.get('x-partycrm-company-id') || '').trim()
+
+const getContextByRequestedCompany = async (req) => {
+  const requestedCompanyId = getRequestedCompanyId(req)
+  if (!requestedCompanyId) return null
+
+  if (!isValidObjectId(requestedCompanyId)) {
+    return {
+      context: null,
+      error: partyError(
+        400,
+        'partycrm_invalid_company_id',
+        'Некорректный id компании',
+        'validation'
+      ),
+    }
+  }
+
+  const membershipContext = await getPartyMembershipContext()
+  const membership = membershipContext.memberships.find(
+    (item) => String(item.tenantId) === requestedCompanyId
+  )
+
+  if (!membership) {
+    return {
+      context: {
+        ...membershipContext,
+        staff: null,
+        company: null,
+        tenantId: null,
+        role: null,
+      },
+      error: partyError(
+        403,
+        'partycrm_company_access_denied',
+        'Нет доступа к выбранной компании',
+        'permission'
+      ),
+    }
+  }
+
+  return {
+    context: {
+      ...membershipContext,
+      staff: membership.staff,
+      company: membership.company,
+      tenantId: membership.tenantId,
+      role: membership.role,
+      activeMembership: membership,
+    },
+    error: null,
+  }
+}
+
 export const getPartyRequestContext = async ({
+  req = null,
   managementOnly = false,
 } = {}) => {
-  const context = await getPartyTenantContext()
+  const requestedContext = await getContextByRequestedCompany(req)
+  if (requestedContext?.error) return requestedContext
+
+  const context = requestedContext?.context || (await getPartyTenantContext())
 
   if (!context.sessionUser?._id) {
     return {

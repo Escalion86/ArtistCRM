@@ -46,13 +46,60 @@ const notifyApiLeadCreated = async ({ tenantId, event, normalizedData }) => {
   return sendPushToTenant({ tenantId, payload, source: 'public_lead' })
 }
 
-const resolvePublicLeadPushEnabled = async ({ tenantId, configured }) => {
-  if (configured === true) return true
-  if (configured === false) {
-    const activeSubscriptions = await countActivePushSubscriptions(tenantId)
-    return activeSubscriptions > 0
+const getPublicLeadPushState = async ({ tenantId, configured }) => {
+  const activeSubscriptions = await countActivePushSubscriptions(tenantId)
+  const enabledBySetting = configured === true
+  const enabledByExistingSubscription =
+    configured === false && activeSubscriptions > 0
+  const enabled = enabledBySetting || enabledByExistingSubscription
+
+  let skippedReason = ''
+  if (!enabled) {
+    skippedReason =
+      activeSubscriptions <= 0 ? 'no_active_subscriptions' : 'disabled'
   }
-  return false
+
+  return {
+    enabled,
+    configured,
+    activeSubscriptions,
+    skippedReason,
+    fallbackUsed: enabledByExistingSubscription,
+  }
+}
+
+const resolvePublicLeadPushEnabled = async ({ tenantId, configured }) => {
+  const state = await getPublicLeadPushState({ tenantId, configured })
+  return state.enabled
+}
+
+const logPublicLeadPushDiagnostic = async ({
+  tenantId,
+  event,
+  stage,
+  status = 'info',
+  message,
+  meta = {},
+}) => {
+  console.info('public lead push diagnostic', {
+    tenantId: String(tenantId || ''),
+    eventId: String(event?._id || ''),
+    stage,
+    status,
+    ...meta,
+  })
+  await logPushDelivery({
+    tenantId,
+    source: 'public_lead',
+    eventType: `diagnostic:${stage}`,
+    status,
+    payloadType: 'api_lead',
+    message,
+    meta: {
+      eventId: String(event?._id || ''),
+      ...meta,
+    },
+  })
 }
 
 const logPublicLeadPushSkipped = async ({
@@ -60,6 +107,8 @@ const logPublicLeadPushSkipped = async ({
   event,
   reason,
   configured,
+  activeSubscriptions,
+  fallbackUsed,
 }) => {
   await logPushDelivery({
     tenantId,
@@ -71,6 +120,8 @@ const logPublicLeadPushSkipped = async ({
     meta: {
       eventId: String(event?._id || ''),
       configured,
+      activeSubscriptions,
+      fallbackUsed,
       reason,
     },
   })
@@ -93,7 +144,9 @@ const logPublicLeadPushError = async ({ tenantId, event, error }) => {
 
 export {
   notifyApiLeadCreated,
+  getPublicLeadPushState,
   resolvePublicLeadPushEnabled,
+  logPublicLeadPushDiagnostic,
   logPublicLeadPushSkipped,
   logPublicLeadPushError,
 }

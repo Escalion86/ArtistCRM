@@ -12,10 +12,11 @@ import {
   upsertPublicLeadClient,
 } from '@server/publicLeadService'
 import {
+  getPublicLeadPushState,
+  logPublicLeadPushDiagnostic,
   logPublicLeadPushError,
   logPublicLeadPushSkipped,
   notifyApiLeadCreated,
-  resolvePublicLeadPushEnabled,
 } from '@server/publicLeadPush'
 
 const CORS_HEADERS = {
@@ -41,9 +42,11 @@ export const POST = async (req) => {
       )
     }
     const tenantId = accessData.tenantId
-    const configuredPushEnabled =
-      readCustomValue(accessData?.siteSettings?.custom, 'publicLeadPushEnabled') ===
-      true
+    const rawPublicLeadPushEnabled = readCustomValue(
+      accessData?.siteSettings?.custom,
+      'publicLeadPushEnabled'
+    )
+    const configuredPushEnabled = rawPublicLeadPushEnabled === true
 
     const name = normalizeText(body?.name || body?.clientName, 120)
     const phone = normalizePhone(body?.phone || body?.clientPhone)
@@ -111,19 +114,35 @@ export const POST = async (req) => {
       apiKeyData: accessData.apiKeyData,
     })
 
-    const pushEnabled = await resolvePublicLeadPushEnabled({
+    const pushState = await getPublicLeadPushState({
       tenantId,
       configured: configuredPushEnabled,
     })
+    await logPublicLeadPushDiagnostic({
+      tenantId,
+      event,
+      stage: 'resolved',
+      message: 'Диагностика push по API-заявке: состояние перед отправкой',
+      meta: {
+        configured: pushState.configured,
+        rawConfigured: rawPublicLeadPushEnabled,
+        activeSubscriptions: pushState.activeSubscriptions,
+        enabled: pushState.enabled,
+        skippedReason: pushState.skippedReason,
+        fallbackUsed: pushState.fallbackUsed,
+        apiKeyName: accessData?.apiKeyData?.name || '',
+        endpoint: 'public_lead',
+      },
+    })
     let pushStatus = {
-      enabled: pushEnabled,
+      enabled: pushState.enabled,
       sent: 0,
       failed: 0,
       deactivated: 0,
-      skippedReason: pushEnabled ? '' : 'disabled',
+      skippedReason: pushState.enabled ? '' : pushState.skippedReason,
     }
 
-    if (pushEnabled) {
+    if (pushState.enabled) {
       try {
         const pushResult = await notifyApiLeadCreated({
           tenantId,
@@ -158,6 +177,21 @@ export const POST = async (req) => {
             deactivated: Number(pushResult?.deactivated || 0),
           })
         }
+        await logPublicLeadPushDiagnostic({
+          tenantId,
+          event,
+          stage: 'result',
+          status: Number(pushStatus.failed || 0) > 0 ? 'partial' : 'ok',
+          message: 'Диагностика push по API-заявке: результат отправки',
+          meta: {
+            sent: pushStatus.sent,
+            failed: pushStatus.failed,
+            deactivated: pushStatus.deactivated,
+            skippedReason: pushStatus.skippedReason,
+            reason: pushStatus.reason || '',
+            endpoint: 'public_lead',
+          },
+        })
       } catch (error) {
         console.error('public lead push notify error', error)
         await logPublicLeadPushError({ tenantId, event, error })
@@ -173,8 +207,10 @@ export const POST = async (req) => {
       await logPublicLeadPushSkipped({
         tenantId,
         event,
-        reason: 'disabled',
+        reason: pushState.skippedReason,
         configured: configuredPushEnabled,
+        activeSubscriptions: pushState.activeSubscriptions,
+        fallbackUsed: pushState.fallbackUsed,
       })
     }
 

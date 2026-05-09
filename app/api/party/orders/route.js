@@ -136,8 +136,8 @@ export const validateOrderReferences = async ({ tenantId, payload }) => {
   return null
 }
 
-export async function GET() {
-  const { context, error } = await getPartyRequestContext()
+export async function GET(req) {
+  const { context, error } = await getPartyRequestContext({ req })
   if (error) return error
 
   const PartyOrders = await getPartyOrderModel()
@@ -154,6 +154,7 @@ export async function GET() {
 
 export async function POST(req) {
   const { context, error } = await getPartyRequestContext({
+    req,
     managementOnly: true,
   })
   if (error) return error
