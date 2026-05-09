@@ -68,24 +68,20 @@ http://localhost:3000/api/party/health
 
 ## Первый tenant PartyCRM
 
-После настройки PartyCRM БД войди обычным способом в ArtistCRM, затем в dev-режиме можно создать первую компанию PartyCRM для текущей сессии:
+После настройки PartyCRM БД войди обычным способом, открой:
+
+```txt
+http://localhost:3000/company
+```
+
+Если для аккаунта еще нет PartyCRM-компании, UI покажет кнопку `Создать компанию`. После нажатия текущий пользователь получит роль `owner`.
+
+Тот же сценарий можно дернуть API-запросом только при наличии активной сессии браузера:
 
 ```bash
 curl -X POST http://localhost:3000/api/party/bootstrap \
   -H "Content-Type: application/json" \
   -d "{\"title\":\"Моя компания\"}"
-```
-
-В production bootstrap разрешен только с отдельным секретом:
-
-```env
-PARTYCRM_BOOTSTRAP_SECRET=...
-```
-
-И заголовком:
-
-```txt
-x-partycrm-bootstrap-secret: ...
 ```
 
 Проверить текущий PartyCRM-доступ:
@@ -96,7 +92,7 @@ http://localhost:3000/api/party/me
 
 ## Первые защищенные API
 
-После bootstrap текущий пользователь получает роль `owner` в PartyCRM tenant.
+После создания компании текущий пользователь получает роль `owner` в PartyCRM tenant.
 
 Точки:
 

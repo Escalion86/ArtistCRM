@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiJson } from '@helpers/apiClient'
 
@@ -43,6 +44,10 @@ const EMPTY_ORDER = {
   assignedStaff: [],
 }
 
+const EMPTY_COMPANY = {
+  title: '',
+}
+
 const getErrorMessage = (error) =>
   error?.message || 'Не удалось выполнить действие'
 
@@ -79,6 +84,71 @@ const formatDateTime = (value) => {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const roleLabels = {
+  owner: 'Владелец',
+  admin: 'Администратор',
+  performer: 'Исполнитель',
+}
+
+const OnboardingChecklist = ({ locations, staff, orders }) => {
+  const checklist = [
+    {
+      title: 'Добавить первую точку',
+      done: locations.length > 0,
+      text: 'Укажите помещения, залы или площадки, которые нужно бронировать.',
+    },
+    {
+      title: 'Добавить сотрудников',
+      done: staff.some((person) => person.role !== 'owner'),
+      text: 'Добавьте администраторов и исполнителей, которых будете назначать на заказы.',
+    },
+    {
+      title: 'Создать первый заказ',
+      done: orders.length > 0,
+      text: 'Проверьте путь от заявки до места, исполнителей, суммы клиента и выплат.',
+    },
+  ]
+  const completed = checklist.filter((item) => item.done).length
+
+  if (completed === checklist.length) return null
+
+  return (
+    <div className="p-5 mt-8 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase text-sky-700">
+            Быстрый старт
+          </p>
+          <h2 className="mt-1 text-xl font-semibold">
+            Настройте рабочее пространство
+          </h2>
+        </div>
+        <span className="text-sm font-medium text-slate-500">
+          {completed} из {checklist.length}
+        </span>
+      </div>
+      <div className="grid gap-3 mt-5 md:grid-cols-3">
+        {checklist.map((item) => (
+          <div
+            key={item.title}
+            className={`p-4 border rounded-md ${
+              item.done
+                ? 'border-emerald-100 bg-emerald-50/70'
+                : 'border-sky-100 bg-sky-50/40'
+            }`}
+          >
+            <p className="font-semibold">
+              {item.done ? 'Готово: ' : ''}
+              {item.title}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 const Field = ({
@@ -125,10 +195,12 @@ export default function CompanyWorkspaceClient() {
   const [locationDraft, setLocationDraft] = useState(EMPTY_LOCATION)
   const [staffDraft, setStaffDraft] = useState(EMPTY_STAFF)
   const [orderDraft, setOrderDraft] = useState(EMPTY_ORDER)
+  const [companyDraft, setCompanyDraft] = useState(EMPTY_COMPANY)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [conflictInfo, setConflictInfo] = useState('')
+  const [accessStatus, setAccessStatus] = useState('loading')
 
   const hasAccess = Boolean(context?.tenantId && context?.staff)
   const canManage = ['owner', 'admin'].includes(context?.role)
@@ -139,6 +211,7 @@ export default function CompanyWorkspaceClient() {
     try {
       const me = await apiJson('/api/party/me', { cache: 'no-store' })
       setContext(me.data)
+      setAccessStatus('ready')
 
       const [locationsResponse, staffResponse, ordersResponse] = await Promise.all([
         apiJson('/api/party/locations', { cache: 'no-store' }),
@@ -149,9 +222,14 @@ export default function CompanyWorkspaceClient() {
       setStaff(staffResponse.data ?? [])
       setOrders(ordersResponse.data ?? [])
     } catch (loadError) {
-      if (loadError.status === 403) {
+      if (loadError.status === 401) {
         setContext(null)
+        setAccessStatus('unauthenticated')
+      } else if (loadError.status === 403) {
+        setContext(null)
+        setAccessStatus('not_configured')
       } else {
+        setAccessStatus('error')
         setError(getErrorMessage(loadError))
       }
     } finally {
@@ -174,11 +252,17 @@ export default function CompanyWorkspaceClient() {
     try {
       await apiJson('/api/party/bootstrap', {
         method: 'POST',
-        body: JSON.stringify({ title: 'Моя компания' }),
+        body: JSON.stringify({
+          title: companyDraft.title.trim() || 'Моя компания',
+        }),
       })
       await loadWorkspace()
     } catch (bootstrapError) {
-      setError(getErrorMessage(bootstrapError))
+      if (bootstrapError.status === 401) {
+        setAccessStatus('unauthenticated')
+      } else {
+        setError(getErrorMessage(bootstrapError))
+      }
     } finally {
       setSaving(false)
     }
@@ -353,7 +437,55 @@ export default function CompanyWorkspaceClient() {
   if (loading) {
     return (
       <section className="max-w-6xl px-5 py-10 mx-auto">
-        <p className="text-sm text-black/60">Загружаем PartyCRM workspace...</p>
+        <p className="text-sm text-black/60">Загружаем кабинет PartyCRM...</p>
+      </section>
+    )
+  }
+
+  if (accessStatus === 'unauthenticated') {
+    return (
+      <section className="max-w-6xl px-5 py-10 mx-auto">
+        <p className="text-sm font-semibold uppercase text-sky-700">
+          Кабинет компании
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold font-futuraPT sm:text-4xl">
+          Сначала войдите в аккаунт
+        </h1>
+        <p className="max-w-2xl mt-4 leading-7 text-black/70">
+          Для создания компании и доступа к PartyCRM нужен аккаунт. После входа
+          вернитесь в кабинет компании и создайте рабочее пространство.
+        </p>
+        {error && (
+          <div className="max-w-2xl p-3 mt-5 text-sm border rounded-md border-danger/30 bg-danger/10 text-danger">
+            {error}
+          </div>
+        )}
+        <Link href="/login" className={`inline-flex mt-6 ${primaryButtonClass}`}>
+          Войти или зарегистрироваться
+        </Link>
+      </section>
+    )
+  }
+
+  if (accessStatus === 'error') {
+    return (
+      <section className="max-w-6xl px-5 py-10 mx-auto">
+        <p className="text-sm font-semibold uppercase text-sky-700">
+          Кабинет компании
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold font-futuraPT sm:text-4xl">
+          Не удалось открыть PartyCRM
+        </h1>
+        <div className="max-w-2xl p-3 mt-5 text-sm border rounded-md border-danger/30 bg-danger/10 text-danger">
+          {error || 'Ошибка загрузки кабинета компании'}
+        </div>
+        <button
+          type="button"
+          onClick={loadWorkspace}
+          className={`mt-6 ${secondaryButtonClass}`}
+        >
+          Повторить
+        </button>
       </section>
     )
   }
@@ -362,28 +494,39 @@ export default function CompanyWorkspaceClient() {
     return (
       <section className="max-w-6xl px-5 py-10 mx-auto">
         <p className="text-sm font-semibold uppercase text-sky-700">
-          Company workspace
+          Первый запуск
         </p>
         <h1 className="mt-3 text-3xl font-semibold font-futuraPT sm:text-4xl">
-          Подключение PartyCRM
+          Создайте рабочее пространство
         </h1>
         <p className="max-w-2xl mt-4 leading-7 text-black/70">
-          Для текущего аккаунта еще не создана компания PartyCRM. В technical
-          preview можно создать первый tenant и owner-запись для текущей сессии.
+          Укажите название компании. После создания вы станете владельцем и
+          сможете добавить помещения, сотрудников и первый заказ.
         </p>
         {error && (
           <div className="max-w-2xl p-3 mt-5 text-sm border rounded-md border-danger/30 bg-danger/10 text-danger">
             {error}
           </div>
         )}
-        <button
-          type="button"
-          disabled={saving}
-          onClick={bootstrapCompany}
-          className={`mt-6 ${primaryButtonClass}`}
+        <form
+          className="grid max-w-xl gap-4 p-5 mt-6 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5"
+          onSubmit={(event) => {
+            event.preventDefault()
+            bootstrapCompany()
+          }}
         >
-          {saving ? 'Создаем...' : 'Создать компанию PartyCRM'}
-        </button>
+          <Field
+            label="Название компании"
+            value={companyDraft.title}
+            placeholder="Например, Веселый праздник"
+            onChange={(value) =>
+              setCompanyDraft((draft) => ({ ...draft, title: value }))
+            }
+          />
+          <button type="submit" disabled={saving} className={primaryButtonClass}>
+            {saving ? 'Создаем...' : 'Создать компанию'}
+          </button>
+        </form>
       </section>
     )
   }
@@ -393,13 +536,13 @@ export default function CompanyWorkspaceClient() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase text-sky-700">
-            Company workspace
+            Кабинет компании
           </p>
           <h1 className="mt-2 text-3xl font-semibold font-futuraPT sm:text-4xl">
             {companyTitle}
           </h1>
           <p className="mt-2 text-sm text-black/60">
-            Роль: {context.role}. Tenant: {context.tenantId}
+            Ваша роль: {roleLabels[context.role] || context.role}
           </p>
         </div>
         <button
@@ -416,6 +559,8 @@ export default function CompanyWorkspaceClient() {
           {error}
         </div>
       )}
+
+      <OnboardingChecklist locations={locations} staff={staff} orders={orders} />
 
       <div className="p-5 mt-8 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
         <div className="flex items-center justify-between gap-3">

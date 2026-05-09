@@ -17,28 +17,7 @@ const normalizeEmail = (email) => {
   return String(email).trim().toLowerCase()
 }
 
-const isBootstrapAllowed = (req) => {
-  if (process.env.NODE_ENV !== 'production') return true
-  const secret = process.env.PARTYCRM_BOOTSTRAP_SECRET || ''
-  const provided = req.headers.get('x-partycrm-bootstrap-secret') || ''
-  return Boolean(secret && provided && secret === provided)
-}
-
 export async function POST(req) {
-  if (!isBootstrapAllowed(req)) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'partycrm_bootstrap_forbidden',
-          type: 'permission',
-          message: 'Bootstrap PartyCRM запрещен',
-        },
-      },
-      { status: 403 }
-    )
-  }
-
   const session = await getServerSession(authOptions)
   const sessionUser = session?.user ?? null
 

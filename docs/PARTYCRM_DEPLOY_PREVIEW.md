@@ -55,10 +55,7 @@ NEXTAUTH_SECRET=...
 PARTYCRM_DOMAIN=partycrm.ru
 PARTYCRM_MONGODB_URI=...
 PARTYCRM_MONGODB_DBNAME=...
-PARTYCRM_BOOTSTRAP_SECRET=...
 ```
-
-`PARTYCRM_BOOTSTRAP_SECRET` нужен только для ручного создания первого tenant в production.
 
 Рекомендуемые auth-переменные для текущей схемы:
 
@@ -146,18 +143,11 @@ https://partycrm.ru/api/party/me
 - `403 partycrm_access_not_configured`, если пользователь есть, но PartyCRM tenant еще не создан;
 - `200`, если пользователь привязан к PartyCRM staff.
 
-## Bootstrap первого tenant
+## Создание первой компании
 
-После входа под нужным аккаунтом:
+Создание компании выполняется из UI: войти в аккаунт, открыть `https://partycrm.ru/company` и нажать `Создать компанию`.
 
-```bash
-curl -X POST https://partycrm.ru/api/party/bootstrap \
-  -H "Content-Type: application/json" \
-  -H "x-partycrm-bootstrap-secret: <PARTYCRM_BOOTSTRAP_SECRET>" \
-  -d "{\"title\":\"Название компании\"}"
-```
-
-После bootstrap:
+После создания:
 
 - создается `PartyCompanies`;
 - создается `PartyStaff` с ролью `owner`;
@@ -180,7 +170,7 @@ PORT=3006 npm run start
 - env-переменные PartyCRM;
 - домен `partycrm.ru` в DNS/reverse proxy/PaaS;
 - SSL-сертификат для `partycrm.ru`;
-- после деплоя выполнить bootstrap первого tenant.
+- после деплоя войти в аккаунт и создать компанию через `/company`.
 
 ## Что не делать на technical preview
 
