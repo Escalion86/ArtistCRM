@@ -126,7 +126,16 @@ POST   /api/party/orders
 GET    /api/party/orders/:id
 PATCH  /api/party/orders/:id
 DELETE /api/party/orders/:id
+POST   /api/party/orders/check-conflicts
 ```
+
+Кабинет исполнителя:
+
+```txt
+GET /api/party/performer/orders
+```
+
+Endpoint возвращает только заказы, назначенные текущему `PartyStaff`, и не отдает клиентскую сумму/предоплату.
 
 Правила доступа:
 
@@ -136,6 +145,8 @@ DELETE /api/party/orders/:id
 - `DELETE` архивирует запись через `status: archived`.
 - Последнего `owner` нельзя удалить или понизить.
 - Заказ может быть без исполнителей, с точкой компании или с выездным адресом.
+- Конфликты проверяются по пересечению интервалов `eventDate` / `dateEnd` для точки и назначенных исполнителей.
+- Кабинет исполнителя не показывает полную клиентскую сумму заказа.
 
 ## Правило изоляции
 

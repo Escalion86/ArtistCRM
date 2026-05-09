@@ -29,6 +29,8 @@ const EMPTY_ORDER = {
     phone: '',
   },
   eventDate: '',
+  durationMinutes: '60',
+  dateEnd: '',
   placeType: 'company_location',
   locationId: '',
   customAddress: '',
@@ -43,6 +45,19 @@ const EMPTY_ORDER = {
 
 const getErrorMessage = (error) =>
   error?.message || 'Не удалось выполнить действие'
+
+const getConflictMessage = (error) => {
+  const conflicts = error?.payload?.conflicts
+  if (!conflicts) return ''
+  const parts = []
+  if (conflicts.locationConflicts?.length) {
+    parts.push(`точка: ${conflicts.locationConflicts.length}`)
+  }
+  if (conflicts.staffConflicts?.length) {
+    parts.push(`исполнители: ${conflicts.staffConflicts.length}`)
+  }
+  return parts.length ? `Конфликты (${parts.join(', ')})` : ''
+}
 
 const formatMoney = (value) =>
   `${Number(value || 0).toLocaleString('ru-RU')} ₽`
@@ -107,6 +122,7 @@ export default function CompanyWorkspaceClient() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [conflictInfo, setConflictInfo] = useState('')
 
   const hasAccess = Boolean(context?.tenantId && context?.staff)
   const canManage = ['owner', 'admin'].includes(context?.role)
@@ -198,19 +214,60 @@ export default function CompanyWorkspaceClient() {
     }
   }
 
+  const buildOrderPayload = () => {
+    const eventDate = orderDraft.eventDate ? new Date(orderDraft.eventDate) : null
+    const durationMinutes = Math.max(15, Number(orderDraft.durationMinutes || 60))
+    const dateEnd =
+      eventDate && !Number.isNaN(eventDate.getTime())
+        ? new Date(eventDate.getTime() + durationMinutes * 60 * 1000)
+        : null
+
+    return {
+      ...orderDraft,
+      dateEnd: dateEnd?.toISOString() ?? '',
+    }
+  }
+
   const addOrder = async (event) => {
     event.preventDefault()
     setSaving(true)
     setError('')
+    setConflictInfo('')
     try {
       const response = await apiJson('/api/party/orders', {
         method: 'POST',
-        body: JSON.stringify(orderDraft),
+        body: JSON.stringify(buildOrderPayload()),
       })
       setOrders((items) => [response.data, ...items])
       setOrderDraft(EMPTY_ORDER)
     } catch (saveError) {
-      setError(getErrorMessage(saveError))
+      setError(getConflictMessage(saveError) || getErrorMessage(saveError))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const checkOrderConflicts = async () => {
+    setSaving(true)
+    setError('')
+    setConflictInfo('')
+    try {
+      const response = await apiJson('/api/party/orders/check-conflicts', {
+        method: 'POST',
+        body: JSON.stringify(buildOrderPayload()),
+      })
+      if (response.data?.hasConflicts) {
+        const conflicts = response.data.conflicts
+        const locationCount = conflicts.locationConflicts?.length || 0
+        const staffCount = conflicts.staffConflicts?.length || 0
+        setConflictInfo(
+          `Есть конфликты: точка ${locationCount}, исполнители ${staffCount}`
+        )
+      } else {
+        setConflictInfo('Конфликтов не найдено')
+      }
+    } catch (checkError) {
+      setError(getErrorMessage(checkError))
     } finally {
       setSaving(false)
     }
@@ -400,6 +457,17 @@ export default function CompanyWorkspaceClient() {
                 }
               />
               <Field
+                label="Длительность, мин"
+                type="number"
+                value={orderDraft.durationMinutes}
+                onChange={(value) =>
+                  setOrderDraft((draft) => ({
+                    ...draft,
+                    durationMinutes: value,
+                  }))
+                }
+              />
+              <Field
                 label="Услуга/программа"
                 value={orderDraft.serviceTitle}
                 onChange={(value) =>
@@ -540,6 +608,19 @@ export default function CompanyWorkspaceClient() {
             >
               Добавить заказ
             </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={checkOrderConflicts}
+              className="cursor-pointer ui-btn ui-btn-secondary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Проверить конфликты
+            </button>
+            {conflictInfo && (
+              <p className="text-sm font-medium text-black/65">
+                {conflictInfo}
+              </p>
+            )}
           </form>
         )}
 

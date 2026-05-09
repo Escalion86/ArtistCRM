@@ -7,6 +7,10 @@ import {
   partyError,
 } from '@server/partyApi'
 import { normalizeOrderPayload, validateOrderReferences } from '../route'
+import {
+  findPartyOrderConflicts,
+  hasPartyOrderConflicts,
+} from '@server/partyOrderConflicts'
 
 const getId = async (params) => {
   const resolved = await params
@@ -65,6 +69,22 @@ export async function PATCH(req, { params }) {
   if (referenceError) return referenceError
 
   const PartyOrders = await getPartyOrderModel()
+  const conflicts = await findPartyOrderConflicts({
+    PartyOrders,
+    tenantId: context.tenantId,
+    payload,
+    excludeOrderId: id,
+  })
+  if (hasPartyOrderConflicts(conflicts)) {
+    return partyError(
+      409,
+      'partycrm_order_conflict',
+      'Найдены пересечения по точке или исполнителю',
+      'validation',
+      { conflicts }
+    )
+  }
+
   const order = await PartyOrders.findOneAndUpdate(
     { _id: id, tenantId: context.tenantId },
     { $set: payload },

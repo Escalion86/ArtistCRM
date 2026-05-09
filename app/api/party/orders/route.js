@@ -10,6 +10,10 @@ import {
   parseJsonBody,
   partyError,
 } from '@server/partyApi'
+import {
+  findPartyOrderConflicts,
+  hasPartyOrderConflicts,
+} from '@server/partyOrderConflicts'
 
 const parseDate = (value) => {
   if (!value) return null
@@ -173,6 +177,21 @@ export async function POST(req) {
   if (referenceError) return referenceError
 
   const PartyOrders = await getPartyOrderModel()
+  const conflicts = await findPartyOrderConflicts({
+    PartyOrders,
+    tenantId: context.tenantId,
+    payload,
+  })
+  if (hasPartyOrderConflicts(conflicts)) {
+    return partyError(
+      409,
+      'partycrm_order_conflict',
+      'Найдены пересечения по точке или исполнителю',
+      'validation',
+      { conflicts }
+    )
+  }
+
   const order = await PartyOrders.create({
     ...payload,
     tenantId: context.tenantId,

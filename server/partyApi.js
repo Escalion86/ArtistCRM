@@ -4,7 +4,7 @@ import getPartyTenantContext from './getPartyTenantContext'
 
 export const PARTY_MANAGEMENT_ROLES = Object.freeze(['owner', 'admin'])
 
-export const partyError = (status, code, message, type = 'server') =>
+export const partyError = (status, code, message, type = 'server', extra = {}) =>
   NextResponse.json(
     {
       success: false,
@@ -13,6 +13,7 @@ export const partyError = (status, code, message, type = 'server') =>
         type,
         message,
       },
+      ...extra,
     },
     { status }
   )
