@@ -79,13 +79,13 @@ export default function PerformerWorkspaceClient() {
 
   return (
     <section className="max-w-5xl px-5 py-10 mx-auto">
-      <p className="text-sm font-semibold uppercase text-general">
+      <p className="text-sm font-semibold uppercase text-sky-700">
         Performer workspace
       </p>
       <h1 className="mt-3 text-3xl font-semibold font-futuraPT sm:text-4xl">
         Кабинет исполнителя
       </h1>
-      <p className="max-w-2xl mt-4 leading-7 text-black/70">
+      <p className="max-w-2xl mt-4 leading-7 text-slate-700">
         Видны только назначенные заказы и сумма выплаты исполнителю. Полная
         клиентская смета здесь не показывается.
       </p>
@@ -96,8 +96,8 @@ export default function PerformerWorkspaceClient() {
         </div>
       )}
 
-      <div className="mt-8 overflow-hidden bg-white border rounded-lg border-black/10">
-        <div className="grid gap-px bg-black/10 sm:grid-cols-3">
+      <div className="mt-8 overflow-hidden bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
+        <div className="grid gap-px bg-sky-100 sm:grid-cols-3">
           {[
             ['Компания', context?.company?.title || 'PartyCRM'],
             ['Назначено', `${orders.length} заказов`],
@@ -113,14 +113,14 @@ export default function PerformerWorkspaceClient() {
 
       <div className="grid gap-3 mt-6">
         {orders.length === 0 && (
-          <div className="p-5 bg-white border rounded-lg border-black/10">
+          <div className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
             <p className="text-sm text-black/60">
               Назначенных заказов пока нет.
             </p>
           </div>
         )}
         {orders.map((order) => (
-          <div key={order._id} className="p-5 bg-white border rounded-lg border-black/10">
+          <div key={order._id} className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-lg font-semibold">{order.title}</p>

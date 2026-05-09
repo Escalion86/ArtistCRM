@@ -23,6 +23,12 @@ export function proxy(request) {
     return NextResponse.rewrite(rewriteUrl)
   }
 
+  if (partyHost && host === partyHost && url.pathname === '/manifest.json') {
+    const rewriteUrl = url.clone()
+    rewriteUrl.pathname = '/party-manifest.json'
+    return NextResponse.rewrite(rewriteUrl)
+  }
+
   const isProductionHost = host === PRODUCTION_HOST || LEGACY_HOSTS.has(host)
   if (!isProductionHost) return NextResponse.next()
 
@@ -40,6 +46,6 @@ export function proxy(request) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-.*|worker-.*|icons|img).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|sw.js|workbox-.*|worker-.*|icons|img).*)',
   ],
 }

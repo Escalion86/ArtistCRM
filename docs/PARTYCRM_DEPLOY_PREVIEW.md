@@ -81,6 +81,7 @@ partycrm.ru  -> http://127.0.0.1:3006
 ```
 
 Внутри приложения `proxy.js` переписывает корень `partycrm.ru/` на `/party`.
+Для PWA `partycrm.ru/manifest.json` также переписывается на отдельный `PartyCRM` manifest, чтобы браузер не предлагал установить приложение как `ArtistCRM`.
 
 Готовый HTTP-only nginx-конфиг без сертификатов лежит в:
 
@@ -114,7 +115,15 @@ https://artistcrm.ru/cabinet
 https://partycrm.ru
 ```
 
-3. PartyCRM DB health:
+3. PartyCRM PWA manifest:
+
+```txt
+https://partycrm.ru/manifest.json
+```
+
+Ожидаемо: в JSON указаны `name` и `short_name` со значением `PartyCRM`.
+
+4. PartyCRM DB health:
 
 ```txt
 https://partycrm.ru/api/party/health
@@ -125,7 +134,7 @@ https://partycrm.ru/api/party/health
 - `200`, если PartyCRM DB настроена и доступна;
 - `503 partycrm_db_unavailable`, если env/БД не настроены.
 
-4. PartyCRM текущий доступ:
+5. PartyCRM текущий доступ:
 
 ```txt
 https://partycrm.ru/api/party/me
@@ -163,6 +172,8 @@ npm install
 npm run build
 PORT=3006 npm run start
 ```
+
+Сборка не использует `output: 'standalone'`: deploy идет обычным `next start` из проекта с установленными `node_modules`. Это уменьшает лишний tracing/copy-слой при production build.
 
 Нужно добавить только:
 

@@ -59,6 +59,12 @@ const getConflictMessage = (error) => {
   return parts.length ? `Конфликты (${parts.join(', ')})` : ''
 }
 
+const primaryButtonClass =
+  'px-4 py-2 text-sm font-semibold text-white transition-colors rounded-md cursor-pointer bg-sky-600 hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60'
+
+const secondaryButtonClass =
+  'px-4 py-2 text-sm font-semibold transition-colors bg-white border rounded-md cursor-pointer text-sky-700 border-sky-200 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60'
+
 const formatMoney = (value) =>
   `${Number(value || 0).toLocaleString('ru-RU')} ₽`
 
@@ -89,7 +95,7 @@ const Field = ({
       value={value}
       placeholder={placeholder}
       onChange={(event) => onChange(event.target.value)}
-      className="h-10 px-3 bg-white border rounded-md outline-none border-black/15 focus:border-general"
+      className="h-10 px-3 bg-white border rounded-md outline-none border-sky-100 focus:border-sky-500"
     />
   </label>
 )
@@ -100,7 +106,7 @@ const SelectField = ({ label, value, onChange, options }) => (
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-10 px-3 bg-white border rounded-md outline-none cursor-pointer border-black/15 focus:border-general"
+      className="h-10 px-3 bg-white border rounded-md outline-none cursor-pointer border-sky-100 focus:border-sky-500"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>
@@ -355,7 +361,7 @@ export default function CompanyWorkspaceClient() {
   if (!hasAccess) {
     return (
       <section className="max-w-6xl px-5 py-10 mx-auto">
-        <p className="text-sm font-semibold uppercase text-general">
+        <p className="text-sm font-semibold uppercase text-sky-700">
           Company workspace
         </p>
         <h1 className="mt-3 text-3xl font-semibold font-futuraPT sm:text-4xl">
@@ -374,7 +380,7 @@ export default function CompanyWorkspaceClient() {
           type="button"
           disabled={saving}
           onClick={bootstrapCompany}
-          className="mt-6 cursor-pointer ui-btn ui-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+          className={`mt-6 ${primaryButtonClass}`}
         >
           {saving ? 'Создаем...' : 'Создать компанию PartyCRM'}
         </button>
@@ -386,7 +392,7 @@ export default function CompanyWorkspaceClient() {
     <section className="max-w-6xl px-5 py-8 mx-auto">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase text-general">
+          <p className="text-sm font-semibold uppercase text-sky-700">
             Company workspace
           </p>
           <h1 className="mt-2 text-3xl font-semibold font-futuraPT sm:text-4xl">
@@ -399,7 +405,7 @@ export default function CompanyWorkspaceClient() {
         <button
           type="button"
           onClick={loadWorkspace}
-          className="cursor-pointer ui-btn ui-btn-secondary"
+          className={secondaryButtonClass}
         >
           Обновить
         </button>
@@ -411,7 +417,7 @@ export default function CompanyWorkspaceClient() {
         </div>
       )}
 
-      <div className="p-5 mt-8 bg-white border rounded-lg border-black/10">
+      <div className="p-5 mt-8 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xl font-semibold">Заказы</h2>
           <span className="text-sm text-black/55">{orders.length}</span>
@@ -566,7 +572,7 @@ export default function CompanyWorkspaceClient() {
                     return (
                       <div
                         key={person._id}
-                        className="grid gap-2 p-3 border rounded-md border-black/10"
+                        className="grid gap-2 p-3 border rounded-md border-sky-100 bg-sky-50/35"
                       >
                         <label className="flex items-center gap-2 text-sm cursor-pointer">
                           <input
@@ -604,7 +610,7 @@ export default function CompanyWorkspaceClient() {
             <button
               type="submit"
               disabled={saving}
-              className="cursor-pointer ui-btn ui-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+              className={primaryButtonClass}
             >
               Добавить заказ
             </button>
@@ -612,7 +618,7 @@ export default function CompanyWorkspaceClient() {
               type="button"
               disabled={saving}
               onClick={checkOrderConflicts}
-              className="cursor-pointer ui-btn ui-btn-secondary disabled:cursor-not-allowed disabled:opacity-60"
+              className={secondaryButtonClass}
             >
               Проверить конфликты
             </button>
@@ -637,7 +643,7 @@ export default function CompanyWorkspaceClient() {
               0
             )
             return (
-              <div key={order._id} className="p-4 border rounded-md border-black/10">
+              <div key={order._id} className="p-4 border rounded-md border-sky-100">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p className="font-semibold">
@@ -677,7 +683,7 @@ export default function CompanyWorkspaceClient() {
       </div>
 
       <div className="grid gap-5 mt-5 lg:grid-cols-2">
-        <div className="p-5 bg-white border rounded-lg border-black/10">
+        <div className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Точки</h2>
             <span className="text-sm text-black/55">{locations.length}</span>
@@ -738,7 +744,7 @@ export default function CompanyWorkspaceClient() {
               <button
                 type="submit"
                 disabled={saving}
-                className="cursor-pointer ui-btn ui-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className={primaryButtonClass}
               >
                 Добавить точку
               </button>
@@ -752,7 +758,7 @@ export default function CompanyWorkspaceClient() {
             {locations.map((location) => (
               <div
                 key={location._id}
-                className="p-4 border rounded-md border-black/10"
+                className="p-4 border rounded-md border-sky-100"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -783,7 +789,7 @@ export default function CompanyWorkspaceClient() {
           </div>
         </div>
 
-        <div className="p-5 bg-white border rounded-lg border-black/10">
+        <div className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Сотрудники</h2>
             <span className="text-sm text-black/55">{staff.length}</span>
@@ -837,7 +843,7 @@ export default function CompanyWorkspaceClient() {
               <button
                 type="submit"
                 disabled={saving}
-                className="cursor-pointer ui-btn ui-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className={primaryButtonClass}
               >
                 Добавить сотрудника
               </button>
@@ -851,7 +857,7 @@ export default function CompanyWorkspaceClient() {
               </p>
             )}
             {staff.map((person) => (
-              <div key={person._id} className="p-4 border rounded-md border-black/10">
+              <div key={person._id} className="p-4 border rounded-md border-sky-100">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold">
