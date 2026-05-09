@@ -17,19 +17,54 @@ const normalizeEmail = (email) => {
   return String(email).trim().toLowerCase()
 }
 
+const normalizeText = (value, maxLength = 160) =>
+  typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
+
 const pickStaffPatch = (body) => {
   const patch = {}
 
-  if (typeof body.authUserId === 'string') patch.authUserId = body.authUserId.trim()
-  if (typeof body.firstName === 'string') patch.firstName = body.firstName.trim()
+  if (typeof body.authUserId === 'string') {
+    patch.authUserId = normalizeText(body.authUserId)
+  }
+  if (typeof body.linkedAuthUserId === 'string') {
+    patch.linkedAuthUserId = normalizeText(body.linkedAuthUserId)
+  }
+  if (typeof body.firstName === 'string') {
+    patch.firstName = normalizeText(body.firstName, 100)
+  }
   if (typeof body.secondName === 'string') {
-    patch.secondName = body.secondName.trim()
+    patch.secondName = normalizeText(body.secondName, 100)
   }
   if (body.phone !== undefined) patch.phone = normalizePhone(body.phone)
   if (body.email !== undefined) patch.email = normalizeEmail(body.email)
+  if (
+    [
+      '',
+      'animator',
+      'magician',
+      'host',
+      'photographer',
+      'workshop',
+      'other',
+    ].includes(body.specialization)
+  ) {
+    patch.specialization = body.specialization
+  }
+  if (typeof body.description === 'string') {
+    patch.description = normalizeText(body.description, 1000)
+  }
   if (['owner', 'admin', 'performer'].includes(body.role)) patch.role = body.role
   if (['active', 'invited', 'paused', 'archived'].includes(body.status)) {
     patch.status = body.status
+  }
+  if (['unlinked', 'link_requested', 'linked', 'rejected'].includes(body.linkStatus)) {
+    patch.linkStatus = body.linkStatus
+  }
+  if (body.linkRequestedAt !== undefined) {
+    patch.linkRequestedAt = body.linkRequestedAt ? new Date(body.linkRequestedAt) : null
+  }
+  if (body.linkConfirmedAt !== undefined) {
+    patch.linkConfirmedAt = body.linkConfirmedAt ? new Date(body.linkConfirmedAt) : null
   }
   if (typeof body.visibleToPerformer === 'boolean') {
     patch.visibleToPerformer = body.visibleToPerformer

@@ -13,6 +13,12 @@ const partyStaffSchema = {
     default: '',
     index: true,
   },
+  linkedAuthUserId: {
+    type: String,
+    trim: true,
+    default: '',
+    index: true,
+  },
   firstName: {
     type: String,
     trim: true,
@@ -38,6 +44,18 @@ const partyStaffSchema = {
     default: '',
     maxlength: 160,
   },
+  specialization: {
+    type: String,
+    enum: ['', 'animator', 'magician', 'host', 'photographer', 'workshop', 'other'],
+    default: '',
+    index: true,
+  },
+  description: {
+    type: String,
+    trim: true,
+    default: '',
+    maxlength: 1000,
+  },
   role: {
     type: String,
     enum: ['owner', 'admin', 'performer'],
@@ -52,6 +70,20 @@ const partyStaffSchema = {
   visibleToPerformer: {
     type: Boolean,
     default: true,
+  },
+  linkStatus: {
+    type: String,
+    enum: ['unlinked', 'link_requested', 'linked', 'rejected'],
+    default: 'unlinked',
+    index: true,
+  },
+  linkRequestedAt: {
+    type: Date,
+    default: null,
+  },
+  linkConfirmedAt: {
+    type: Date,
+    default: null,
   },
   lastLoginAt: {
     type: Date,

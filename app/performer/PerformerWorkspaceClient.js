@@ -47,21 +47,19 @@ const getAddressText = (order) => {
 }
 
 export default function PerformerWorkspaceClient() {
-  const [context, setContext] = useState(null)
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [savingOrderId, setSavingOrderId] = useState('')
   const [error, setError] = useState('')
+  const [companyFilter, setCompanyFilter] = useState('all')
 
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const [me, ordersResponse] = await Promise.all([
-        apiJson('/api/party/me', { cache: 'no-store' }),
-        apiJson('/api/party/performer/orders', { cache: 'no-store' }),
-      ])
-      setContext(me.data)
+      const ordersResponse = await apiJson('/api/party/performer/orders', {
+        cache: 'no-store',
+      })
       setOrders(ordersResponse.data ?? [])
     } catch (loadError) {
       setError(loadError.message || 'Не удалось загрузить кабинет исполнителя')
@@ -74,29 +72,50 @@ export default function PerformerWorkspaceClient() {
     loadData()
   }, [loadData])
 
+  const companyOptions = useMemo(() => {
+    const companies = new Map()
+    orders.forEach((order) => {
+      if (!order.companyId) return
+      companies.set(order.companyId, order.companyTitle || 'Компания')
+    })
+    return [...companies.entries()].map(([companyId, title]) => ({
+      companyId,
+      title,
+    }))
+  }, [orders])
+
+  const filteredOrders = useMemo(() => {
+    if (companyFilter === 'all') return orders
+    return orders.filter((order) => order.companyId === companyFilter)
+  }, [companyFilter, orders])
+
   const payoutTotal = useMemo(
     () =>
-      orders.reduce(
+      filteredOrders.reduce(
         (sum, order) => sum + Number(order.assignment?.payoutAmount || 0),
         0
       ),
-    [orders]
+    [filteredOrders]
   )
 
-  const updateConfirmationStatus = async (orderId, confirmationStatus) => {
-    setSavingOrderId(orderId)
+  const updateConfirmationStatus = async ({
+    orderId,
+    staffId,
+    confirmationStatus,
+  }) => {
+    setSavingOrderId(`${orderId}:${staffId}`)
     setError('')
     try {
       const response = await apiJson(
         `/api/party/performer/orders/${orderId}/status`,
         {
           method: 'PATCH',
-          body: JSON.stringify({ confirmationStatus }),
+          body: JSON.stringify({ staffId, confirmationStatus }),
         }
       )
       setOrders((items) =>
         items.map((order) =>
-          order._id === orderId
+          order._id === orderId && order.staffId === staffId
             ? {
                 ...order,
                 assignment: {
@@ -144,8 +163,8 @@ export default function PerformerWorkspaceClient() {
       <div className="mt-8 overflow-hidden bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
         <div className="grid gap-px bg-sky-100 sm:grid-cols-3">
           {[
-            ['Компания', context?.company?.title || 'PartyCRM'],
-            ['Назначено', `${orders.length} заказов`],
+            ['Компаний', `${companyOptions.length || 0}`],
+            ['Назначено', `${filteredOrders.length} заказов`],
             ['К выплате', formatMoney(payoutTotal)],
           ].map(([title, value]) => (
             <div key={title} className="p-5 bg-white">
@@ -156,6 +175,26 @@ export default function PerformerWorkspaceClient() {
         </div>
       </div>
 
+      {companyOptions.length > 1 && (
+        <div className="mt-5">
+          <label className="grid max-w-sm gap-1 text-sm">
+            <span className="font-medium text-black/65">Компания</span>
+            <select
+              value={companyFilter}
+              onChange={(event) => setCompanyFilter(event.target.value)}
+              className="h-10 px-3 bg-white border rounded-md outline-none cursor-pointer border-sky-100 focus:border-sky-500"
+            >
+              <option value="all">Все компании</option>
+              {companyOptions.map((company) => (
+                <option key={company.companyId} value={company.companyId}>
+                  {company.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+
       <div className="grid gap-3 mt-6">
         {orders.length === 0 && (
           <div className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
@@ -164,17 +203,28 @@ export default function PerformerWorkspaceClient() {
             </p>
           </div>
         )}
-        {orders.map((order) => {
+        {orders.length > 0 && filteredOrders.length === 0 && (
+          <div className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
+            <p className="text-sm text-black/60">
+              В выбранной компании назначенных заказов нет.
+            </p>
+          </div>
+        )}
+        {filteredOrders.map((order) => {
           const confirmationStatus =
             order.assignment?.confirmationStatus || 'pending'
-          const isSaving = savingOrderId === order._id
+          const orderKey = `${order._id}:${order.staffId}`
+          const isSaving = savingOrderId === orderKey
           return (
             <div
-              key={order._id}
+              key={orderKey}
               className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
+                  <p className="text-sm font-semibold text-sky-700">
+                    {order.companyTitle || 'Компания'}
+                  </p>
                   <p className="text-lg font-semibold">{order.title}</p>
                   <p className="mt-1 text-sm text-black/60">
                     {formatDateTime(order.eventDate)}
@@ -206,7 +256,11 @@ export default function PerformerWorkspaceClient() {
                         type="button"
                         disabled={isSaving}
                         onClick={() =>
-                          updateConfirmationStatus(order._id, 'confirmed')
+                          updateConfirmationStatus({
+                            orderId: order._id,
+                            staffId: order.staffId,
+                            confirmationStatus: 'confirmed',
+                          })
                         }
                         className={primaryButtonClass}
                       >
@@ -218,7 +272,11 @@ export default function PerformerWorkspaceClient() {
                         type="button"
                         disabled={isSaving}
                         onClick={() =>
-                          updateConfirmationStatus(order._id, 'done')
+                          updateConfirmationStatus({
+                            orderId: order._id,
+                            staffId: order.staffId,
+                            confirmationStatus: 'done',
+                          })
                         }
                         className={secondaryButtonClass}
                       >

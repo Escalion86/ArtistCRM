@@ -176,7 +176,7 @@ const createTochkaPayment = async ({
       purpose: String(description || 'Оплата ArtistCRM').slice(0, 140),
       redirectUrl: returnUrl || config.returnUrl,
       failRedirectUrl: returnUrl || config.returnUrl,
-      paymentMode: ['sbp', 'card'],
+      paymentMode: ['sbp'],
       merchantId: config.merchantId,
       ttl: Number(process.env.TOCHKA_PAYMENT_TTL || 1440),
       taxSystemCode,

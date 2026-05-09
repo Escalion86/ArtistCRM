@@ -20,6 +20,8 @@ const EMPTY_STAFF = {
   secondName: '',
   phone: '',
   email: '',
+  specialization: '',
+  description: '',
   role: 'performer',
 }
 
@@ -109,6 +111,25 @@ const roleLabels = {
   admin: 'Администратор',
   performer: 'Исполнитель',
 }
+
+const specializationLabels = {
+  animator: 'Аниматор',
+  magician: 'Фокусник',
+  host: 'Ведущий',
+  photographer: 'Фотограф',
+  workshop: 'Мастер-класс',
+  other: 'Другое',
+}
+
+const specializationOptions = [
+  { value: '', label: 'Не указана' },
+  { value: 'animator', label: specializationLabels.animator },
+  { value: 'magician', label: specializationLabels.magician },
+  { value: 'host', label: specializationLabels.host },
+  { value: 'photographer', label: specializationLabels.photographer },
+  { value: 'workshop', label: specializationLabels.workshop },
+  { value: 'other', label: specializationLabels.other },
+]
 
 const paymentStatusLabels = {
   none: 'Не задано',
@@ -338,6 +359,19 @@ const SelectField = ({ label, value, onChange, options }) => (
   </label>
 )
 
+const TextareaField = ({ label, value, onChange, placeholder = '' }) => (
+  <label className="grid gap-1 text-sm">
+    <span className="font-medium text-black/65">{label}</span>
+    <textarea
+      value={value}
+      placeholder={placeholder}
+      onChange={(event) => onChange(event.target.value)}
+      rows={3}
+      className="px-3 py-2 bg-white border rounded-md outline-none resize-y border-sky-100 focus:border-sky-500"
+    />
+  </label>
+)
+
 const buildCompanyRequestOptions = (companyId, options = {}) => ({
   ...options,
   headers: {
@@ -357,6 +391,8 @@ export default function CompanyWorkspaceClient() {
   const [staffDraft, setStaffDraft] = useState(EMPTY_STAFF)
   const [orderDraft, setOrderDraft] = useState(EMPTY_ORDER)
   const [companyDraft, setCompanyDraft] = useState(EMPTY_COMPANY)
+  const [newCompanyTitle, setNewCompanyTitle] = useState('')
+  const [showCreateCompany, setShowCreateCompany] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -564,6 +600,28 @@ export default function CompanyWorkspaceClient() {
       } else {
         setError(getErrorMessage(bootstrapError))
       }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const createCompany = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const response = await apiJson('/api/party/companies', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: newCompanyTitle.trim() || 'Новая компания',
+        }),
+      })
+      const createdCompanyId = response.data?.tenantId || ''
+      setNewCompanyTitle('')
+      setShowCreateCompany(false)
+      await loadWorkspace(createdCompanyId)
+    } catch (createError) {
+      setError(getErrorMessage(createError))
     } finally {
       setSaving(false)
     }
@@ -1042,15 +1100,41 @@ export default function CompanyWorkspaceClient() {
               </select>
             </label>
           )}
-          <button
-            type="button"
-            onClick={() => loadWorkspace(activeCompanyId)}
-            className={secondaryButtonClass}
-          >
-            Обновить
-          </button>
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setShowCreateCompany((value) => !value)}
+              className={secondaryButtonClass}
+            >
+              {showCreateCompany ? 'Скрыть создание' : 'Создать компанию'}
+            </button>
+            <button
+              type="button"
+              onClick={() => loadWorkspace(activeCompanyId)}
+              className={secondaryButtonClass}
+            >
+              Обновить
+            </button>
+          </div>
         </div>
       </div>
+
+      {showCreateCompany && (
+        <form
+          onSubmit={createCompany}
+          className="grid max-w-xl gap-3 p-4 mt-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5 sm:grid-cols-[1fr_auto] sm:items-end"
+        >
+          <Field
+            label="Новая компания"
+            value={newCompanyTitle}
+            placeholder="Например, PartyCRM Красноярск"
+            onChange={setNewCompanyTitle}
+          />
+          <button type="submit" disabled={saving} className={primaryButtonClass}>
+            {saving ? 'Создаем...' : 'Создать'}
+          </button>
+        </form>
+      )}
 
       {error && (
         <div className="p-3 mt-5 text-sm border rounded-md border-danger/30 bg-danger/10 text-danger">
@@ -1507,6 +1591,11 @@ export default function CompanyWorkspaceClient() {
 
           {canManage && (
             <form onSubmit={addStaff} className="grid gap-3 mt-5">
+              <p className="text-sm leading-6 text-slate-500">
+                Карточка без привязанного аккаунта считается подрядчиком. Для
+                такой карточки нужны имя и телефон; пригласить в систему можно
+                будет следующим шагом.
+              </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field
                   label="Имя"
@@ -1538,17 +1627,38 @@ export default function CompanyWorkspaceClient() {
                   }
                 />
               </div>
-              <SelectField
-                label="Роль"
-                value={staffDraft.role}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <SelectField
+                  label="Роль"
+                  value={staffDraft.role}
+                  onChange={(value) =>
+                    setStaffDraft((draft) => ({ ...draft, role: value }))
+                  }
+                  options={[
+                    { value: 'performer', label: 'Исполнитель' },
+                    { value: 'admin', label: 'Администратор' },
+                    { value: 'owner', label: 'Владелец' },
+                  ]}
+                />
+                <SelectField
+                  label="Специализация"
+                  value={staffDraft.specialization}
+                  onChange={(value) =>
+                    setStaffDraft((draft) => ({
+                      ...draft,
+                      specialization: value,
+                    }))
+                  }
+                  options={specializationOptions}
+                />
+              </div>
+              <TextareaField
+                label="Описание"
+                value={staffDraft.description}
+                placeholder="Например, работает с детьми 4-8 лет, ведет бумажное шоу и квесты"
                 onChange={(value) =>
-                  setStaffDraft((draft) => ({ ...draft, role: value }))
+                  setStaffDraft((draft) => ({ ...draft, description: value }))
                 }
-                options={[
-                  { value: 'performer', label: 'Исполнитель' },
-                  { value: 'admin', label: 'Администратор' },
-                  { value: 'owner', label: 'Владелец' },
-                ]}
               />
               <button
                 type="submit"
@@ -1580,6 +1690,24 @@ export default function CompanyWorkspaceClient() {
                       {roleLabels[person.role] || person.role} · {[person.phone, person.email].filter(Boolean).join(' · ') ||
                         'контакты не указаны'}
                     </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {!person.authUserId && (
+                        <span className="px-2 py-1 text-xs font-semibold rounded bg-amber-100 text-amber-700">
+                          Подрядчик без аккаунта
+                        </span>
+                      )}
+                      {person.specialization && (
+                        <span className="px-2 py-1 text-xs font-semibold rounded bg-sky-50 text-sky-700">
+                          {specializationLabels[person.specialization] ||
+                            person.specialization}
+                        </span>
+                      )}
+                    </div>
+                    {person.description && (
+                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                        {person.description}
+                      </p>
+                    )}
                   </div>
                   {canManage && (
                     <button

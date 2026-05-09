@@ -1,17 +1,30 @@
 import { NextResponse } from 'next/server'
 import { getPartyLocationModel, getPartyOrderModel } from '@server/partyModels'
-import { getPartyRequestContext } from '@server/partyApi'
+import getPartyMembershipContext from '@server/getPartyMembershipContext'
 
-const sanitizeOrderForPerformer = (order, staffId, locationsById) => {
+const sanitizeOrderForPerformer = ({
+  order,
+  membership,
+  locationsById,
+}) => {
+  const staffId = String(membership.staffId)
   const assignment = (order.assignedStaff ?? []).find(
     (item) => String(item.staffId) === staffId
   )
-  const location = order.locationId
-    ? locationsById.get(String(order.locationId))
+  const locationKey = order.locationId
+    ? `${String(order.tenantId)}:${String(order.locationId)}`
+    : ''
+  const location = locationKey
+    ? locationsById.get(locationKey)
     : null
 
   return {
     _id: String(order._id),
+    tenantId: String(order.tenantId),
+    staffId,
+    companyId: membership.tenantId,
+    companyTitle: membership.company?.title || 'Компания',
+    companyRole: membership.role,
     title: order.title || order.serviceTitle || 'Заказ',
     status: order.status,
     eventDate: order.eventDate,
@@ -43,38 +56,91 @@ const sanitizeOrderForPerformer = (order, staffId, locationsById) => {
 }
 
 export async function GET() {
-  const { context, error } = await getPartyRequestContext()
-  if (error) return error
+  const { sessionUser, memberships } = await getPartyMembershipContext()
 
-  const staffId = String(context.staff._id)
+  if (!sessionUser?._id) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'unauthorized',
+          type: 'auth',
+          message: 'Не авторизован',
+        },
+      },
+      { status: 401 }
+    )
+  }
+
+  const activeMemberships = memberships.filter(
+    (membership) => membership.status !== 'archived'
+  )
+
+  if (activeMemberships.length === 0) {
+    return NextResponse.json({ success: true, data: [] })
+  }
+
   const PartyOrders = await getPartyOrderModel()
   const orders = await PartyOrders.find({
-    tenantId: context.tenantId,
     status: { $nin: ['canceled', 'closed'] },
-    'assignedStaff.staffId': staffId,
+    $or: activeMemberships.map((membership) => ({
+      tenantId: membership.tenantId,
+      'assignedStaff.staffId': String(membership.staffId),
+    })),
   })
     .sort({ eventDate: 1, createdAt: -1 })
     .limit(120)
     .lean()
 
-  const locationIds = [
-    ...new Set(orders.map((order) => String(order.locationId || '')).filter(Boolean)),
+  const locationPairs = orders
+    .map((order) => ({
+      tenantId: String(order.tenantId),
+      locationId: String(order.locationId || ''),
+    }))
+    .filter((pair) => pair.locationId)
+  const locationFilters = [
+    ...new Map(
+      locationPairs.map((pair) => [
+        `${pair.tenantId}:${pair.locationId}`,
+        pair,
+      ])
+    ).values(),
   ]
   const PartyLocations = await getPartyLocationModel()
-  const locations = locationIds.length
+  const locations = locationFilters.length
     ? await PartyLocations.find({
-        _id: { $in: locationIds },
-        tenantId: context.tenantId,
+        $or: locationFilters.map((pair) => ({
+          _id: pair.locationId,
+          tenantId: pair.tenantId,
+        })),
       }).lean()
     : []
   const locationsById = new Map(
-    locations.map((location) => [String(location._id), location])
+    locations.map((location) => [
+      `${String(location.tenantId)}:${String(location._id)}`,
+      location,
+    ])
+  )
+  const membershipsByStaffId = new Map(
+    activeMemberships.map((membership) => [
+      String(membership.staffId),
+      membership,
+    ])
   )
 
   return NextResponse.json({
     success: true,
-    data: orders.map((order) =>
-      sanitizeOrderForPerformer(order, staffId, locationsById)
-    ),
+    data: orders
+      .map((order) => {
+        const assignment = (order.assignedStaff ?? []).find((item) =>
+          membershipsByStaffId.has(String(item.staffId))
+        )
+        const membership = assignment
+          ? membershipsByStaffId.get(String(assignment.staffId))
+          : null
+        if (!membership) return null
+        return sanitizeOrderForPerformer({ order, membership, locationsById })
+      })
+      .filter(Boolean),
   })
 }

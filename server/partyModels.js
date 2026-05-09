@@ -34,6 +34,8 @@ export const getPartyStaffModel = () =>
       schema.index({ tenantId: 1, role: 1, status: 1 })
       schema.index({ tenantId: 1, phone: 1 })
       schema.index({ tenantId: 1, email: 1 })
+      schema.index({ tenantId: 1, specialization: 1, status: 1 })
+      schema.index({ tenantId: 1, linkStatus: 1 })
     },
   })
 
