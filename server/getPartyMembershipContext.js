@@ -1,5 +1,4 @@
-import { getServerSession } from 'next-auth'
-import authOptions from '../app/api/auth/[...nextauth]/_options'
+import { getPartySessionUser } from './partyAuth'
 import { getPartyCompanyModel, getPartyStaffModel } from './partyModels'
 
 const rolePriority = {
@@ -47,13 +46,12 @@ const buildMembership = (staff, company) => {
 }
 
 const getPartyMembershipContext = async () => {
-  const session = await getServerSession(authOptions)
-  const sessionUser = session?.user ?? null
+  const sessionUser = await getPartySessionUser()
   const authUserId = sessionUser?._id ? String(sessionUser._id) : ''
 
   if (!authUserId) {
     return {
-      session,
+      session: null,
       sessionUser,
       memberships: [],
     }
@@ -92,7 +90,7 @@ const getPartyMembershipContext = async () => {
     })
 
   return {
-    session,
+    session: sessionUser ? { user: sessionUser } : null,
     sessionUser,
     memberships,
   }

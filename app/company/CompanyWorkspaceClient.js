@@ -841,7 +841,7 @@ export default function CompanyWorkspaceClient() {
           </div>
         )}
         <Link
-          href="/login?callbackUrl=/company"
+          href="/party/login?callbackUrl=/company"
           className={`inline-flex mt-6 ${primaryButtonClass}`}
         >
           Войти или зарегистрироваться

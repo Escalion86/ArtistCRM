@@ -26,6 +26,14 @@ const confirmationLabels = {
   done: 'Выполнено',
 }
 
+const statusFilters = [
+  { value: 'all', label: 'Все' },
+  { value: 'pending', label: 'Ожидают' },
+  { value: 'confirmed', label: 'Подтверждены' },
+  { value: 'done', label: 'Выполнены' },
+  { value: 'declined', label: 'Отклонены' },
+]
+
 const primaryButtonClass =
   'px-4 py-2 text-sm font-semibold text-white transition-colors rounded-md cursor-pointer bg-sky-600 hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60'
 
@@ -52,6 +60,7 @@ export default function PerformerWorkspaceClient() {
   const [savingOrderId, setSavingOrderId] = useState('')
   const [error, setError] = useState('')
   const [companyFilter, setCompanyFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -84,10 +93,31 @@ export default function PerformerWorkspaceClient() {
     }))
   }, [orders])
 
-  const filteredOrders = useMemo(() => {
+  const companyFilteredOrders = useMemo(() => {
     if (companyFilter === 'all') return orders
     return orders.filter((order) => order.companyId === companyFilter)
   }, [companyFilter, orders])
+
+  const statusFilterCounts = useMemo(() => {
+    const counts = statusFilters.reduce(
+      (result, filter) => ({ ...result, [filter.value]: 0 }),
+      {}
+    )
+    counts.all = companyFilteredOrders.length
+    companyFilteredOrders.forEach((order) => {
+      const status = order.assignment?.confirmationStatus || 'pending'
+      counts[status] = (counts[status] || 0) + 1
+    })
+    return counts
+  }, [companyFilteredOrders])
+
+  const filteredOrders = useMemo(() => {
+    if (statusFilter === 'all') return companyFilteredOrders
+    return companyFilteredOrders.filter(
+      (order) =>
+        (order.assignment?.confirmationStatus || 'pending') === statusFilter
+    )
+  }, [companyFilteredOrders, statusFilter])
 
   const payoutTotal = useMemo(
     () =>
@@ -195,6 +225,30 @@ export default function PerformerWorkspaceClient() {
         </div>
       )}
 
+      <div className="flex flex-wrap gap-2 mt-5">
+        {statusFilters.map((filter) => (
+          <button
+            key={filter.value}
+            type="button"
+            onClick={() => setStatusFilter(filter.value)}
+            className={`px-3 py-2 text-sm font-semibold transition-colors border rounded-md cursor-pointer ${
+              statusFilter === filter.value
+                ? 'border-sky-600 bg-sky-600 text-white'
+                : 'border-sky-100 bg-white text-slate-700 hover:bg-sky-50'
+            }`}
+          >
+            {filter.label}
+            <span
+              className={`ml-2 ${
+                statusFilter === filter.value ? 'text-white/80' : 'text-slate-400'
+              }`}
+            >
+              {statusFilterCounts[filter.value] || 0}
+            </span>
+          </button>
+        ))}
+      </div>
+
       <div className="grid gap-3 mt-6">
         {orders.length === 0 && (
           <div className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
@@ -206,7 +260,7 @@ export default function PerformerWorkspaceClient() {
         {orders.length > 0 && filteredOrders.length === 0 && (
           <div className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
             <p className="text-sm text-black/60">
-              В выбранной компании назначенных заказов нет.
+              По выбранным фильтрам назначенных заказов нет.
             </p>
           </div>
         )}

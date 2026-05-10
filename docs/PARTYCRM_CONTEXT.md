@@ -35,6 +35,13 @@ ArtistCRM DB -> MONGODB_URI / MONGODB_DBNAME
 PartyCRM DB  -> PARTYCRM_MONGODB_URI / PARTYCRM_MONGODB_DBNAME
 ```
 
+Auth/users тоже разделены:
+
+```txt
+ArtistCRM auth -> /login, /api/auth/*, Users, next-auth cookies
+PartyCRM auth  -> /party/login, /api/party/auth/*, PartyUsers, partycrm_session
+```
+
 В будущем возможен переход к monorepo:
 
 ```txt
@@ -89,6 +96,7 @@ Product/domain context:
 Schemas:
 
 - `schemas/partyCompaniesSchema.js`
+- `schemas/partyUsersSchema.js`
 - `schemas/partyStaffSchema.js`
 - `schemas/partyLocationsSchema.js`
 - `schemas/partyAssignmentsSchema.js`
@@ -105,6 +113,10 @@ Pages:
 API:
 
 - `app/api/party/health/route.js`
+- `app/api/party/auth/login/route.js`
+- `app/api/party/auth/register/route.js`
+- `app/api/party/auth/logout/route.js`
+- `app/api/party/auth/me/route.js`
 - `app/api/party/bootstrap/route.js`
 - `app/api/party/companies/route.js`
 - `app/api/party/me/route.js`
@@ -153,6 +165,7 @@ x-partycrm-company-id: <PartyCompany _id>
 P0 core:
 
 - отдельная PartyCRM DB;
+- отдельные PartyCRM users/auth/session cookie, не связанные с ArtistCRM users;
 - модели компаний, сотрудников, точек, заказов;
 - company workspace `/company`;
 - performer workspace `/performer`;
@@ -163,13 +176,13 @@ P0 core:
 - фильтры заказов;
 - финансовая сводка;
 - исполнитель видит только свои назначения и выплату;
-- `/performer` показывает назначения из нескольких компаний и умеет фильтровать их по компании;
+- `/performer` показывает назначения из нескольких компаний и умеет фильтровать их по компании и статусу участия;
 - исполнитель может подтвердить участие и отметить заказ выполненным;
 - карточки подрядчиков без аккаунта в `PartyStaff`;
 - специализация и описание сотрудника/подрядчика;
 - PWA manifest PartyCRM отделен от ArtistCRM;
 - PartyCRM имеет сине-голубую палитру;
-- `/login?callbackUrl=/company` возвращает пользователя обратно в PartyCRM onboarding.
+- `/party/login?callbackUrl=/company` возвращает пользователя обратно в PartyCRM onboarding.
 
 ## Что сейчас в работе/следующее
 
@@ -182,12 +195,13 @@ P0 core:
    - поиск похожего User по телефону;
    - ручной запрос на привязку;
    - подтверждение привязки в `/performer`.
-3. Добавить фильтр исполнителя по статусу: новые, подтвержденные, выполненные, отклоненные.
+3. Подготовить основу будущего каталога исполнителей: специализация, описание, история выполненных заказов, статус доступности.
 4. Обновить документацию локального запуска и деплоя под multi-company контекст.
 
 ## Важные ограничения
 
 - Не смешивать ArtistCRM DB и PartyCRM DB.
+- Не использовать ArtistCRM `/login` и `/api/auth/*` для PartyCRM.
 - Не добавлять company-функции в solo ArtistCRM UI.
 - Не делать автоматическую привязку подрядчика к аккаунту по телефону.
 - Не удалять legacy fallback, пока все PartyCRM API не переведены на membership context.

@@ -55,16 +55,17 @@ NEXTAUTH_SECRET=...
 PARTYCRM_DOMAIN=partycrm.ru
 PARTYCRM_MONGODB_URI=...
 PARTYCRM_MONGODB_DBNAME=...
+PARTYCRM_AUTH_SECRET=...
 ```
 
-Рекомендуемые auth-переменные для текущей схемы:
+Auth-переменные ArtistCRM остаются привязаны к `artistcrm.ru`:
 
 ```env
 NEXTAUTH_URL=https://artistcrm.ru
 NEXTAUTH_URL_INTERNAL=http://127.0.0.1:3006
 ```
 
-Пока auth общий, логин остается привязан к `artistcrm.ru`. PartyCRM technical preview использует тот же runtime/session.
+PartyCRM использует отдельный вход `/party/login`, отдельные endpoints `/api/party/auth/*`, отдельную модель `PartyUsers` и отдельную cookie `partycrm_session`. `PARTYCRM_AUTH_SECRET` должен отличаться от публичных значений и не должен переиспользоваться как обычный пароль.
 
 ## Reverse proxy
 

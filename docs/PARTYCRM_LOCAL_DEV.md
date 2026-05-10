@@ -56,6 +56,7 @@ PartyCRM использует отдельные переменные:
 PARTYCRM_MONGODB_URI=...
 PARTYCRM_MONGODB_DBNAME=partycrm_dev
 PARTYCRM_DOMAIN=partycrm.ru
+PARTYCRM_AUTH_SECRET=local-partycrm-secret
 ```
 
 Для локальной проверки подключения:
@@ -68,7 +69,13 @@ http://localhost:3000/api/party/health
 
 ## Первый tenant PartyCRM
 
-После настройки PartyCRM БД войди обычным способом, открой:
+После настройки PartyCRM БД зарегистрируйся или войди через отдельную страницу PartyCRM:
+
+```txt
+http://localhost:3000/party/login?callbackUrl=/company
+```
+
+Затем открой:
 
 ```txt
 http://localhost:3000/company

@@ -5,6 +5,7 @@ import partyCompaniesSchema from '@schemas/partyCompaniesSchema'
 import partyLocationsSchema from '@schemas/partyLocationsSchema'
 import partyOrdersSchema from '@schemas/partyOrdersSchema'
 import partyStaffSchema from '@schemas/partyStaffSchema'
+import partyUsersSchema from '@schemas/partyUsersSchema'
 
 export const PARTY_STAFF_ROLES = Object.freeze({
   OWNER: 'owner',
@@ -21,6 +22,19 @@ export const getPartyCompanyModel = () =>
     configureSchema: (schema) => {
       schema.index({ tenantId: 1, status: 1 })
       schema.index({ title: 1 })
+    },
+  })
+
+export const getPartyUserModel = () =>
+  getProductModel({
+    product: PRODUCTS.PARTYCRM,
+    name: 'PartyUsers',
+    schemaDefinition: partyUsersSchema,
+    schemaOptions: { timestamps: true },
+    configureSchema: (schema) => {
+      schema.index({ phone: 1 }, { unique: true })
+      schema.index({ email: 1 })
+      schema.index({ status: 1 })
     },
   })
 

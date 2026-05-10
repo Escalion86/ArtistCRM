@@ -24,9 +24,11 @@ NEXTAUTH_URL_INTERNAL=http://127.0.0.1:3006
 PARTYCRM_DOMAIN=partycrm.ru
 PARTYCRM_MONGODB_URI=...
 PARTYCRM_MONGODB_DBNAME=partycrm_prod
+PARTYCRM_AUTH_SECRET=...
 ```
 
 Правило: `PARTYCRM_MONGODB_DBNAME` должен отличаться от `MONGODB_DBNAME`.
+Правило: `PARTYCRM_AUTH_SECRET` должен быть отдельным production-секретом для cookie `partycrm_session`.
 
 ## Оплаты
 

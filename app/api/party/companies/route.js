@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import authOptions from '../../auth/[...nextauth]/_options'
+import { getPartySessionUser } from '@server/partyAuth'
 import {
   PARTY_STAFF_ROLES,
   getPartyCompanyModel,
@@ -21,8 +20,7 @@ const normalizeText = (value, maxLength = 160) =>
   typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
 
 export async function POST(req) {
-  const session = await getServerSession(authOptions)
-  const sessionUser = session?.user ?? null
+  const sessionUser = await getPartySessionUser()
 
   if (!sessionUser?._id) {
     return NextResponse.json(

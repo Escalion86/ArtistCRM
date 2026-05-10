@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import authOptions from '../../auth/[...nextauth]/_options'
+import { getPartySessionUser } from '@server/partyAuth'
 import {
   PARTY_STAFF_ROLES,
   getPartyCompanyModel,
@@ -59,8 +58,7 @@ const normalizeInitialStaff = (value) => {
 }
 
 export async function POST(req) {
-  const session = await getServerSession(authOptions)
-  const sessionUser = session?.user ?? null
+  const sessionUser = await getPartySessionUser()
 
   if (!sessionUser?._id) {
     return NextResponse.json(
@@ -88,11 +86,7 @@ export async function POST(req) {
 
     const existingStaff = await PartyStaff.findOne({
       status: { $ne: 'archived' },
-      $or: [
-        { authUserId },
-        ...(phone ? [{ phone }] : []),
-        ...(email ? [{ email }] : []),
-      ],
+      authUserId,
     }).lean()
 
     if (existingStaff?.tenantId) {

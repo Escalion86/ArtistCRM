@@ -66,7 +66,7 @@ export default function PartyCrmLandingPage() {
             PartyCRM
           </Link>
           <Link
-            href="/company"
+            href="/party/login?callbackUrl=/company"
             className="px-4 py-2 text-sm font-semibold text-white transition-colors rounded-md cursor-pointer bg-sky-600 hover:bg-sky-700"
           >
             Кабинет компании
@@ -89,13 +89,13 @@ export default function PartyCrmLandingPage() {
 
         <div className="flex flex-col gap-3 mt-8 sm:flex-row">
           <Link
-            href="/company"
+            href="/party/login?callbackUrl=/company"
             className="px-4 py-2 text-sm font-semibold text-white transition-colors rounded-md cursor-pointer bg-sky-600 hover:bg-sky-700"
           >
             Открыть company preview
           </Link>
           <Link
-            href="/performer"
+            href="/party/login?callbackUrl=/performer"
             className="px-4 py-2 text-sm font-semibold transition-colors bg-white border rounded-md cursor-pointer text-sky-700 border-sky-200 hover:bg-sky-50"
           >
             Кабинет исполнителя

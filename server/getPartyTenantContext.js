@@ -1,16 +1,5 @@
-import { getServerSession } from 'next-auth'
-import authOptions from '../app/api/auth/[...nextauth]/_options'
+import { getPartySessionUser } from './partyAuth'
 import { getPartyCompanyModel, getPartyStaffModel } from './partyModels'
-
-const normalizePhone = (phone) => {
-  if (!phone) return ''
-  return String(phone).replace(/[^\d]/g, '')
-}
-
-const normalizeEmail = (email) => {
-  if (!email) return ''
-  return String(email).trim().toLowerCase()
-}
 
 const sanitizeStaff = (staff) => {
   if (!staff) return null
@@ -35,30 +24,22 @@ const sanitizeCompany = (company) => {
 
 const buildStaffQuery = (sessionUser) => {
   const authUserId = sessionUser?._id ? String(sessionUser._id) : ''
-  const phone = normalizePhone(sessionUser?.phone)
-  const email = normalizeEmail(sessionUser?.email)
-  const conditions = []
 
-  if (authUserId) conditions.push({ authUserId })
-  if (phone) conditions.push({ phone })
-  if (email) conditions.push({ email })
-
-  return conditions.length > 0
+  return authUserId
     ? {
         status: { $ne: 'archived' },
-        $or: conditions,
+        authUserId,
       }
     : null
 }
 
 const getPartyTenantContext = async () => {
-  const session = await getServerSession(authOptions)
-  const sessionUser = session?.user ?? null
+  const sessionUser = await getPartySessionUser()
   const staffQuery = buildStaffQuery(sessionUser)
 
   if (!sessionUser?._id || !staffQuery) {
     return {
-      session,
+      session: null,
       sessionUser,
       staff: null,
       company: null,
@@ -79,7 +60,7 @@ const getPartyTenantContext = async () => {
     : null
 
   return {
-    session,
+    session: sessionUser ? { user: sessionUser } : null,
     sessionUser,
     staff: sanitizeStaff(staff),
     company: sanitizeCompany(company),
