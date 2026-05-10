@@ -17,6 +17,12 @@ export const normalizePartyPhone = (phone) => {
 export const normalizePartyEmail = (email) =>
   String(email || '').trim().toLowerCase()
 
+export const normalizePartyInterfaceRoles = (value) => {
+  const source = Array.isArray(value) ? value : []
+  const roles = source.filter((role) => ['company', 'performer'].includes(role))
+  return roles.length ? [...new Set(roles)] : ['company', 'performer']
+}
+
 const getSecret = () => {
   const secret =
     process.env.PARTYCRM_AUTH_SECRET ||
@@ -82,6 +88,7 @@ export const getPartySessionUser = async () => {
   return {
     ...user,
     _id: String(user._id),
+    interfaceRoles: normalizePartyInterfaceRoles(user.interfaceRoles),
   }
 }
 

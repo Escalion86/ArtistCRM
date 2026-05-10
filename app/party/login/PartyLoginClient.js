@@ -1,5 +1,6 @@
 'use client'
 
+import Input from '@components/Input'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 
@@ -16,17 +17,50 @@ const primaryButtonClass =
 const secondaryButtonClass =
   'px-4 py-2 text-sm font-semibold transition-colors bg-white border rounded-md cursor-pointer text-sky-700 border-sky-200 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60'
 
-const Field = ({ label, value, onChange, type = 'text' }) => (
-  <label className="grid gap-1 text-sm">
-    <span className="font-medium text-black/65">{label}</span>
-    <input
-      type={type}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="h-10 px-3 bg-white border rounded-md outline-none border-sky-100 focus:border-sky-500"
-    />
-  </label>
-)
+const interfaceRoleOptions = [
+  {
+    value: 'company',
+    label: 'Я управляю компанией',
+    roles: ['company'],
+  },
+  {
+    value: 'performer',
+    label: 'Я исполнитель',
+    roles: ['performer'],
+  },
+  {
+    value: 'both',
+    label: 'И компания, и исполнитель',
+    roles: ['company', 'performer'],
+  },
+]
+
+const Field = ({ label, value, onChange, type = 'text' }) => {
+  if (type === 'phone') {
+    return (
+      <Input
+        label={label}
+        value={value}
+        onChange={onChange}
+        type="phone"
+        className="w-full"
+        noMargin
+      />
+    )
+  }
+
+  return (
+    <label className="grid gap-1 text-sm">
+      <span className="font-medium text-black/65">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-10 px-3 bg-white border rounded-md outline-none border-sky-100 focus:border-sky-500"
+      />
+    </label>
+  )
+}
 
 const safeCallbackUrl = (value) => {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return '/company'
@@ -36,6 +70,7 @@ const safeCallbackUrl = (value) => {
 
 export default function PartyLoginClient({ callbackUrl = '/company' }) {
   const [mode, setMode] = useState('login')
+  const [interfaceRoleMode, setInterfaceRoleMode] = useState('both')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [passwordRepeat, setPasswordRepeat] = useState('')
@@ -67,6 +102,9 @@ export default function PartyLoginClient({ callbackUrl = '/company' }) {
       setError('Пароли не совпадают')
       return
     }
+    const interfaceRoles =
+      interfaceRoleOptions.find((option) => option.value === interfaceRoleMode)
+        ?.roles || ['company', 'performer']
 
     setLoading(true)
     try {
@@ -82,6 +120,7 @@ export default function PartyLoginClient({ callbackUrl = '/company' }) {
             password,
             firstName,
             secondName,
+            interfaceRoles,
             consentPrivacyPolicy: privacyAccepted,
             consentPersonalData: personalDataAccepted,
           }),
@@ -92,7 +131,11 @@ export default function PartyLoginClient({ callbackUrl = '/company' }) {
         setError(payload?.error || 'Не удалось войти')
         return
       }
-      window.location.replace(normalizedCallbackUrl)
+      const nextUrl =
+        mode === 'register' && interfaceRoleMode === 'performer'
+          ? '/performer'
+          : normalizedCallbackUrl
+      window.location.replace(nextUrl)
     } finally {
       setLoading(false)
     }
@@ -107,8 +150,8 @@ export default function PartyLoginClient({ callbackUrl = '/company' }) {
         {mode === 'register' ? 'Регистрация компании' : 'Вход в PartyCRM'}
       </h1>
       <p className="mt-4 leading-7 text-slate-700">
-        Аккаунт PartyCRM отделен от ArtistCRM. Если у вас уже есть ArtistCRM,
-        здесь все равно нужно создать отдельный аккаунт PartyCRM.
+        Создайте рабочее пространство компании или войдите, чтобы управлять
+        заявками, площадками, исполнителями и подготовкой мероприятий.
       </p>
 
       {error && (
@@ -121,7 +164,12 @@ export default function PartyLoginClient({ callbackUrl = '/company' }) {
         onSubmit={submit}
         className="grid gap-4 p-5 mt-6 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5"
       >
-        <Field label="Телефон" value={phone} onChange={setPhone} />
+        <Field
+          label="Телефон"
+          value={phone}
+          onChange={setPhone}
+          type="phone"
+        />
         <Field
           label="Пароль"
           type="password"
@@ -143,6 +191,32 @@ export default function PartyLoginClient({ callbackUrl = '/company' }) {
                 value={secondName}
                 onChange={setSecondName}
               />
+            </div>
+            <div className="grid gap-2">
+              <p className="text-sm font-medium text-black/65">
+                Как вы будете пользоваться PartyCRM
+              </p>
+              <div className="grid gap-2">
+                {interfaceRoleOptions.map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
+                      interfaceRoleMode === option.value
+                        ? 'border-sky-600 bg-sky-50 text-sky-900'
+                        : 'border-sky-100 bg-white text-slate-700 hover:bg-sky-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="party-interface-role"
+                      value={option.value}
+                      checked={interfaceRoleMode === option.value}
+                      onChange={() => setInterfaceRoleMode(option.value)}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
             <label className="flex items-start gap-2 text-sm cursor-pointer">
               <input

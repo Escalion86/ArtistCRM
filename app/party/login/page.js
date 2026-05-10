@@ -28,10 +28,10 @@ export default async function PartyLoginPage({ searchParams }) {
             PartyCRM
           </Link>
           <Link
-            href="/"
+            href="/party"
             className="px-4 py-2 text-sm font-semibold transition-colors bg-white border rounded-md cursor-pointer text-sky-700 border-sky-200 hover:bg-sky-50"
           >
-            ArtistCRM
+            На главную
           </Link>
         </div>
       </header>

@@ -3,6 +3,7 @@ import { getPartyUserModel } from '@server/partyModels'
 import {
   hashPartyPassword,
   normalizePartyEmail,
+  normalizePartyInterfaceRoles,
   normalizePartyPhone,
   setPartySessionCookie,
 } from '@server/partyAuth'
@@ -11,6 +12,7 @@ export async function POST(req) {
   const body = await req.json().catch(() => ({}))
   const phone = normalizePartyPhone(body.phone)
   const password = String(body.password || '')
+  const interfaceRoles = normalizePartyInterfaceRoles(body.interfaceRoles)
   const consentPrivacyPolicy = body?.consentPrivacyPolicy === true
   const consentPersonalData = body?.consentPersonalData === true
 
@@ -61,6 +63,7 @@ export async function POST(req) {
       password: await hashPartyPassword(password),
       firstName: String(body.firstName || '').trim().slice(0, 100),
       secondName: String(body.secondName || '').trim().slice(0, 100),
+      interfaceRoles,
       consentPrivacyPolicyAccepted: true,
       consentPersonalDataAccepted: true,
       privacyPolicyAcceptedAt: now,
@@ -90,6 +93,7 @@ export async function POST(req) {
           email: user.email,
           firstName: user.firstName,
           secondName: user.secondName,
+          interfaceRoles: normalizePartyInterfaceRoles(user.interfaceRoles),
         },
       },
     },

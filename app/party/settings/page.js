@@ -1,8 +1,8 @@
 import PartyAppShell from '@components/party/PartyAppShell'
-import PerformerWorkspaceClient from './PerformerWorkspaceClient'
+import PartySettingsClient from './PartySettingsClient'
 
 export const metadata = {
-  title: 'PartyCRM - кабинет исполнителя',
+  title: 'PartyCRM - настройки',
   applicationName: 'PartyCRM',
   manifest: '/manifest.json',
   appleWebApp: {
@@ -16,10 +16,10 @@ export const metadata = {
   },
 }
 
-export default function PerformerPage() {
+export default function PartySettingsPage() {
   return (
-    <PartyAppShell variant="performer">
-      <PerformerWorkspaceClient />
+    <PartyAppShell variant="settings">
+      <PartySettingsClient />
     </PartyAppShell>
   )
 }

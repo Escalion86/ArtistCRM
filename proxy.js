@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 const PRODUCTION_HOST = 'artistcrm.ru'
 const LEGACY_HOSTS = new Set(['www.artistcrm.ru'])
 const PARTYCRM_HOST = process.env.PARTYCRM_DOMAIN || 'partycrm.ru'
+const LOCAL_DEV_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0'])
 
 const normalizeHost = (host) =>
   String(host || '')
@@ -16,14 +17,20 @@ export function proxy(request) {
   const forwardedProto = request.headers.get('x-forwarded-proto') || ''
   const url = request.nextUrl
   const partyHost = normalizeHost(PARTYCRM_HOST)
+  const isLocalDevHost = LOCAL_DEV_HOSTS.has(host)
 
-  if (partyHost && host === partyHost && url.pathname === '/') {
+  if (!isLocalDevHost && partyHost && host === partyHost && url.pathname === '/') {
     const rewriteUrl = url.clone()
     rewriteUrl.pathname = '/party'
     return NextResponse.rewrite(rewriteUrl)
   }
 
-  if (partyHost && host === partyHost && url.pathname === '/manifest.json') {
+  if (
+    !isLocalDevHost &&
+    partyHost &&
+    host === partyHost &&
+    url.pathname === '/manifest.json'
+  ) {
     const rewriteUrl = url.clone()
     rewriteUrl.pathname = '/party-manifest.json'
     return NextResponse.rewrite(rewriteUrl)

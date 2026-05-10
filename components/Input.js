@@ -10,6 +10,11 @@ import { normalizeNumberInputString, toNormalizedNumber } from '@helpers/numberI
 import copyToClipboard from '@helpers/copyToClipboard'
 import InputWrapper from './InputWrapper'
 
+const toPhoneValue = (digits) => {
+  if (!digits) return null
+  return Number(`7${digits.slice(0, 10)}`)
+}
+
 const Input = forwardRef(
   (
     {
@@ -134,6 +139,19 @@ const Input = forwardRef(
             guide={false}
             mask={phoneMask}
             value={phoneDisplayValue}
+            onKeyDown={(e) => {
+              if (e.key !== 'Backspace') return
+              const target = e.currentTarget
+              const cursorAtEnd =
+                target.selectionStart === target.selectionEnd &&
+                target.selectionStart === target.value.length
+              if (!cursorAtEnd || /\d$/.test(target.value)) return
+
+              const digits = target.value.replace(/[^\d]/g, '')
+              if (!digits) return
+              e.preventDefault()
+              onChange(toPhoneValue(digits.slice(0, -1)))
+            }}
             onChange={(e) => {
               const raw = e.target.value.replace(/[^\d]/g, '')
               if (!raw) {
@@ -152,7 +170,7 @@ const Input = forwardRef(
                 digits = digits.slice(1)
               }
               if (digits.length > 10) digits = digits.slice(-10)
-              onChange(Number('7' + digits))
+              onChange(toPhoneValue(digits))
             }}
             placeholder={placeholderValue}
             autoComplete={autoComplete}

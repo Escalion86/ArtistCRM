@@ -6,6 +6,11 @@ import { faCopy } from '@fortawesome/free-solid-svg-icons/faCopy'
 import { faPaste } from '@fortawesome/free-solid-svg-icons/faPaste'
 import copyToClipboard from '@helpers/copyToClipboard'
 
+const toPhoneValue = (digits) => {
+  if (!digits) return null
+  return Number(`7${digits.slice(0, 10)}`)
+}
+
 const PhoneInput = ({
   value,
   label,
@@ -51,9 +56,22 @@ const PhoneInput = ({
         //   setShowMask(true)
         // }}
         // onBlur={() => setShowMask(false)}
+        onKeyDown={(e) => {
+          if (e.key !== 'Backspace') return
+          const target = e.currentTarget
+          const cursorAtEnd =
+            target.selectionStart === target.selectionEnd &&
+            target.selectionStart === target.value.length
+          if (!cursorAtEnd || /\d$/.test(target.value)) return
+
+          const digits = target.value.replace(/[^\d]/g, '')
+          if (!digits) return
+          e.preventDefault()
+          onChange(toPhoneValue(digits.slice(0, -1)))
+        }}
         onChange={(e) => {
           const value = e.target.value.replace(/[^0-9]/g, '')
-          onChange(!value ? null : Number('7' + value))
+          onChange(toPhoneValue(value))
           // onChange(Number('7' + value))
         }}
         // keepCharPositions
@@ -101,7 +119,7 @@ const PhoneInput = ({
                 if (normalized.startsWith('7') || normalized.startsWith('8'))
                   normalized = normalized.slice(1)
                 if (normalized.length > 10) normalized = normalized.slice(-10)
-                onChange(Number('7' + normalized))
+                onChange(toPhoneValue(normalized))
               })
             }}
             title="Вставить номер"

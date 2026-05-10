@@ -34,6 +34,11 @@ const partyUsersSchema = {
     enum: ['user', 'support', 'admin'],
     default: 'user',
   },
+  interfaceRoles: {
+    type: [String],
+    enum: ['company', 'performer'],
+    default: ['company', 'performer'],
+  },
   status: {
     type: String,
     enum: ['active', 'blocked', 'archived'],

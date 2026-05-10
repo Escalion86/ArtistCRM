@@ -1,5 +1,6 @@
 'use client'
 
+import Input from '@components/Input'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiJson } from '@helpers/apiClient'
@@ -89,6 +90,9 @@ const primaryButtonClass =
 
 const secondaryButtonClass =
   'px-4 py-2 text-sm font-semibold transition-colors bg-white border rounded-md cursor-pointer text-sky-700 border-sky-200 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60'
+
+const addButtonClass =
+  'grid h-10 w-10 place-items-center rounded-md bg-sky-600 text-2xl font-semibold leading-none text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60'
 
 const formatMoney = (value) =>
   `${Number(value || 0).toLocaleString('ru-RU')} ₽`
@@ -226,7 +230,7 @@ const buildFinanceSummary = (orders) =>
     }
   )
 
-const FinanceSummary = ({ summary }) => {
+const FinanceSummary = ({ summary, flat = false }) => {
   const marginPercent =
     summary.totalAmount > 0
       ? Math.round((summary.grossMargin / summary.totalAmount) * 100)
@@ -241,8 +245,37 @@ const FinanceSummary = ({ summary }) => {
     ['Валовая маржа', `${formatMoney(summary.grossMargin)} · ${marginPercent}%`],
   ]
 
+  if (flat) {
+    return (
+      <div className="mx-auto max-w-6xl">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase text-sky-700">
+              Финансы
+            </p>
+            <h2 className="mt-1 text-xl font-semibold">Сводка по заказам</h2>
+          </div>
+          <p className="text-sm text-slate-500">Без отмененных заказов</p>
+        </div>
+        <div className="grid gap-px mt-5 overflow-hidden border rounded-lg border-sky-100 bg-sky-100 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map(([title, value]) => (
+            <div key={title} className="p-4 bg-white">
+              <p className="text-sm text-slate-500">{title}</p>
+              <p className="mt-1 text-xl font-semibold text-slate-950">
+                {value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="p-5 mt-8 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
+    <div
+      id="finance"
+      className="p-5 mt-8 scroll-mt-6 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5"
+    >
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase text-sky-700">
@@ -329,18 +362,33 @@ const Field = ({
   onChange,
   type = 'text',
   placeholder = '',
-}) => (
-  <label className="grid gap-1 text-sm">
-    <span className="font-medium text-black/65">{label}</span>
-    <input
-      type={type}
-      value={value}
-      placeholder={placeholder}
-      onChange={(event) => onChange(event.target.value)}
-      className="h-10 px-3 bg-white border rounded-md outline-none border-sky-100 focus:border-sky-500"
-    />
-  </label>
-)
+}) => {
+  if (type === 'phone') {
+    return (
+      <Input
+        label={label}
+        value={value}
+        onChange={onChange}
+        type="phone"
+        className="w-full"
+        noMargin
+      />
+    )
+  }
+
+  return (
+    <label className="grid gap-1 text-sm">
+      <span className="font-medium text-black/65">{label}</span>
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-10 px-3 bg-white border rounded-md outline-none border-sky-100 focus:border-sky-500"
+      />
+    </label>
+  )
+}
 
 const SelectField = ({ label, value, onChange, options }) => (
   <label className="grid gap-1 text-sm">
@@ -372,6 +420,25 @@ const TextareaField = ({ label, value, onChange, placeholder = '' }) => (
   </label>
 )
 
+const PartyFormModal = ({ title, children, onClose }) => (
+  <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/45 px-4 py-6">
+    <div className="w-full max-w-4xl rounded-lg border border-sky-100 bg-white shadow-xl shadow-slate-950/20">
+      <div className="flex items-center justify-between gap-3 border-b border-sky-100 px-5 py-4">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="grid h-9 w-9 cursor-pointer place-items-center rounded-md border border-sky-100 text-xl leading-none text-slate-500 transition-colors hover:bg-sky-50 hover:text-slate-900"
+          aria-label="Закрыть"
+        >
+          ×
+        </button>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  </div>
+)
+
 const buildCompanyRequestOptions = (companyId, options = {}) => ({
   ...options,
   headers: {
@@ -380,7 +447,7 @@ const buildCompanyRequestOptions = (companyId, options = {}) => ({
   },
 })
 
-export default function CompanyWorkspaceClient() {
+export default function CompanyWorkspaceClient({ section = 'overview' }) {
   const [context, setContext] = useState(null)
   const [memberships, setMemberships] = useState([])
   const [activeCompanyId, setActiveCompanyId] = useState('')
@@ -391,12 +458,11 @@ export default function CompanyWorkspaceClient() {
   const [staffDraft, setStaffDraft] = useState(EMPTY_STAFF)
   const [orderDraft, setOrderDraft] = useState(EMPTY_ORDER)
   const [companyDraft, setCompanyDraft] = useState(EMPTY_COMPANY)
-  const [newCompanyTitle, setNewCompanyTitle] = useState('')
-  const [showCreateCompany, setShowCreateCompany] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [conflictInfo, setConflictInfo] = useState('')
+  const [activeModal, setActiveModal] = useState('')
   const [accessStatus, setAccessStatus] = useState('loading')
   const [orderFilter, setOrderFilter] = useState('all')
 
@@ -492,11 +558,6 @@ export default function CompanyWorkspaceClient() {
     }
     loadWorkspace(companyId)
   }
-
-  const companyTitle = useMemo(
-    () => context?.company?.title || 'PartyCRM',
-    [context]
-  )
 
   const financeSummary = useMemo(() => buildFinanceSummary(orders), [orders])
 
@@ -605,28 +666,6 @@ export default function CompanyWorkspaceClient() {
     }
   }
 
-  const createCompany = async (event) => {
-    event.preventDefault()
-    setSaving(true)
-    setError('')
-    try {
-      const response = await apiJson('/api/party/companies', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: newCompanyTitle.trim() || 'Новая компания',
-        }),
-      })
-      const createdCompanyId = response.data?.tenantId || ''
-      setNewCompanyTitle('')
-      setShowCreateCompany(false)
-      await loadWorkspace(createdCompanyId)
-    } catch (createError) {
-      setError(getErrorMessage(createError))
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const addLocation = async (event) => {
     event.preventDefault()
     setSaving(true)
@@ -641,6 +680,7 @@ export default function CompanyWorkspaceClient() {
       })
       setLocations((items) => [...items, response.data])
       setLocationDraft(EMPTY_LOCATION)
+      setActiveModal('')
     } catch (saveError) {
       setError(getErrorMessage(saveError))
     } finally {
@@ -662,6 +702,7 @@ export default function CompanyWorkspaceClient() {
       })
       setStaff((items) => [...items, response.data])
       setStaffDraft(EMPTY_STAFF)
+      setActiveModal('')
     } catch (saveError) {
       setError(getErrorMessage(saveError))
     } finally {
@@ -698,6 +739,7 @@ export default function CompanyWorkspaceClient() {
       })
       setOrders((items) => [response.data, ...items])
       setOrderDraft(EMPTY_ORDER)
+      setActiveModal('')
     } catch (saveError) {
       setError(getConflictMessage(saveError) || getErrorMessage(saveError))
     } finally {
@@ -1025,6 +1067,7 @@ export default function CompanyWorkspaceClient() {
               />
               <Field
                 label="Телефон"
+                type="phone"
                 value={companyDraft.initialStaff.phone}
                 onChange={(value) =>
                   setCompanyDraft((draft) => ({
@@ -1068,72 +1111,40 @@ export default function CompanyWorkspaceClient() {
     )
   }
 
-  return (
-    <section className="max-w-6xl px-5 py-8 mx-auto">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase text-sky-700">
-            Кабинет компании
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold font-futuraPT sm:text-4xl">
-            {companyTitle}
-          </h1>
-          <p className="mt-2 text-sm text-black/60">
-            Ваша роль: {roleLabels[context.role] || context.role}
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:items-end">
-          {memberships.length > 1 && (
-            <label className="grid gap-1 text-sm">
-              <span className="font-medium text-black/65">Компания</span>
-              <select
-                value={activeCompanyId}
-                onChange={(event) => switchCompany(event.target.value)}
-                className="h-10 px-3 bg-white border rounded-md outline-none cursor-pointer min-w-56 border-sky-100 focus:border-sky-500"
-              >
-                {memberships.map((membership) => (
-                  <option key={membership.staffId} value={membership.tenantId}>
-                    {membership.company?.title || 'Компания'} ·{' '}
-                    {roleLabels[membership.role] || membership.role}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            <button
-              type="button"
-              onClick={() => setShowCreateCompany((value) => !value)}
-              className={secondaryButtonClass}
-            >
-              {showCreateCompany ? 'Скрыть создание' : 'Создать компанию'}
-            </button>
-            <button
-              type="button"
-              onClick={() => loadWorkspace(activeCompanyId)}
-              className={secondaryButtonClass}
-            >
-              Обновить
-            </button>
-          </div>
-        </div>
-      </div>
+  const showOverview = section === 'overview'
+  const showOrders = section === 'orders'
+  const showFinance = section === 'finance' || showOverview
+  const showLocations = section === 'locations'
+  const showStaff = section === 'staff'
+  const isFinancePage = section === 'finance'
+  const isWorkspaceSection =
+    showOrders || showLocations || showStaff || isFinancePage
 
-      {showCreateCompany && (
-        <form
-          onSubmit={createCompany}
-          className="grid max-w-xl gap-3 p-4 mt-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5 sm:grid-cols-[1fr_auto] sm:items-end"
-        >
-          <Field
-            label="Новая компания"
-            value={newCompanyTitle}
-            placeholder="Например, PartyCRM Красноярск"
-            onChange={setNewCompanyTitle}
-          />
-          <button type="submit" disabled={saving} className={primaryButtonClass}>
-            {saving ? 'Создаем...' : 'Создать'}
-          </button>
-        </form>
+  return (
+    <section
+      className={`px-5 py-8 ${
+        isWorkspaceSection ? 'bg-white' : 'mx-auto max-w-6xl'
+      }`}
+      style={isWorkspaceSection ? { minHeight: 'calc(100dvh - 4rem)' } : undefined}
+    >
+      {memberships.length > 1 && (
+        <div className="flex justify-end">
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-black/65">Компания</span>
+            <select
+              value={activeCompanyId}
+              onChange={(event) => switchCompany(event.target.value)}
+              className="h-10 px-3 bg-white border rounded-md outline-none cursor-pointer min-w-56 border-sky-100 focus:border-sky-500"
+            >
+              {memberships.map((membership) => (
+                <option key={membership.staffId} value={membership.tenantId}>
+                  {membership.company?.title || 'Компания'} ·{' '}
+                  {roleLabels[membership.role] || membership.role}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       )}
 
       {error && (
@@ -1142,18 +1153,41 @@ export default function CompanyWorkspaceClient() {
         </div>
       )}
 
-      <OnboardingChecklist locations={locations} staff={staff} orders={orders} />
+      {showOverview && (
+        <OnboardingChecklist
+          locations={locations}
+          staff={staff}
+          orders={orders}
+        />
+      )}
 
-      <FinanceSummary summary={financeSummary} />
+      {showFinance && (
+        <FinanceSummary summary={financeSummary} flat={isFinancePage} />
+      )}
 
-      <div className="p-5 mt-8 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
+      {showOrders && (
+        <div className="mx-auto max-w-6xl">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xl font-semibold">Заказы</h2>
-          <span className="text-sm text-black/55">{orders.length}</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-black/55">{orders.length}</span>
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => setActiveModal('order')}
+                className={addButtonClass}
+                aria-label="Создать заказ"
+                title="Создать заказ"
+              >
+                +
+              </button>
+            )}
+          </div>
         </div>
 
-        {canManage && (
-          <form onSubmit={addOrder} className="grid gap-4 mt-5">
+        {canManage && activeModal === 'order' && (
+          <PartyFormModal title="Новый заказ" onClose={() => setActiveModal('')}>
+            <form onSubmit={addOrder} className="grid gap-4">
             <div className="grid gap-3 md:grid-cols-3">
               <Field
                 label="Название"
@@ -1175,6 +1209,7 @@ export default function CompanyWorkspaceClient() {
               />
               <Field
                 label="Телефон клиента"
+                type="phone"
                 value={orderDraft.client.phone}
                 onChange={(value) =>
                   setOrderDraft((draft) => ({
@@ -1378,7 +1413,8 @@ export default function CompanyWorkspaceClient() {
                 {conflictInfo}
               </p>
             )}
-          </form>
+            </form>
+          </PartyFormModal>
         )}
 
         <div className="flex flex-wrap gap-2 mt-5">
@@ -1475,16 +1511,33 @@ export default function CompanyWorkspaceClient() {
           })}
         </div>
       </div>
+      )}
 
-      <div className="grid gap-5 mt-5 lg:grid-cols-2">
-        <div className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
+      {(showLocations || showStaff) && (
+        <div className="mx-auto max-w-6xl">
+          {showLocations && (
+        <div id="locations" className="scroll-mt-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Точки</h2>
-            <span className="text-sm text-black/55">{locations.length}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-black/55">{locations.length}</span>
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => setActiveModal('location')}
+                  className={addButtonClass}
+                  aria-label="Добавить точку"
+                  title="Добавить точку"
+                >
+                  +
+                </button>
+              )}
+            </div>
           </div>
 
-          {canManage && (
-            <form onSubmit={addLocation} className="grid gap-3 mt-5">
+          {canManage && activeModal === 'location' && (
+            <PartyFormModal title="Новая точка" onClose={() => setActiveModal('')}>
+              <form onSubmit={addLocation} className="grid gap-3">
               <Field
                 label="Название"
                 value={locationDraft.title}
@@ -1542,7 +1595,8 @@ export default function CompanyWorkspaceClient() {
               >
                 Добавить точку
               </button>
-            </form>
+              </form>
+            </PartyFormModal>
           )}
 
           <div className="grid gap-3 mt-5">
@@ -1582,15 +1636,34 @@ export default function CompanyWorkspaceClient() {
             ))}
           </div>
         </div>
+          )}
 
-        <div className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5">
+          {showStaff && (
+        <div id="staff" className="scroll-mt-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Сотрудники</h2>
-            <span className="text-sm text-black/55">{staff.length}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-black/55">{staff.length}</span>
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => setActiveModal('staff')}
+                  className={addButtonClass}
+                  aria-label="Добавить сотрудника"
+                  title="Добавить сотрудника"
+                >
+                  +
+                </button>
+              )}
+            </div>
           </div>
 
-          {canManage && (
-            <form onSubmit={addStaff} className="grid gap-3 mt-5">
+          {canManage && activeModal === 'staff' && (
+            <PartyFormModal
+              title="Новый сотрудник"
+              onClose={() => setActiveModal('')}
+            >
+              <form onSubmit={addStaff} className="grid gap-3">
               <p className="text-sm leading-6 text-slate-500">
                 Карточка без привязанного аккаунта считается подрядчиком. Для
                 такой карточки нужны имя и телефон; пригласить в систему можно
@@ -1613,6 +1686,7 @@ export default function CompanyWorkspaceClient() {
                 />
                 <Field
                   label="Телефон"
+                  type="phone"
                   value={staffDraft.phone}
                   onChange={(value) =>
                     setStaffDraft((draft) => ({ ...draft, phone: value }))
@@ -1667,7 +1741,8 @@ export default function CompanyWorkspaceClient() {
               >
                 Добавить сотрудника
               </button>
-            </form>
+              </form>
+            </PartyFormModal>
           )}
 
           <div className="grid gap-3 mt-5">
@@ -1723,7 +1798,9 @@ export default function CompanyWorkspaceClient() {
             ))}
           </div>
         </div>
+          )}
       </div>
+      )}
     </section>
   )
 }
