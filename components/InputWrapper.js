@@ -34,10 +34,27 @@ const InputWrapper = forwardRef(
       smallMargin = false,
       comment,
       commentClassName,
+      tone = 'default',
       ...props
     },
     ref
   ) => {
+    const isParty = tone === 'party'
+
+    const borderColorClass = error
+      ? 'border-danger'
+      : isParty
+        ? 'border-sky-200'
+        : 'border-input'
+
+    const focusBorderClass = isParty
+      ? 'focus-within:border-sky-500 hover:border-sky-400 [&:not(:focus-within)]:hover:border-sky-300'
+      : 'focus-within:border-general hover:border-general [&:not(:focus-within)]:hover:border-opacity-50'
+
+    const labelColorClass = isParty
+      ? 'text-sky-700 peer-focus:text-sky-700 peer-placeholder-shown:text-disabled'
+      : 'text-general peer-focus:text-general peer-placeholder-shown:text-disabled'
+
     return (
       <div
         className={cn(
@@ -46,9 +63,7 @@ const InputWrapper = forwardRef(
           noMargin ? '' : smallMargin ? 'mt-3' : 'mt-3.5 mb-1',
           noBorder
             ? 'tablet:min-h-[40px] min-h-[36px]'
-            : `focus-within:border-general hover:border-general tablet:min-h-[44px] [&:not(:focus-within)]:hover:border-opacity-50 min-h-[40px] rounded border-2 ${
-                error ? 'border-danger' : 'border-input'
-              }`,
+            : `tablet:min-h-[44px] [&:not(:focus-within)]:hover:border-opacity-50 min-h-[40px] rounded border-2 ${borderColorClass} ${focusBorderClass}`,
           fullWidth ? 'w-full' : '',
           fitWidth ? 'w-fit' : '',
           paddingY === 'small'
@@ -108,7 +123,7 @@ const InputWrapper = forwardRef(
           {label && (
             <div
               className={cn(
-                'text-general peer-focus:text-general pointer-events-none absolute rounded bg-white px-1 text-sm transition-all select-none peer-focus:leading-[12px]',
+                'pointer-events-none absolute rounded bg-white px-1 text-sm transition-all select-none peer-focus:leading-[12px]',
                 'h-5 leading-[12px] peer-placeholder-shown:leading-[14px]',
                 'flex items-center',
                 required
@@ -116,8 +131,8 @@ const InputWrapper = forwardRef(
                   : '',
                 centerLabel ? 'left-1/2 -translate-x-1/2' : 'left-2',
                 floatingLabel
-                  ? `peer-placeholder-shown:text-disabled -top-[12px] peer-placeholder-shown:top-[calc(50%-10px)] peer-placeholder-shown:text-base peer-focus:-top-[12px] peer-focus:text-sm`
-                  : '-top-[12px]',
+                  ? `-top-[12px] peer-placeholder-shown:top-[calc(50%-10px)] peer-placeholder-shown:text-base peer-focus:-top-[12px] peer-focus:text-sm ${labelColorClass}`
+                  : `-top-[12px] ${labelColorClass}`,
                 disabled ? 'cursor-not-allowed' : '',
                 labelClassName
               )}

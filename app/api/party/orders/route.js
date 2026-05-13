@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import {
+  getPartyClientModel,
   getPartyLocationModel,
   getPartyOrderModel,
+  getPartyServiceModel,
   getPartyStaffModel,
 } from '@server/partyModels'
 import {
@@ -25,6 +27,12 @@ const parseMoney = (value) => {
   if (value === null || value === undefined || value === '') return 0
   const number = Number(value)
   return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0
+}
+
+const parseOptionalDate = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
 const normalizePhone = (phone) => {
@@ -53,6 +61,76 @@ const normalizeAssignedStaff = (items) => {
     .filter(Boolean)
 }
 
+const normalizeServicesIds = (items) => {
+  if (!Array.isArray(items)) return []
+  const seen = new Set()
+  return items
+    .map((item) => String(item || '').trim())
+    .filter((id) => {
+      if (!isValidObjectId(id) || seen.has(id)) return false
+      seen.add(id)
+      return true
+    })
+}
+
+const PARTY_TRANSACTION_CATEGORIES = new Set([
+  'deposit',
+  'final_payment',
+  'client_payment',
+  'payout',
+  'refund',
+  'taxes',
+  'materials',
+  'travel',
+  'other',
+])
+
+const normalizeTransactions = (items) => {
+  if (!Array.isArray(items)) return []
+  return items
+    .map((item) => ({
+      amount: parseMoney(item?.amount),
+      type: item?.type === 'expense' ? 'expense' : 'income',
+      category: PARTY_TRANSACTION_CATEGORIES.has(String(item?.category || ''))
+        ? item.category
+        : item?.type === 'expense'
+            ? 'other'
+            : 'deposit',
+      date: parseOptionalDate(item?.date),
+      comment:
+        typeof item?.comment === 'string' ? item.comment.trim().slice(0, 1000) : '',
+      paymentMethod: ['transfer', 'account', 'cash', 'barter'].includes(
+        item?.paymentMethod
+      )
+        ? item.paymentMethod
+        : 'transfer',
+    }))
+    .filter((item) => item.amount > 0)
+}
+
+const normalizeAdditionalEvents = (items) => {
+  if (!Array.isArray(items)) return []
+  return items
+    .map((item) => {
+      const done = Boolean(item?.done)
+      return {
+        title: typeof item?.title === 'string' ? item.title.trim() : '',
+        description:
+          typeof item?.description === 'string'
+            ? item.description.trim().slice(0, 1000)
+            : '',
+        date: parseOptionalDate(item?.date),
+        done,
+        doneAt: done ? parseOptionalDate(item?.doneAt) || new Date() : null,
+        googleCalendarEventId:
+          typeof item?.googleCalendarEventId === 'string'
+            ? item.googleCalendarEventId
+            : '',
+      }
+    })
+    .filter((item) => item.title || item.description || item.date)
+}
+
 export const normalizeOrderPayload = (body) => {
   const placeType =
     body.placeType === 'client_address' ? 'client_address' : 'company_location'
@@ -60,12 +138,14 @@ export const normalizeOrderPayload = (body) => {
     placeType === 'company_location' && isValidObjectId(body.locationId)
       ? String(body.locationId)
       : null
+  const clientId = isValidObjectId(body.clientId) ? String(body.clientId) : null
 
   return {
     title: typeof body.title === 'string' ? body.title.trim() : '',
     status: ['draft', 'active', 'canceled', 'closed'].includes(body.status)
       ? body.status
       : 'draft',
+    clientId,
     client: {
       name: typeof body.client?.name === 'string' ? body.client.name.trim() : '',
       phone: normalizePhone(body.client?.phone),
@@ -80,16 +160,23 @@ export const normalizeOrderPayload = (body) => {
     locationId,
     customAddress:
       typeof body.customAddress === 'string' ? body.customAddress.trim() : '',
+    servicesIds: normalizeServicesIds(body.servicesIds),
     serviceTitle:
       typeof body.serviceTitle === 'string' ? body.serviceTitle.trim() : '',
+    contractAmount:
+      body.contractAmount !== undefined
+        ? parseMoney(body.contractAmount)
+        : parseMoney(body.clientPayment?.totalAmount),
+    transactions: normalizeTransactions(body.transactions),
+    additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
+    // Keep legacy clientPayment synchronized for old UI/data readers.
     clientPayment: {
-      totalAmount: parseMoney(body.clientPayment?.totalAmount),
-      prepaidAmount: parseMoney(body.clientPayment?.prepaidAmount),
-      status: ['none', 'wait_prepayment', 'prepaid', 'paid'].includes(
-        body.clientPayment?.status
-      )
-        ? body.clientPayment.status
-        : 'none',
+      totalAmount:
+        body.contractAmount !== undefined
+          ? parseMoney(body.contractAmount)
+          : parseMoney(body.clientPayment?.totalAmount),
+      prepaidAmount: 0,
+      status: 'none',
     },
     assignedStaff: normalizeAssignedStaff(body.assignedStaff),
     adminComment:
@@ -98,6 +185,23 @@ export const normalizeOrderPayload = (body) => {
 }
 
 export const validateOrderReferences = async ({ tenantId, payload }) => {
+  if (payload.clientId) {
+    const PartyClients = await getPartyClientModel()
+    const exists = await PartyClients.exists({
+      _id: payload.clientId,
+      tenantId,
+      status: { $ne: 'archived' },
+    })
+    if (!exists) {
+      return partyError(
+        400,
+        'partycrm_client_not_found',
+        'Выбранный клиент не найден',
+        'validation'
+      )
+    }
+  }
+
   if (payload.locationId) {
     const PartyLocations = await getPartyLocationModel()
     const exists = await PartyLocations.exists({
@@ -133,7 +237,48 @@ export const validateOrderReferences = async ({ tenantId, payload }) => {
     }
   }
 
+  if (payload.servicesIds.length > 0) {
+    const PartyServices = await getPartyServiceModel()
+    const count = await PartyServices.countDocuments({
+      _id: { $in: payload.servicesIds },
+      tenantId,
+      status: { $ne: 'archived' },
+    })
+    if (count !== payload.servicesIds.length) {
+      return partyError(
+        400,
+        'partycrm_service_not_found',
+        'Одна или несколько услуг не найдены',
+        'validation'
+      )
+    }
+  }
+
   return null
+}
+
+const buildOrderClientSnapshot = async ({ tenantId, payload }) => {
+  if (!payload.clientId) return payload
+
+  const PartyClients = await getPartyClientModel()
+  const client = await PartyClients.findOne({
+    _id: payload.clientId,
+    tenantId,
+    status: { $ne: 'archived' },
+  }).lean()
+
+  if (!client) return payload
+
+  return {
+    ...payload,
+    client: {
+      name: [client.firstName, client.secondName, client.thirdName]
+        .filter(Boolean)
+        .join(' '),
+      phone: client.phone || '',
+      email: client.email || '',
+    },
+  }
 }
 
 export async function GET(req) {
@@ -176,12 +321,16 @@ export async function POST(req) {
     payload,
   })
   if (referenceError) return referenceError
+  const payloadWithClient = await buildOrderClientSnapshot({
+    tenantId: context.tenantId,
+    payload,
+  })
 
   const PartyOrders = await getPartyOrderModel()
   const conflicts = await findPartyOrderConflicts({
     PartyOrders,
     tenantId: context.tenantId,
-    payload,
+    payload: payloadWithClient,
   })
   if (hasPartyOrderConflicts(conflicts)) {
     return partyError(
@@ -194,7 +343,7 @@ export async function POST(req) {
   }
 
   const order = await PartyOrders.create({
-    ...payload,
+    ...payloadWithClient,
     tenantId: context.tenantId,
   })
 

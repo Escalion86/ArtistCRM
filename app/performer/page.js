@@ -1,4 +1,3 @@
-import PartyAppShell from '@components/party/PartyAppShell'
 import PerformerWorkspaceClient from './PerformerWorkspaceClient'
 
 export const metadata = {
@@ -17,9 +16,5 @@ export const metadata = {
 }
 
 export default function PerformerPage() {
-  return (
-    <PartyAppShell variant="performer">
-      <PerformerWorkspaceClient />
-    </PartyAppShell>
-  )
+  return <PerformerWorkspaceClient />
 }

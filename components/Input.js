@@ -6,7 +6,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cn from 'classnames'
 import { forwardRef } from 'react'
 import { MaskedInput } from '@thaborach/react-text-mask'
-import { normalizeNumberInputString, toNormalizedNumber } from '@helpers/numberInput'
+import {
+  normalizeNumberInputString,
+  toNormalizedNumber,
+} from '@helpers/numberInput'
 import copyToClipboard from '@helpers/copyToClipboard'
 import InputWrapper from './InputWrapper'
 
@@ -49,9 +52,11 @@ const Input = forwardRef(
       dataList,
       copyPasteButtons = false,
       normalizePastedValue,
+      tone = 'default',
     },
     ref
   ) => {
+    const isParty = tone === 'party'
     const isPhone = type === 'phone'
     const prefixValue = isPhone && prefix === undefined ? '+7' : prefix
     const phoneMask = [
@@ -80,12 +85,18 @@ const Input = forwardRef(
     })()
     const placeholderValue = floatingLabel ? ' ' : label
 
+    // Определяем цвета для стрелочек в зависимости от темы
+    const arrowTextColor = isParty ? 'text-blue-500' : 'text-general'
+    const arrowHoverColor = isParty
+      ? 'hover:text-blue-600'
+      : 'hover:text-success'
+
     return (
       <InputWrapper
         label={label}
         labelClassName={labelClassName}
         value={value ?? defaultValue}
-        className={className}
+        className={cn(className, type === 'number' ? 'max-w-fit' : '')}
         required={required}
         floatingLabel={floatingLabel}
         error={error}
@@ -101,6 +112,7 @@ const Input = forwardRef(
         noMargin={noMargin}
         smallMargin={smallMargin}
         showDisabledIcon={showDisabledIcon}
+        tone={tone}
         comment={
           maxLength ? `${String(value)?.length} / ${maxLength}` : undefined
         }
@@ -116,7 +128,7 @@ const Input = forwardRef(
               'px-1 duration-300',
               typeof min === 'number' && value <= min
                 ? 'text-disabled cursor-not-allowed'
-                : 'text-general hover:text-success cursor-pointer'
+                : `${arrowTextColor} ${arrowHoverColor} cursor-pointer`
             )}
             onClick={() => {
               if (typeof min !== 'number')
@@ -124,7 +136,7 @@ const Input = forwardRef(
               else onChange(Math.max(Number(value) - Number(step), min))
             }}
           >
-            <FontAwesomeIcon icon={faArrowDown} className="h-4 min-h-4 w-4" />
+            <FontAwesomeIcon icon={faArrowDown} className="w-4 h-4 min-h-4" />
           </div>
         )}
 
@@ -182,7 +194,7 @@ const Input = forwardRef(
             step={step}
             className={cn(
               'peer h-7 flex-1 bg-transparent px-1 text-black placeholder-transparent focus:outline-none',
-              type === 'number' ? 'hide-number-spin' : '',
+              type === 'number' ? 'hide-number-spin max-w-22 text-center' : '',
               disabled ? 'text-disabled cursor-not-allowed' : '',
               inputClassName
             )}
@@ -191,8 +203,10 @@ const Input = forwardRef(
             max={max}
             disabled={disabled}
             value={
-              value === null
-                ? ''
+              value === null || !value
+                ? type === 'number'
+                  ? 0
+                  : ''
                 : typeof value === 'number'
                   ? String(value)
                   : value
@@ -217,7 +231,9 @@ const Input = forwardRef(
               if (type !== 'number') return
               const normalized = normalizeNumberInputString(e.target.value)
               if (!normalized || normalized === e.target.value) return
-              onChange(toNormalizedNumber(normalized, { fallback: 0, min, max }))
+              onChange(
+                toNormalizedNumber(normalized, { fallback: 0, min, max })
+              )
             }}
             placeholder={placeholderValue}
             autoComplete={autoComplete}
@@ -232,10 +248,10 @@ const Input = forwardRef(
           </datalist>
         )}
         {copyPasteButtons && !disabled && type !== 'number' && !isPhone && (
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-50"
+              className="flex items-center justify-center text-gray-600 transition border border-gray-300 rounded cursor-pointer h-7 w-7 hover:bg-gray-50"
               onClick={() => {
                 if (!navigator?.clipboard) return
                 navigator.clipboard.readText().then((text) => {
@@ -252,7 +268,7 @@ const Input = forwardRef(
             </button>
             <button
               type="button"
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-50"
+              className="flex items-center justify-center text-gray-600 transition border border-gray-300 rounded cursor-pointer h-7 w-7 hover:bg-gray-50"
               onClick={() => {
                 copyToClipboard(String(value ?? ''))
               }}
@@ -268,7 +284,7 @@ const Input = forwardRef(
               'px-1 duration-300',
               typeof max === 'number' && value >= max
                 ? 'text-disabled cursor-not-allowed'
-                : 'text-general hover:text-success cursor-pointer'
+                : `${arrowTextColor} ${arrowHoverColor} cursor-pointer`
             )}
             onClick={() => {
               if (typeof max !== 'number')
@@ -276,7 +292,7 @@ const Input = forwardRef(
               else onChange(Math.min(Number(value) + Number(step), max))
             }}
           >
-            <FontAwesomeIcon icon={faArrowUp} className="h-4 min-h-4 w-4" />
+            <FontAwesomeIcon icon={faArrowUp} className="w-4 h-4 min-h-4" />
           </div>
         )}
       </InputWrapper>

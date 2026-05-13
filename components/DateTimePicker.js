@@ -34,6 +34,7 @@ const DateTimePicker = ({
   defaultValue,
   noMargin,
   startWithYear = false,
+  tone = 'default',
 }) => {
   const widthNum = useWindowDimensionsTailwindNum()
   const pickerFieldSx = {
@@ -116,6 +117,8 @@ const DateTimePicker = ({
       disabled={disabled}
       showDisabledIcon={false}
       noMargin={noMargin}
+      tone={tone}
+      paddingY="small"
     >
       <LocalizationProvider
         dateAdapter={AdapterDayjs}

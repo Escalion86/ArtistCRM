@@ -22,8 +22,10 @@ const ClientPicker = ({
   paddingY,
   fullWidth,
   compact,
+  tone,
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const isPartyTone = tone === 'party'
   const handleEdit = () => {
     if (!selectedClientId || disabled) return
     if (onEditClick) {
@@ -53,11 +55,15 @@ const ClientPicker = ({
       paddingY={paddingY}
       fullWidth={fullWidth}
       disabled={disabled}
+      tone={tone}
     >
-      <div className="flex w-full flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center w-full gap-2">
         <div
           className={cn(
-            'hover:shadow-card flex flex-1 cursor-pointer justify-between rounded border border-gray-300 bg-white shadow-sm transition',
+            'flex flex-1 cursor-pointer justify-between rounded border bg-white shadow-sm transition',
+            isPartyTone
+              ? 'border-sky-100 hover:border-sky-300 hover:bg-sky-50/80 hover:shadow-sky-100/80'
+              : 'hover:shadow-card border-gray-300',
             compact ? 'px-3 py-2 text-sm' : 'p-3'
           )}
           onClick={
@@ -70,7 +76,9 @@ const ClientPicker = ({
         >
           <div
             className={cn(
-              'font-semibold text-gray-900',
+              isPartyTone
+                ? 'font-semibold text-slate-950'
+                : 'font-semibold text-gray-900',
               compact ? 'text-sm' : 'text-base'
             )}
           >
@@ -78,7 +86,12 @@ const ClientPicker = ({
           </div>
           {selectedClient && (
             <>
-              <div className="text-sm text-gray-600">
+              <div
+                className={cn(
+                  'text-sm',
+                  isPartyTone ? 'text-slate-500' : 'text-gray-600'
+                )}
+              >
                 {selectedClient?.phone
                   ? `+${selectedClient.phone}`
                   : 'Телефон не указан'}
@@ -91,8 +104,13 @@ const ClientPicker = ({
             icon={faPencilAlt}
             onClick={handleEdit}
             title="Сменить клиента"
-            variant="warning"
+            variant={isPartyTone ? 'neutral' : 'warning'}
             size={compact ? 'sm' : 'lg'}
+            className={
+              isPartyTone
+                ? 'border border-sky-100 bg-white text-sky-700 hover:bg-sky-50'
+                : ''
+            }
           />
         )}
         {!disabled && (
@@ -100,6 +118,12 @@ const ClientPicker = ({
             onClick={handleCreate}
             title="Создать нового клиента"
             size={compact ? 'sm' : 'lg'}
+            variant={isPartyTone ? 'neutral' : 'success'}
+            className={
+              isPartyTone
+                ? 'border border-sky-100 bg-sky-600 text-white hover:bg-sky-700'
+                : ''
+            }
           />
         )}
       </div>
@@ -125,6 +149,7 @@ ClientPicker.propTypes = {
   paddingY: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
   fullWidth: PropTypes.bool,
   compact: PropTypes.bool,
+  tone: PropTypes.oneOf(['default', 'party']),
 }
 
 ClientPicker.defaultProps = {
@@ -137,6 +162,7 @@ ClientPicker.defaultProps = {
   paddingY: true,
   fullWidth: false,
   compact: false,
+  tone: 'default',
   onCreateClick: null,
   onViewClick: null,
   onEditClick: null,

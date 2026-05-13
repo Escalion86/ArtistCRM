@@ -37,10 +37,14 @@ export async function GET(req) {
   const { context, error } = await getPartyRequestContext({ req })
   if (error) return error
 
+  const status = req.nextUrl.searchParams.get('status')
+  const statusFilter =
+    status === 'archived' ? { status: 'archived' } : { status: { $ne: 'archived' } }
+
   const PartyLocations = await getPartyLocationModel()
   const locations = await PartyLocations.find({
     tenantId: context.tenantId,
-    status: { $ne: 'archived' },
+    ...statusFilter,
   })
     .sort({ title: 1, createdAt: 1 })
     .lean()

@@ -15,6 +15,7 @@ const Textarea = ({
   noMargin = false,
   smallMargin = false,
   fullWidth = false,
+  tone = 'default',
 }) => {
   return (
     <InputWrapper
@@ -27,6 +28,7 @@ const Textarea = ({
       noMargin={noMargin}
       smallMargin={smallMargin}
       fullWidth={fullWidth}
+      tone={tone}
     >
       <textarea
         className={cn('flex-1 px-1 text-black outline-none', inputClassName)}

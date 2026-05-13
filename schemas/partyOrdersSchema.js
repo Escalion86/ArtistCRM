@@ -31,6 +31,64 @@ const assignedStaffSchema = new Schema(
   { _id: false }
 )
 
+const partyOrderTransactionSchema = new Schema(
+  {
+    amount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    type: {
+      type: String,
+      enum: ['income', 'expense'],
+      default: 'income',
+    },
+    category: {
+      type: String,
+      enum: [
+        'deposit',
+        'final_payment',
+        'client_payment',
+        'payout',
+        'refund',
+        'taxes',
+        'materials',
+        'travel',
+        'other',
+      ],
+      default: 'deposit',
+    },
+    date: {
+      type: Date,
+      default: null,
+    },
+    comment: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 1000,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['transfer', 'account', 'cash', 'barter'],
+      default: 'transfer',
+    },
+  },
+  { _id: true }
+)
+
+const partyOrderAdditionalEventSchema = new Schema(
+  {
+    title: { type: String, trim: true, default: '', maxlength: 180 },
+    description: { type: String, trim: true, default: '', maxlength: 1000 },
+    date: { type: Date, default: null },
+    done: { type: Boolean, default: false },
+    doneAt: { type: Date, default: null },
+    googleCalendarEventId: { type: String, default: '' },
+  },
+  { _id: true }
+)
+
 const partyOrdersSchema = {
   tenantId: {
     type: Schema.Types.ObjectId,
@@ -50,10 +108,22 @@ const partyOrdersSchema = {
     default: 'draft',
     index: true,
   },
+  clientId: {
+    type: Schema.Types.ObjectId,
+    ref: 'PartyClients',
+    default: null,
+    index: true,
+  },
   client: {
     name: { type: String, trim: true, default: '', maxlength: 160 },
     phone: { type: String, trim: true, default: '', maxlength: 40 },
-    email: { type: String, trim: true, lowercase: true, default: '', maxlength: 160 },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: '',
+      maxlength: 160,
+    },
   },
   eventDate: {
     type: Date,
@@ -81,12 +151,31 @@ const partyOrdersSchema = {
     default: '',
     maxlength: 500,
   },
+  servicesIds: {
+    type: [Schema.Types.ObjectId],
+    default: [],
+    index: true,
+  },
   serviceTitle: {
     type: String,
     trim: true,
     default: '',
     maxlength: 180,
   },
+  contractAmount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  transactions: {
+    type: [partyOrderTransactionSchema],
+    default: [],
+  },
+  additionalEvents: {
+    type: [partyOrderAdditionalEventSchema],
+    default: [],
+  },
+  // Legacy field kept for backward-compatible reads of early PartyCRM orders.
   clientPayment: {
     totalAmount: { type: Number, default: 0, min: 0 },
     prepaidAmount: { type: Number, default: 0, min: 0 },

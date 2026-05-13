@@ -1,4 +1,3 @@
-import PartyAppShell from '@components/party/PartyAppShell'
 import PartySettingsClient from './PartySettingsClient'
 
 export const metadata = {
@@ -17,9 +16,5 @@ export const metadata = {
 }
 
 export default function PartySettingsPage() {
-  return (
-    <PartyAppShell variant="settings">
-      <PartySettingsClient />
-    </PartyAppShell>
-  )
+  return <PartySettingsClient />
 }

@@ -4,6 +4,8 @@ import PushReminderLogs from '@models/PushReminderLogs'
 import { logPushDelivery, sendPushToTenant } from '@server/pushNotifications'
 
 const DEFAULT_TIME_ZONE = 'Asia/Krasnoyarsk'
+const DEFAULT_REMINDER_TIME = '10:00'
+const VALID_REMINDER_MINUTES = new Set(['00', '15', '30', '45'])
 
 const toDate = (value) => {
   if (!value) return null
@@ -40,6 +42,29 @@ const toDateKey = (value, timeZone = DEFAULT_TIME_ZONE) => {
   ].join('-')
 }
 
+const normalizeReminderTime = (value) => {
+  const raw = String(value || '').trim()
+  const match = raw.match(/^([01]\d|2[0-3]):([0-5]\d)$/)
+  if (!match) return DEFAULT_REMINDER_TIME
+  const minutes = match[2]
+  if (!VALID_REMINDER_MINUTES.has(minutes)) return DEFAULT_REMINDER_TIME
+  return `${match[1]}:${minutes}`
+}
+
+const getZonedTimeKey = (value, timeZone = DEFAULT_TIME_ZONE) => {
+  const date = toDate(value)
+  if (!date) return null
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date)
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  if (!map.hour || !map.minute) return null
+  return `${map.hour}:${map.minute}`
+}
+
 const addDaysToDateKey = (dateKey, days) => {
   const [year, month, day] = String(dateKey || '')
     .split('-')
@@ -66,6 +91,17 @@ const canSendForTenant = (siteSettings) => {
   if (!basePushEnabled) return false
   if (remindersEnabled === false) return false
   return true
+}
+
+const shouldRunForTenantTime = (siteSettings, nowDate) => {
+  const timeZone = siteSettings?.timeZone || DEFAULT_TIME_ZONE
+  const currentTime = getZonedTimeKey(nowDate, timeZone)
+  const custom = siteSettings?.custom
+  const reminderTime =
+    typeof custom?.get === 'function'
+      ? custom.get('additionalEventsPushTime')
+      : custom?.additionalEventsPushTime
+  return currentTime === normalizeReminderTime(reminderTime)
 }
 
 const buildReminderPayload = ({
@@ -130,21 +166,29 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
   const enabledTenantSettings = siteSettings.filter((item) =>
     canSendForTenant(item)
   )
-  const tenantIds = enabledTenantSettings.map((item) => String(item.tenantId))
+  const scheduledTenantSettings = enabledTenantSettings.filter((item) =>
+    shouldRunForTenantTime(item, nowDate)
+  )
+  const skippedByTime =
+    enabledTenantSettings.length - scheduledTenantSettings.length
   const settingsByTenant = new Map(
-    enabledTenantSettings.map((item) => [String(item.tenantId), item])
+    scheduledTenantSettings.map((item) => [String(item.tenantId), item])
   )
 
-  if (tenantIds.length === 0) {
+  if (scheduledTenantSettings.length === 0) {
     return {
       processedEvents: 0,
       dueCandidates: 0,
       sentReminders: 0,
       skippedByDedup: 0,
+      skippedByTime,
       failed: 0,
-      tenants: 0,
+      tenants: enabledTenantSettings.length,
+      scheduledTenants: 0,
     }
   }
+
+  const tenantIds = scheduledTenantSettings.map((item) => String(item.tenantId))
 
   const events = await Events.find({
     tenantId: { $in: tenantIds },
@@ -274,8 +318,10 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
     dueCandidates,
     sentReminders,
     skippedByDedup,
+    skippedByTime,
     failed,
-    tenants: tenantIds.length,
+    tenants: enabledTenantSettings.length,
+    scheduledTenants: scheduledTenantSettings.length,
   }
 }
 

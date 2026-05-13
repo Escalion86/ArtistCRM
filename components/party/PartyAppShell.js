@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  faAddressBook,
   faBriefcase,
   faCalendarCheck,
   faChartLine,
@@ -20,6 +21,7 @@ import { useEffect, useState } from 'react'
 const companyMenu = [
   { href: '/company', label: 'Обзор', icon: faHome },
   { href: '/company/orders', label: 'Заказы', icon: faCalendarCheck },
+  { href: '/company/clients', label: 'Клиенты', icon: faAddressBook },
   { href: '/company/finance', label: 'Финансы', icon: faChartLine },
   { href: '/company/locations', label: 'Точки', icon: faLocationDot },
   { href: '/company/staff', label: 'Сотрудники', icon: faUserGroup },
@@ -35,11 +37,10 @@ const secondaryMenu = [
   { href: '/party/settings', label: 'Настройки', icon: faGear, always: true },
 ]
 
-const getTitle = (variant) => {
-  if (variant === 'performer') return 'Кабинет исполнителя'
-  if (variant === 'settings') return 'Настройки'
-  return 'Кабинет компании'
-}
+const ACTIVE_COMPANY_STORAGE_KEY = 'partycrm.activeCompanyId'
+
+const getDisplayName = (user) =>
+  [user?.firstName, user?.secondName].filter(Boolean).join(' ').trim()
 
 const MenuLink = ({ item, active, onClick }) => (
   <Link
@@ -63,8 +64,9 @@ export default function PartyAppShell({ variant = 'company', children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentHash, setCurrentHash] = useState('')
   const [interfaceRoles, setInterfaceRoles] = useState([])
+  const [partyUser, setPartyUser] = useState(null)
+  const [memberships, setMemberships] = useState([])
   const [profileLoaded, setProfileLoaded] = useState(false)
-  const title = getTitle(variant)
   const canUseCompany = interfaceRoles.includes('company')
   const canUsePerformer = interfaceRoles.includes('performer')
   const canUseBoth = canUseCompany && canUsePerformer
@@ -85,6 +87,26 @@ export default function PartyAppShell({ variant = 'company', children }) {
     if (item.href === '/performer') return canUsePerformer
     return true
   })
+  const title = (() => {
+    if (variant === 'performer') {
+      const performerName = getDisplayName(partyUser)
+      return performerName ? `Исполнитель "${performerName}"` : 'Исполнитель'
+    }
+
+    if (variant === 'settings') return 'Настройки'
+
+    const activeCompanyId =
+      typeof window !== 'undefined'
+        ? window.localStorage.getItem(ACTIVE_COMPANY_STORAGE_KEY) || ''
+        : ''
+    const activeMembership =
+      memberships.find((item) => item.tenantId === activeCompanyId) ||
+      memberships[0] ||
+      null
+    const companyTitle = activeMembership?.company?.title || ''
+    return companyTitle ? `Компания "${companyTitle}"` : 'Компания'
+  })()
+
   useEffect(() => {
     const syncHash = () => setCurrentHash(window.location.hash || '')
     syncHash()
@@ -94,18 +116,31 @@ export default function PartyAppShell({ variant = 'company', children }) {
 
   useEffect(() => {
     const loadProfile = () => {
-      fetch('/api/party/auth/me', { cache: 'no-store' })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => {
-        const roles = payload?.data?.user?.interfaceRoles
-        if (Array.isArray(roles) && roles.length > 0) setInterfaceRoles(roles)
-        else setInterfaceRoles(['company', 'performer'])
-        setProfileLoaded(true)
-      })
-      .catch(() => {
-        setInterfaceRoles(['company', 'performer'])
-        setProfileLoaded(true)
-      })
+      Promise.all([
+        fetch('/api/party/auth/me', { cache: 'no-store' }).then((response) =>
+          response.ok ? response.json() : null
+        ),
+        fetch('/api/party/memberships', { cache: 'no-store' }).then((response) =>
+          response.ok ? response.json() : null
+        ),
+      ])
+        .then(([profilePayload, membershipsPayload]) => {
+          const roles = profilePayload?.data?.user?.interfaceRoles
+          setPartyUser(profilePayload?.data?.user || null)
+          setMemberships(membershipsPayload?.data?.memberships || [])
+          if (Array.isArray(roles) && roles.length > 0) {
+            setInterfaceRoles(roles)
+          } else {
+            setInterfaceRoles(['company', 'performer'])
+          }
+          setProfileLoaded(true)
+        })
+        .catch(() => {
+          setPartyUser(null)
+          setMemberships([])
+          setInterfaceRoles(['company', 'performer'])
+          setProfileLoaded(true)
+        })
     }
 
     loadProfile()
@@ -199,9 +234,6 @@ export default function PartyAppShell({ variant = 'company', children }) {
                 </span>
               </button>
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-sky-600 md:text-sky-300">
-                  PartyCRM
-                </p>
                 <h1 className="truncate text-base font-semibold">{title}</h1>
               </div>
             </div>

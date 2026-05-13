@@ -7,6 +7,7 @@ import {
   partyError,
 } from '@server/partyApi'
 import { normalizeOrderPayload, validateOrderReferences } from '../route'
+import { getPartyClientModel } from '@server/partyModels'
 import {
   findPartyOrderConflicts,
   hasPartyOrderConflicts,
@@ -15,6 +16,30 @@ import {
 const getId = async (params) => {
   const resolved = await params
   return resolved?.id
+}
+
+const buildOrderClientSnapshot = async ({ tenantId, payload }) => {
+  if (!payload.clientId) return payload
+
+  const PartyClients = await getPartyClientModel()
+  const client = await PartyClients.findOne({
+    _id: payload.clientId,
+    tenantId,
+    status: { $ne: 'archived' },
+  }).lean()
+
+  if (!client) return payload
+
+  return {
+    ...payload,
+    client: {
+      name: [client.firstName, client.secondName, client.thirdName]
+        .filter(Boolean)
+        .join(' '),
+      phone: client.phone || '',
+      email: client.email || '',
+    },
+  }
 }
 
 export async function GET(req, { params }) {
@@ -68,12 +93,16 @@ export async function PATCH(req, { params }) {
     payload,
   })
   if (referenceError) return referenceError
+  const payloadWithClient = await buildOrderClientSnapshot({
+    tenantId: context.tenantId,
+    payload,
+  })
 
   const PartyOrders = await getPartyOrderModel()
   const conflicts = await findPartyOrderConflicts({
     PartyOrders,
     tenantId: context.tenantId,
-    payload,
+    payload: payloadWithClient,
     excludeOrderId: id,
   })
   if (hasPartyOrderConflicts(conflicts)) {
@@ -88,7 +117,7 @@ export async function PATCH(req, { params }) {
 
   const order = await PartyOrders.findOneAndUpdate(
     { _id: id, tenantId: context.tenantId },
-    { $set: payload },
+    { $set: payloadWithClient },
     { returnDocument: 'after' }
   ).lean()
 

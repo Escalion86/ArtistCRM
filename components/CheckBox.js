@@ -15,14 +15,16 @@ const CheckBox = ({
   type = 'checkbox',
   noMargin,
   disabled,
+  tone = 'default',
 }) => {
+  const isParty = tone === 'party'
   if (readOnly && !checked) return null
 
   return (
     (!readOnly || checked) && (
       <div
         className={cn(
-          'flex gap-x-1.5 pl-1 items-center',
+          'flex items-center gap-x-1.5 pl-1',
           noMargin ? '' : 'my-2',
           hidden ? 'hidden' : '',
           wrapperClassName
@@ -34,7 +36,7 @@ const CheckBox = ({
           checked={checked}
           type={type}
           className={cn(
-            'duration-300 transition-all',
+            'transition-all duration-300',
             type === 'checkbox'
               ? checked
                 ? 'bg-check'
@@ -46,14 +48,16 @@ const CheckBox = ({
             readOnly
               ? 'bg-gray-500'
               : !disabled
-                ? 'checked:bg-general cursor-pointer'
+                ? isParty
+                  ? 'cursor-pointer checked:bg-blue-500'
+                  : 'checked:bg-general cursor-pointer'
                 : '',
-            'border appearance-none from-blue-900 checked:border-transparent focus:outline-none',
+            'appearance-none border from-blue-900 checked:border-transparent focus:outline-none',
             big
-              ? 'min-w-6 min-h-6 w-6 h-6'
+              ? 'h-6 min-h-6 w-6 min-w-6'
               : small
-                ? 'min-w-4 min-h-4 w-4 h-4'
-                : 'min-w-5 min-h-5 w-5 h-5',
+                ? 'h-4 min-h-4 w-4 min-w-4'
+                : 'h-5 min-h-5 w-5 min-w-5',
             type === 'checkbox'
               ? big
                 ? 'rounded-lg'
@@ -61,7 +65,7 @@ const CheckBox = ({
                   ? 'rounded-sm'
                   : 'rounded-md'
               : 'rounded-full',
-            error ? 'border-danger' : ' border-gray-400'
+            error ? 'border-danger' : 'border-gray-400'
           )}
           onClick={!readOnly ? onClick : null}
           onChange={!readOnly ? onChange : null}
@@ -76,6 +80,10 @@ const CheckBox = ({
       </div>
     )
   )
+}
+
+CheckBox.defaultProps = {
+  tone: 'default',
 }
 
 export default CheckBox

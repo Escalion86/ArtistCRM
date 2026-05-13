@@ -1,7 +1,8 @@
 # AGENTS.md — руководство для Codex и других агентов
 
 ## Описание проекта
-- ArtistCRM: CRM для соло-артистов (основной сегмент).
+- ArtistCRM: CRM для соло-артистов (основной продукт).
+- PartyCRM: отдельная система для агентств/мероприятий (заказы), код существует параллельно в `app/company`.
 - Ключевая ценность: не терять заявки, не забывать перезвоны, контролировать задатки/оплаты и сроки мероприятий.
 
 ## Язык
@@ -43,11 +44,13 @@
 - `/server`: серверные компоненты/логика
 - `/helpers`: вспомогательные функции
 - `/docs`: документация и рабочие планы
-- `/mobile`: отдельный Expo/React Native клиент (параллельный трек, не ломать web-логику без явной задачи)
+- `/mobile`: отдельный Expo/React Native клиент (параллельный трек, разработка запланирована на будущее, сохраняй обратную совместимость API)
 
 ## Текущая архитектура (кратко)
 - Web: Next.js App Router + client-side UI на React.
+- UI Stack: Смешанный подход. MUI (Material UI) используется для сложных виджетов, компонентов данных и форм; Tailwind CSS — для базовой верстки и утилитарных стилей.
 - State: Jotai (`state/atoms`, `state/selectors`, `state/store.js`).
+- PWA: Настроен через `@ducanh2912/next-pwa`. Оффлайн-режим и кэширование активны, соблюдай осторожность при изменении статических ассетов и API-роутов.
 - Данные в кабинет загружаются серверно через `server/fetchProps.js`, затем кладутся в атомы через `components/StateLoader.js`.
 - Модалки: централизованы через `modalsAtom` + `layouts/modals/ModalsPortal.js` + `layouts/modals/modalsFuncGenerator.js`.
 - API: `app/api/**/route.js` (tenant-aware через `server/getTenantContext.js`).
@@ -118,6 +121,7 @@
 - `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`
 - `DOMAIN`
 - Дополнительно для телефонии/ботов: `TELEFONIP`, `PHONE_SMS_SEND_WEBHOOK`, `TELEGRAM_TOKEN`
+- Дополнительно для биллинга (YooKassa/Tochka): `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`, `TOCHKA_API_TOKEN`, `TOCHKA_MERCHANT_ID`
 
 ## Известные особенности кода
 - `server/CRUD.js` содержит рабочие экспортируемые функции календаря и legacy-обработчик; в App Router активно используются именно экспортируемые функции (`updateEventInCalendar`, `deleteEventFromCalendar`).

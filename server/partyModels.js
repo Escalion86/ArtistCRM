@@ -1,9 +1,11 @@
 import { PRODUCTS } from './productContext'
 import { getProductModel } from './productDbConnect'
 import partyAssignmentsSchema from '@schemas/partyAssignmentsSchema'
+import partyClientsSchema from '@schemas/partyClientsSchema'
 import partyCompaniesSchema from '@schemas/partyCompaniesSchema'
 import partyLocationsSchema from '@schemas/partyLocationsSchema'
 import partyOrdersSchema from '@schemas/partyOrdersSchema'
+import partyServicesSchema from '@schemas/partyServicesSchema'
 import partyStaffSchema from '@schemas/partyStaffSchema'
 import partyUsersSchema from '@schemas/partyUsersSchema'
 
@@ -64,6 +66,19 @@ export const getPartyLocationModel = () =>
     },
   })
 
+export const getPartyClientModel = () =>
+  getProductModel({
+    product: PRODUCTS.PARTYCRM,
+    name: 'PartyClients',
+    schemaDefinition: partyClientsSchema,
+    schemaOptions: { timestamps: true },
+    configureSchema: (schema) => {
+      schema.index({ tenantId: 1, status: 1, firstName: 1, secondName: 1 })
+      schema.index({ tenantId: 1, phone: 1 })
+      schema.index({ tenantId: 1, email: 1 })
+    },
+  })
+
 export const getPartyAssignmentModel = () =>
   getProductModel({
     product: PRODUCTS.PARTYCRM,
@@ -74,6 +89,18 @@ export const getPartyAssignmentModel = () =>
       schema.index({ tenantId: 1, eventId: 1 })
       schema.index({ tenantId: 1, staffId: 1 })
       schema.index({ tenantId: 1, eventId: 1, staffId: 1 }, { unique: true })
+    },
+  })
+
+export const getPartyServiceModel = () =>
+  getProductModel({
+    product: PRODUCTS.PARTYCRM,
+    name: 'PartyServices',
+    schemaDefinition: partyServicesSchema,
+    schemaOptions: { timestamps: true },
+    configureSchema: (schema) => {
+      schema.index({ tenantId: 1, status: 1, title: 1 })
+      schema.index({ tenantId: 1, specialization: 1, status: 1 })
     },
   })
 

@@ -6,7 +6,7 @@ const Avatar = ({ user, className }) => (
   <img
     // onClick={() => closeMenu()}
     className={cn(
-      'border border-opacity-50 rounded-full cursor-pointer border-whiteobject-cover h-11 w-11 min-w-9',
+      'border-opacity-50 border-whiteobject-cover h-11 w-11 min-w-9 cursor-pointer rounded-full border',
       className
     )}
     src={getUserAvatarSrc(user)}
@@ -15,4 +15,3 @@ const Avatar = ({ user, className }) => (
 )
 
 export default Avatar
-

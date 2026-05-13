@@ -1,4 +1,3 @@
-import Tooltip from '@components/Tooltip'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cn from 'classnames'
 
@@ -18,23 +17,19 @@ const CardButton = ({
   tooltipText,
   paddingY = true,
 }) => (
-  <Tooltip title={tooltipText}>
-    <button
-      type="button"
-      className={cn(
-        'action-icon-button flex w-9 items-center justify-center rounded-full text-base font-normal duration-200',
-        `action-icon-button--${toneByColor[color] || 'neutral'}`,
-        paddingY ? 'h-9' : '',
-        active ? 'scale-105 ring-2 ring-general/30' : ''
-      )}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick && onClick()
-      }}
-    >
-      <FontAwesomeIcon icon={icon} className="w-6 h-6" />
-    </button>
-  </Tooltip>
+  <button
+    type="button"
+    title={tooltipText}
+    className={cn(
+      'action-icon-button flex w-9 items-center justify-center rounded-full text-base font-normal duration-200',
+      `action-icon-button--${toneByColor[color] || 'neutral'}`,
+      paddingY ? 'h-9' : '',
+      active ? 'scale-105 ring-2 ring-general/30' : ''
+    )}
+    onClick={onClick}
+  >
+    <FontAwesomeIcon icon={icon} className="w-6 h-6" />
+  </button>
 )
 
 export default CardButton
