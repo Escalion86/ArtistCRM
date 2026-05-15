@@ -28,7 +28,8 @@ const jsonError = (message, status = 400, code = 'vk_error') =>
   )
 
 export const POST = async (req, { params }) => {
-  const token = String(params?.token || '').trim()
+  const routeParams = await params
+  const token = String(routeParams?.token || '').trim()
   if (!token) return jsonError('Token required', 400, 'missing_token')
 
   const body = await parseWebhookBody(req)

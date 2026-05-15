@@ -20,7 +20,8 @@ export const GET = async (req, { params }) => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
 
-  const id = String(params?.id || '').trim()
+  const routeParams = await params
+  const id = String(routeParams?.id || '').trim()
   if (!isObjectId(id)) return jsonError('Некорректный ID переписки', 400, 'bad_id')
 
   await dbConnect()
@@ -48,7 +49,8 @@ export const POST = async (req, { params }) => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
 
-  const id = String(params?.id || '').trim()
+  const routeParams = await params
+  const id = String(routeParams?.id || '').trim()
   if (!isObjectId(id)) return jsonError('Некорректный ID переписки', 400, 'bad_id')
 
   const body = await req.json().catch(() => ({}))

@@ -27,7 +27,8 @@ const parseWebhookBody = async (req) => {
 }
 
 export const POST = async (req, { params }) => {
-  const token = String(params?.token || '').trim()
+  const routeParams = await params
+  const token = String(routeParams?.token || '').trim()
   if (!token) {
     return NextResponse.json(
       {
