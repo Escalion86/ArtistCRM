@@ -480,7 +480,7 @@ const EventCard = ({
                 ? getPersonFullName(client, { fallback: client._id })
                 : '-'}
             </span>
-            {client && <ContactsIconsButtons user={client} />}
+            {client && <ContactsIconsButtons user={client} showChat />}
             {isClosed || isCanceled ? (
               <div
                 className={`event-profit-badge -mr-4 ml-auto flex min-w-[92px] shrink-0 items-center justify-center rounded-full border px-3 py-1.5 text-sm font-semibold ${

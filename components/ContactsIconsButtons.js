@@ -9,6 +9,7 @@ import { faInstagram } from '@fortawesome/free-brands-svg-icons/faInstagram'
 import { faVk } from '@fortawesome/free-brands-svg-icons/faVk'
 import { faPhone } from '@fortawesome/free-solid-svg-icons/faPhone'
 import { faSms } from '@fortawesome/free-solid-svg-icons/faSms'
+import ClientChatButton from '@components/ClientChatButton'
 
 const ContactIconBtn = ({ url, icon, size = 'lg', className = null }) => (
   <FontAwesomeIcon
@@ -62,6 +63,7 @@ const ContactsIconsButtons = ({
   smsViaPhone,
   forceWhatsApp = true,
   forceTelegram = true,
+  showChat = false,
 }) => {
   const Btn = withTitle ? ContactIconBtnWithTitle : ContactIconBtn
 
@@ -168,6 +170,9 @@ const ContactsIconsButtons = ({
           url={'mailto:' + user.email}
           title={user.email}
         />
+      )}
+      {!message && showChat && (
+        <ClientChatButton clientId={user?._id} withTitle={withTitle} />
       )}
     </div>
   )
