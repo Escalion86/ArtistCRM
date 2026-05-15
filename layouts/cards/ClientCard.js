@@ -7,6 +7,7 @@ import CardButtons from '@components/CardButtons'
 import CardOverlay from '@components/CardOverlay'
 import CardActions from '@components/CardActions'
 import ClientChatButton from '@components/ClientChatButton'
+import ClientContactMergeButton from '@components/ClientContactMergeButton'
 import formatDate from '@helpers/formatDate'
 import getPersonFullName from '@helpers/getPersonFullName'
 import { useAtomValue } from 'jotai'
@@ -93,7 +94,10 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
                 Приоритетная связь: {preferredContactChannelLabel}
               </div>
             )}
-            <ClientChatButton clientId={client._id} className="mt-1" />
+            <div className="flex flex-wrap items-center gap-2">
+              <ClientChatButton clientId={client._id} />
+              <ClientContactMergeButton clientId={client._id} />
+            </div>
             {significantDateLabel && (
               <div className="truncate text-gray-600">
                 Значимая дата: {significantDateLabel}

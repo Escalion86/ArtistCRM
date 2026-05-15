@@ -14,3 +14,7 @@
  GET /login 200 in 95ms (next.js: 4ms, proxy.ts: 13ms, application-code: 78ms)
 ○ Compiling /cabinet/[page] ...
  GET /cabinet/clientEvents 200 in 8.6s (next.js: 8.3s, proxy.ts: 5ms, application-code: 295ms)
+ GET /api/clients/000000000000000000000000/messenger?summary=1 401 in 4.2s (next.js: 4.2s, application-code: 31ms)
+ GET /cabinet/clients 200 in 2.3s (next.js: 1618ms, proxy.ts: 364ms, application-code: 298ms)
+ GET /api/clients/000000000000000000000000/messenger/candidates 401 in 2.5s (next.js: 2.5s, application-code: 54ms)
+ GET /cabinet/clients 200 in 2.4s (next.js: 1848ms, proxy.ts: 246ms, application-code: 311ms)

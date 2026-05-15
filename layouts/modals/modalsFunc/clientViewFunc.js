@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
 import CardButtons from '@components/CardButtons'
+import ClientContactMergeButton from '@components/ClientContactMergeButton'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import SurfaceCard from '@components/SurfaceCard'
 import getPersonFullName from '@helpers/getPersonFullName'
@@ -199,6 +200,9 @@ const clientViewFunc = (clientId) => {
           )}
           <div className="mt-2">
             <ContactsIconsButtons user={client} showChat />
+          </div>
+          <div className="mt-3">
+            <ClientContactMergeButton clientId={clientId} />
           </div>
           {(preferredContactChannelLabel || client.comment) && (
             <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">

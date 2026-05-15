@@ -47,6 +47,7 @@ import tariffFunc from './modalsFunc/tariffFunc'
 // import browseLocationFunc from './modalsFunc/browseLocationFunc'
 import eventHistoryFunc from './modalsFunc/eventHistoryFunc'
 import clientFunc from './modalsFunc/clientFunc'
+import clientContactMergeFunc from './modalsFunc/clientContactMergeFunc'
 import clientViewFunc from './modalsFunc/clientViewFunc'
 import clientMessengerFunc from './modalsFunc/clientMessengerFunc'
 import clientTransactionsFunc from './modalsFunc/clientTransactionsFunc'
@@ -411,6 +412,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
         addModal(clientSelectFunc(onSelect, title, options)),
       view: (clientId) => addModal(clientViewFunc(clientId)),
       messenger: (clientId) => addModal(clientMessengerFunc(clientId)),
+      contactMerge: (clientId) => addModal(clientContactMergeFunc(clientId)),
       transactions: (clientId) => addModal(clientTransactionsFunc(clientId)),
       events: (clientId) => addModal(clientEventsFunc(clientId)),
       delete: async (clientId) => {
