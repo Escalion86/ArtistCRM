@@ -42,6 +42,10 @@ const vkMessagesSchema = {
     type: String,
     default: '',
   },
+  attachments: {
+    type: [Schema.Types.Mixed],
+    default: [],
+  },
   sentAt: {
     type: Date,
     default: null,

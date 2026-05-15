@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { faRotateRight } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import formatDateTime from '@helpers/formatDateTime'
 import useSnackbar from '@helpers/useSnackbar'
 
@@ -9,6 +11,54 @@ const buildQuery = ({ clientId, eventId }) => {
   if (clientId) params.set('clientId', clientId)
   if (eventId) params.set('eventId', eventId)
   return params.toString()
+}
+
+const getAudioAttachments = (message) => {
+  const attachments = Array.isArray(message?.attachments)
+    ? message.attachments
+    : []
+  return attachments.filter((attachment) => attachment?.audioUrl)
+}
+
+const MessageBubble = ({ message }) => {
+  const audioAttachments = getAudioAttachments(message)
+
+  return (
+    <div
+      className={`flex ${
+        message.direction === 'outgoing' ? 'justify-end' : 'justify-start'
+      }`}
+    >
+      <div
+        className={`max-w-[85%] rounded px-3 py-2 text-sm ${
+          message.direction === 'outgoing'
+            ? 'bg-general text-white'
+            : 'bg-gray-100 text-gray-800'
+        }`}
+      >
+        <div className="whitespace-pre-wrap break-words">{message.text}</div>
+        {audioAttachments.length > 0 ? (
+          <div className="mt-2 flex flex-col gap-2">
+            {audioAttachments.map((attachment, index) => (
+              <audio
+                key={`${message._id}-audio-${index}`}
+                className="w-full max-w-64"
+                controls
+                preload="none"
+                src={attachment.audioUrl}
+              >
+                Ваш браузер не поддерживает аудио.
+              </audio>
+            ))}
+          </div>
+        ) : null}
+        <div className="mt-1 text-[10px] opacity-70">
+          {formatDateTime(message.sentAt || message.createdAt)}
+          {message.status === 'failed' ? ' · ошибка отправки' : ''}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 const MessengerConversationsPanel = ({
@@ -39,6 +89,41 @@ const MessengerConversationsPanel = ({
     [conversations, selectedId]
   )
 
+  const loadMessages = useCallback(
+    async ({ showSuccess = false } = {}) => {
+      if (!selectedId) {
+        setMessages([])
+        return
+      }
+      setMessagesLoading(true)
+      try {
+        const response = await fetch(
+          `/api/integrations/${provider}/conversations/${selectedId}/messages`
+        )
+        const result = await response.json().catch(() => ({}))
+        const nextMessages = Array.isArray(result?.data?.messages)
+          ? result.data.messages
+          : []
+        setMessages(nextMessages)
+        if (result?.data?.conversation) {
+          setConversations((prev) =>
+            prev.map((item) =>
+              item._id === result.data.conversation._id
+                ? result.data.conversation
+                : item
+            )
+          )
+        }
+        if (showSuccess) snackbar.success('Сообщения обновлены')
+      } catch (error) {
+        snackbar.error(`Не удалось загрузить сообщения ${title}`)
+      } finally {
+        setMessagesLoading(false)
+      }
+    },
+    [provider, selectedId, snackbar, title]
+  )
+
   useEffect(() => {
     let active = true
     const load = async () => {
@@ -64,31 +149,8 @@ const MessengerConversationsPanel = ({
   }, [provider, query, snackbar, title])
 
   useEffect(() => {
-    let active = true
-    const loadMessages = async () => {
-      if (!selectedId) {
-        setMessages([])
-        return
-      }
-      setMessagesLoading(true)
-      try {
-        const response = await fetch(
-          `/api/integrations/${provider}/conversations/${selectedId}/messages`
-        )
-        const result = await response.json().catch(() => ({}))
-        if (!active) return
-        setMessages(Array.isArray(result?.data?.messages) ? result.data.messages : [])
-      } catch (error) {
-        if (active) snackbar.error(`Не удалось загрузить сообщения ${title}`)
-      } finally {
-        if (active) setMessagesLoading(false)
-      }
-    }
     loadMessages()
-    return () => {
-      active = false
-    }
-  }, [provider, selectedId, snackbar, title])
+  }, [loadMessages])
 
   const sendMessage = async () => {
     const nextText = text.trim()
@@ -156,13 +218,32 @@ const MessengerConversationsPanel = ({
 
       {selectedConversation ? (
         <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-          <div className="font-semibold text-gray-800">
-            {getConversationTitle(selectedConversation)}
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="font-semibold text-gray-800">
+                {getConversationTitle(selectedConversation)}
+              </div>
+              <div>{getConversationMeta(selectedConversation)}</div>
+              {selectedConversation.lastMessageAt ? (
+                <div>
+                  Последнее сообщение:{' '}
+                  {formatDateTime(selectedConversation.lastMessageAt)}
+                </div>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded border border-gray-200 bg-white text-gray-600 hover:border-general hover:text-general disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => loadMessages({ showSuccess: true })}
+              disabled={messagesLoading}
+              title="Обновить сообщения"
+            >
+              <FontAwesomeIcon
+                icon={faRotateRight}
+                className={`h-3.5 w-3.5 ${messagesLoading ? 'animate-spin' : ''}`}
+              />
+            </button>
           </div>
-          <div>{getConversationMeta(selectedConversation)}</div>
-          {selectedConversation.lastMessageAt ? (
-            <div>Последнее сообщение: {formatDateTime(selectedConversation.lastMessageAt)}</div>
-          ) : null}
         </div>
       ) : null}
 
@@ -173,26 +254,7 @@ const MessengerConversationsPanel = ({
           <div className="text-sm text-gray-500">Сообщений пока нет.</div>
         ) : (
           messages.map((message) => (
-            <div
-              key={message._id}
-              className={`flex ${
-                message.direction === 'outgoing' ? 'justify-end' : 'justify-start'
-              }`}
-            >
-              <div
-                className={`max-w-[85%] rounded px-3 py-2 text-sm ${
-                  message.direction === 'outgoing'
-                    ? 'bg-general text-white'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                <div className="whitespace-pre-wrap break-words">{message.text}</div>
-                <div className="mt-1 text-[10px] opacity-70">
-                  {formatDateTime(message.sentAt || message.createdAt)}
-                  {message.status === 'failed' ? ' · ошибка отправки' : ''}
-                </div>
-              </div>
-            </div>
+            <MessageBubble key={message._id} message={message} />
           ))
         )}
       </div>

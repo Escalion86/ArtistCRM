@@ -138,10 +138,80 @@ const sendVkMessage = async ({ accessToken, peerId, text }) => {
   }
 }
 
+const VK_ATTACHMENT_LABELS = {
+  audio: 'Аудио',
+  audio_message: 'Голосовое сообщение',
+  doc: 'Документ',
+  gift: 'Подарок',
+  graffiti: 'Граффити',
+  link: 'Ссылка',
+  market: 'Товар',
+  photo: 'Фото',
+  poll: 'Опрос',
+  sticker: 'Стикер',
+  story: 'История',
+  video: 'Видео',
+  wall: 'Запись на стене',
+}
+
+const getVkAttachmentText = (message) => {
+  const attachments = Array.isArray(message?.attachments)
+    ? message.attachments
+    : []
+  if (attachments.length === 0) return ''
+
+  const labels = attachments
+    .map((attachment) => {
+      const type = normalizeText(attachment?.type, 80)
+      if (!type) return ''
+      return VK_ATTACHMENT_LABELS[type] || `Вложение: ${type}`
+    })
+    .filter(Boolean)
+
+  if (labels.length === 0) return 'Вложение VK'
+  return [...new Set(labels)].join(', ')
+}
+
+const normalizeVkAttachments = (message) => {
+  const attachments = Array.isArray(message?.attachments)
+    ? message.attachments
+    : []
+
+  return attachments
+    .map((attachment) => {
+      const type = normalizeText(attachment?.type, 80)
+      if (!type) return null
+      const payload = toObject(attachment?.[type])
+      const audioMessage = type === 'audio_message' ? payload : {}
+      const audioUrl = normalizeText(
+        getFirstString(
+          audioMessage?.link_mp3,
+          audioMessage?.link_ogg,
+          audioMessage?.url
+        ),
+        2000
+      )
+
+      return {
+        type,
+        label: VK_ATTACHMENT_LABELS[type] || `Вложение: ${type}`,
+        audioUrl,
+        duration:
+          Number(audioMessage?.duration) > 0
+            ? Number(audioMessage.duration)
+            : null,
+        raw: attachment,
+      }
+    })
+    .filter(Boolean)
+}
+
 const normalizeVkWebhookPayload = (body = {}) => {
   const object = toObject(body?.object)
   const message = toObject(object?.message || body?.message)
   const text = normalizeText(getFirstString(message?.text, body?.text), 5000)
+  const attachmentText = getVkAttachmentText(message)
+  const attachments = normalizeVkAttachments(message)
   const peerId = normalizeText(
     getFirstString(message?.peer_id, message?.from_id, body?.peer_id),
     160
@@ -163,11 +233,12 @@ const normalizeVkWebhookPayload = (body = {}) => {
     sourceLabel: 'VK',
     name: userId ? `Клиент VK ${userId}` : 'Клиент VK',
     phone: '',
-    comment: text || 'Новое сообщение из VK',
+    comment: text || attachmentText || 'Сообщение VK без текста',
     vkPeerId: peerId,
     vkMessageId: messageId,
     vkUserId: userId,
     vkGroupId: groupId,
+    attachments,
     sentAt: date,
   }
 }
@@ -299,6 +370,7 @@ const saveIncomingVkMessage = async ({
     vkUserId: normalized.vkUserId,
     direction: 'incoming',
     text: normalized.comment,
+    attachments: normalized.attachments ?? [],
     sentAt: normalized.sentAt || new Date(),
     status: 'received',
     raw: rawPayload,
@@ -312,6 +384,7 @@ const appendMessageToExistingEvent = async ({ event, normalized, rawPayload }) =
   const nextMessage = {
     id: normalized.vkMessageId,
     text: normalized.comment,
+    attachments: normalized.attachments ?? [],
     receivedAt: new Date().toISOString(),
     raw: rawPayload,
   }
