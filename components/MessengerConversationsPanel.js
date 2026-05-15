@@ -20,8 +20,40 @@ const getAudioAttachments = (message) => {
   return attachments.filter((attachment) => attachment?.audioUrl)
 }
 
+const getPhotoAttachments = (message) => {
+  const attachments = Array.isArray(message?.attachments)
+    ? message.attachments
+    : []
+  return attachments.filter((attachment) => attachment?.photoUrl)
+}
+
+const getVideoAttachments = (message) => {
+  const attachments = Array.isArray(message?.attachments)
+    ? message.attachments
+    : []
+  return attachments.filter((attachment) => attachment?.videoUrl)
+}
+
+const getFileAttachments = (message) => {
+  const attachments = Array.isArray(message?.attachments)
+    ? message.attachments
+    : []
+  return attachments.filter((attachment) => attachment?.fileUrl)
+}
+
+const formatFileSize = (size) => {
+  const bytes = Number(size)
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} Б`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КБ`
+  return `${(bytes / 1024 / 1024).toFixed(1)} МБ`
+}
+
 const MessageBubble = ({ message }) => {
   const audioAttachments = getAudioAttachments(message)
+  const photoAttachments = getPhotoAttachments(message)
+  const videoAttachments = getVideoAttachments(message)
+  const fileAttachments = getFileAttachments(message)
 
   return (
     <div
@@ -37,6 +69,58 @@ const MessageBubble = ({ message }) => {
         }`}
       >
         <div className="whitespace-pre-wrap break-words">{message.text}</div>
+        {photoAttachments.length > 0 ? (
+          <div className="mt-2 grid grid-cols-1 gap-2">
+            {photoAttachments.map((attachment, index) => (
+              <a
+                key={`${message._id}-photo-${index}`}
+                href={attachment.photoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block overflow-hidden rounded border border-black/10 bg-white/20"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={attachment.photoUrl}
+                  alt={attachment.title || 'Фото VK'}
+                  className="max-h-72 w-full max-w-80 object-contain"
+                  loading="lazy"
+                />
+              </a>
+            ))}
+          </div>
+        ) : null}
+        {videoAttachments.length > 0 ? (
+          <div className="mt-2 flex flex-col gap-2">
+            {videoAttachments.map((attachment, index) =>
+              attachment.videoUrl.includes('.mp4') ? (
+                <video
+                  key={`${message._id}-video-${index}`}
+                  className="max-h-72 w-full max-w-80 rounded bg-black"
+                  controls
+                  preload="metadata"
+                  src={attachment.videoUrl}
+                >
+                  Ваш браузер не поддерживает видео.
+                </video>
+              ) : (
+                <a
+                  key={`${message._id}-video-${index}`}
+                  href={attachment.videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`inline-flex rounded border px-3 py-2 text-xs font-semibold ${
+                    message.direction === 'outgoing'
+                      ? 'border-white/30 text-white'
+                      : 'border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Открыть видео VK
+                </a>
+              )
+            )}
+          </div>
+        ) : null}
         {audioAttachments.length > 0 ? (
           <div className="mt-2 flex flex-col gap-2">
             {audioAttachments.map((attachment, index) => (
@@ -49,6 +133,35 @@ const MessageBubble = ({ message }) => {
               >
                 Ваш браузер не поддерживает аудио.
               </audio>
+            ))}
+          </div>
+        ) : null}
+        {fileAttachments.length > 0 ? (
+          <div className="mt-2 flex flex-col gap-2">
+            {fileAttachments.map((attachment, index) => (
+              <a
+                key={`${message._id}-file-${index}`}
+                href={attachment.fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className={`flex max-w-80 items-center justify-between gap-3 rounded border px-3 py-2 text-xs ${
+                  message.direction === 'outgoing'
+                    ? 'border-white/30 text-white'
+                    : 'border-gray-300 bg-white text-gray-700'
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">
+                    {attachment.fileName || 'Файл VK'}
+                  </span>
+                  <span className="block opacity-70">
+                    {[attachment.fileExt, formatFileSize(attachment.fileSize)]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                </span>
+                <span className="shrink-0 font-semibold">Скачать</span>
+              </a>
             ))}
           </div>
         ) : null}

@@ -183,6 +183,9 @@ const normalizeVkAttachments = (message) => {
       if (!type) return null
       const payload = toObject(attachment?.[type])
       const audioMessage = type === 'audio_message' ? payload : {}
+      const photo = type === 'photo' ? payload : {}
+      const video = type === 'video' ? payload : {}
+      const doc = type === 'doc' ? payload : {}
       const audioUrl = normalizeText(
         getFirstString(
           audioMessage?.link_mp3,
@@ -191,14 +194,35 @@ const normalizeVkAttachments = (message) => {
         ),
         2000
       )
+      const photoSizes = Array.isArray(photo?.sizes) ? photo.sizes : []
+      const photoUrl = normalizeText(
+        photoSizes
+          .slice()
+          .sort((a, b) => Number(b?.width || 0) - Number(a?.width || 0))
+          .find((size) => size?.url)?.url,
+        2000
+      )
+      const videoUrl = normalizeText(
+        getFirstString(video?.player, video?.files?.mp4_720, video?.files?.mp4_480),
+        2000
+      )
+      const fileUrl = normalizeText(doc?.url, 2000)
+      const fileName = normalizeText(doc?.title, 300)
 
       return {
         type,
         label: VK_ATTACHMENT_LABELS[type] || `Вложение: ${type}`,
         audioUrl,
+        photoUrl,
+        videoUrl,
+        fileUrl,
+        fileName,
+        fileExt: normalizeText(doc?.ext, 40),
+        fileSize: Number(doc?.size) > 0 ? Number(doc.size) : null,
+        title: normalizeText(video?.title || photo?.text || fileName, 300),
         duration:
-          Number(audioMessage?.duration) > 0
-            ? Number(audioMessage.duration)
+          Number(audioMessage?.duration || video?.duration) > 0
+            ? Number(audioMessage.duration || video.duration)
             : null,
         raw: attachment,
       }
