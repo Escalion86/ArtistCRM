@@ -11,6 +11,7 @@ import {
   faRightFromBracket,
   faUserGroup,
   faUserTie,
+  faClockRotateLeft,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cn from 'classnames'
@@ -20,7 +21,8 @@ import { useEffect, useState } from 'react'
 
 const companyMenu = [
   { href: '/company', label: 'Обзор', icon: faHome },
-  { href: '/company/orders', label: 'Заказы', icon: faCalendarCheck },
+  { href: '/company/orders', label: 'Предстоящие заказы', icon: faCalendarCheck },
+  { href: '/company/orders-past', label: 'Прошедшие заказы', icon: faClockRotateLeft },
   { href: '/company/clients', label: 'Клиенты', icon: faAddressBook },
   { href: '/company/finance', label: 'Финансы', icon: faChartLine },
   { href: '/company/locations', label: 'Точки', icon: faLocationDot },

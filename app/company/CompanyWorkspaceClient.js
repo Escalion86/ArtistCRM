@@ -1,10 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { apiJson } from '@helpers/apiClient'
 import OrdersList from '@components/party/lists/OrdersList'
+import PartyUpcomingEventsModal, {
+  getOrderEndDate,
+} from '@components/party/modals/PartyUpcomingEventsModal'
 import ClientsList from '@components/party/lists/ClientsList'
 import StaffList from '@components/party/lists/StaffList'
 import LocationsList from '@components/party/lists/LocationsList'
@@ -17,10 +18,7 @@ import {
   EMPTY_STAFF,
   EMPTY_LOCATION,
   EMPTY_PARTY_CLIENT,
-  roleLabels,
-  paymentStatusLabels,
 } from '@helpers/partyHelpers'
-import getPersonFullName from '@helpers/getPersonFullName'
 import { formatMoney } from '@helpers/formatMoney'
 
 const ACTIVE_COMPANY_STORAGE_KEY = 'partycrm.activeCompanyId'
@@ -62,6 +60,12 @@ const normalizeOrderDraft = (order) => ({
   ...order,
   contractAmount:
     order.contractAmount ?? order.clientPayment?.totalAmount ?? '',
+  clientPayment: {
+    totalAmount:
+      order.clientPayment?.totalAmount ?? order.contractAmount ?? '',
+    prepaidAmount: order.clientPayment?.prepaidAmount ?? '',
+    status: order.clientPayment?.status ?? 'none',
+  },
   transactions: Array.isArray(order.transactions) ? order.transactions : [],
   additionalEvents: Array.isArray(order.additionalEvents)
     ? order.additionalEvents
@@ -146,8 +150,16 @@ const buildCompanyRequestOptions = (companyId, options = {}) => ({
   },
 })
 
+const isOrderPast = (order, now = new Date()) => {
+  const endDate = getOrderEndDate(order)
+  if (!endDate) return false
+  return startOfDay(endDate).getTime() < startOfDay(now).getTime()
+}
+
+const canClosePastOrder = (order, now = new Date()) =>
+  ['draft', 'active'].includes(order?.status) && isOrderPast(order, now)
+
 export default function CompanyWorkspaceClient({ section = 'overview' }) {
-  const router = useRouter()
   const [context, setContext] = useState(null)
   const [memberships, setMemberships] = useState([])
   const [activeCompanyId, setActiveCompanyId] = useState('')
@@ -303,73 +315,88 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
 
   const financeSummary = useMemo(() => buildFinanceSummary(orders), [orders])
 
+  const ordersScope = section === 'orders-past' ? 'past' : 'upcoming'
+  const scopedOrders = useMemo(() => {
+    if (section === 'overview') return orders
+    return orders.filter((order) =>
+      ordersScope === 'past' ? isOrderPast(order) : !isOrderPast(order)
+    )
+  }, [orders, ordersScope, section])
+
   const orderFilters = useMemo(() => {
     const today = new Date()
     const tomorrow = addDays(today, 1)
+    const sourceOrders = scopedOrders
     return [
-      { value: 'all', label: 'Все', count: orders.length },
+      { value: 'all', label: 'Все', count: sourceOrders.length },
       {
         value: 'new',
         label: 'Новые',
-        count: orders.filter((o) => o.status === 'draft').length,
+        count: sourceOrders.filter((o) => o.status === 'draft').length,
       },
       {
         value: 'without_staff',
         label: 'Без исполнителя',
-        count: orders.filter((o) => (o.assignedStaff ?? []).length === 0)
+        count: sourceOrders.filter((o) => (o.assignedStaff ?? []).length === 0)
           .length,
       },
       {
         value: 'conflict',
         label: 'Конфликты',
-        count: orders.filter((o) => hasOrderConflict(o, orders)).length,
+        count: sourceOrders.filter((o) => hasOrderConflict(o, orders)).length,
       },
       {
         value: 'tasks',
         label: 'Есть задачи',
-        count: orders.filter(hasOpenAdditionalEvents).length,
+        count: sourceOrders.filter(hasOpenAdditionalEvents).length,
       },
       {
         value: 'today',
         label: 'Сегодня',
-        count: orders.filter(
+        count: sourceOrders.filter(
           (o) => o.eventDate && isSameDay(o.eventDate, today)
         ).length,
       },
       {
         value: 'tomorrow',
         label: 'Завтра',
-        count: orders.filter(
+        count: sourceOrders.filter(
           (o) => o.eventDate && isSameDay(o.eventDate, tomorrow)
         ).length,
       },
     ]
-  }, [orders])
+  }, [orders, scopedOrders])
 
   const filteredOrders = useMemo(() => {
     const today = new Date()
     const tomorrow = addDays(today, 1)
+    const sourceOrders = scopedOrders
     switch (orderFilter) {
       case 'new':
-        return orders.filter((o) => o.status === 'draft')
+        return sourceOrders.filter((o) => o.status === 'draft')
       case 'without_staff':
-        return orders.filter((o) => (o.assignedStaff ?? []).length === 0)
+        return sourceOrders.filter((o) => (o.assignedStaff ?? []).length === 0)
       case 'conflict':
-        return orders.filter((o) => hasOrderConflict(o, orders))
+        return sourceOrders.filter((o) => hasOrderConflict(o, orders))
       case 'tasks':
-        return orders.filter(hasOpenAdditionalEvents)
+        return sourceOrders.filter(hasOpenAdditionalEvents)
       case 'today':
-        return orders.filter(
+        return sourceOrders.filter(
           (o) => o.eventDate && isSameDay(o.eventDate, today)
         )
       case 'tomorrow':
-        return orders.filter(
+        return sourceOrders.filter(
           (o) => o.eventDate && isSameDay(o.eventDate, tomorrow)
         )
       default:
-        return orders
+        return sourceOrders
     }
-  }, [orders, orderFilter])
+  }, [orders, orderFilter, scopedOrders])
+
+  const closePastCount = useMemo(
+    () => orders.filter((order) => canClosePastOrder(order)).length,
+    [orders]
+  )
 
   // Order actions
   const addOrder = useCallback(async () => {
@@ -418,22 +445,60 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
     }
   }, [orderDraft, editingOrderId, activeCompanyId])
 
-  const archiveOrder = useCallback(
-    async (orderId) => {
+  const updateOrder = useCallback(
+    async (nextOrder) => {
+      if (!nextOrder?._id) return null
       setSaving(true)
       try {
-        await apiJson(
-          `/api/party/orders/${orderId}`,
+        const response = await apiJson(
+          `/api/party/orders/${nextOrder._id}`,
           buildCompanyRequestOptions(activeCompanyId, {
             method: 'PATCH',
-            body: JSON.stringify({ status: 'closed' }),
+            body: JSON.stringify(nextOrder),
           })
         )
-        setOrders((prev) =>
-          prev.map((o) =>
-            String(o._id) === orderId ? { ...o, status: 'closed' } : o
+        if (response.data) {
+          setOrders((prev) =>
+            prev.map((o) =>
+              String(o._id) === String(nextOrder._id) ? response.data : o
+            )
           )
+        }
+        return response.data
+      } finally {
+        setSaving(false)
+      }
+    },
+    [activeCompanyId]
+  )
+
+  const archiveOrder = useCallback(
+    async (orderId) => {
+      const order = orders.find((item) => String(item._id) === String(orderId))
+      if (!order) return
+      await updateOrder({ ...order, status: 'closed' })
+    },
+    [orders, updateOrder]
+  )
+
+  const closePastOrders = useCallback(
+    async () => {
+      setSaving(true)
+      try {
+        const response = await apiJson(
+          '/api/party/orders/close-past',
+          buildCompanyRequestOptions(activeCompanyId, { method: 'POST' })
         )
+        const closedIds = new Set((response.data?.closedIds ?? []).map(String))
+        if (closedIds.size > 0) {
+          setOrders((prev) =>
+            prev.map((order) =>
+              closedIds.has(String(order._id))
+                ? { ...order, status: 'closed' }
+                : order
+            )
+          )
+        }
       } finally {
         setSaving(false)
       }
@@ -701,10 +766,14 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
             {/* Orders list */}
             <OrdersList
               orders={filteredOrders}
+              filteredOrders={filteredOrders}
               clients={clients}
               clientsById={clientsById}
               staff={staff}
               locations={locations}
+              hasOrderConflict={hasOrderConflict}
+              canManage={canManage}
+              ordersCount={filteredOrders.length}
               onEdit={(order) => {
                 setOrderDraft(normalizeOrderDraft(order))
                 setEditingOrderId(order._id)
@@ -715,45 +784,33 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
           </>
         )}
 
-        {section === 'orders' && (
+        {(section === 'orders' || section === 'orders-past') && (
           <>
-            <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-wrap gap-2">
-                {orderFilters.map((filter) => (
-                  <button
-                    key={filter.value}
-                    type="button"
-                    className={`cursor-pointer rounded-full px-3 py-1.5 text-sm ${
-                      orderFilter === filter.value
-                        ? 'bg-sky-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                    onClick={() => setOrderFilter(filter.value)}
-                  >
-                    {filter.label} ({filter.count})
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="px-4 py-2 text-sm font-semibold text-white rounded cursor-pointer bg-sky-600 hover:bg-sky-700"
-                  onClick={() => {
-                    setOrderDraft(EMPTY_ORDER)
-                    setActiveModal('order')
-                  }}
-                >
-                  Новый заказ
-                </button>
-              </div>
-            </div>
-
             <OrdersList
               orders={filteredOrders}
+              filteredOrders={filteredOrders}
               clients={clients}
               clientsById={clientsById}
               staff={staff}
               locations={locations}
+              hasOrderConflict={hasOrderConflict}
+              canManage={canManage}
+              orderFilter={orderFilter}
+              onFilterChange={setOrderFilter}
+              orderFilters={orderFilters}
+              ordersCount={filteredOrders.length}
+              onCreateClick={() => {
+                setOrderDraft(EMPTY_ORDER)
+                setActiveModal('order')
+              }}
+              onUpcomingClick={() => setActiveModal('upcoming-events')}
+              onClosePastClick={closePastOrders}
+              closePastCount={closePastCount}
+              title={
+                section === 'orders-past'
+                  ? 'Прошедшие заказы'
+                  : 'Предстоящие заказы'
+              }
               onEdit={(order) => {
                 setOrderDraft(normalizeOrderDraft(order))
                 setEditingOrderId(order._id)
@@ -892,6 +949,21 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
       </main>
 
       {/* Modals */}
+      {activeModal === 'upcoming-events' && (
+        <PartyUpcomingEventsModal
+          open={true}
+          orders={orders}
+          saving={saving}
+          onClose={() => setActiveModal('')}
+          onOpenOrder={(order) => {
+            setOrderDraft(normalizeOrderDraft(order))
+            setEditingOrderId(order._id)
+            setActiveModal('order-edit')
+          }}
+          onUpdateOrder={updateOrder}
+        />
+      )}
+
       {activeModal === 'order' && (
         <OrderModal
           open={true}
@@ -902,6 +974,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
           clients={clients}
           clientsById={clientsById}
           services={services}
+          activeCompanyId={activeCompanyId}
           canManage={canManage}
           saving={saving}
           conflictInfo={conflictInfo}
@@ -925,6 +998,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
           clients={clients}
           clientsById={clientsById}
           services={services}
+          activeCompanyId={activeCompanyId}
           canManage={canManage}
           saving={saving}
           conflictInfo={conflictInfo}

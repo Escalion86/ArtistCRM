@@ -71,6 +71,13 @@ export const partyPaymentMethodOptions = [
   { value: 'barter', label: partyPaymentMethodLabels.barter },
 ]
 
+export const paymentStatusLabels = {
+  none: 'Нет оплаты',
+  wait_prepayment: 'Ждем предоплату',
+  prepaid: 'Предоплата внесена',
+  paid: 'Оплачено',
+}
+
 export const EMPTY_PARTY_TRANSACTION = {
   amount: 0,
   type: 'income',
@@ -136,6 +143,11 @@ export const EMPTY_ORDER = {
   servicesIds: [],
   serviceTitle: '',
   contractAmount: '',
+  clientPayment: {
+    totalAmount: '',
+    prepaidAmount: '',
+    status: 'none',
+  },
   transactions: [],
   additionalEvents: [],
   assignedStaff: [],

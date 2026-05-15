@@ -125,6 +125,7 @@ API:
 - `app/api/party/staff/**`
 - `app/api/party/orders/**`
 - `app/api/party/performer/orders/**`
+- `docs/PARTYCRM_ROLES.md` — роли v1 и правила видимости данных.
 
 Deploy/docs:
 

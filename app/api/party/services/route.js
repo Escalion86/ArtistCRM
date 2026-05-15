@@ -18,7 +18,10 @@ const normalizeServicePayload = (body) => ({
 })
 
 export const GET = async (req) => {
-  const { context, error } = await getPartyRequestContext({ req })
+  const { context, error } = await getPartyRequestContext({
+    req,
+    managementOnly: true,
+  })
   if (error) return error
 
   const status = req.nextUrl.searchParams.get('status')

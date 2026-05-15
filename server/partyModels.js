@@ -13,7 +13,17 @@ export const PARTY_STAFF_ROLES = Object.freeze({
   OWNER: 'owner',
   ADMIN: 'admin',
   PERFORMER: 'performer',
+  CONTRACTOR: 'contractor',
 })
+
+export const PARTY_STAFF_ROLE_VALUES = Object.freeze([
+  PARTY_STAFF_ROLES.OWNER,
+  PARTY_STAFF_ROLES.ADMIN,
+  PARTY_STAFF_ROLES.PERFORMER,
+])
+
+export const PARTY_CONTRACTOR_RULE =
+  'contractor is stored as performer staff without authUserId until linking'
 
 export const getPartyCompanyModel = () =>
   getProductModel({

@@ -49,6 +49,36 @@ const formatDateTime = (value) => {
   })
 }
 
+const startOfDay = (date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+const addDays = (date, days) => {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
+
+const getAdditionalEventsBadges = (order) => {
+  const today = startOfDay(new Date())
+  const tomorrow = startOfDay(addDays(today, 1))
+  const counts = { overdue: 0, today: 0, tomorrow: 0, open: 0 }
+
+  ;(Array.isArray(order.additionalEvents) ? order.additionalEvents : []).forEach(
+    (item) => {
+      if (item?.done) return
+      const date = item?.date ? new Date(item.date) : null
+      counts.open += 1
+      if (!date || Number.isNaN(date.getTime())) return
+      const day = startOfDay(date).getTime()
+      if (day < today.getTime()) counts.overdue += 1
+      else if (day === today.getTime()) counts.today += 1
+      else if (day === tomorrow.getTime()) counts.tomorrow += 1
+    }
+  )
+
+  return counts
+}
+
 const OrderCard = ({
   order,
   locations,
@@ -62,9 +92,7 @@ const OrderCard = ({
   const orderClient = getOrderClientLabel(order, clientsById)
   const payoutTotal = getOrderPayoutTotal(order)
   const incomeTotal = getOrderTransactionTotal(order, 'income')
-  const openTasksCount = (order.additionalEvents ?? []).filter(
-    (item) => !item.done
-  ).length
+  const additionalEventsBadges = getAdditionalEventsBadges(order)
 
   return (
     <PartyCard onClick={() => onEdit?.(order)}>
@@ -84,9 +112,24 @@ const OrderCard = ({
                 Без исполнителя
               </span>
             )}
-            {openTasksCount > 0 && (
+            {additionalEventsBadges.overdue > 0 && (
+              <span className="px-2 py-1 text-xs font-semibold rounded shrink-0 bg-red-100 text-red-700">
+                Просрочено: {additionalEventsBadges.overdue}
+              </span>
+            )}
+            {additionalEventsBadges.today > 0 && (
               <span className="px-2 py-1 text-xs font-semibold rounded shrink-0 bg-sky-100 text-sky-700">
-                Задачи: {openTasksCount}
+                Сегодня: {additionalEventsBadges.today}
+              </span>
+            )}
+            {additionalEventsBadges.tomorrow > 0 && (
+              <span className="px-2 py-1 text-xs font-semibold rounded shrink-0 bg-cyan-100 text-cyan-700">
+                Завтра: {additionalEventsBadges.tomorrow}
+              </span>
+            )}
+            {additionalEventsBadges.open > 0 && (
+              <span className="px-2 py-1 text-xs font-semibold rounded shrink-0 bg-sky-100 text-sky-700">
+                Задачи: {additionalEventsBadges.open}
               </span>
             )}
           </div>
@@ -133,13 +176,37 @@ export default function OrdersList({
   orderFilters,
   ordersCount,
   onCreateClick,
+  onUpcomingClick,
+  onClosePastClick,
+  closePastCount = 0,
+  title = 'Заказы',
 }) {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">Заказы</h2>
-        <div className="flex items-center gap-3">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <span className="text-sm text-black/55">{ordersCount}</span>
+          {onUpcomingClick && (
+            <button
+              type="button"
+              onClick={onUpcomingClick}
+              className="cursor-pointer rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
+            >
+              Ближайшие
+            </button>
+          )}
+          {onClosePastClick && (
+            <button
+              type="button"
+              onClick={onClosePastClick}
+              disabled={closePastCount === 0}
+              className="cursor-pointer rounded-md border border-sky-200 bg-white px-3 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Закрыть прошедшие
+              <span className="ml-2 text-sky-400">{closePastCount}</span>
+            </button>
+          )}
           {canManage && (
             <button
               type="button"

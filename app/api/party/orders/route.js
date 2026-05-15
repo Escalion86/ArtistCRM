@@ -29,6 +29,11 @@ const parseMoney = (value) => {
   return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0
 }
 
+const normalizePaymentStatus = (value) =>
+  ['none', 'wait_prepayment', 'prepaid', 'paid'].includes(value)
+    ? value
+    : 'none'
+
 const parseOptionalDate = (value) => {
   if (!value) return null
   const date = new Date(value)
@@ -54,8 +59,16 @@ const normalizeAssignedStaff = (items) => {
           ? item.role
           : 'performer',
         payoutAmount: parseMoney(item.payoutAmount),
-        payoutStatus: 'planned',
-        confirmationStatus: 'pending',
+        payoutStatus: ['planned', 'ready', 'paid', 'canceled'].includes(
+          item.payoutStatus
+        )
+          ? item.payoutStatus
+          : 'planned',
+        confirmationStatus: ['pending', 'confirmed', 'declined', 'done'].includes(
+          item.confirmationStatus
+        )
+          ? item.confirmationStatus
+          : 'pending',
       }
     })
     .filter(Boolean)
@@ -175,8 +188,8 @@ export const normalizeOrderPayload = (body) => {
         body.contractAmount !== undefined
           ? parseMoney(body.contractAmount)
           : parseMoney(body.clientPayment?.totalAmount),
-      prepaidAmount: 0,
-      status: 'none',
+      prepaidAmount: parseMoney(body.clientPayment?.prepaidAmount),
+      status: normalizePaymentStatus(body.clientPayment?.status),
     },
     assignedStaff: normalizeAssignedStaff(body.assignedStaff),
     adminComment:
@@ -282,7 +295,10 @@ const buildOrderClientSnapshot = async ({ tenantId, payload }) => {
 }
 
 export async function GET(req) {
-  const { context, error } = await getPartyRequestContext({ req })
+  const { context, error } = await getPartyRequestContext({
+    req,
+    managementOnly: true,
+  })
   if (error) return error
 
   const PartyOrders = await getPartyOrderModel()

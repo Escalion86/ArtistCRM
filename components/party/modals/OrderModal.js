@@ -19,10 +19,7 @@ import {
   EMPTY_PARTY_ADDITIONAL_EVENT,
   EMPTY_PARTY_CLIENT,
   EMPTY_PARTY_SERVICE,
-  EMPTY_PARTY_TRANSACTION,
-  partyPaymentMethodOptions,
-  partyTransactionCategoryOptions,
-  partyTransactionTypeOptions,
+  paymentStatusLabels,
 } from '@helpers/partyHelpers'
 
 const specializationLabels = {
@@ -45,15 +42,11 @@ export default function OrderModal({
   clientsById,
   services,
   activeCompanyId,
-  canManage,
   saving,
   conflictInfo,
   onClose,
   onSubmit,
   onCheckConflicts,
-  onSelectClient,
-  onCreateClient,
-  onEditClient,
   onServiceCreated,
   isEdit,
 }) {
@@ -86,31 +79,15 @@ export default function OrderModal({
     setOrderDraft((prev) => ({ ...prev, [field]: value }))
   }, [setOrderDraft])
 
-  const handleTransactionChange = useCallback((index, field, value) => {
+  const handleClientPaymentChange = useCallback((field, value) => {
     setOrderDraft((prev) => ({
       ...prev,
-      transactions: (prev.transactions || []).map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [field]: value } : item
-      ),
-    }))
-  }, [setOrderDraft])
-
-  const handleAddTransaction = useCallback(() => {
-    setOrderDraft((prev) => ({
-      ...prev,
-      transactions: [
-        ...(prev.transactions || []),
-        { ...EMPTY_PARTY_TRANSACTION, date: new Date().toISOString() },
-      ],
-    }))
-  }, [setOrderDraft])
-
-  const handleRemoveTransaction = useCallback((index) => {
-    setOrderDraft((prev) => ({
-      ...prev,
-      transactions: (prev.transactions || []).filter(
-        (_, itemIndex) => itemIndex !== index
-      ),
+      contractAmount:
+        field === 'totalAmount' ? value : (prev.contractAmount ?? value),
+      clientPayment: {
+        ...(prev.clientPayment || {}),
+        [field]: value,
+      },
     }))
   }, [setOrderDraft])
 
@@ -421,7 +398,11 @@ export default function OrderModal({
               <Input
                 label="Сумма клиента"
                 type="number"
-                value={orderDraft.clientPayment.totalAmount}
+                value={
+                  orderDraft.clientPayment?.totalAmount ??
+                  orderDraft.contractAmount ??
+                  ''
+                }
                 onChange={(val) =>
                   handleClientPaymentChange('totalAmount', val)
                 }
@@ -432,7 +413,7 @@ export default function OrderModal({
               <Input
                 label="Предоплата"
                 type="number"
-                value={orderDraft.clientPayment.prepaidAmount}
+                value={orderDraft.clientPayment?.prepaidAmount ?? ''}
                 onChange={(val) =>
                   handleClientPaymentChange('prepaidAmount', val)
                 }
@@ -442,7 +423,7 @@ export default function OrderModal({
               />
               <Select
                 label="Статус оплаты"
-                value={orderDraft.clientPayment.status}
+                value={orderDraft.clientPayment?.status ?? 'none'}
                 onChange={(val) => handleClientPaymentChange('status', val)}
                 options={Object.entries(paymentStatusLabels).map(
                   ([value, label]) => ({
@@ -530,6 +511,97 @@ export default function OrderModal({
                 )
               })}
           </div>
+        </div>
+
+        <hr className="border-t border-gray-200" />
+
+        {/* Доп. события */}
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div>
+              <p className="mb-1 text-sm font-semibold uppercase text-sky-700">
+                Доп. события
+              </p>
+              <p className="mb-0.5 text-base font-bold">
+                Напоминания и задачи по заказу
+              </p>
+            </div>
+            <button
+              type="button"
+              className="cursor-pointer rounded-md border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
+              onClick={handleAddAdditionalEvent}
+            >
+              Добавить
+            </button>
+          </div>
+
+          {(orderDraft.additionalEvents || []).length === 0 ? (
+            <p className="text-sm text-gray-500">
+              Дополнительные события еще не добавлены.
+            </p>
+          ) : (
+            <div className="grid gap-2">
+              {(orderDraft.additionalEvents || []).map((item, index) => (
+                <div
+                  key={item._id || index}
+                  className="rounded-2xl border border-sky-100 bg-sky-50/50 p-3"
+                >
+                  <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                    <Input
+                      label="Название"
+                      value={item.title}
+                      onChange={(val) =>
+                        handleAdditionalEventChange(index, 'title', val)
+                      }
+                      fullWidth
+                      tone="party"
+                    />
+                    <DateTimePicker
+                      label="Дата и время"
+                      value={item.date}
+                      onChange={(val) =>
+                        handleAdditionalEventChange(index, 'date', val)
+                      }
+                      tone="party"
+                    />
+                  </div>
+                  <Textarea
+                    label="Описание"
+                    value={item.description}
+                    onChange={(val) =>
+                      handleAdditionalEventChange(index, 'description', val)
+                    }
+                    fullWidth
+                    tone="party"
+                  />
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(item.done)}
+                        onChange={(e) =>
+                          handleAdditionalEventChange(
+                            index,
+                            'done',
+                            e.target.checked
+                          )
+                        }
+                        className="cursor-pointer"
+                      />
+                      Выполнено
+                    </label>
+                    <button
+                      type="button"
+                      className="cursor-pointer rounded-md border border-red-100 bg-white px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                      onClick={() => handleRemoveAdditionalEvent(index)}
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

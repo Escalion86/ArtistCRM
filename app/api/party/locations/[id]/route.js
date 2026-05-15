@@ -43,7 +43,10 @@ const getId = async (params) => {
 }
 
 export async function GET(req, { params }) {
-  const { context, error } = await getPartyRequestContext({ req })
+  const { context, error } = await getPartyRequestContext({
+    req,
+    managementOnly: true,
+  })
   if (error) return error
 
   const id = await getId(params)

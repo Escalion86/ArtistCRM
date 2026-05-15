@@ -3,6 +3,7 @@ import CompanyPageShell from '../CompanyPageShell'
 
 const sectionTitles = {
   orders: 'Заказы',
+  'orders-past': 'Прошедшие заказы',
   clients: 'Клиенты',
   finance: 'Финансы',
   locations: 'Точки',
