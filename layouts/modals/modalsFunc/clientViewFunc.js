@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
 import CardButtons from '@components/CardButtons'
+import AvitoConversationsPanel from '@components/AvitoConversationsPanel'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import SurfaceCard from '@components/SurfaceCard'
 import getPersonFullName from '@helpers/getPersonFullName'
@@ -10,6 +11,15 @@ import {
   useClientRelationsQuery,
   useClientsQuery,
 } from '@helpers/useClientsQuery'
+
+const CONTACT_CHANNEL_LABELS = {
+  phone: 'Телефон',
+  telegram: 'Telegram',
+  whatsapp: 'WhatsApp',
+  max: 'MAX',
+  vk: 'VK',
+  other: 'Другое',
+}
 
 const SectionBlock = ({ title, action, children }) => (
   <SurfaceCard>
@@ -114,6 +124,12 @@ const clientViewFunc = (clientId) => {
       if (client.legalAddress) rows.push(`Юридический адрес: ${client.legalAddress}`)
       return rows
     }, [client])
+    const preferredContactChannelLabel = useMemo(() => {
+      if (!client?.preferredContactChannel) return ''
+      if (client.preferredContactChannel === 'other')
+        return client.preferredContactChannelOther?.trim() || 'Другое'
+      return CONTACT_CHANNEL_LABELS[client.preferredContactChannel] || ''
+    }, [client])
 
     useEffect(() => {
       if (setTopLeftComponent)
@@ -167,6 +183,26 @@ const clientViewFunc = (clientId) => {
           <div className="mt-2">
             <ContactsIconsButtons user={client} />
           </div>
+          {(preferredContactChannelLabel || client.comment) && (
+            <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+              {preferredContactChannelLabel && (
+                <div>
+                  <span className="font-semibold text-gray-900">
+                    Приоритетная связь:
+                  </span>{' '}
+                  {preferredContactChannelLabel}
+                </div>
+              )}
+              {client.comment && (
+                <div className="whitespace-pre-wrap break-words">
+                  <span className="font-semibold text-gray-900">
+                    Комментарий:
+                  </span>{' '}
+                  {client.comment}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <SectionBlock
@@ -239,6 +275,10 @@ const clientViewFunc = (clientId) => {
             </div>
           </SectionBlock>
         )}
+
+        <SectionBlock title="Переписка Avito">
+          <AvitoConversationsPanel clientId={clientId} />
+        </SectionBlock>
       </div>
     )
   }

@@ -62,6 +62,16 @@ const generateNovofonSecret = () => {
   return `novofon_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
 }
 
+const generateAvitoSecret = () => {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
+    return `avito_${crypto.randomUUID().replace(/-/g, '')}`
+  }
+  return `avito_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
+}
+
 const normalizePublicLeadApiKeys = (customSettings) => {
   const list = getCustomValue(customSettings, 'publicLeadApiKeys')
   const keys = Array.isArray(list)
@@ -329,6 +339,44 @@ const AITunnelGuide = () => (
   </div>
 )
 
+const AvitoGuide = () => (
+  <div className="flex flex-col gap-3 text-sm leading-6 text-gray-700">
+    <p>
+      Интеграция Avito подключается отдельно для каждого пользователя ArtistCRM.
+      Нужны доступ к Avito API и возможность работать с Messenger API или
+      webhook сообщений.
+    </p>
+    <ol className="list-decimal space-y-2 pl-5">
+      <li>Войдите в профессиональный аккаунт Avito.</li>
+      <li>
+        Откройте настройки API: обычно это Профиль, затем Настройки, затем Для
+        профессионалов, затем API или раздел Интеграции и API.
+      </li>
+      <li>
+        Создайте приложение или ключ для собственной CRM и скопируйте Client ID
+        и Client Secret.
+      </li>
+      <li>
+        Проверьте, что для приложения доступен Messenger API: чаты, сообщения и
+        webhook новых сообщений.
+      </li>
+      <li>
+        Вставьте Client ID и Client Secret в ArtistCRM и нажмите Подключить.
+      </li>
+      <li>
+        Если ArtistCRM покажет, что webhook нужно подключить вручную, скопируйте
+        Адрес webhook и вставьте его в настройках Avito API.
+      </li>
+      <li>Напишите тестовое сообщение по своему объявлению с другого аккаунта.</li>
+    </ol>
+    <p>
+      Если сообщение пришло, ArtistCRM создаст заявку со статусом Черновик и
+      источником Avito. Повторные сообщения из того же чата не должны создавать
+      дубли.
+    </p>
+  </div>
+)
+
 const IntegrationAccordion = ({
   title,
   description,
@@ -408,6 +456,7 @@ const IntegrationsContent = () => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const snackbar = useSnackbar()
   const [isSaving, setIsSaving] = useState(false)
+  const [avitoLoading, setAvitoLoading] = useState(false)
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false)
   const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false)
 
@@ -455,6 +504,38 @@ const IntegrationsContent = () => {
     aiAnalysisProvider === 'aitunnel'
   const isAITunnelConnected =
     Boolean(aitunnelKey) && aitunnelEnabled
+  const avitoEnabled = getCustomValue(customSettings, 'avitoEnabled') === true
+  const avitoClientId = String(getCustomValue(customSettings, 'avitoClientId') || '')
+  const avitoClientSecret = String(
+    getCustomValue(customSettings, 'avitoClientSecret') || ''
+  )
+  const avitoUserId = String(getCustomValue(customSettings, 'avitoUserId') || '')
+  const avitoWebhookToken = String(
+    getCustomValue(customSettings, 'avitoWebhookToken') || ''
+  )
+  const avitoStatus = String(getCustomValue(customSettings, 'avitoStatus') || '')
+  const avitoLastError = String(
+    getCustomValue(customSettings, 'avitoLastError') || ''
+  )
+  const avitoLastWebhookAt = String(
+    getCustomValue(customSettings, 'avitoLastWebhookAt') || ''
+  )
+  const avitoWebhookUrl = useMemo(() => {
+    const saved = String(getCustomValue(customSettings, 'avitoWebhookUrl') || '')
+    if (saved) return saved
+    const token = avitoWebhookToken || generateAvitoSecret()
+    const relative = `/api/integrations/avito/webhook/${token}`
+    if (typeof window === 'undefined') return relative
+    return `${window.location.origin}${relative}`
+  }, [avitoWebhookToken, customSettings])
+  const avitoStatusText = (() => {
+    if (!avitoEnabled) return 'Отключено'
+    if (avitoStatus === 'connected') return 'Подключено'
+    if (avitoStatus === 'webhook_manual') return 'Нужно проверить webhook'
+    if (avitoStatus === 'auth_error') return 'Ошибка авторизации'
+    if (avitoStatus === 'disabled') return 'Отключено'
+    return 'Настраивается'
+  })()
   const novofonWebhookUrl = useMemo(() => {
     const tenantId = loggedUser?.tenantId || loggedUser?._id || ''
     const path = '/api/telephony/novofon/webhook'
@@ -566,6 +647,78 @@ const IntegrationsContent = () => {
       onConfirm: () =>
         saveApiKeys(apiKeys.filter((item) => item.id !== apiKey.id)),
     })
+  }
+
+  const connectAvito = async () => {
+    setAvitoLoading(true)
+    try {
+      const response = await fetch('/api/integrations/avito/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: avitoClientId,
+          clientSecret: avitoClientSecret,
+          userId: avitoUserId,
+        }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (result?.data?.siteSettings) setSiteSettings(result.data.siteSettings)
+      if (!response.ok || result?.success === false) {
+        snackbar.error(
+          result?.error?.message || 'Не удалось подключить Avito'
+        )
+        return
+      }
+      if (result?.data?.avito?.webhookRegistered) {
+        snackbar.success('Avito подключен')
+      } else {
+        snackbar.warning('Доступ проверен, webhook нужно проверить вручную')
+      }
+    } catch (error) {
+      snackbar.error('Не удалось подключить Avito')
+    } finally {
+      setAvitoLoading(false)
+    }
+  }
+
+  const checkAvito = async () => {
+    setAvitoLoading(true)
+    try {
+      const response = await fetch('/api/integrations/avito/status', {
+        method: 'POST',
+      })
+      const result = await response.json().catch(() => ({}))
+      if (result?.data?.siteSettings) setSiteSettings(result.data.siteSettings)
+      if (!response.ok || result?.success === false) {
+        snackbar.error(result?.error?.message || 'Avito не отвечает')
+        return
+      }
+      snackbar.success('Доступ Avito проверен')
+    } catch (error) {
+      snackbar.error('Не удалось проверить Avito')
+    } finally {
+      setAvitoLoading(false)
+    }
+  }
+
+  const disconnectAvito = async () => {
+    setAvitoLoading(true)
+    try {
+      const response = await fetch('/api/integrations/avito/disconnect', {
+        method: 'POST',
+      })
+      const result = await response.json().catch(() => ({}))
+      if (result?.data?.siteSettings) setSiteSettings(result.data.siteSettings)
+      if (!response.ok || result?.success === false) {
+        snackbar.error('Не удалось отключить Avito')
+        return
+      }
+      snackbar.success('Avito отключен')
+    } catch (error) {
+      snackbar.error('Не удалось отключить Avito')
+    } finally {
+      setAvitoLoading(false)
+    }
   }
 
   return (
@@ -685,6 +838,130 @@ const IntegrationsContent = () => {
                 }
               >
                 Открыть инструкцию API
+              </InstructionButton>
+            </div>
+          </div>
+        </IntegrationAccordion>
+
+        <IntegrationAccordion
+          title="Avito"
+          description="Персональная интеграция сообщений Avito в заявки CRM."
+          connected={avitoEnabled && avitoStatus !== 'auth_error'}
+          warning={avitoEnabled && avitoStatus !== 'connected'}
+          loading={avitoLoading}
+        >
+          <div className="flex flex-col gap-3">
+            <div className="text-sm text-gray-600">
+              Подключение выполняется отдельно для вашего аккаунта Avito.
+              Сообщения из новых чатов будут попадать в CRM как заявки со
+              статусом Черновик.
+            </div>
+
+            <div
+              className={`rounded border px-3 py-2 text-sm ${
+                avitoEnabled && avitoStatus !== 'auth_error'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : avitoStatus === 'auth_error'
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : 'border-gray-200 bg-gray-50 text-gray-700'
+              }`}
+            >
+              Статус: {avitoStatusText}
+              {avitoLastWebhookAt ? (
+                <span className="block text-xs">
+                  Последнее событие: {new Date(avitoLastWebhookAt).toLocaleString()}
+                </span>
+              ) : null}
+              {avitoLastError ? (
+                <span className="block text-xs">Ошибка: {avitoLastError}</span>
+              ) : null}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+              <Input
+                label="Avito Client ID"
+                value={avitoClientId}
+                onChange={(value) => saveCustom({ avitoClientId: value })}
+                noMargin
+                fullWidth
+              />
+              <Input
+                label="Avito User ID"
+                value={avitoUserId}
+                onChange={(value) => saveCustom({ avitoUserId: value })}
+                noMargin
+                fullWidth
+              />
+            </div>
+
+            <Input
+              label="Avito Client Secret"
+              value={avitoClientSecret}
+              onChange={(value) => saveCustom({ avitoClientSecret: value })}
+              type="password"
+              noMargin
+              fullWidth
+            />
+
+            <div className="flex items-start gap-2">
+              <Input
+                label="Адрес webhook Avito"
+                value={avitoWebhookUrl}
+                onChange={() => {}}
+                disabled
+                noMargin
+                fullWidth
+              />
+              <IconActionButton
+                icon={faCopy}
+                size="md"
+                variant="success"
+                title="Скопировать webhook"
+                className="shrink-0"
+                onClick={async () => {
+                  if (!avitoWebhookUrl || !navigator?.clipboard) return
+                  await navigator.clipboard.writeText(avitoWebhookUrl)
+                  snackbar.success('Webhook скопирован')
+                }}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={connectAvito}
+                disabled={avitoLoading || !avitoClientId || !avitoClientSecret}
+              >
+                {avitoEnabled ? 'Переподключить' : 'Подключить'}
+              </button>
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={checkAvito}
+                disabled={avitoLoading || !avitoClientId || !avitoClientSecret}
+              >
+                Проверить
+              </button>
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--danger tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={disconnectAvito}
+                disabled={avitoLoading || !avitoEnabled}
+              >
+                Отключить
+              </button>
+              <InstructionButton
+                onClick={() =>
+                  modalsFunc.add({
+                    title: 'Как подключить Avito',
+                    showDecline: true,
+                    declineButtonName: 'Закрыть',
+                    Children: AvitoGuide,
+                  })
+                }
+              >
+                Как подключить
               </InstructionButton>
             </div>
           </div>

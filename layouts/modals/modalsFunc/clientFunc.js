@@ -4,6 +4,7 @@ import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
 import LabeledContainer from '@components/LabeledContainer'
 import PhoneInput from '@components/PhoneInput'
+import Textarea from '@components/Textarea'
 import { CLIENT_TYPES, DEFAULT_CLIENT } from '@helpers/constants'
 import getPersonFullName from '@helpers/getPersonFullName'
 import {
@@ -17,6 +18,15 @@ import { modalsFuncAtom } from '@state/atoms'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { useClientQuery, useClientsQuery } from '@helpers/useClientsQuery'
+
+const CONTACT_CHANNELS = [
+  { value: 'phone', name: 'Телефон' },
+  { value: 'telegram', name: 'Telegram' },
+  { value: 'whatsapp', name: 'WhatsApp' },
+  { value: 'max', name: 'MAX' },
+  { value: 'vk', name: 'VK' },
+  { value: 'other', name: 'Другое' },
+]
 
 const clientFunc = (clientId, clone = false, onSuccess) => {
   const ClientModal = ({
@@ -59,6 +69,17 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       client?.instagram ?? DEFAULT_CLIENT.instagram
     )
     const [vk, setVk] = useState(client?.vk ?? DEFAULT_CLIENT.vk)
+    const [preferredContactChannel, setPreferredContactChannel] = useState(
+      client?.preferredContactChannel ?? DEFAULT_CLIENT.preferredContactChannel
+    )
+    const [preferredContactChannelOther, setPreferredContactChannelOther] =
+      useState(
+        client?.preferredContactChannelOther ??
+          DEFAULT_CLIENT.preferredContactChannelOther
+      )
+    const [comment, setComment] = useState(
+      client?.comment ?? DEFAULT_CLIENT.comment
+    )
     const [clientType, setClientType] = useState(
       client?.clientType ?? DEFAULT_CLIENT.clientType
     )
@@ -103,6 +124,12 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
         (client?.telegram ?? DEFAULT_CLIENT.telegram) !== telegram ||
         (client?.instagram ?? DEFAULT_CLIENT.instagram) !== instagram ||
         (client?.vk ?? DEFAULT_CLIENT.vk) !== vk ||
+        (client?.preferredContactChannel ??
+          DEFAULT_CLIENT.preferredContactChannel) !== preferredContactChannel ||
+        (client?.preferredContactChannelOther ??
+          DEFAULT_CLIENT.preferredContactChannelOther) !==
+          preferredContactChannelOther ||
+        (client?.comment ?? DEFAULT_CLIENT.comment) !== comment ||
         (client?.clientType ?? DEFAULT_CLIENT.clientType) !== clientType ||
         (client?.legalName ?? DEFAULT_CLIENT.legalName) !== legalName ||
         (client?.inn ?? DEFAULT_CLIENT.inn) !== inn ||
@@ -125,6 +152,9 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
         telegram,
         instagram,
         vk,
+        preferredContactChannel,
+        preferredContactChannelOther,
+        comment,
         clientType,
         legalName,
         inn,
@@ -207,6 +237,12 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             telegram: telegram.trim(),
             instagram: instagram.trim(),
             vk: vk.trim(),
+            preferredContactChannel,
+            preferredContactChannelOther:
+              preferredContactChannel === 'other'
+                ? preferredContactChannelOther.trim()
+                : '',
+            comment: comment.trim(),
             clientType,
             legalName: legalName.trim(),
             inn: inn.trim(),
@@ -236,6 +272,9 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       telegram,
       instagram,
       vk,
+      preferredContactChannel,
+      preferredContactChannelOther,
+      comment,
       setClient,
       clientType,
       clients,
@@ -411,6 +450,39 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             ))}
           </div>
         </InputWrapper>
+        <InputWrapper label="Приоритетный канал связи" paddingY fitWidth>
+          <div className="flex flex-wrap gap-2">
+            {CONTACT_CHANNELS.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className={`cursor-pointer rounded border px-3 py-2 text-sm font-semibold transition ${
+                  preferredContactChannel === item.value
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+                onClick={() => setPreferredContactChannel(item.value)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </InputWrapper>
+        {preferredContactChannel === 'other' && (
+          <Input
+            label="Другой канал связи"
+            value={preferredContactChannelOther}
+            onChange={setPreferredContactChannelOther}
+            maxLength={100}
+          />
+        )}
+        <Textarea
+          label="Комментарий"
+          value={comment}
+          onChange={(value) => setComment(value.slice(0, 2000))}
+          rows={3}
+          inputClassName="min-h-20 resize-y bg-transparent"
+        />
         <LabeledContainer label="Реквизиты для договора">
           <div className="grid gap-0 sm:grid-cols-2">
             <Input

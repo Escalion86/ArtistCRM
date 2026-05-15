@@ -72,6 +72,21 @@ const clientsSchema = {
     type: String,
     default: '',
   },
+  preferredContactChannel: {
+    type: String,
+    enum: ['phone', 'telegram', 'whatsapp', 'max', 'vk', 'other', ''],
+    default: '',
+  },
+  preferredContactChannelOther: {
+    type: String,
+    maxlength: 100,
+    default: '',
+  },
+  comment: {
+    type: String,
+    maxlength: 2000,
+    default: '',
+  },
   birthday: {
     type: Date,
     default: null,

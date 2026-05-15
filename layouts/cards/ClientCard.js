@@ -11,12 +11,29 @@ import getPersonFullName from '@helpers/getPersonFullName'
 import { useAtomValue } from 'jotai'
 import CardWrapper from '@components/CardWrapper'
 
+const CONTACT_CHANNEL_LABELS = {
+  phone: 'Телефон',
+  telegram: 'Telegram',
+  whatsapp: 'WhatsApp',
+  max: 'MAX',
+  vk: 'VK',
+  other: 'Другое',
+}
+
+const getPreferredContactChannelLabel = (client) => {
+  if (!client?.preferredContactChannel) return ''
+  if (client.preferredContactChannel === 'other')
+    return client.preferredContactChannelOther?.trim() || 'Другое'
+  return CONTACT_CHANNEL_LABELS[client.preferredContactChannel] || ''
+}
+
 const ClientCard = ({ client, style, onEdit, onView }) => {
   const loading = useAtomValue(loadingAtom('client' + client._id))
   const error = useAtomValue(errorAtom('client' + client._id))
   const lastRequestLabel = client.lastRequest
     ? formatDate(client.lastRequest.toISOString(), false, true)
     : '-'
+  const preferredContactChannelLabel = getPreferredContactChannelLabel(client)
 
   return (
     <CardWrapper
@@ -49,6 +66,16 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
             <div className="card-title truncate font-medium">
               {client.phone ? `+${client.phone}` : 'Телефон не указан'}
             </div>
+            {preferredContactChannelLabel && (
+              <div className="truncate text-gray-600">
+                Приоритетная связь: {preferredContactChannelLabel}
+              </div>
+            )}
+            {client.comment && (
+              <div className="line-clamp-2 break-words text-gray-600">
+                {client.comment}
+              </div>
+            )}
           </div>
         </div>
         <div className="card-meta mt-auto self-end text-right text-sm font-semibold whitespace-nowrap">
@@ -68,6 +95,9 @@ ClientCard.propTypes = {
     secondName: PropTypes.string,
     thirdName: PropTypes.string,
     phone: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    preferredContactChannel: PropTypes.string,
+    preferredContactChannelOther: PropTypes.string,
+    comment: PropTypes.string,
     requestsCount: PropTypes.number,
     eventsCount: PropTypes.number,
     canceledEventsCount: PropTypes.number,

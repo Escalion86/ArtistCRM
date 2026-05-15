@@ -1,4 +1,5 @@
 import CardButtons from '@components/CardButtons'
+import AvitoConversationsPanel from '@components/AvitoConversationsPanel'
 import Chip from '@components/Chips/Chip'
 import cn from 'classnames'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
@@ -133,6 +134,10 @@ const eventViewFunc = (eventId) => {
         })
         .filter(Boolean)
     }, [clients, event?.otherContacts])
+    const hasAvitoLead =
+      String(event?.clientData?.source || '').toLowerCase() === 'avito' ||
+      String(event?.clientData?.lead?.source || '').toLowerCase() === 'avito' ||
+      Boolean(event?.clientData?.lead?.avitoChatId)
 
     const tagItems = useMemo(() => {
       const list = Array.isArray(event?.tags) ? event.tags : []
@@ -367,6 +372,15 @@ const eventViewFunc = (eventId) => {
                 )}
               </SectionBlock>
             )}
+
+            {hasAvitoLead ? (
+              <SectionBlock title="Переписка Avito">
+                <AvitoConversationsPanel
+                  eventId={event?._id}
+                  clientId={event?.clientId || ''}
+                />
+              </SectionBlock>
+            ) : null}
 
             {additionalEvents.length > 0 && (
               <SectionBlock title="Доп. события">
