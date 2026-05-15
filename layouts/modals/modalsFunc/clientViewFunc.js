@@ -3,6 +3,7 @@ import { useAtomValue } from 'jotai'
 import { modalsFuncAtom } from '@state/atoms'
 import CardButtons from '@components/CardButtons'
 import AvitoConversationsPanel from '@components/AvitoConversationsPanel'
+import VkConversationsPanel from '@components/VkConversationsPanel'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import SurfaceCard from '@components/SurfaceCard'
 import getPersonFullName from '@helpers/getPersonFullName'
@@ -278,6 +279,10 @@ const clientViewFunc = (clientId) => {
 
         <SectionBlock title="Переписка Avito">
           <AvitoConversationsPanel clientId={clientId} />
+        </SectionBlock>
+
+        <SectionBlock title="Переписка VK">
+          <VkConversationsPanel clientId={clientId} />
         </SectionBlock>
       </div>
     )

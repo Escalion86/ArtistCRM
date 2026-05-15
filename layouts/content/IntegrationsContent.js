@@ -72,6 +72,26 @@ const generateAvitoSecret = () => {
   return `avito_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
 }
 
+const generateVkSecret = () => {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
+    return `vk_${crypto.randomUUID().replace(/-/g, '')}`
+  }
+  return `vk_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
+}
+
+const generateVkCallbackSecret = () => {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
+    return `vksec_${crypto.randomUUID().replace(/-/g, '')}`
+  }
+  return `vksec_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
+}
+
 const normalizePublicLeadApiKeys = (customSettings) => {
   const list = getCustomValue(customSettings, 'publicLeadApiKeys')
   const keys = Array.isArray(list)
@@ -377,6 +397,34 @@ const AvitoGuide = () => (
   </div>
 )
 
+const VkGuide = () => (
+  <div className="flex flex-col gap-3 text-sm leading-6 text-gray-700">
+    <p>
+      Интеграция VK подключается отдельно для каждого пользователя ArtistCRM.
+      Нужен токен сообщества с доступом к сообщениям и Callback API группы.
+    </p>
+    <ol className="list-decimal space-y-2 pl-5">
+      <li>Откройте управление нужной группой VK.</li>
+      <li>В разделе Сообщения включите сообщения сообщества.</li>
+      <li>
+        В разделе Работа с API создайте ключ доступа сообщества с правами на
+        сообщения.
+      </li>
+      <li>Заполните поля в ArtistCRM и нажмите Подключить.</li>
+      <li>
+        В Callback API добавьте сервер, вставьте адрес webhook из ArtistCRM,
+        secret key и подтвердите сервер строкой подтверждения.
+      </li>
+      <li>В типах событий Callback API включите входящие сообщения.</li>
+      <li>Напишите тестовое сообщение в группу с другого аккаунта.</li>
+    </ol>
+    <p>
+      Первое сообщение из нового диалога создаст заявку со статусом Черновик и
+      источником VK. Дальнейшие сообщения сохранятся в переписку этой заявки.
+    </p>
+  </div>
+)
+
 const IntegrationAccordion = ({
   title,
   description,
@@ -457,6 +505,7 @@ const IntegrationsContent = () => {
   const snackbar = useSnackbar()
   const [isSaving, setIsSaving] = useState(false)
   const [avitoLoading, setAvitoLoading] = useState(false)
+  const [vkLoading, setVkLoading] = useState(false)
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false)
   const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false)
 
@@ -534,6 +583,46 @@ const IntegrationsContent = () => {
     if (avitoStatus === 'webhook_manual') return 'Нужно проверить webhook'
     if (avitoStatus === 'auth_error') return 'Ошибка авторизации'
     if (avitoStatus === 'disabled') return 'Отключено'
+    return 'Настраивается'
+  })()
+  const vkEnabled = getCustomValue(customSettings, 'vkGroupEnabled') === true
+  const vkGroupId = String(getCustomValue(customSettings, 'vkGroupId') || '')
+  const vkAccessToken = String(
+    getCustomValue(customSettings, 'vkGroupAccessToken') || ''
+  )
+  const vkConfirmationCode = String(
+    getCustomValue(customSettings, 'vkGroupConfirmationCode') || ''
+  )
+  const vkWebhookSecret = String(
+    getCustomValue(customSettings, 'vkGroupWebhookSecret') || ''
+  )
+  const vkWebhookToken = String(
+    getCustomValue(customSettings, 'vkGroupWebhookToken') || ''
+  )
+  const vkStatus = String(getCustomValue(customSettings, 'vkGroupStatus') || '')
+  const vkLastError = String(
+    getCustomValue(customSettings, 'vkGroupLastError') || ''
+  )
+  const vkLastWebhookAt = String(
+    getCustomValue(customSettings, 'vkGroupLastWebhookAt') || ''
+  )
+  const vkWebhookUrl = useMemo(() => {
+    const saved = String(getCustomValue(customSettings, 'vkGroupWebhookUrl') || '')
+    if (saved) return saved
+    const token = vkWebhookToken || generateVkSecret()
+    const relative = `/api/integrations/vk/webhook/${token}`
+    if (typeof window === 'undefined') return relative
+    return `${window.location.origin}${relative}`
+  }, [customSettings, vkWebhookToken])
+  const vkDisplayedWebhookSecret = useMemo(
+    () => vkWebhookSecret || generateVkCallbackSecret(),
+    [vkWebhookSecret]
+  )
+  const vkStatusText = (() => {
+    if (!vkEnabled) return 'Отключено'
+    if (vkStatus === 'connected') return 'Подключено'
+    if (vkStatus === 'auth_error') return 'Ошибка авторизации'
+    if (vkStatus === 'disabled') return 'Отключено'
     return 'Настраивается'
   })()
   const novofonWebhookUrl = useMemo(() => {
@@ -718,6 +807,72 @@ const IntegrationsContent = () => {
       snackbar.error('Не удалось отключить Avito')
     } finally {
       setAvitoLoading(false)
+    }
+  }
+
+  const connectVk = async () => {
+    setVkLoading(true)
+    try {
+      const response = await fetch('/api/integrations/vk/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupId: vkGroupId,
+          accessToken: vkAccessToken,
+          confirmationCode: vkConfirmationCode,
+        }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (result?.data?.siteSettings) setSiteSettings(result.data.siteSettings)
+      if (!response.ok || result?.success === false) {
+        snackbar.error(result?.error?.message || 'Не удалось подключить VK')
+        return
+      }
+      snackbar.success('VK подключен')
+    } catch (error) {
+      snackbar.error('Не удалось подключить VK')
+    } finally {
+      setVkLoading(false)
+    }
+  }
+
+  const checkVk = async () => {
+    setVkLoading(true)
+    try {
+      const response = await fetch('/api/integrations/vk/status', {
+        method: 'POST',
+      })
+      const result = await response.json().catch(() => ({}))
+      if (result?.data?.siteSettings) setSiteSettings(result.data.siteSettings)
+      if (!response.ok || result?.success === false) {
+        snackbar.error(result?.error?.message || 'VK не отвечает')
+        return
+      }
+      snackbar.success('Доступ VK проверен')
+    } catch (error) {
+      snackbar.error('Не удалось проверить VK')
+    } finally {
+      setVkLoading(false)
+    }
+  }
+
+  const disconnectVk = async () => {
+    setVkLoading(true)
+    try {
+      const response = await fetch('/api/integrations/vk/disconnect', {
+        method: 'POST',
+      })
+      const result = await response.json().catch(() => ({}))
+      if (result?.data?.siteSettings) setSiteSettings(result.data.siteSettings)
+      if (!response.ok || result?.success === false) {
+        snackbar.error('Не удалось отключить VK')
+        return
+      }
+      snackbar.success('VK отключен')
+    } catch (error) {
+      snackbar.error('Не удалось отключить VK')
+    } finally {
+      setVkLoading(false)
     }
   }
 
@@ -958,6 +1113,166 @@ const IntegrationsContent = () => {
                     showDecline: true,
                     declineButtonName: 'Закрыть',
                     Children: AvitoGuide,
+                  })
+                }
+              >
+                Как подключить
+              </InstructionButton>
+            </div>
+          </div>
+        </IntegrationAccordion>
+
+        <IntegrationAccordion
+          title="VK"
+          description="Персональная интеграция сообщений группы VK в заявки CRM."
+          connected={vkEnabled && vkStatus !== 'auth_error'}
+          warning={vkEnabled && vkStatus !== 'connected'}
+          loading={vkLoading}
+        >
+          <div className="flex flex-col gap-3">
+            <div className="text-sm text-gray-600">
+              Подключение выполняется отдельно для вашей группы VK. Сообщения из
+              новых диалогов будут попадать в CRM как заявки со статусом
+              Черновик.
+            </div>
+
+            <div
+              className={`rounded border px-3 py-2 text-sm ${
+                vkEnabled && vkStatus !== 'auth_error'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : vkStatus === 'auth_error'
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : 'border-gray-200 bg-gray-50 text-gray-700'
+              }`}
+            >
+              Статус: {vkStatusText}
+              {vkLastWebhookAt ? (
+                <span className="block text-xs">
+                  Последнее событие: {new Date(vkLastWebhookAt).toLocaleString()}
+                </span>
+              ) : null}
+              {vkLastError ? (
+                <span className="block text-xs">Ошибка: {vkLastError}</span>
+              ) : null}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+              <Input
+                label="VK Group ID"
+                value={vkGroupId}
+                onChange={(value) => saveCustom({ vkGroupId: value })}
+                noMargin
+                fullWidth
+              />
+              <Input
+                label="Строка подтверждения Callback API"
+                value={vkConfirmationCode}
+                onChange={(value) =>
+                  saveCustom({ vkGroupConfirmationCode: value })
+                }
+                noMargin
+                fullWidth
+              />
+            </div>
+
+            <Input
+              label="Токен сообщества VK"
+              value={vkAccessToken}
+              onChange={(value) => saveCustom({ vkGroupAccessToken: value })}
+              type="password"
+              noMargin
+              fullWidth
+            />
+
+            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+              <div className="flex items-start gap-2">
+                <Input
+                  label="Адрес webhook VK"
+                  value={vkWebhookUrl}
+                  onChange={() => {}}
+                  disabled
+                  noMargin
+                  fullWidth
+                />
+                <IconActionButton
+                  icon={faCopy}
+                  size="md"
+                  variant="success"
+                  title="Скопировать webhook"
+                  className="shrink-0"
+                  onClick={async () => {
+                    if (!vkWebhookUrl || !navigator?.clipboard) return
+                    await navigator.clipboard.writeText(vkWebhookUrl)
+                    snackbar.success('Webhook скопирован')
+                  }}
+                />
+              </div>
+              <div className="flex items-start gap-2">
+                <Input
+                  label="Secret key Callback API"
+                  value={vkDisplayedWebhookSecret}
+                  onChange={(value) =>
+                    saveCustom({ vkGroupWebhookSecret: value })
+                  }
+                  noMargin
+                  fullWidth
+                />
+                <IconActionButton
+                  icon={faCopy}
+                  size="md"
+                  variant="success"
+                  title="Скопировать secret key"
+                  className="shrink-0"
+                  onClick={async () => {
+                    const secret = vkDisplayedWebhookSecret
+                    if (!secret || !navigator?.clipboard) return
+                    if (!vkWebhookSecret) {
+                      await saveCustom({ vkGroupWebhookSecret: secret })
+                    }
+                    await navigator.clipboard.writeText(secret)
+                    snackbar.success('Secret key скопирован')
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={connectVk}
+                disabled={
+                  vkLoading ||
+                  !vkGroupId ||
+                  !vkAccessToken ||
+                  !vkConfirmationCode
+                }
+              >
+                {vkEnabled ? 'Переподключить' : 'Подключить'}
+              </button>
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={checkVk}
+                disabled={vkLoading || !vkGroupId || !vkAccessToken}
+              >
+                Проверить
+              </button>
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--danger tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={disconnectVk}
+                disabled={vkLoading || !vkEnabled}
+              >
+                Отключить
+              </button>
+              <InstructionButton
+                onClick={() =>
+                  modalsFunc.add({
+                    title: 'Как подключить VK',
+                    showDecline: true,
+                    declineButtonName: 'Закрыть',
+                    Children: VkGuide,
                   })
                 }
               >
