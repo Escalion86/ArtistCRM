@@ -614,6 +614,11 @@ const IntegrationsContent = () => {
     if (typeof window === 'undefined') return relative
     return `${window.location.origin}${relative}`
   }, [customSettings, vkWebhookToken])
+  const vkDisplayedWebhookToken = useMemo(() => {
+    if (vkWebhookToken) return vkWebhookToken
+    const match = vkWebhookUrl.match(/\/vk\/webhook\/([^/?#]+)/)
+    return match?.[1] || ''
+  }, [vkWebhookToken, vkWebhookUrl])
   const vkDisplayedWebhookSecret = useMemo(
     () => vkWebhookSecret || generateVkCallbackSecret(),
     [vkWebhookSecret]
@@ -820,6 +825,8 @@ const IntegrationsContent = () => {
           groupId: vkGroupId,
           accessToken: vkAccessToken,
           confirmationCode: vkConfirmationCode,
+          webhookToken: vkDisplayedWebhookToken,
+          webhookSecret: vkDisplayedWebhookSecret,
         }),
       })
       const result = await response.json().catch(() => ({}))
@@ -1202,6 +1209,9 @@ const IntegrationsContent = () => {
                   className="shrink-0"
                   onClick={async () => {
                     if (!vkWebhookUrl || !navigator?.clipboard) return
+                    if (!vkWebhookToken && vkDisplayedWebhookToken) {
+                      await saveCustom({ vkGroupWebhookToken: vkDisplayedWebhookToken })
+                    }
                     await navigator.clipboard.writeText(vkWebhookUrl)
                     snackbar.success('Webhook скопирован')
                   }}

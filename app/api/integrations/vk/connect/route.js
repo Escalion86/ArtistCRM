@@ -26,6 +26,8 @@ export const POST = async (req) => {
   const groupId = String(body?.groupId || '').trim()
   const accessToken = String(body?.accessToken || '').trim()
   const confirmationCode = String(body?.confirmationCode || '').trim()
+  const requestedWebhookToken = String(body?.webhookToken || '').trim()
+  const requestedWebhookSecret = String(body?.webhookSecret || '').trim()
 
   if (!groupId || !accessToken || !confirmationCode) {
     return jsonError(
@@ -43,8 +45,18 @@ export const POST = async (req) => {
 
   const currentSettings = await SiteSettings.findOne({ tenantId }).lean()
   const currentVk = normalizeVkSettings(currentSettings?.custom)
-  const webhookToken = currentVk.webhookToken || createVkWebhookToken()
-  const webhookSecret = currentVk.webhookSecret || createVkWebhookSecret()
+  const webhookToken =
+    currentVk.webhookToken ||
+    (requestedWebhookToken.startsWith('vk_')
+      ? requestedWebhookToken.slice(0, 160)
+      : '') ||
+    createVkWebhookToken()
+  const webhookSecret =
+    currentVk.webhookSecret ||
+    (requestedWebhookSecret.startsWith('vksec_')
+      ? requestedWebhookSecret.slice(0, 160)
+      : '') ||
+    createVkWebhookSecret()
   const webhookUrl = buildVkWebhookUrl({ req, token: webhookToken })
 
   try {
