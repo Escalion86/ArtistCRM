@@ -40,14 +40,6 @@ export const POST = async (req, { params }) => {
   if (!siteSettings?.tenantId) return jsonError('Forbidden', 403, 'forbidden')
 
   const vkGroup = normalizeVkSettings(siteSettings.custom)
-  if (!vkGroup.enabled) {
-    return jsonError('VK integration is disabled', 403, 'disabled')
-  }
-
-  if (vkGroup.webhookSecret && body?.secret !== vkGroup.webhookSecret) {
-    return jsonError('Forbidden', 403, 'bad_secret')
-  }
-
   if (vkGroup.groupId && String(body?.group_id || '') !== vkGroup.groupId) {
     return jsonError('Forbidden', 403, 'bad_group')
   }
@@ -57,6 +49,14 @@ export const POST = async (req, { params }) => {
       status: 200,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
+  }
+
+  if (!vkGroup.enabled) {
+    return jsonError('VK integration is disabled', 403, 'disabled')
+  }
+
+  if (vkGroup.webhookSecret && body?.secret !== vkGroup.webhookSecret) {
+    return jsonError('Forbidden', 403, 'bad_secret')
   }
 
   if (body?.type !== 'message_new') {
