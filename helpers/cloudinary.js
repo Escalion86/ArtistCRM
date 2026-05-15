@@ -46,7 +46,7 @@ export const getImages = async (directory, callback, project = 'artistcrm') => {
     }
 
     const queryString = new URLSearchParams(query).toString()
-    const urlWithQuery = `https://api.escalioncloud.ru/api/files?${project}/${queryString}`
+    const urlWithQuery = `https://cloud.escalion.ru/api/files?${project}/${queryString}`
 
     return await fetch(
       // 'https://api.cloudinary.com/v1_1/escalion-ru/image/upload',
@@ -98,23 +98,20 @@ export const sendImage = async (
     formData.append('files', image)
     formData.append('fileName', imageName)
 
-    return await fetch(
-      '/api/cloud',
-      {
-        method: 'POST',
-        body: formData,
-        //  JSON.stringify({
-        //   file: image,
-        //   fileName: imageName ?? 'test.jpg',
-        //   folder: 'events',
-        // })
-        // dataType: 'json',
-        // headers: {
-        //   'Content-Type': 'application/json',
-        // 'Content-Type': "multipart/form-data"
-        // },
-      }
-    )
+    return await fetch('/api/cloud', {
+      method: 'POST',
+      body: formData,
+      //  JSON.stringify({
+      //   file: image,
+      //   fileName: imageName ?? 'test.jpg',
+      //   folder: 'events',
+      // })
+      // dataType: 'json',
+      // headers: {
+      //   'Content-Type': 'application/json',
+      // 'Content-Type': "multipart/form-data"
+      // },
+    })
       .then((response) => response.json())
       .then((data) => {
         console.log('data', data)
@@ -146,23 +143,20 @@ export const sendFile = async (
     formData.append('files', file)
     formData.append('fileName', fileName)
 
-    return await fetch(
-      '/api/cloud',
-      {
-        method: 'POST',
-        body: formData,
-        //  JSON.stringify({
-        //   file: image,
-        //   fileName: imageName ?? 'test.jpg',
-        //   folder: 'events',
-        // })
-        // dataType: 'json',
-        // headers: {
-        //   'Content-Type': 'application/json',
-        // 'Content-Type': "multipart/form-data"
-        // },
-      }
-    )
+    return await fetch('/api/cloud', {
+      method: 'POST',
+      body: formData,
+      //  JSON.stringify({
+      //   file: image,
+      //   fileName: imageName ?? 'test.jpg',
+      //   folder: 'events',
+      // })
+      // dataType: 'json',
+      // headers: {
+      //   'Content-Type': 'application/json',
+      // 'Content-Type': "multipart/form-data"
+      // },
+    })
       .then((response) => response.json())
       .then((data) => {
         console.log('data', data)

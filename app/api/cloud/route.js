@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
-const CLOUD_API_URL = 'https://api.escalioncloud.ru/api'
+const CLOUD_API_URL = 'https://cloud.escalion.ru/api'
 
 export const POST = async (req) => {
   const apiPassword = process.env.ESCALIONCLOUD_PASSWORD
@@ -62,4 +62,3 @@ export const POST = async (req) => {
     )
   }
 }
-
