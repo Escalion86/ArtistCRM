@@ -3,6 +3,7 @@ import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import SiteSettings from '@models/SiteSettings'
 import {
+  backfillVkLeadClients,
   buildVkWebhookUrl,
   checkVkGroupAccess,
   normalizeVkSettings,
@@ -63,12 +64,14 @@ export const POST = async () => {
         vkGroupLastCheckedAt: new Date().toISOString(),
       },
     })
+    const backfill = await backfillVkLeadClients({ tenantId })
     return NextResponse.json(
       {
         success: true,
         data: {
           siteSettings: updated,
           vkGroup: normalizeVkSettings(updated?.custom),
+          backfill,
         },
       },
       { status: 200 }

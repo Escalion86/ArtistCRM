@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import SiteSettings from '@models/SiteSettings'
+import Clients from '@models/Clients'
 import Events from '@models/Events'
 import VkConversations from '@models/VkConversations'
 import VkMessages from '@models/VkMessages'
@@ -171,16 +172,67 @@ const normalizeVkWebhookPayload = (body = {}) => {
   }
 }
 
-const findClientForVkConversation = async ({ tenantId, normalized }) => {
-  if (!normalized.vkUserId) return null
-  const conversation = await VkConversations.findOne({
+const getVkContactValue = (vkUserId) => {
+  const id = normalizeText(vkUserId, 120)
+  if (!id) return ''
+  return `https://vk.com/id${id.replace(/^-/, '')}`
+}
+
+const upsertVkLeadClient = async ({ tenantId, normalized }) => {
+  const vkContact = getVkContactValue(normalized.vkUserId)
+  if (!vkContact) return null
+
+  let client = await Clients.findOne({ tenantId, vk: vkContact })
+  if (client) {
+    let hasChanges = false
+    if (!client.firstName && normalized.name) {
+      client.firstName = normalizeText(normalized.name, 120)
+      hasChanges = true
+    }
+    if (!client.preferredContactChannel) {
+      client.preferredContactChannel = 'vk'
+      hasChanges = true
+    }
+    if (hasChanges) await client.save()
+    return client
+  }
+
+  const existingConversation = await VkConversations.findOne({
     tenantId,
     vkUserId: normalized.vkUserId,
     clientId: { $ne: null },
   })
     .sort({ lastMessageAt: -1 })
     .lean()
-  return conversation?.clientId ?? null
+  if (existingConversation?.clientId) {
+    client = await Clients.findOne({ _id: existingConversation.clientId, tenantId })
+    if (client) {
+      let hasChanges = false
+      if (!client.vk) {
+        client.vk = vkContact
+        hasChanges = true
+      }
+      if (!client.preferredContactChannel) {
+        client.preferredContactChannel = 'vk'
+        hasChanges = true
+      }
+      if (hasChanges) await client.save()
+      return client
+    }
+  }
+
+  return Clients.create({
+    tenantId,
+    firstName: normalizeText(normalized.name, 120),
+    vk: vkContact,
+    preferredContactChannel: 'vk',
+    clientType: 'none',
+  })
+}
+
+const findClientForVkConversation = async ({ tenantId, normalized }) => {
+  const client = await upsertVkLeadClient({ tenantId, normalized })
+  return client?._id ?? null
 }
 
 const upsertVkConversation = async ({
@@ -282,6 +334,10 @@ const appendMessageToExistingEvent = async ({ event, normalized, rawPayload }) =
     lead: nextLead,
   }
 
+  if (!event.clientId && normalized.clientId) {
+    event.clientId = normalized.clientId
+  }
+
   if (
     normalized.comment &&
     !String(event.description || '').includes(normalized.comment)
@@ -363,9 +419,13 @@ const createOrUpdateVkLead = async ({ tenantId, siteSettings, body }) => {
     : null
 
   if (existingEvent) {
+    const normalizedForEvent = {
+      ...normalized,
+      clientId: existingEvent.clientId ?? linkedClientId,
+    }
     const conversation = await upsertVkConversation({
       tenantId,
-      normalized,
+      normalized: normalizedForEvent,
       rawPayload: body,
       clientId: existingEvent.clientId ?? linkedClientId,
       eventId: existingEvent._id,
@@ -373,12 +433,12 @@ const createOrUpdateVkLead = async ({ tenantId, siteSettings, body }) => {
     await saveIncomingVkMessage({
       tenantId,
       conversation,
-      normalized,
+      normalized: normalizedForEvent,
       rawPayload: body,
     })
     const event = await appendMessageToExistingEvent({
       event: existingEvent,
-      normalized,
+      normalized: normalizedForEvent,
       rawPayload: body,
     })
     return { ok: true, event, created: false, normalized }
@@ -426,6 +486,86 @@ const createOrUpdateVkLead = async ({ tenantId, siteSettings, body }) => {
   }
 }
 
+const backfillVkLeadClients = async ({ tenantId }) => {
+  const conversations = await VkConversations.find({
+    tenantId,
+    vkUserId: { $nin: ['', null] },
+  })
+    .sort({ updatedAt: -1 })
+    .limit(500)
+
+  let clientsUpdated = 0
+  let eventsUpdated = 0
+  let conversationsUpdated = 0
+
+  for (const conversation of conversations) {
+    const client = await upsertVkLeadClient({
+      tenantId,
+      normalized: {
+        vkUserId: conversation.vkUserId,
+        name: conversation.clientName || `Клиент VK ${conversation.vkUserId}`,
+      },
+    })
+    if (!client?._id) continue
+    clientsUpdated += 1
+
+    if (!conversation.clientId) {
+      conversation.clientId = client._id
+      await conversation.save()
+      conversationsUpdated += 1
+    }
+
+    if (conversation.eventId) {
+      const event = await Events.findOne({
+        _id: conversation.eventId,
+        tenantId,
+      })
+      if (event && !event.clientId) {
+        event.clientId = client._id
+        await event.save()
+        eventsUpdated += 1
+      }
+    }
+  }
+
+  const events = await Events.find({
+    tenantId,
+    clientId: null,
+    'clientData.lead.source': 'vk_group',
+    'clientData.lead.vkUserId': { $nin: ['', null] },
+  })
+    .sort({ updatedAt: -1 })
+    .limit(500)
+
+  for (const event of events) {
+    const vkUserId = event.clientData?.lead?.vkUserId
+    const client = await upsertVkLeadClient({
+      tenantId,
+      normalized: {
+        vkUserId,
+        name: event.clientData?.lead?.name || `Клиент VK ${vkUserId}`,
+      },
+    })
+    if (!client?._id) continue
+    event.clientId = client._id
+    await event.save()
+    eventsUpdated += 1
+
+    if (event.clientData?.lead?.vkPeerId) {
+      await VkConversations.updateOne(
+        {
+          tenantId,
+          vkPeerId: event.clientData.lead.vkPeerId,
+          clientId: null,
+        },
+        { $set: { clientId: client._id } }
+      )
+    }
+  }
+
+  return { clientsUpdated, conversationsUpdated, eventsUpdated }
+}
+
 const updateVkCustom = async ({ tenantId, patch }) => {
   const current = await SiteSettings.findOne({ tenantId }).lean()
   const custom = current?.custom ?? {}
@@ -443,6 +583,7 @@ const updateVkCustom = async ({ tenantId, patch }) => {
 
 export {
   buildVkWebhookUrl,
+  backfillVkLeadClients,
   checkVkGroupAccess,
   createOrUpdateVkLead,
   createVkWebhookSecret,

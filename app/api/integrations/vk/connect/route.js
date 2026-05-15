@@ -4,6 +4,7 @@ import getTenantContext from '@server/getTenantContext'
 import SiteSettings from '@models/SiteSettings'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import {
+  backfillVkLeadClients,
   buildVkWebhookUrl,
   checkVkGroupAccess,
   createVkWebhookSecret,
@@ -107,13 +108,14 @@ export const POST = async (req) => {
       vkGroupLastCheckedAt: new Date().toISOString(),
     },
   })
+  const backfill = await backfillVkLeadClients({ tenantId })
 
   return NextResponse.json(
     {
       success: true,
       data: {
         siteSettings: updated,
-        vkGroup: { status: 'connected', webhookUrl, webhookSecret },
+        vkGroup: { status: 'connected', webhookUrl, webhookSecret, backfill },
       },
     },
     { status: 200 }
