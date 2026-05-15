@@ -1,5 +1,6 @@
 import EventsContent from './EventsContent'
 import ClientsContent from './ClientsContent'
+import ClientEventsContent from './ClientEventsContent'
 import CallsContent from './CallsContent'
 import DevContent from './DevContent'
 import TransactionsContent from './TransactionsContent'
@@ -32,6 +33,10 @@ export const CONTENTS = Object.freeze({
   clients: {
     Component: ClientsContent,
     name: 'Клиенты',
+  },
+  clientEvents: {
+    Component: ClientEventsContent,
+    name: 'События клиентов',
   },
   calls: {
     Component: CallsContent,

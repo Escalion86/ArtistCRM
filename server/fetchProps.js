@@ -79,6 +79,7 @@ const EVENTS_PAYLOAD_PAGES = new Set([
   'eventsPast',
   'events',
   'clients',
+  'clientEvents',
   'transactions',
   'statistics',
   'dev',

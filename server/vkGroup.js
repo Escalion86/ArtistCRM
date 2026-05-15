@@ -116,6 +116,32 @@ const checkVkGroupAccess = async ({ accessToken, groupId }) => {
   return callVkApi('groups.getById', params)
 }
 
+const getVkUserProfile = async ({ accessToken, userId }) => {
+  if (!accessToken || !userId) return null
+
+  try {
+    const response = await callVkApi('users.get', {
+      access_token: accessToken,
+      user_ids: userId,
+      fields: 'screen_name',
+    })
+    const user = Array.isArray(response) ? response[0] : null
+    if (!user) return null
+
+    const firstName = normalizeText(user.first_name, 120)
+    const lastName = normalizeText(user.last_name, 120)
+    const screenName = normalizeText(user.screen_name, 120)
+    return {
+      firstName,
+      lastName,
+      screenName,
+      name: [firstName, lastName].filter(Boolean).join(' '),
+    }
+  } catch (error) {
+    return null
+  }
+}
+
 const sendVkMessage = async ({ accessToken, peerId, text }) => {
   if (!accessToken || !peerId || !text) {
     return { ok: false, error: 'missing_send_params' }
@@ -151,6 +177,7 @@ const VK_ATTACHMENT_LABELS = {
   sticker: 'Стикер',
   story: 'История',
   video: 'Видео',
+  video_message: 'Видео-кружок',
   wall: 'Запись на стене',
 }
 
@@ -184,7 +211,9 @@ const normalizeVkAttachments = (message) => {
       const payload = toObject(attachment?.[type])
       const audioMessage = type === 'audio_message' ? payload : {}
       const photo = type === 'photo' ? payload : {}
-      const video = type === 'video' ? payload : {}
+      const video = ['video', 'video_message', 'clip'].includes(type)
+        ? payload
+        : {}
       const doc = type === 'doc' ? payload : {}
       const audioUrl = normalizeText(
         getFirstString(
@@ -203,7 +232,26 @@ const normalizeVkAttachments = (message) => {
         2000
       )
       const videoUrl = normalizeText(
-        getFirstString(video?.player, video?.files?.mp4_720, video?.files?.mp4_480),
+        getFirstString(
+          video?.link,
+          video?.player,
+          video?.url,
+          video?.files?.mp4_1080,
+          video?.files?.mp4_720,
+          video?.files?.mp4_480,
+          video?.files?.mp4_360,
+          video?.files?.mp4_240
+        ),
+        2000
+      )
+      const previewUrl = normalizeText(
+        getFirstString(
+          video?.image?.[0]?.url,
+          video?.first_frame?.[0]?.url,
+          video?.photo_800,
+          video?.photo_640,
+          video?.photo_320
+        ),
         2000
       )
       const fileUrl = normalizeText(doc?.url, 2000)
@@ -215,6 +263,7 @@ const normalizeVkAttachments = (message) => {
         audioUrl,
         photoUrl,
         videoUrl,
+        previewUrl,
         fileUrl,
         fileName,
         fileExt: normalizeText(doc?.ext, 40),
@@ -270,18 +319,45 @@ const normalizeVkWebhookPayload = (body = {}) => {
 const getVkContactValue = (vkUserId) => {
   const id = normalizeText(vkUserId, 120)
   if (!id) return ''
-  return `https://vk.com/id${id.replace(/^-/, '')}`
+  return `id${id.replace(/^-/, '')}`
+}
+
+const normalizeStoredVkContact = (value) => {
+  const text = normalizeText(value, 300)
+  if (!text) return ''
+  return text
+    .replace(/^https?:\/\/(www\.)?(m\.)?vk\.(com|ru)\//i, '')
+    .replace(/^@+/, '')
+    .replace(/^\/+/, '')
+    .split(/[/?#]/)[0]
+    .trim()
 }
 
 const upsertVkLeadClient = async ({ tenantId, normalized }) => {
   const vkContact = getVkContactValue(normalized.vkUserId)
   if (!vkContact) return null
+  const firstName = normalizeText(normalized.firstName || normalized.name, 120)
+  const secondName = normalizeText(normalized.lastName, 120)
 
   let client = await Clients.findOne({ tenantId, vk: vkContact })
+  if (!client) {
+    client = await Clients.findOne({
+      tenantId,
+      vk: { $in: [`https://vk.com/${vkContact}`, `http://vk.com/${vkContact}`] },
+    })
+  }
   if (client) {
     let hasChanges = false
-    if (!client.firstName && normalized.name) {
-      client.firstName = normalizeText(normalized.name, 120)
+    if (client.vk !== vkContact) {
+      client.vk = vkContact
+      hasChanges = true
+    }
+    if (!client.firstName && firstName) {
+      client.firstName = firstName
+      hasChanges = true
+    }
+    if (!client.secondName && secondName) {
+      client.secondName = secondName
       hasChanges = true
     }
     if (!client.preferredContactChannel) {
@@ -307,6 +383,14 @@ const upsertVkLeadClient = async ({ tenantId, normalized }) => {
         client.vk = vkContact
         hasChanges = true
       }
+      if (!client.firstName && firstName) {
+        client.firstName = firstName
+        hasChanges = true
+      }
+      if (!client.secondName && secondName) {
+        client.secondName = secondName
+        hasChanges = true
+      }
       if (!client.preferredContactChannel) {
         client.preferredContactChannel = 'vk'
         hasChanges = true
@@ -318,7 +402,8 @@ const upsertVkLeadClient = async ({ tenantId, normalized }) => {
 
   return Clients.create({
     tenantId,
-    firstName: normalizeText(normalized.name, 120),
+    firstName,
+    secondName,
     vk: vkContact,
     preferredContactChannel: 'vk',
     clientType: 'none',
@@ -501,6 +586,17 @@ const createOrUpdateVkLead = async ({ tenantId, siteSettings, body }) => {
   if (!normalized.vkPeerId && !normalized.comment) {
     return { ok: false, status: 400, error: 'empty_vk_message' }
   }
+  const vkSettings = normalizeVkSettings(siteSettings?.custom)
+  const profile = await getVkUserProfile({
+    accessToken: vkSettings.accessToken,
+    userId: normalized.vkUserId,
+  })
+  if (profile?.name) {
+    normalized.name = profile.name
+    normalized.firstName = profile.firstName
+    normalized.lastName = profile.lastName
+    normalized.vkScreenName = profile.screenName
+  }
 
   const linkedClientId = await findClientForVkConversation({
     tenantId,
@@ -658,6 +754,19 @@ const backfillVkLeadClients = async ({ tenantId }) => {
         { $set: { clientId: client._id } }
       )
     }
+  }
+
+  const clientsWithVkLinks = await Clients.find({
+    tenantId,
+    vk: /^https?:\/\/(www\.)?(m\.)?vk\.(com|ru)\//i,
+  }).limit(500)
+
+  for (const client of clientsWithVkLinks) {
+    const normalizedVk = normalizeStoredVkContact(client.vk)
+    if (!normalizedVk || normalizedVk === client.vk) continue
+    client.vk = normalizedVk
+    await client.save()
+    clientsUpdated += 1
   }
 
   return { clientsUpdated, conversationsUpdated, eventsUpdated }

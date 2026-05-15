@@ -27,6 +27,26 @@ const getPreferredContactChannelLabel = (client) => {
   return CONTACT_CHANNEL_LABELS[client.preferredContactChannel] || ''
 }
 
+const formatSignificantDate = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: 'long',
+  })
+}
+
+const getFirstSignificantDateLabel = (client) => {
+  const item = Array.isArray(client?.significantDates)
+    ? client.significantDates.find((dateItem) => dateItem?.title || dateItem?.date)
+    : null
+  if (!item) return ''
+  const title = item.title || 'Дата'
+  const date = formatSignificantDate(item.date)
+  return date ? `${title}: ${date}` : title
+}
+
 const ClientCard = ({ client, style, onEdit, onView }) => {
   const loading = useAtomValue(loadingAtom('client' + client._id))
   const error = useAtomValue(errorAtom('client' + client._id))
@@ -34,6 +54,7 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
     ? formatDate(client.lastRequest.toISOString(), false, true)
     : '-'
   const preferredContactChannelLabel = getPreferredContactChannelLabel(client)
+  const significantDateLabel = getFirstSignificantDateLabel(client)
 
   return (
     <CardWrapper
@@ -71,6 +92,11 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
                 Приоритетная связь: {preferredContactChannelLabel}
               </div>
             )}
+            {significantDateLabel && (
+              <div className="truncate text-gray-600">
+                Значимая дата: {significantDateLabel}
+              </div>
+            )}
             {client.comment && (
               <div className="line-clamp-2 break-words text-gray-600">
                 {client.comment}
@@ -97,6 +123,16 @@ ClientCard.propTypes = {
     phone: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     preferredContactChannel: PropTypes.string,
     preferredContactChannelOther: PropTypes.string,
+    significantDates: PropTypes.arrayOf(
+      PropTypes.shape({
+        title: PropTypes.string,
+        date: PropTypes.oneOfType([
+          PropTypes.string,
+          PropTypes.instanceOf(Date),
+        ]),
+        comment: PropTypes.string,
+      })
+    ),
     comment: PropTypes.string,
     requestsCount: PropTypes.number,
     eventsCount: PropTypes.number,

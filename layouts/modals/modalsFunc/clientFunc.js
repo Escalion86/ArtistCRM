@@ -1,4 +1,5 @@
 import ErrorsList from '@components/ErrorsList'
+import DateInput from '@components/DateInput'
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
@@ -27,6 +28,21 @@ const CONTACT_CHANNELS = [
   { value: 'vk', name: 'VK' },
   { value: 'other', name: 'Другое' },
 ]
+
+const createSignificantDate = () => ({
+  title: '',
+  date: null,
+  comment: '',
+})
+
+const normalizeSignificantDates = (items) =>
+  (Array.isArray(items) ? items : [])
+    .map((item) => ({
+      title: String(item?.title ?? '').trim(),
+      date: item?.date || null,
+      comment: String(item?.comment ?? '').trim(),
+    }))
+    .filter((item) => item.title || item.date || item.comment)
 
 const clientFunc = (clientId, clone = false, onSuccess) => {
   const ClientModal = ({
@@ -80,6 +96,11 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     const [comment, setComment] = useState(
       client?.comment ?? DEFAULT_CLIENT.comment
     )
+    const [significantDates, setSignificantDates] = useState(() =>
+      normalizeSignificantDates(
+        client?.significantDates ?? DEFAULT_CLIENT.significantDates
+      )
+    )
     const [clientType, setClientType] = useState(
       client?.clientType ?? DEFAULT_CLIENT.clientType
     )
@@ -130,6 +151,11 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
           DEFAULT_CLIENT.preferredContactChannelOther) !==
           preferredContactChannelOther ||
         (client?.comment ?? DEFAULT_CLIENT.comment) !== comment ||
+        JSON.stringify(
+          normalizeSignificantDates(
+            client?.significantDates ?? DEFAULT_CLIENT.significantDates
+          )
+        ) !== JSON.stringify(normalizeSignificantDates(significantDates)) ||
         (client?.clientType ?? DEFAULT_CLIENT.clientType) !== clientType ||
         (client?.legalName ?? DEFAULT_CLIENT.legalName) !== legalName ||
         (client?.inn ?? DEFAULT_CLIENT.inn) !== inn ||
@@ -155,6 +181,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
         preferredContactChannel,
         preferredContactChannelOther,
         comment,
+        significantDates,
         clientType,
         legalName,
         inn,
@@ -243,6 +270,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
                 ? preferredContactChannelOther.trim()
                 : '',
             comment: comment.trim(),
+            significantDates: normalizeSignificantDates(significantDates),
             clientType,
             legalName: legalName.trim(),
             inn: inn.trim(),
@@ -275,6 +303,7 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       preferredContactChannel,
       preferredContactChannelOther,
       comment,
+      significantDates,
       setClient,
       clientType,
       clients,
@@ -331,6 +360,24 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       }
 
       addError({ phone: 'Клиент с таким номером уже существует' })
+    }
+
+    const updateSignificantDate = (index, patch) => {
+      setSignificantDates((prev) =>
+        prev.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, ...patch } : item
+        )
+      )
+    }
+
+    const addSignificantDate = () => {
+      setSignificantDates((prev) => [...prev, createSignificantDate()])
+    }
+
+    const removeSignificantDate = (index) => {
+      setSignificantDates((prev) =>
+        prev.filter((item, itemIndex) => itemIndex !== index)
+      )
     }
 
     useEffect(() => {
@@ -483,6 +530,71 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
           rows={3}
           inputClassName="min-h-20 resize-y bg-transparent"
         />
+        <LabeledContainer label="Значимые даты">
+          <div className="flex flex-col gap-3">
+            {significantDates.length === 0 && (
+              <div className="rounded border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                Добавьте даты, о которых важно помнить: день рождения, годовщина
+                свадьбы, день рождения ребенка.
+              </div>
+            )}
+            {significantDates.map((item, index) => (
+              <div
+                key={index}
+                className="rounded border border-gray-200 bg-gray-50 p-3"
+              >
+                <div className="grid gap-0 sm:grid-cols-[1fr_auto] sm:gap-3">
+                  <Input
+                    label="Название"
+                    value={item.title}
+                    onChange={(value) =>
+                      updateSignificantDate(index, {
+                        title: value.slice(0, 100),
+                      })
+                    }
+                    className="w-full"
+                    smallMargin
+                  />
+                  <DateInput
+                    label="Дата"
+                    value={item.date}
+                    onChange={(value) =>
+                      updateSignificantDate(index, { date: value })
+                    }
+                    className="w-full sm:w-48"
+                    smallMargin
+                  />
+                </div>
+                <Textarea
+                  label="Комментарий"
+                  value={item.comment}
+                  onChange={(value) =>
+                    updateSignificantDate(index, {
+                      comment: value.slice(0, 500),
+                    })
+                  }
+                  rows={2}
+                  smallMargin
+                  inputClassName="min-h-16 resize-y bg-transparent"
+                />
+                <button
+                  type="button"
+                  className="mt-2 cursor-pointer rounded border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-white"
+                  onClick={() => removeSignificantDate(index)}
+                >
+                  Удалить дату
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="w-fit cursor-pointer rounded border border-emerald-500 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+              onClick={addSignificantDate}
+            >
+              Добавить дату
+            </button>
+          </div>
+        </LabeledContainer>
         <LabeledContainer label="Реквизиты для договора">
           <div className="grid gap-0 sm:grid-cols-2">
             <Input

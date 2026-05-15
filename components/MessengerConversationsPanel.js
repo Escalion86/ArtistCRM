@@ -103,6 +103,25 @@ const MessageBubble = ({ message }) => {
                 >
                   Ваш браузер не поддерживает видео.
                 </video>
+              ) : attachment.previewUrl ? (
+                <a
+                  key={`${message._id}-video-${index}`}
+                  href={attachment.videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="relative block max-w-80 overflow-hidden rounded border border-black/10 bg-black"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={attachment.previewUrl}
+                    alt={attachment.title || attachment.label || 'Видео VK'}
+                    className="max-h-72 w-full object-contain opacity-80"
+                    loading="lazy"
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-white">
+                    Открыть видео VK
+                  </span>
+                </a>
               ) : (
                 <a
                   key={`${message._id}-video-${index}`}

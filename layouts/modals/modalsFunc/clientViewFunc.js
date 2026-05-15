@@ -22,6 +22,16 @@ const CONTACT_CHANNEL_LABELS = {
   other: 'Другое',
 }
 
+const formatSignificantDate = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: 'long',
+  })
+}
+
 const SectionBlock = ({ title, action, children }) => (
   <SurfaceCard>
     <div className="mb-2 flex items-center justify-between gap-2">
@@ -125,6 +135,14 @@ const clientViewFunc = (clientId) => {
       if (client.legalAddress) rows.push(`Юридический адрес: ${client.legalAddress}`)
       return rows
     }, [client])
+    const significantDates = useMemo(
+      () =>
+        (Array.isArray(client?.significantDates)
+          ? client.significantDates
+          : []
+        ).filter((item) => item?.title || item?.date || item?.comment),
+      [client]
+    )
     const preferredContactChannelLabel = useMemo(() => {
       if (!client?.preferredContactChannel) return ''
       if (client.preferredContactChannel === 'other')
@@ -272,6 +290,29 @@ const clientViewFunc = (clientId) => {
             <div className="space-y-1 text-sm text-gray-700">
               {requisitesLines.map((line) => (
                 <div key={line}>{line}</div>
+              ))}
+            </div>
+          </SectionBlock>
+        )}
+
+        {significantDates.length > 0 && (
+          <SectionBlock title="Значимые даты">
+            <div className="space-y-2 text-sm text-gray-700">
+              {significantDates.map((item, index) => (
+                <div
+                  key={`${item.title || 'date'}-${item.date || index}`}
+                  className="rounded-lg border border-gray-200 bg-gray-50 p-2"
+                >
+                  <div className="font-semibold text-gray-900">
+                    {item.title || 'Дата'}
+                    {item.date ? `: ${formatSignificantDate(item.date)}` : ''}
+                  </div>
+                  {item.comment && (
+                    <div className="mt-1 whitespace-pre-wrap break-words">
+                      {item.comment}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </SectionBlock>

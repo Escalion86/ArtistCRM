@@ -87,9 +87,26 @@ const clientsSchema = {
     maxlength: 2000,
     default: '',
   },
-  birthday: {
-    type: Date,
-    default: null,
+  significantDates: {
+    type: [
+      {
+        title: {
+          type: String,
+          maxlength: 100,
+          default: '',
+        },
+        date: {
+          type: Date,
+          default: null,
+        },
+        comment: {
+          type: String,
+          maxlength: 500,
+          default: '',
+        },
+      },
+    ],
+    default: [],
   },
   role: {
     type: String,

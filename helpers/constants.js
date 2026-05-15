@@ -444,6 +444,7 @@ export const DEFAULT_CLIENT = Object.freeze({
   preferredContactChannel: '',
   preferredContactChannelOther: '',
   comment: '',
+  significantDates: [],
   clientType: 'none',
   legalName: '',
   inn: '',
@@ -725,13 +726,20 @@ export const pages = [
   {
     id: 10,
     group: 4,
-    name: 'Клиенты',
+    name: 'Список клиентов',
     href: 'clients',
     icon: faUser,
   },
   {
-    id: 14,
+    id: 15,
     group: 4,
+    name: 'События клиентов',
+    href: 'clientEvents',
+    icon: faCalendarAlt,
+  },
+  {
+    id: 14,
+    group: 9,
     name: 'Звонки',
     href: 'calls',
     icon: faPhone,
@@ -858,6 +866,11 @@ export const pagesGroups = [
     id: 8,
     name: 'Пользователи',
     icon: faUsers,
+  },
+  {
+    id: 9,
+    name: 'Звонки',
+    icon: faPhone,
   },
   {
     id: 99,
