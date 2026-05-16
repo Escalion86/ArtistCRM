@@ -1,3 +1,5 @@
+import { Schema } from "mongoose"
+
 const partyUsersSchema = {
   phone: {
     type: String,
@@ -9,40 +11,40 @@ const partyUsersSchema = {
     type: String,
     trim: true,
     lowercase: true,
-    default: '',
+    default: "",
     maxlength: 160,
   },
   password: {
     type: String,
     required: true,
-    default: '',
+    default: "",
   },
   firstName: {
     type: String,
     trim: true,
-    default: '',
+    default: "",
     maxlength: 100,
   },
   secondName: {
     type: String,
     trim: true,
-    default: '',
+    default: "",
     maxlength: 100,
   },
   role: {
     type: String,
-    enum: ['user', 'support', 'admin'],
-    default: 'user',
+    enum: ["user", "support", "admin"],
+    default: "user",
   },
   interfaceRoles: {
     type: [String],
-    enum: ['company', 'performer'],
-    default: ['company', 'performer'],
+    enum: ["company", "performer"],
+    default: ["company", "performer"],
   },
   status: {
     type: String,
-    enum: ['active', 'blocked', 'archived'],
-    default: 'active',
+    enum: ["active", "blocked", "archived"],
+    default: "active",
   },
   consentPrivacyPolicyAccepted: {
     type: Boolean,
@@ -63,6 +65,42 @@ const partyUsersSchema = {
   lastLoginAt: {
     type: Date,
     default: null,
+  },
+  // Biллинг (PartyCRM subscription)
+  tariffId: {
+    type: Schema.Types.ObjectId,
+    ref: "PartyTariffs",
+    default: null,
+  },
+  balance: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  billingStatus: {
+    type: String,
+    enum: ["active", "paused", "debt", "cancelled"],
+    default: "active",
+  },
+  tariffActiveUntil: {
+    type: Date,
+    default: null,
+  },
+  nextChargeAt: {
+    type: Date,
+    default: null,
+  },
+  trialActivatedAt: {
+    type: Date,
+    default: null,
+  },
+  trialEndsAt: {
+    type: Date,
+    default: null,
+  },
+  trialUsed: {
+    type: Boolean,
+    default: false,
   },
 }
 
