@@ -1,19 +1,21 @@
-import { PRODUCTS } from './productContext'
-import { getProductModel } from './productDbConnect'
-import partyAssignmentsSchema from '@schemas/partyAssignmentsSchema'
-import partyClientsSchema from '@schemas/partyClientsSchema'
-import partyCompaniesSchema from '@schemas/partyCompaniesSchema'
-import partyLocationsSchema from '@schemas/partyLocationsSchema'
-import partyOrdersSchema from '@schemas/partyOrdersSchema'
-import partyServicesSchema from '@schemas/partyServicesSchema'
-import partyStaffSchema from '@schemas/partyStaffSchema'
-import partyUsersSchema from '@schemas/partyUsersSchema'
+import { PRODUCTS } from "./productContext"
+import { getProductModel } from "./productDbConnect"
+import partyAssignmentsSchema from "@schemas/partyAssignmentsSchema"
+import partyClientsSchema from "@schemas/partyClientsSchema"
+import partyCompaniesSchema from "@schemas/partyCompaniesSchema"
+import partyLocationsSchema from "@schemas/partyLocationsSchema"
+import partyOrdersSchema from "@schemas/partyOrdersSchema"
+import partyServicesSchema from "@schemas/partyServicesSchema"
+import partyStaffSchema from "@schemas/partyStaffSchema"
+import partyUsersSchema from "@schemas/partyUsersSchema"
+import partyTariffsSchema from "@schemas/partyTariffsSchema"
+import partyPaymentsSchema from "@schemas/partyPaymentsSchema"
 
 export const PARTY_STAFF_ROLES = Object.freeze({
-  OWNER: 'owner',
-  ADMIN: 'admin',
-  PERFORMER: 'performer',
-  CONTRACTOR: 'contractor',
+  OWNER: "owner",
+  ADMIN: "admin",
+  PERFORMER: "performer",
+  CONTRACTOR: "contractor",
 })
 
 export const PARTY_STAFF_ROLE_VALUES = Object.freeze([
@@ -23,12 +25,12 @@ export const PARTY_STAFF_ROLE_VALUES = Object.freeze([
 ])
 
 export const PARTY_CONTRACTOR_RULE =
-  'contractor is stored as performer staff without authUserId until linking'
+  "contractor is stored as performer staff without authUserId until linking"
 
 export const getPartyCompanyModel = () =>
   getProductModel({
     product: PRODUCTS.PARTYCRM,
-    name: 'PartyCompanies',
+    name: "PartyCompanies",
     schemaDefinition: partyCompaniesSchema,
     schemaOptions: { timestamps: true },
     configureSchema: (schema) => {
@@ -40,7 +42,7 @@ export const getPartyCompanyModel = () =>
 export const getPartyUserModel = () =>
   getProductModel({
     product: PRODUCTS.PARTYCRM,
-    name: 'PartyUsers',
+    name: "PartyUsers",
     schemaDefinition: partyUsersSchema,
     schemaOptions: { timestamps: true },
     configureSchema: (schema) => {
@@ -53,7 +55,7 @@ export const getPartyUserModel = () =>
 export const getPartyStaffModel = () =>
   getProductModel({
     product: PRODUCTS.PARTYCRM,
-    name: 'PartyStaff',
+    name: "PartyStaff",
     schemaDefinition: partyStaffSchema,
     schemaOptions: { timestamps: true },
     configureSchema: (schema) => {
@@ -68,7 +70,7 @@ export const getPartyStaffModel = () =>
 export const getPartyLocationModel = () =>
   getProductModel({
     product: PRODUCTS.PARTYCRM,
-    name: 'PartyLocations',
+    name: "PartyLocations",
     schemaDefinition: partyLocationsSchema,
     schemaOptions: { timestamps: true },
     configureSchema: (schema) => {
@@ -79,7 +81,7 @@ export const getPartyLocationModel = () =>
 export const getPartyClientModel = () =>
   getProductModel({
     product: PRODUCTS.PARTYCRM,
-    name: 'PartyClients',
+    name: "PartyClients",
     schemaDefinition: partyClientsSchema,
     schemaOptions: { timestamps: true },
     configureSchema: (schema) => {
@@ -92,7 +94,7 @@ export const getPartyClientModel = () =>
 export const getPartyAssignmentModel = () =>
   getProductModel({
     product: PRODUCTS.PARTYCRM,
-    name: 'PartyAssignments',
+    name: "PartyAssignments",
     schemaDefinition: partyAssignmentsSchema,
     schemaOptions: { timestamps: true },
     configureSchema: (schema) => {
@@ -105,7 +107,7 @@ export const getPartyAssignmentModel = () =>
 export const getPartyServiceModel = () =>
   getProductModel({
     product: PRODUCTS.PARTYCRM,
-    name: 'PartyServices',
+    name: "PartyServices",
     schemaDefinition: partyServicesSchema,
     schemaOptions: { timestamps: true },
     configureSchema: (schema) => {
@@ -117,13 +119,38 @@ export const getPartyServiceModel = () =>
 export const getPartyOrderModel = () =>
   getProductModel({
     product: PRODUCTS.PARTYCRM,
-    name: 'PartyOrders',
+    name: "PartyOrders",
     schemaDefinition: partyOrdersSchema,
     schemaOptions: { timestamps: true },
     configureSchema: (schema) => {
       schema.index({ tenantId: 1, eventDate: -1 })
       schema.index({ tenantId: 1, status: 1, eventDate: -1 })
       schema.index({ tenantId: 1, locationId: 1, eventDate: 1 })
-      schema.index({ tenantId: 1, 'assignedStaff.staffId': 1, eventDate: 1 })
+      schema.index({ tenantId: 1, "assignedStaff.staffId": 1, eventDate: 1 })
+    },
+  })
+
+export const getPartyTariffModel = () =>
+  getProductModel({
+    product: PRODUCTS.PARTYCRM,
+    name: "PartyTariffs",
+    schemaDefinition: partyTariffsSchema,
+    schemaOptions: { timestamps: true },
+    configureSchema: (schema) => {
+      schema.index({ hidden: 1 })
+      schema.index({ price: 1 })
+    },
+  })
+
+export const getPartyPaymentModel = () =>
+  getProductModel({
+    product: PRODUCTS.PARTYCRM,
+    name: "PartyPayments",
+    schemaDefinition: partyPaymentsSchema,
+    schemaOptions: { timestamps: true },
+    configureSchema: (schema) => {
+      schema.index({ providerPaymentId: 1 })
+      schema.index({ userId: 1, status: 1 })
+      schema.index({ userId: 1, createdAt: -1 })
     },
   })
