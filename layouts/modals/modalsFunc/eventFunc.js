@@ -8,6 +8,7 @@ import Textarea from '@components/Textarea'
 import { faCircleCheck, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import ClientPicker from '@components/ClientPicker'
+import VoiceDraftButton from '@components/VoiceDraftButton'
 import ColleaguePicker from '@components/ColleaguePicker'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -1566,6 +1567,98 @@ const eventFunc = (
       })
     }
 
+    // ===== Голосовой ввод: обработчик автозаполнения =====
+    const handleVoiceDraft = useCallback(
+      (fields) => {
+        // Заполняем только если поле было извлечено
+        if (fields.eventType && !eventType) {
+          // Приводим к нижнему регистру для сопоставления с опциями
+          const lower = fields.eventType.toLowerCase()
+          // Ищем в опциях ComboBox (точное совпадение или частичное)
+          const matched =
+            eventTypeOptions.find(
+              (opt) => opt.toLowerCase() === lower
+            ) ?? fields.eventType
+          setEventType(matched)
+          removeError('eventType')
+        }
+
+        if (fields.eventDate && !eventDate) {
+          const d = new Date(fields.eventDate)
+          if (!Number.isNaN(d.getTime())) {
+            setEventDate(d.toISOString())
+            removeError('eventDate')
+            // Если dateEnd тоже пришёл — выставляем
+            if (fields.dateEnd) {
+              const end = new Date(fields.dateEnd)
+              if (!Number.isNaN(end.getTime())) {
+                setDateEnd(end.toISOString())
+                setDateEndTouched(true)
+              }
+            }
+          }
+        }
+
+        if (fields.description) {
+          // Добавляем к существующему описанию, если уже что-то есть
+          setDescription((prev) =>
+            prev ? `${prev}\n\n${fields.description}` : fields.description
+          )
+        }
+
+        if (fields.contractSum && !contractSum) {
+          setContractSum(fields.contractSum)
+        }
+
+        if (typeof fields.waitDeposit === 'boolean') {
+          setWaitDeposit(fields.waitDeposit)
+        }
+
+        if (
+          typeof fields.depositExpectedAmount === 'number' &&
+          fields.depositExpectedAmount > 0
+        ) {
+          setDepositExpectedAmount(fields.depositExpectedAmount)
+        }
+
+        if (typeof fields.isByContract === 'boolean') {
+          setIsByContract(fields.isByContract)
+        }
+
+        if (fields.financeComment) {
+          setFinanceComment((prev) =>
+            prev
+              ? `${prev}\n${fields.financeComment}`
+              : fields.financeComment
+          )
+        }
+
+        if (fields.address && !address?.town) {
+          setAddress((prev) => ({ ...prev, ...fields.address }))
+        }
+
+        if (fields.clientId && !clientId) {
+          // Проверяем, что клиент существует в списке
+          const clientExists = clients.some(
+            (c) => String(c._id) === fields.clientId
+          )
+          if (clientExists) {
+            setClientId(fields.clientId)
+          }
+        }
+      },
+      [
+        eventType,
+        eventDate,
+        contractSum,
+        clientId,
+        clients,
+        address,
+        eventTypeOptions,
+        removeError,
+      ]
+    )
+
     return (
       <TabContext
         value={initialTab}
@@ -1629,6 +1722,12 @@ const eventFunc = (
                 required
                 onClearError={() => removeError('servicesIds')}
               />
+              <div className="flex items-center mt-3">
+                <VoiceDraftButton
+                  onDraft={handleVoiceDraft}
+                  disabled={isClosed}
+                />
+              </div>
               <div className="flex items-end mt-4 gap-x-1">
               <ComboBox
                 label="Что за событие?"
