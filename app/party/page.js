@@ -1,4 +1,5 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
+import PartyPricingSection from './PartyPricingSection'
 
 const rawPartyDomain = process.env.PARTYCRM_DOMAIN || 'partycrm.ru'
 const partyUrl = rawPartyDomain.startsWith('http')
@@ -452,68 +453,7 @@ export default function PartyCrmLandingPage() {
 
       {/* Pricing section */}
       <section id="pricing" className="relative max-w-6xl px-6 pb-20 mx-auto">
-        <div className="flex flex-col items-start gap-6 landing-reveal sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sky-600 text-sm font-semibold tracking-[0.3em] uppercase">
-              Тарифы
-            </p>
-            <h2 className="mt-4 text-3xl font-semibold text-black font-futuraPT">
-              Выберите формат работы
-            </h2>
-            <p className="mt-3 text-sm text-gray-600">
-              Подберите вариант под масштаб вашего агентства. При оплате за год — скидка 25%.
-            </p>
-          </div>
-          <Link
-            href="/party/login?callbackUrl=/company"
-            className="cursor-pointer ui-btn ui-btn-primary"
-          >
-            Попробовать бесплатно
-          </Link>
-        </div>
-
-        <div className="grid gap-6 mt-8 lg:grid-cols-3">
-          {tariffPlans.map((tariff, index) => (
-            <div
-              key={tariff.id}
-              className={`landing-reveal rounded-3xl border p-8 shadow-lg ${
-                tariff.highlighted
-                  ? 'home-panel border-sky-300/50 from-sky-50 bg-gradient-to-br via-white to-white'
-                  : 'home-panel border-gray-200/70 bg-white'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-2xl font-semibold text-black font-futuraPT">
-                  {tariff.title}
-                </h3>
-                {tariff.highlighted && (
-                  <span className="px-3 py-1 text-xs font-semibold text-white rounded-full bg-sky-600">
-                    Популярный
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 text-sm text-gray-500">{tariff.description}</p>
-              <div className="mt-4">
-                <span className="text-3xl font-bold text-black">
-                  {formatPrice(tariff.price)}
-                </span>
-                {tariff.price > 0 && (
-                  <span className="ml-2 text-sm text-gray-500">
-                    {Math.round(tariff.price * 12 * 0.75).toLocaleString('ru-RU')} ₽/год
-                  </span>
-                )}
-              </div>
-              <ul className="mt-6 space-y-3 text-sm text-gray-700">
-                {tariff.features.map((name) => (
-                  <li key={name} className="flex items-start gap-3">
-                    <span className="w-2 h-2 mt-1 rounded-full bg-sky-500" />
-                    <span className="font-medium text-gray-900">{name}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+        <PartyPricingSection />
       </section>
 
       {/* FAQ section */}
