@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getPartyStaffModel } from '@server/partyModels'
+import { getPartyStaffModel, getPartyUserModel } from '@server/partyModels'
 import {
   getPartyRequestContext,
   parseJsonBody,
   partyError,
 } from '@server/partyApi'
+import { normalizePartyPhone } from '@server/partyAuth'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -18,6 +19,52 @@ const normalizeEmail = (email) => {
 
 const normalizeText = (value, maxLength = 160) =>
   typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
+
+const sanitizeLinkCandidate = (user) =>
+  user
+    ? {
+        _id: String(user._id),
+        firstName: user.firstName || '',
+        secondName: user.secondName || '',
+        phone: user.phone || '',
+        email: user.email || '',
+      }
+    : null
+
+const enrichStaffWithLinkCandidates = async (staff) => {
+  const candidatePhones = [
+    ...new Set(
+      staff
+        .filter((person) => !person.authUserId)
+        .map((person) => normalizePartyPhone(person.phone))
+        .filter(Boolean)
+    ),
+  ]
+
+  if (candidatePhones.length === 0) return staff
+
+  const PartyUsers = await getPartyUserModel()
+  const users = await PartyUsers.find({
+    phone: { $in: candidatePhones },
+    status: { $ne: 'archived' },
+  })
+    .select('_id firstName secondName phone email')
+    .lean()
+  const usersByPhone = new Map(
+    users.map((user) => [normalizePartyPhone(user.phone), user])
+  )
+
+  return staff.map((person) => {
+    const candidate = usersByPhone.get(normalizePartyPhone(person.phone))
+    if (!candidate || person.authUserId) return person
+
+    return {
+      ...person,
+      hasLinkCandidate: true,
+      linkCandidate: sanitizeLinkCandidate(candidate),
+    }
+  })
+}
 
 const normalizeStaffPayload = (body) => {
   const authUserId = normalizeText(body.authUserId)
@@ -75,7 +122,9 @@ export async function GET(req) {
     .sort({ role: 1, secondName: 1, firstName: 1, createdAt: 1 })
     .lean()
 
-  return NextResponse.json({ success: true, data: staff })
+  const enrichedStaff = await enrichStaffWithLinkCandidates(staff)
+
+  return NextResponse.json({ success: true, data: enrichedStaff })
 }
 
 export async function POST(req) {

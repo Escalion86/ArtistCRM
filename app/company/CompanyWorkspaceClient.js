@@ -177,6 +177,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
   const [editingClientId, setEditingClientId] = useState('')
   const [editingOrderId, setEditingOrderId] = useState('')
   const [editingStaffId, setEditingStaffId] = useState('')
+  const [linkingStaffId, setLinkingStaffId] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -608,6 +609,34 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
     }
   }, [staffDraft, editingStaffId, activeCompanyId])
 
+  const requestStaffLink = useCallback(
+    async (staffMember) => {
+      if (!staffMember?._id) return
+      setLinkingStaffId(String(staffMember._id))
+      setError('')
+      try {
+        const response = await apiJson(
+          `/api/party/staff/${staffMember._id}/link-request`,
+          buildCompanyRequestOptions(activeCompanyId, { method: 'POST' })
+        )
+        if (response.data) {
+          setStaff((prev) =>
+            prev.map((person) =>
+              String(person._id) === String(staffMember._id)
+                ? response.data
+                : person
+            )
+          )
+        }
+      } catch (linkError) {
+        setError(linkError.message || 'Не удалось отправить запрос привязки')
+      } finally {
+        setLinkingStaffId('')
+      }
+    },
+    [activeCompanyId]
+  )
+
   // Location actions
   const addLocation = useCallback(async () => {
     setSaving(true)
@@ -699,6 +728,12 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
     <section className="min-h-screen bg-white">
       {/* Main content */}
       <main className="max-w-6xl px-5 py-8 mx-auto">
+        {error && (
+          <div className="p-3 mb-5 text-sm border rounded-md border-danger/30 bg-danger/10 text-danger">
+            {error}
+          </div>
+        )}
+
         {section === 'overview' && (
           <>
             {/* Finance summary */}
@@ -938,6 +973,9 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
             </div>
             <StaffList
               staff={staff}
+              canManage={canManage}
+              linkingStaffId={linkingStaffId}
+              onRequestLink={requestStaffLink}
               onEdit={(staffMember) => {
                 setStaffDraft(staffMember)
                 setEditingStaffId(staffMember._id)

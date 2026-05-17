@@ -23,12 +23,6 @@ const normalizeText = (value, maxLength = 160) =>
 const pickStaffPatch = (body) => {
   const patch = {}
 
-  if (typeof body.authUserId === 'string') {
-    patch.authUserId = normalizeText(body.authUserId)
-  }
-  if (typeof body.linkedAuthUserId === 'string') {
-    patch.linkedAuthUserId = normalizeText(body.linkedAuthUserId)
-  }
   if (typeof body.firstName === 'string') {
     patch.firstName = normalizeText(body.firstName, 100)
   }
@@ -56,15 +50,6 @@ const pickStaffPatch = (body) => {
   if (['owner', 'admin', 'performer'].includes(body.role)) patch.role = body.role
   if (['active', 'invited', 'paused', 'archived'].includes(body.status)) {
     patch.status = body.status
-  }
-  if (['unlinked', 'link_requested', 'linked', 'rejected'].includes(body.linkStatus)) {
-    patch.linkStatus = body.linkStatus
-  }
-  if (body.linkRequestedAt !== undefined) {
-    patch.linkRequestedAt = body.linkRequestedAt ? new Date(body.linkRequestedAt) : null
-  }
-  if (body.linkConfirmedAt !== undefined) {
-    patch.linkConfirmedAt = body.linkConfirmedAt ? new Date(body.linkConfirmedAt) : null
   }
   if (typeof body.visibleToPerformer === 'boolean') {
     patch.visibleToPerformer = body.visibleToPerformer

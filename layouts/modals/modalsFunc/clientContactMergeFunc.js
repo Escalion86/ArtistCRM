@@ -30,6 +30,18 @@ const patchCandidate = async ({ clientId, provider, conversationId, linked }) =>
     : []
 }
 
+const FILTER_PROVIDERS = [
+  { value: 'all', label: 'Все' },
+  { value: 'avito', label: 'Avito' },
+  { value: 'vk', label: 'VK' },
+]
+
+const FILTER_STATUSES = [
+  { value: 'all', label: 'Все' },
+  { value: 'linked', label: 'Связанные' },
+  { value: 'available', label: 'Непривязанные' },
+]
+
 const clientContactMergeFunc = (clientId) => {
   const ClientContactMergeModal = () => {
     const snackbar = useSnackbar()
@@ -45,6 +57,9 @@ const clientContactMergeFunc = (clientId) => {
     const [conversations, setConversations] = useState([])
     const [loading, setLoading] = useState(false)
     const [updatingKey, setUpdatingKey] = useState('')
+    const [search, setSearch] = useState('')
+    const [providerFilter, setProviderFilter] = useState('all')
+    const [statusFilter, setStatusFilter] = useState('all')
 
     const load = useCallback(
       async ({ showSuccess = false } = {}) => {
@@ -66,12 +81,50 @@ const clientContactMergeFunc = (clientId) => {
       load()
     }, [load])
 
-    const linkedConversations = conversations.filter(
+    const filteredConversations = useMemo(() => {
+      const query = search.trim().toLowerCase()
+      return conversations.filter((item) => {
+        if (providerFilter !== 'all' && item.provider !== providerFilter) {
+          return false
+        }
+        if (
+          statusFilter === 'linked' &&
+          !item.linkedToCurrentClient
+        ) {
+          return false
+        }
+        if (
+          statusFilter === 'available' &&
+          item.linkedToCurrentClient
+        ) {
+          return false
+        }
+        if (!query) return true
+
+        return [
+          item.providerLabel,
+          item.title,
+          item.subtitle,
+          item.externalId,
+          item.lastMessageText,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(query)
+      })
+    }, [conversations, providerFilter, search, statusFilter])
+
+    const linkedConversations = filteredConversations.filter(
       (item) => item.linkedToCurrentClient
     )
-    const availableConversations = conversations.filter(
+    const availableConversations = filteredConversations.filter(
       (item) => !item.linkedToCurrentClient
     )
+    const linkedCount = conversations.filter(
+      (item) => item.linkedToCurrentClient
+    ).length
+    const availableCount = conversations.length - linkedCount
 
     const toggleConversation = async (conversation, linked) => {
       const key = `${conversation.provider}:${conversation._id}`
@@ -160,6 +213,57 @@ const clientContactMergeFunc = (clientId) => {
           >
             {loading ? 'Обновление...' : 'Обновить'}
           </button>
+        </div>
+
+        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Поиск диалога
+          </label>
+          <input
+            type="search"
+            className="mt-2 min-h-10 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-general"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Имя, текст сообщения, ID чата"
+          />
+          <div className="mt-3 flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between">
+            <div className="flex flex-wrap gap-2">
+              {FILTER_PROVIDERS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  className={`cursor-pointer rounded border px-3 py-2 text-xs font-semibold transition ${
+                    providerFilter === item.value
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setProviderFilter(item.value)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {FILTER_STATUSES.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  className={`cursor-pointer rounded border px-3 py-2 text-xs font-semibold transition ${
+                    statusFilter === item.value
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setStatusFilter(item.value)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-3 text-xs text-gray-500">
+            Найдено: {filteredConversations.length} · Связаны: {linkedCount} ·
+            Непривязаны: {availableCount}
+          </div>
         </div>
 
         <div>

@@ -56,8 +56,10 @@ const getAddressText = (order) => {
 
 export default function PerformerWorkspaceClient() {
   const [orders, setOrders] = useState([])
+  const [linkRequests, setLinkRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [savingOrderId, setSavingOrderId] = useState('')
+  const [savingLinkRequestId, setSavingLinkRequestId] = useState('')
   const [error, setError] = useState('')
   const [companyFilter, setCompanyFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -66,10 +68,16 @@ export default function PerformerWorkspaceClient() {
     setLoading(true)
     setError('')
     try {
-      const ordersResponse = await apiJson('/api/party/performer/orders', {
-        cache: 'no-store',
-      })
+      const [ordersResponse, linkRequestsResponse] = await Promise.all([
+        apiJson('/api/party/performer/orders', {
+          cache: 'no-store',
+        }),
+        apiJson('/api/party/performer/link-requests', {
+          cache: 'no-store',
+        }),
+      ])
       setOrders(ordersResponse.data ?? [])
+      setLinkRequests(linkRequestsResponse.data ?? [])
     } catch (loadError) {
       setError(loadError.message || 'Не удалось загрузить кабинет исполнителя')
     } finally {
@@ -163,6 +171,30 @@ export default function PerformerWorkspaceClient() {
     }
   }
 
+  const updateLinkRequest = async ({ staffId, action }) => {
+    setSavingLinkRequestId(staffId)
+    setError('')
+    try {
+      await apiJson(`/api/party/performer/link-requests/${staffId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action }),
+      })
+      setLinkRequests((items) =>
+        items.filter((request) => String(request._id) !== String(staffId))
+      )
+      if (action === 'confirm') {
+        const ordersResponse = await apiJson('/api/party/performer/orders', {
+          cache: 'no-store',
+        })
+        setOrders(ordersResponse.data ?? [])
+      }
+    } catch (saveError) {
+      setError(saveError.message || 'Не удалось обновить запрос привязки')
+    } finally {
+      setSavingLinkRequestId('')
+    }
+  }
+
   if (loading) {
     return (
       <section className="max-w-5xl px-5 py-10 mx-auto">
@@ -187,6 +219,65 @@ export default function PerformerWorkspaceClient() {
       {error && (
         <div className="p-3 mt-5 text-sm border rounded-md border-danger/30 bg-danger/10 text-danger">
           {error}
+        </div>
+      )}
+
+      {linkRequests.length > 0 && (
+        <div className="grid gap-3 mt-8">
+          <h2 className="text-xl font-semibold">Запросы на привязку</h2>
+          {linkRequests.map((request) => {
+            const isSaving =
+              String(savingLinkRequestId) === String(request._id)
+            return (
+              <div
+                key={request._id}
+                className="p-5 bg-white border rounded-lg shadow-sm border-sky-100 shadow-sky-950/5"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-sky-700">
+                      {request.companyTitle || 'Компания'}
+                    </p>
+                    <p className="mt-1 text-lg font-semibold">
+                      {request.displayName}
+                    </p>
+                    <p className="mt-1 text-sm text-black/60">
+                      {request.phone || 'телефон не указан'}
+                      {request.email ? ` · ${request.email}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() =>
+                        updateLinkRequest({
+                          staffId: request._id,
+                          action: 'confirm',
+                        })
+                      }
+                      className={primaryButtonClass}
+                    >
+                      Подтвердить
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() =>
+                        updateLinkRequest({
+                          staffId: request._id,
+                          action: 'reject',
+                        })
+                      }
+                      className={secondaryButtonClass}
+                    >
+                      Отклонить
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
