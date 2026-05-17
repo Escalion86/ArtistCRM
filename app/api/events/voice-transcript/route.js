@@ -3,8 +3,7 @@ import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import { getTenantAiSettings } from '@server/aiSettings'
 import { transcribeAudioBlob } from '@server/callTranscription'
-import { getUserTariffAccess } from '@helpers/tariffAccess'
-import Tariffs from '@models/Tariffs'
+import getUserTariffAccess from '@server/getUserTariffAccess'
 
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024
 
@@ -19,9 +18,8 @@ export async function POST(request) {
     }
 
     await dbConnect()
-    const tariffs = await Tariffs.find({ hidden: { $ne: true } }).lean()
-    const tariffAccess = getUserTariffAccess(user, tariffs)
-    if (!tariffAccess.allowAi) {
+    const tariffAccess = await getUserTariffAccess(user?._id)
+    if (!tariffAccess?.allowAi) {
       return NextResponse.json(
         { success: false, error: 'Голосовой ввод доступен только в тарифе с ИИ' },
         { status: 403 }
