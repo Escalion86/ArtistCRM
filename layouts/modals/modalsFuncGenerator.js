@@ -53,6 +53,7 @@ import clientMessengerFunc from './modalsFunc/clientMessengerFunc'
 import clientTransactionsFunc from './modalsFunc/clientTransactionsFunc'
 import clientSelectFunc from './modalsFunc/clientSelectFunc'
 import clientEventsFunc from './modalsFunc/clientEventsFunc'
+import VoiceDraftButton from '@components/VoiceDraftButton'
 // import userHistoryFunc from './modalsFunc/userHistoryFunc'
 // import userActionsHistoryFunc from './modalsFunc/userActionsHistoryFunc'
 // import userPersonalStatusEditFunc from './modalsFunc/userPersonalStatusEditFunc'
@@ -195,7 +196,43 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
     },
     event: {
       add: (eventId) => addModal(eventFunc(eventId, true)),
-      create: () => addModal(eventFunc(null, false, 'draft')),
+      create: (initialStatus = 'draft', options = {}) =>
+        addModal(eventFunc(null, false, initialStatus, options)),
+      createVoice: () => {
+        const VoiceEventDraftModal = ({ closeModal }) => (
+          <div className="flex flex-col gap-3 px-1 py-2">
+            <div className="text-sm text-gray-700">
+              Нажмите кнопку, продиктуйте заявку или мероприятие, затем
+              остановите запись. После распознавания откроется форма с
+              заполненными полями.
+            </div>
+            <VoiceDraftButton
+              onDraft={(fields, transcript) => {
+                closeModal()
+                addModal(
+                  eventFunc(null, false, fields?.status || 'draft', {
+                    initialEvent: {
+                      ...fields,
+                      status: fields?.status || 'draft',
+                      description:
+                        fields?.description ||
+                        (transcript ? `Голосовой ввод: ${transcript}` : ''),
+                    },
+                  })
+                )
+              }}
+            />
+          </div>
+        )
+
+        addModal({
+          title: 'Создание голосом',
+          confirmButtonName: 'Закрыть',
+          onConfirm: true,
+          showDecline: false,
+          Children: VoiceEventDraftModal,
+        })
+      },
       createFromDraft: (initialEvent, onSaved) =>
         addModal(
           eventFunc(null, false, initialEvent?.status || 'draft', {

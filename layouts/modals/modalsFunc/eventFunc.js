@@ -1060,6 +1060,20 @@ const eventFunc = (
       []
     )
 
+    const eventTypeOptions = useMemo(() => {
+      const rawEventTypes = Array.isArray(siteSettings?.custom?.eventTypes)
+        ? siteSettings.custom.eventTypes
+        : []
+      const eventTypesSet = new Set(
+        rawEventTypes
+          .map((item) => (typeof item === 'string' ? item.trim() : ''))
+          .filter(Boolean)
+      )
+      if (eventType && typeof eventType === 'string')
+        eventTypesSet.add(eventType.trim())
+      return Array.from(eventTypesSet).sort((a, b) => a.localeCompare(b, 'ru'))
+    }, [eventType, siteSettings?.custom?.eventTypes])
+
     const townOptions = useMemo(() => {
       const townsSet = new Set(
         (siteSettings?.towns ?? [])
@@ -1087,20 +1101,6 @@ const eventFunc = (
         loggedUser?._id
       )
     }
-
-    const eventTypeOptions = useMemo(() => {
-      const rawEventTypes = Array.isArray(siteSettings?.custom?.eventTypes)
-        ? siteSettings.custom.eventTypes
-        : []
-      const eventTypesSet = new Set(
-        rawEventTypes
-          .map((item) => (typeof item === 'string' ? item.trim() : ''))
-          .filter(Boolean)
-      )
-      if (eventType && typeof eventType === 'string')
-        eventTypesSet.add(eventType.trim())
-      return Array.from(eventTypesSet).sort((a, b) => a.localeCompare(b, 'ru'))
-    }, [eventType, siteSettings?.custom?.eventTypes])
 
     const handleCreateEventType = async () => {
       const rawEventType = window.prompt('Новый тип события')
@@ -1589,7 +1589,7 @@ const eventFunc = (
         <TabPanel tabName="Общие">
           <FormWrapper>
             <InputWrapper label="Статус" paddingY fitWidth>
-              <div className="flex flex-col w-full">
+              <div className="flex w-full flex-col">
                 <div className="flex flex-wrap gap-2">
                   {[
                     { value: 'draft', label: 'Заявка' },
@@ -1643,7 +1643,7 @@ const eventFunc = (
                 required
                 onClearError={() => removeError('servicesIds')}
               />
-              <div className="flex items-end mt-4 gap-x-1">
+              <div className="mt-4 flex items-end gap-x-1">
                 <ComboBox
                   label="Что за событие?"
                   items={eventTypeOptions}
@@ -1655,7 +1655,7 @@ const eventFunc = (
                   placeholder="Выберите тип события"
                   fullWidth
                   noMargin
-                  className="flex-1 min-w-38"
+                  className="min-w-38 flex-1"
                   error={errors.eventType}
                   required
                 />
@@ -1788,8 +1788,8 @@ const eventFunc = (
                 onAddContact={handleOtherContactAdd}
               />
               <LabeledContainer label="Доп. события">
-                <div className="flex flex-col w-full gap-2">
-                  <div className="flex justify-end w-full">
+                <div className="flex w-full flex-col gap-2">
+                  <div className="flex w-full justify-end">
                     <AddIconButton
                       onClick={() => handleAdditionalEventAdd()}
                       title="Добавить событие"
@@ -1815,7 +1815,7 @@ const eventFunc = (
                       Нет событий для выбранного фильтра
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
+                    <div className="tablet:grid-cols-2 laptop:grid-cols-3 grid grid-cols-1 gap-2">
                       {filteredAdditionalEvents.map(({ item, index }) => (
                         <div
                           key={`additional-event-${index}`}
@@ -1849,8 +1849,8 @@ const eventFunc = (
                             >
                               <FontAwesomeIcon icon={faCircleCheck} />
                             </button>
-                            <div className="flex items-start justify-between flex-1 min-w-0 gap-2">
-                              <div className="flex-1 min-w-0">
+                            <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
                                 <div
                                   className={`truncate text-sm font-semibold ${
                                     item?.done
@@ -1881,7 +1881,7 @@ const eventFunc = (
                                   </div>
                                 ) : null}
                               </div>
-                              <div className="flex flex-wrap items-center justify-end gap-1 shrink-0">
+                              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                                 <IconActionButton
                                   icon={faPencilAlt}
                                   onClick={() =>
@@ -2011,12 +2011,12 @@ const eventFunc = (
               </div>
             )}
             {isDraft ? (
-              <div className="px-3 py-2 text-sm border rounded-md border-amber-200 bg-amber-50 text-amber-800">
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 {`Для заявки финансы, транзакции и документы недоступны. Переведите тип в "Мероприятие"`}
               </div>
             ) : null}
             {isByContract && !isDraft && canUseDocuments && (
-              <div className="flex flex-col gap-3 mt-3">
+              <div className="mt-3 flex flex-col gap-3">
                 <LinksListEditor
                   label="Ссылки на договора"
                   links={contractLinks}
@@ -2062,12 +2062,12 @@ const eventFunc = (
                 </div>
 
                 {financeError && (
-                  <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
+                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                     {financeError}
                   </div>
                 )}
 
-                <div className="bg-white border border-gray-200 rounded shadow-sm">
+                <div className="rounded border border-gray-200 bg-white shadow-sm">
                   {eventTransactions.length === 0 ? (
                     <div className="px-3 py-4 text-sm text-gray-500">
                       Пока никаких транзакций небыло
@@ -2085,9 +2085,9 @@ const eventFunc = (
                         incomeTransactions.map((transaction) => (
                           <div
                             key={transaction._id}
-                            className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
+                            className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
                           >
-                            <div className="flex flex-wrap flex-1 gap-3 text-sm">
+                            <div className="flex flex-1 flex-wrap gap-3 text-sm">
                               <span className="font-semibold text-gray-900">
                                 {transaction.amount.toLocaleString()} руб.
                               </span>
@@ -2162,9 +2162,9 @@ const eventFunc = (
                         expenseTransactions.map((transaction) => (
                           <div
                             key={transaction._id}
-                            className="flex flex-col gap-2 px-3 py-3 laptop:flex-row laptop:items-center laptop:justify-between"
+                            className="laptop:flex-row laptop:items-center laptop:justify-between flex flex-col gap-2 px-3 py-3"
                           >
-                            <div className="flex flex-wrap flex-1 gap-3 text-sm">
+                            <div className="flex flex-1 flex-wrap gap-3 text-sm">
                               <span className="font-semibold text-gray-900">
                                 {transaction.amount.toLocaleString()} руб.
                               </span>
@@ -2243,7 +2243,7 @@ const eventFunc = (
               </div>
               <button
                 type="button"
-                className="h-8 px-3 text-xs font-semibold text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+                className="h-8 rounded border border-gray-300 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                 onClick={() => {
                   if (!navigator?.clipboard) return
                   navigator.clipboard.writeText(googleCalendarResponseText)
@@ -2252,7 +2252,7 @@ const eventFunc = (
                 Скопировать
               </button>
             </div>
-            <pre className="w-full p-3 overflow-auto text-xs text-gray-800 whitespace-pre-wrap border border-gray-200 rounded max-h-72 bg-gray-50">
+            <pre className="max-h-72 w-full overflow-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs whitespace-pre-wrap text-gray-800">
               {googleCalendarResponseText}
             </pre>
           </TabPanel>

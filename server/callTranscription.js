@@ -74,13 +74,16 @@ const fetchRecordingBlob = async (recordingUrl) => {
   return new Blob([arrayBuffer], { type: contentType })
 }
 
-const transcribeWithOpenAiCompatible = async ({ provider, recordingUrl }) => {
-  const audioBlob = await fetchRecordingBlob(recordingUrl)
+const transcribeBlobWithOpenAiCompatible = async ({
+  provider,
+  audioBlob,
+  fileName,
+}) => {
   const formData = new FormData()
   formData.set('model', provider.model)
   formData.set('language', 'ru')
   formData.set('response_format', 'json')
-  formData.set('file', audioBlob, getFileNameFromUrl(recordingUrl))
+  formData.set('file', audioBlob, fileName || 'recording.webm')
 
   const response = await fetch(provider.apiUrl, {
     method: 'POST',
@@ -101,6 +104,34 @@ const transcribeWithOpenAiCompatible = async ({ provider, recordingUrl }) => {
   const text = String(payload?.text || '').trim()
   if (!text) throw new Error('TRANSCRIPTION_EMPTY')
   return text
+}
+
+const transcribeWithOpenAiCompatible = async ({ provider, recordingUrl }) => {
+  const audioBlob = await fetchRecordingBlob(recordingUrl)
+  return transcribeBlobWithOpenAiCompatible({
+    provider,
+    audioBlob,
+    fileName: getFileNameFromUrl(recordingUrl),
+  })
+}
+
+export const transcribeAudioBlob = async (
+  audioBlob,
+  fileName = 'recording.webm',
+  settings = {}
+) => {
+  if (!audioBlob) throw new Error('AUDIO_FILE_REQUIRED')
+  if (audioBlob.size > MAX_AUDIO_BYTES) throw new Error('RECORDING_TOO_LARGE')
+
+  const provider = getTranscriptionProviderConfig(settings)
+  if (provider.error) throw new Error(provider.error)
+  if (!provider.apiKey) throw new Error('TRANSCRIPTION_API_KEY_REQUIRED')
+
+  if (provider.name === 'openai' || provider.name === 'aitunnel') {
+    return transcribeBlobWithOpenAiCompatible({ provider, audioBlob, fileName })
+  }
+
+  throw new Error('TRANSCRIPTION_PROVIDER_UNSUPPORTED')
 }
 
 export const transcribeCallRecording = async (recordingUrl, settings = {}) => {

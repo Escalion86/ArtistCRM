@@ -3,14 +3,19 @@
 import { useState, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faMicrophone, faMicrophoneSlash, faSpinner, faCircleCheck, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
-import { postData } from '@helpers/CRUD'
+import {
+  faMicrophone,
+  faMicrophoneSlash,
+  faSpinner,
+  faCircleCheck,
+  faExclamationTriangle,
+} from '@fortawesome/free-solid-svg-icons'
 
 /**
  * VoiceDraftButton — кнопка голосового ввода для быстрого создания события.
  *
- * Использует Web Speech API для распознавания речи в браузере,
- * затем отправляет текст на серверный API для ИИ-автозаполнения.
+ * Записывает аудио через MediaRecorder, отправляет на серверную транскрибацию,
+ * затем отправляет распознанный текст на API для ИИ-автозаполнения.
  *
  * Пропсы:
  *   onDraft(fields)  — вызывается при получении полей от сервера.
@@ -20,127 +25,163 @@ import { postData } from '@helpers/CRUD'
 const VoiceDraftButton = ({ onDraft, disabled, className }) => {
   const [status, setStatus] = useState('idle') // idle | listening | processing | success | error | unsupported
   const [errorMessage, setErrorMessage] = useState('')
-  const recognitionRef = useRef(null)
+  const recorderRef = useRef(null)
+  const streamRef = useRef(null)
+  const chunksRef = useRef([])
 
-  // Проверка поддержки Web Speech API
-  const speechSupported =
+  const recordingSupported =
     typeof window !== 'undefined' &&
-    (window.SpeechRecognition || window.webkitSpeechRecognition)
+    typeof window.MediaRecorder !== 'undefined' &&
+    Boolean(navigator?.mediaDevices?.getUserMedia)
 
-  const getRecognition = useCallback(() => {
-    if (!speechSupported) return null
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    const rec = new SpeechRecognition()
-    rec.lang = 'ru-RU'
-    rec.interimResults = false
-    rec.maxAlternatives = 1
-    rec.continuous = false
-    return rec
-  }, [speechSupported])
+  const getPreferredAudioMimeType = useCallback(() => {
+    if (!recordingSupported) return ''
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/mpeg',
+    ]
+    return (
+      candidates.find((type) => window.MediaRecorder.isTypeSupported(type)) ||
+      ''
+    )
+  }, [recordingSupported])
 
-  const handleStart = useCallback(() => {
-    if (disabled || status !== 'idle') return
+  const getAudioFileName = useCallback((mimeType) => {
+    if (mimeType.includes('mp4')) return 'voice-draft.mp4'
+    if (mimeType.includes('mpeg')) return 'voice-draft.mp3'
+    return 'voice-draft.webm'
+  }, [])
 
-    const recognition = getRecognition()
-    if (!recognition) {
-      setStatus('unsupported')
-      setErrorMessage('Web Speech API не поддерживается в этом браузере')
-      return
-    }
+  const cleanupStream = useCallback(() => {
+    streamRef.current?.getTracks?.().forEach((track) => track.stop())
+    streamRef.current = null
+  }, [])
 
-    recognitionRef.current = recognition
-    setStatus('listening')
-    setErrorMessage('')
-
-    recognition.onresult = async (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript?.trim()
-      recognitionRef.current = null
-
-      if (!transcript) {
+  const handleAudioBlob = useCallback(
+    async (audioBlob) => {
+      if (!audioBlob || audioBlob.size === 0) {
         setStatus('error')
-        setErrorMessage('Не удалось распознать речь')
+        setErrorMessage('Не удалось записать аудио')
         return
       }
 
       setStatus('processing')
 
       try {
-        const response = await postData('/api/events/ai-draft', { text: transcript })
-        if (response?.error) {
-          setStatus('error')
-          setErrorMessage(response.error)
-        } else {
-          const fields = response?.fields ?? {}
-          setStatus('success')
-          // Сбрасываем статус через 2 секунды
-          setTimeout(() => setStatus('idle'), 2000)
-          if (onDraft) {
-            onDraft(fields, transcript)
-          }
+        const formData = new FormData()
+        formData.set('audio', audioBlob, getAudioFileName(audioBlob.type || ''))
+
+        const transcriptResponse = await fetch('/api/events/voice-transcript', {
+          method: 'POST',
+          body: formData,
+        })
+        const transcriptPayload = await transcriptResponse.json().catch(() => null)
+        if (!transcriptResponse.ok || transcriptPayload?.error) {
+          throw new Error(
+            transcriptPayload?.error || 'Не удалось распознать голос'
+          )
         }
+
+        const transcript = String(transcriptPayload?.transcript || '').trim()
+        if (!transcript) throw new Error('Не удалось распознать речь')
+
+        const draftResponse = await fetch('/api/events/ai-draft', {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ text: transcript }),
+        })
+        const draftPayload = await draftResponse.json().catch(() => null)
+        if (!draftResponse.ok || draftPayload?.error) {
+          throw new Error(draftPayload?.error || 'Не удалось разобрать текст')
+        }
+
+        const fields = draftPayload?.fields ?? {}
+        setStatus('success')
+        setTimeout(() => setStatus('idle'), 2000)
+        if (onDraft) onDraft(fields, transcript)
       } catch (err) {
         setStatus('error')
-        setErrorMessage('Ошибка при отправке запроса')
-        console.error('[VoiceDraftButton] fetch error:', err)
+        setErrorMessage(err?.message || 'Ошибка при обработке голоса')
+        console.error('[VoiceDraftButton] voice draft error:', err)
+      } finally {
+        cleanupStream()
       }
-    }
+    },
+    [cleanupStream, getAudioFileName, onDraft]
+  )
 
-    recognition.onerror = (event) => {
-      recognitionRef.current = null
-      setStatus('error')
+  const handleStart = useCallback(async () => {
+    if (disabled || status !== 'idle') return
 
-      switch (event.error) {
-        case 'not-allowed':
-          setErrorMessage('Доступ к микрофону запрещён')
-          break
-        case 'no-speech':
-          setErrorMessage('Речь не обнаружена')
-          break
-        case 'audio-capture':
-          setErrorMessage('Микрофон недоступен')
-          break
-        case 'network':
-          setErrorMessage('Сетевая ошибка распознавания')
-          break
-        default:
-          setErrorMessage(`Ошибка распознавания: ${event.error}`)
-      }
-    }
-
-    recognition.onend = () => {
-      recognitionRef.current = null
-      // Если слушали и не получили результат (не перешли в processing/success/error)
-      if (status === 'listening') {
-        setStatus('idle')
-      }
+    if (!recordingSupported) {
+      setStatus('unsupported')
+      setErrorMessage('Запись аудио не поддерживается в этом браузере')
+      return
     }
 
     try {
-      recognition.start()
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      chunksRef.current = []
+
+      const mimeType = getPreferredAudioMimeType()
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream)
+      recorderRef.current = recorder
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size > 0) chunksRef.current.push(event.data)
+      }
+      recorder.onstop = () => {
+        const audioBlob = new Blob(chunksRef.current, {
+          type: recorder.mimeType || 'audio/webm',
+        })
+        recorderRef.current = null
+        chunksRef.current = []
+        handleAudioBlob(audioBlob)
+      }
+
+      setStatus('listening')
+      setErrorMessage('')
+      recorder.start()
     } catch (err) {
       setStatus('error')
-      setErrorMessage('Не удалось запустить распознавание')
-      console.error('[VoiceDraftButton] start error:', err)
+      cleanupStream()
+      setErrorMessage(
+        err?.name === 'NotAllowedError'
+          ? 'Доступ к микрофону запрещён'
+          : 'Не удалось запустить запись'
+      )
+      console.error('[VoiceDraftButton] recording start error:', err)
     }
-  }, [disabled, status, getRecognition, onDraft])
+  }, [
+    cleanupStream,
+    disabled,
+    getPreferredAudioMimeType,
+    handleAudioBlob,
+    recordingSupported,
+    status,
+  ])
 
   const handleStop = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-      recognitionRef.current = null
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+      recorderRef.current.stop()
     }
-    setStatus('idle')
   }, [])
 
-  // Не поддерживается — показываем кнопку-заглушку
-  if (!speechSupported) {
+  if (!recordingSupported) {
     return (
       <div className={`inline-flex items-center gap-1.5 ${className ?? ''}`}>
         <button
           type="button"
           disabled
           className="inline-flex items-center px-3 py-2 text-sm text-gray-400 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed"
-          title="Web Speech API не поддерживается этим браузером"
+          title="Запись аудио не поддерживается этим браузером"
         >
           <FontAwesomeIcon icon={faMicrophoneSlash} className="w-4 h-4 mr-1.5" />
           Голосовой ввод

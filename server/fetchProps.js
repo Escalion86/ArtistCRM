@@ -17,7 +17,20 @@ const safeErrorPayload = (error) => {
     message: error?.message || String(error),
     stack: typeof error?.stack === 'string' ? error.stack : undefined,
     code: error?.code,
+    cause: error?.cause
+      ? {
+          name: error.cause?.name || 'Error',
+          message: error.cause?.message || String(error.cause),
+        }
+      : undefined,
   }
+}
+
+const normalizeObjectId = (value) => {
+  const stringValue = value ? String(value) : ''
+  return mongoose.Types.ObjectId.isValid(stringValue)
+    ? new mongoose.Types.ObjectId(stringValue)
+    : null
 }
 
 const buildSafeDefaultPayload = (serverDateTime, user, extra = {}) => ({
@@ -244,7 +257,23 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
       })
     }
 
-    const tenantObjectId = new mongoose.Types.ObjectId(tenantId)
+    const tenantObjectId = normalizeObjectId(tenantId)
+    if (!tenantObjectId) {
+      const safeError = {
+        name: 'InvalidTenantId',
+        message: 'Некорректный tenantId в сессии пользователя',
+      }
+      console.error('[fetchProps] invalid tenantId', JSON.stringify({
+        requestId,
+        page,
+        userId: user?._id ?? null,
+        tenantId,
+        error: safeError,
+      }))
+      return buildSafeDefaultPayload(serverDateTime, user, {
+        error: safeError,
+      })
+    }
 
     await ensureLegacyTenantBackfill(tenantObjectId)
 
@@ -253,7 +282,7 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
     const shouldFetchClients = CLIENTS_PAYLOAD_PAGES.has(page)
     const shouldFetchTransactions = TRANSACTIONS_PAYLOAD_PAGES.has(page)
     const shouldFetchServices = SERVICES_PAYLOAD_PAGES.has(page)
-    const usersQuery = canManageAllUsers ? {} : { tenantId }
+    const usersQuery = canManageAllUsers ? {} : { tenantId: tenantObjectId }
 
     const [
       eventsPayload,
@@ -262,8 +291,8 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
       users,
       loggedUser,
     ] = await Promise.all([
-      buildEventsPayload(tenantId, page),
-      SiteSettings.findOne({ tenantId }).lean(),
+      buildEventsPayload(tenantObjectId, page),
+      SiteSettings.findOne({ tenantId: tenantObjectId }).lean(),
       Tariffs.find({}).sort({ price: 1, title: 1 }).lean(),
       shouldFetchUsers
         ? Users.find(usersQuery).select('-password').lean()
@@ -277,19 +306,19 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
     const transactionsQuery =
       shouldFetchTransactions && !FULL_TRANSACTIONS_PAGES.has(page)
         ? eventIds.length > 0
-          ? { tenantId, eventId: { $in: eventIds } }
+          ? { tenantId: tenantObjectId, eventId: { $in: eventIds } }
           : null
-        : { tenantId }
+        : { tenantId: tenantObjectId }
 
     const [clients, transactions, services] = await Promise.all([
       shouldFetchClients
-        ? Clients.find({ tenantId }).select('-password').lean()
+        ? Clients.find({ tenantId: tenantObjectId }).select('-password').lean()
         : Promise.resolve([]),
       shouldFetchTransactions && transactionsQuery
         ? Transactions.find(transactionsQuery).lean()
         : Promise.resolve([]),
       shouldFetchServices
-        ? Services.find({ tenantId }).lean()
+        ? Services.find({ tenantId: tenantObjectId }).lean()
         : Promise.resolve([]),
     ])
 
@@ -322,13 +351,13 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
     return fetchResult
   } catch (error) {
     const safeError = safeErrorPayload(error)
-    console.error('[fetchProps] failed', {
+    console.error('[fetchProps] failed', JSON.stringify({
       requestId,
       page,
       userId: user?._id ?? null,
       tenantId: user?.tenantId ?? null,
       error: safeError,
-    })
+    }))
     return buildSafeDefaultPayload(serverDateTime, user, {
       error: safeError,
     })

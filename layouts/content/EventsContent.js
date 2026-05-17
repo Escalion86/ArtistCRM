@@ -5,11 +5,15 @@ import { List, useListRef } from 'react-window'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import EventAvailableIcon from '@mui/icons-material/EventAvailable'
 import FilterAltIcon from '@mui/icons-material/FilterAlt'
+import MicIcon from '@mui/icons-material/Mic'
+import NoteAddIcon from '@mui/icons-material/NoteAdd'
 import ViewListIcon from '@mui/icons-material/ViewList'
 import ContentHeader from '@components/ContentHeader'
 import AddIconButton from '@components/AddIconButton'
 import ComboBox from '@components/ComboBox'
+import DropDown from '@components/DropDown'
 import EmptyState from '@components/EmptyState'
 import CabinetFilterChip from '@components/CabinetFilterChip'
 import HeaderActions from '@components/HeaderActions'
@@ -38,6 +42,9 @@ import {
   useLoadMorePastEventsMutation,
 } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
+import { getUserTariffAccess } from '@helpers/tariffAccess'
+import loggedUserAtom from '@state/atoms/loggedUserAtom'
+import tariffsAtom from '@state/atoms/tariffsAtom'
 
 const getStatusFilterDefaults = (filter) => {
   if (filter === 'upcoming') {
@@ -136,6 +143,77 @@ const PAST_QUICK_FILTERS = [
     statusFilter: { finished: false, closed: false, canceled: true },
   },
 ]
+
+const AddEventMenu = ({
+  disabled,
+  allowVoice,
+  onCreateRequest,
+  onCreateEvent,
+  onVoice,
+}) => {
+  if (disabled) {
+    return (
+      <AddIconButton
+        disabled
+        title="Добавить мероприятие"
+        size="sm"
+        variant="neutral"
+      />
+    )
+  }
+
+  const menuItems = [
+    {
+      label: 'Заявка',
+      icon: <NoteAddIcon fontSize="small" />,
+      onClick: onCreateRequest,
+    },
+    {
+      label: 'Мероприятие',
+      icon: <EventAvailableIcon fontSize="small" />,
+      onClick: onCreateEvent,
+    },
+  ]
+
+  if (allowVoice) {
+    menuItems.push({
+      label: 'Голосом',
+      icon: <MicIcon fontSize="small" />,
+      onClick: onVoice,
+    })
+  }
+
+  return (
+    <DropDown
+      trigger={
+        <AddIconButton
+          title="Добавить"
+          size="sm"
+          variant="neutral"
+        />
+      }
+      placement="right"
+      menuPadding="sm"
+      menuClassName="min-w-44 flex-col items-stretch !border-gray-200 !bg-white"
+      renderInPortal
+    >
+      {menuItems.map((item) => (
+        <button
+          key={item.label}
+          type="button"
+          className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium !text-gray-900 transition-colors hover:bg-gray-100 focus-visible:bg-gray-100 focus-visible:outline-none"
+          onClick={item.onClick}
+          role="menuitem"
+        >
+          <span className="flex h-5 w-5 items-center justify-center !text-gray-500">
+            {item.icon}
+          </span>
+          {item.label}
+        </button>
+      ))}
+    </DropDown>
+  )
+}
 
 const getMonthItemToneClassName = (item) => {
   if (item.type === 'event') {
@@ -303,6 +381,13 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   // const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const modals = useAtomValue(modalsAtom)
+  const loggedUser = useAtomValue(loggedUserAtom)
+  const tariffs = useAtomValue(tariffsAtom)
+  const tariffAccess = useMemo(
+    () => getUserTariffAccess(loggedUser, tariffs),
+    [loggedUser, tariffs]
+  )
+  const allowVoiceDraft = Boolean(tariffAccess?.allowAi)
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -1231,6 +1316,20 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     ]
   )
 
+  const createMenuDisabled = !modalsFunc.event?.create
+
+  const handleCreateRequest = useCallback(() => {
+    modalsFunc.event?.create?.('draft')
+  }, [modalsFunc])
+
+  const handleCreateActiveEvent = useCallback(() => {
+    modalsFunc.event?.create?.('active')
+  }, [modalsFunc])
+
+  const handleCreateByVoice = useCallback(() => {
+    modalsFunc.event?.createVoice?.()
+  }, [modalsFunc])
+
   return (
     <div className="flex h-full flex-col gap-3 tablet:gap-4">
       <ContentHeader>
@@ -1283,12 +1382,12 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 </span>
               ) : null}
             </AppButton>
-            <AddIconButton
-              disabled={!modalsFunc.event?.create}
-              onClick={() => modalsFunc.event?.create?.()}
-              title="Добавить мероприятие"
-              size="sm"
-              variant="neutral"
+            <AddEventMenu
+              disabled={createMenuDisabled}
+              allowVoice={allowVoiceDraft}
+              onCreateRequest={handleCreateRequest}
+              onCreateEvent={handleCreateActiveEvent}
+              onVoice={handleCreateByVoice}
             />
           </div>
           {mobileFiltersOpen ? (
@@ -1416,12 +1515,12 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   <MutedText className="tablet:inline hidden">
                     Всего: {events.length}
                   </MutedText>
-                  <AddIconButton
-                    disabled={!modalsFunc.event?.create}
-                    onClick={() => modalsFunc.event?.create?.()}
-                    title="Добавить мероприятие"
-                    size="sm"
-                    variant="neutral"
+                  <AddEventMenu
+                    disabled={createMenuDisabled}
+                    allowVoice={allowVoiceDraft}
+                    onCreateRequest={handleCreateRequest}
+                    onCreateEvent={handleCreateActiveEvent}
+                    onVoice={handleCreateByVoice}
                   />
                 </div>
               </>
