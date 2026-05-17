@@ -19,6 +19,7 @@ import CabinetFilterChip from '@components/CabinetFilterChip'
 import HeaderActions from '@components/HeaderActions'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
+import VoiceDraftOverlay from '@components/VoiceDraftOverlay'
 // import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useAtomValue } from 'jotai'
 import { modalsFuncAtom, modalsAtom } from '@state/atoms'
@@ -407,6 +408,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   )
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [additionalQuickFilter, setAdditionalQuickFilter] = useState('')
+  const [voiceDraftOpen, setVoiceDraftOpen] = useState(false)
   const [pastHasMore, setPastHasMore] = useState(false)
   const [pastNextBefore, setPastNextBefore] = useState(null)
   const [pastLoadingMore, setPastLoadingMore] = useState(false)
@@ -1327,11 +1329,33 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   }, [modalsFunc])
 
   const handleCreateByVoice = useCallback(() => {
-    modalsFunc.event?.createVoice?.()
-  }, [modalsFunc])
+    setVoiceDraftOpen(true)
+  }, [])
+
+  const handleVoiceDraft = useCallback(
+    (fields, transcript) => {
+      setVoiceDraftOpen(false)
+      modalsFunc.event?.create?.(fields?.status || 'draft', {
+        initialEvent: {
+          ...fields,
+          status: fields?.status || 'draft',
+          description:
+            fields?.description ||
+            (transcript ? `Голосовой ввод: ${transcript}` : ''),
+        },
+      })
+    },
+    [modalsFunc]
+  )
 
   return (
     <div className="flex h-full flex-col gap-3 tablet:gap-4">
+      {voiceDraftOpen ? (
+        <VoiceDraftOverlay
+          onClose={() => setVoiceDraftOpen(false)}
+          onDraft={handleVoiceDraft}
+        />
+      ) : null}
       <ContentHeader>
         <div className="tablet:hidden flex w-full flex-col gap-2">
           <div className="flex w-full items-center gap-2">
