@@ -90,6 +90,23 @@ const callsSchema = {
     ref: 'Events',
     default: null,
   },
+  eventDecision: {
+    type: String,
+    enum: ['pending', 'create_event', 'no_event', 'created', 'failed', ''],
+    default: '',
+  },
+  eventDecisionAt: {
+    type: Date,
+    default: null,
+  },
+  eventPromptSentAt: {
+    type: Date,
+    default: null,
+  },
+  recordingPushSentAt: {
+    type: Date,
+    default: null,
+  },
   processingError: {
     type: String,
     default: '',

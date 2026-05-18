@@ -69,6 +69,7 @@ self.addEventListener('push', (event) => {
     badge: payload?.badge || '/icons/notification-badge.svg',
     tag: payload?.tag || undefined,
     data: payload?.data || {},
+    actions: Array.isArray(payload?.actions) ? payload.actions : [],
     renotify: Boolean(payload?.renotify),
     requireInteraction: Boolean(payload?.requireInteraction),
   }
@@ -79,7 +80,64 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  const targetUrl = event?.notification?.data?.url || '/cabinet/eventsUpcoming'
+  const data = event?.notification?.data || {}
+  const callId = data?.callId || ''
+  let targetUrl = data?.url || '/cabinet/eventsUpcoming'
+
+  if (data?.type === 'novofon_recording' && callId && event.action) {
+    const decision =
+      event.action === 'create_event'
+        ? 'create_event'
+        : event.action === 'no_event'
+          ? 'no_event'
+          : ''
+
+    if (decision) {
+      targetUrl =
+        decision === 'create_event'
+          ? `/cabinet/calls?callId=${encodeURIComponent(callId)}`
+          : data?.url || '/cabinet/calls'
+
+      event.waitUntil(
+        fetch(`/api/calls/${encodeURIComponent(callId)}/decision`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({ decision }),
+        })
+          .then((response) => response.json().catch(() => null))
+          .then((payload) => {
+            const url = payload?.data?.url || targetUrl
+            return self.clients
+              .matchAll({ type: 'window', includeUncontrolled: true })
+              .then((clients) => {
+                const sameClient = clients.find((client) => {
+                  if (!client || !client.url) return false
+                  try {
+                    const clientUrl = new URL(client.url)
+                    const nextUrl = new URL(url, self.location.origin)
+                    return clientUrl.origin === nextUrl.origin
+                  } catch (error) {
+                    return false
+                  }
+                })
+
+                if (sameClient) {
+                  sameClient.focus()
+                  if (url) sameClient.navigate(url)
+                  return null
+                }
+
+                return self.clients.openWindow(url)
+              })
+          })
+      )
+      return
+    }
+  }
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(

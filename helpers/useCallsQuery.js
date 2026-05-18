@@ -120,6 +120,17 @@ export const useCallActions = () => {
     },
   })
 
+  const { mutateAsync: decideCall } = useMutation({
+    mutationFn: async ({ callId, decision }) => {
+      const payload = await apiJson(`/api/calls/${callId}/decision`, {
+        method: 'POST',
+        body: JSON.stringify({ decision }),
+      })
+      return payload?.data
+    },
+    onSuccess: (result) => setCallInQueries(queryClient, result?.call),
+  })
+
   return useMemo(
     () => ({
       create: createCall,
@@ -129,10 +140,12 @@ export const useCallActions = () => {
       ignore: ignoreCall,
       link: (callId, data) => linkCall({ callId, ...data }),
       getEventDraft,
+      decide: (callId, decision) => decideCall({ callId, decision }),
     }),
     [
       analyzeCall,
       createCall,
+      decideCall,
       getEventDraft,
       ignoreCall,
       linkCall,

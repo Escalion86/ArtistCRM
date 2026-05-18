@@ -5,10 +5,12 @@ import formatDateTime from '@helpers/formatDateTime'
 import getPersonFullName from '@helpers/getPersonFullName'
 import useSnackbar from '@helpers/useSnackbar'
 import { useClientQuery, useClientsQuery } from '@helpers/useClientsQuery'
+import NovofonCallButton from '@components/NovofonCallButton'
 
 const PROVIDER_LABELS = {
   avito: 'Avito',
   vk: 'VK',
+  novofon: 'Novofon',
 }
 
 const getAudioAttachments = (message) => {
@@ -201,6 +203,10 @@ const clientMessengerFunc = (clientId) => {
         ) ?? null,
       [conversations, selectedKey]
     )
+    const canReply = Boolean(
+      selectedConversation &&
+        ['avito', 'vk'].includes(selectedConversation.provider)
+    )
 
     const applyPayload = useCallback((payload) => {
       const nextConversations = Array.isArray(payload?.conversations)
@@ -262,7 +268,7 @@ const clientMessengerFunc = (clientId) => {
 
     const sendMessage = async () => {
       const nextText = text.trim()
-      if (!selectedConversation || !nextText) return
+      if (!canReply || !nextText) return
       setSending(true)
       try {
         const response = await fetch(`/api/clients/${clientId}/messenger`, {
@@ -315,18 +321,25 @@ const clientMessengerFunc = (clientId) => {
               Каналов: {conversations.length}
             </div>
           </div>
-          <button
-            type="button"
-            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded border border-gray-200 bg-white text-gray-600 hover:border-general hover:text-general disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={() => load({ showSuccess: true })}
-            disabled={loading}
-            title="Обновить сообщения"
-          >
-            <FontAwesomeIcon
-              icon={faRotateRight}
-              className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`}
+          <div className="flex shrink-0 items-center gap-2">
+            <NovofonCallButton
+              client={client}
+              className="h-8 w-8 rounded border border-gray-200 bg-white"
+              size="sm"
             />
-          </button>
+            <button
+              type="button"
+              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded border border-gray-200 bg-white text-gray-600 hover:border-general hover:text-general disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => load({ showSuccess: true })}
+              disabled={loading}
+              title="Обновить сообщения"
+            >
+              <FontAwesomeIcon
+                icon={faRotateRight}
+                className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded border border-gray-200 bg-white p-2">
@@ -365,15 +378,20 @@ const clientMessengerFunc = (clientId) => {
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder="Написать клиенту"
+            disabled={!canReply}
             maxLength={4000}
           />
           <button
             type="button"
             className="action-icon-button action-icon-button--success flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 tablet:w-auto tablet:self-end"
             onClick={sendMessage}
-            disabled={sending || !selectedConversation || !text.trim()}
+            disabled={sending || !canReply || !text.trim()}
           >
-            {sending ? 'Отправка...' : 'Отправить'}
+            {canReply
+              ? sending
+                ? 'Отправка...'
+                : 'Отправить'
+              : 'Ответ недоступен для звонков'}
           </button>
         </div>
       </div>

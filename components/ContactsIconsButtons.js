@@ -10,6 +10,7 @@ import { faVk } from '@fortawesome/free-brands-svg-icons/faVk'
 import { faPhone } from '@fortawesome/free-solid-svg-icons/faPhone'
 import { faSms } from '@fortawesome/free-solid-svg-icons/faSms'
 import ClientChatButton from '@components/ClientChatButton'
+import NovofonCallButton from '@components/NovofonCallButton'
 
 const ContactIconBtn = ({ url, icon, size = 'lg', className = null }) => (
   <FontAwesomeIcon
@@ -170,6 +171,9 @@ const ContactsIconsButtons = ({
           url={'mailto:' + user.email}
           title={user.email}
         />
+      )}
+      {!message && showChat && (
+        <NovofonCallButton client={user} withTitle={withTitle} />
       )}
       {!message && showChat && (
         <ClientChatButton clientId={user?._id} withTitle={withTitle} />

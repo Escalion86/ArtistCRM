@@ -84,6 +84,50 @@ export const findClientByCallPhone = async (tenantId, normalizedPhone) => {
   return Clients.findOne({ tenantId, ...phoneQuery }).lean()
 }
 
+export const ensureClientForCall = async (call, tenantId) => {
+  if (!tenantId || !call) return null
+  const linkedClientId = normalizeObjectId(call.linkedClientId)
+  if (linkedClientId) {
+    return Clients.findOne({ _id: linkedClientId, tenantId }).lean()
+  }
+
+  const normalizedPhone = normalizeRuPhone(call.normalizedPhone || call.phone)
+  const existing = await findClientByCallPhone(tenantId, normalizedPhone)
+  if (existing?._id) {
+    await Calls.updateOne(
+      { _id: call._id, tenantId },
+      { $set: { linkedClientId: existing._id } }
+    )
+    return existing
+  }
+
+  if (!normalizedPhone) return null
+
+  const fields = call.aiExtractedFields ?? {}
+  const nameParts = String(fields.clientName || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+
+  const client = await Clients.create({
+    tenantId,
+    firstName: nameParts[0] || '',
+    secondName: nameParts.slice(1).join(' '),
+    phone: Number(normalizedPhone),
+    whatsapp: Number(normalizedPhone),
+    clientType: 'none',
+    preferredContactChannel: 'phone',
+    comment: 'Клиент создан автоматически из звонка Novofon',
+  })
+
+  await Calls.updateOne(
+    { _id: call._id, tenantId },
+    { $set: { linkedClientId: client._id } }
+  )
+
+  return client.toJSON()
+}
+
 export const normalizeCallInput = async (body, tenantId) => {
   const normalizedPhone = normalizeRuPhone(body?.phone)
   const linkedClientId = normalizeObjectId(body?.linkedClientId)

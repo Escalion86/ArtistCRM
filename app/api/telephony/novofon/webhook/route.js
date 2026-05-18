@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Calls from '@models/Calls'
 import dbConnect from '@server/dbConnect'
 import { normalizeCallInput } from '@server/calls'
+import { notifyCallRecordingReady } from '@server/callPush'
 import { isTelephonyTariffAllowedForTenant } from '@server/telephonyAccess'
 import {
   getNovofonSettings,
@@ -103,7 +104,21 @@ export const POST = async (req) => {
   const update = buildNovofonUpdate(payload, normalized, tenantId)
 
   let call = null
+  let existingCall = null
   if (payload.providerCallId) {
+    existingCall = await Calls.findOne({
+      tenantId,
+      provider: 'novofon',
+      providerCallId: payload.providerCallId,
+    })
+      .select('_id status recordingUrl recordingPushSentAt')
+      .lean()
+    if (
+      !payload.transcript &&
+      ['linked', 'ignored'].includes(existingCall?.status)
+    ) {
+      update.status = existingCall.status
+    }
     call = await Calls.findOneAndUpdate(
       {
         tenantId,
@@ -115,6 +130,24 @@ export const POST = async (req) => {
     ).lean()
   } else {
     call = await Calls.create(update)
+  }
+
+  const shouldNotifyRecording =
+    call?.recordingUrl &&
+    (!existingCall?.recordingPushSentAt ||
+      existingCall?.recordingUrl !== call.recordingUrl)
+
+  if (shouldNotifyRecording) {
+    await notifyCallRecordingReady({ tenantId, call })
+    call = await Calls.findOneAndUpdate(
+      { _id: call._id, tenantId },
+      {
+        recordingPushSentAt: new Date(),
+        eventPromptSentAt: new Date(),
+        eventDecision: call.eventDecision || 'pending',
+      },
+      { returnDocument: 'after' }
+    ).lean()
   }
 
   return NextResponse.json({ success: true, data: call }, { status: 200 })

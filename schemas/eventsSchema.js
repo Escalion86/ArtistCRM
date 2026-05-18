@@ -11,6 +11,11 @@ const eventsSchema = {
     ref: 'Clients',
     default: null,
   },
+  sourceCallId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Calls',
+    default: null,
+  },
   description: {
     type: String,
     default: 'Описание мероприятия',
