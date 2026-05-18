@@ -8,6 +8,7 @@ import {
   faUserPlus,
   faWandMagicSparkles,
   faFileAudio,
+  faComments,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import AppButton from '@components/AppButton'
@@ -284,18 +285,18 @@ const CallsContent = () => {
 
   const analyzeCall = async (call) => {
     await callActions.analyze(call._id)
-    snackbar.success('Звонок проанализирован')
+    snackbar.success('Текст разговора разобран')
     refetch()
   }
 
   const processRecording = async (call) => {
     await callActions.processRecording(call._id)
-    snackbar.success('Запись распознана и проанализирована')
+    snackbar.success('Запись распознана, текст разговора разобран')
     refetch()
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-3 px-3 pb-3 tablet:px-0 tablet:pb-0">
       <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between">
         <div>
           <div className="text-xl font-semibold text-gray-900">Звонки</div>
@@ -309,7 +310,7 @@ const CallsContent = () => {
           disabled={!canUseTelephony}
         >
           <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
-          Добавить звонок
+          Добавить вручную
         </AppButton>
       </div>
 
@@ -377,14 +378,26 @@ const CallsContent = () => {
                     </div>
                   </div>
                   <span className="shrink-0 rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
-                    {STATUS_LABELS[call.status] || call.status}
+                    {STATUS_LABELS[call.status] || 'Новый'}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 text-sm text-gray-700 tablet:grid-cols-2">
                   <div>
                     <span className="text-gray-500">Клиент: </span>
-                    {client ? getClientLabel(client) : 'не связан'}
+                    {client ? (
+                      <button
+                        type="button"
+                        className="cursor-pointer text-left text-general underline-offset-2 hover:underline"
+                        onClick={() => modalsFunc.client?.messenger(client._id)}
+                      >
+                        {getClientLabel(client)}
+                      </button>
+                    ) : call.linkedClientId ? (
+                      'связан'
+                    ) : (
+                      'не связан'
+                    )}
                   </div>
                   <div>
                     <span className="text-gray-500">Длительность: </span>
@@ -395,6 +408,22 @@ const CallsContent = () => {
                 {call.aiSummary && (
                   <div className="rounded bg-gray-50 p-2 text-sm leading-5 text-gray-800">
                     {call.aiSummary}
+                  </div>
+                )}
+
+                {call.recordingUrl && (
+                  <div className="rounded border border-gray-200 bg-gray-50 p-2">
+                    <div className="mb-1 text-xs font-semibold text-gray-500">
+                      Запись разговора
+                    </div>
+                    <audio
+                      className="w-full"
+                      controls
+                      preload="none"
+                      src={call.recordingUrl}
+                    >
+                      Ваш браузер не поддерживает аудио.
+                    </audio>
                   </div>
                 )}
 
@@ -431,21 +460,32 @@ const CallsContent = () => {
                   >
                     Открыть
                   </AppButton>
-                  <AppButton
-                    size="sm"
-                    variant="secondary"
-                    disabled={
-                      !canUseAi || !call.transcript || call.status === 'processing'
-                    }
-                    onClick={() => analyzeCall(call)}
-                    className="gap-2"
-                  >
-                    <FontAwesomeIcon
-                      icon={faWandMagicSparkles}
-                      className="h-3.5 w-3.5"
-                    />
-                    AI-анализ
-                  </AppButton>
+                  {client && (
+                    <AppButton
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => modalsFunc.client?.messenger(client._id)}
+                      className="gap-2"
+                    >
+                      <FontAwesomeIcon icon={faComments} className="h-3.5 w-3.5" />
+                      Диалог
+                    </AppButton>
+                  )}
+                  {!call.recordingUrl && call.transcript && !call.aiSummary && (
+                    <AppButton
+                      size="sm"
+                      variant="secondary"
+                      disabled={!canUseAi || call.status === 'processing'}
+                      onClick={() => analyzeCall(call)}
+                      className="gap-2"
+                    >
+                      <FontAwesomeIcon
+                        icon={faWandMagicSparkles}
+                        className="h-3.5 w-3.5"
+                      />
+                      Разобрать текст
+                    </AppButton>
+                  )}
                   {call.recordingUrl && (
                     <AppButton
                       size="sm"

@@ -17,7 +17,7 @@ const buildNovofonUpdate = (payload, normalized, tenantId) => {
   const update = {
     ...payload,
     tenantId,
-    status: payload.transcript ? 'ready' : payload.status,
+    status: payload.transcript ? 'ready' : payload.status || 'new',
   }
 
   if (!normalized.phone) {

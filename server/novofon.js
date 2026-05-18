@@ -42,6 +42,8 @@ const normalizeNovofonDirection = (value) => {
   const normalized = String(value || '').toLowerCase()
   if (['in', 'incoming', 'входящий'].includes(normalized)) return 'incoming'
   if (['out', 'outgoing', 'исходящий'].includes(normalized)) return 'outgoing'
+  if (normalized.includes('исход')) return 'outgoing'
+  if (normalized.includes('вход')) return 'incoming'
   if (normalized.includes('out')) return 'outgoing'
   if (normalized.includes('in')) return 'incoming'
   return normalizeCallDirection(value)
@@ -143,8 +145,10 @@ export const normalizeNovofonWebhook = (body = {}) => {
     body.destination,
     body.phone
   )
+  const fallbackDirection =
+    direction === 'unknown' && incomingPhone ? 'incoming' : direction
   const phone =
-    direction === 'outgoing'
+    fallbackDirection === 'outgoing'
       ? outgoingPhone || incomingPhone
       : incomingPhone || outgoingPhone
   const recordingUrl = getFirstString(
@@ -183,7 +187,7 @@ export const normalizeNovofonWebhook = (body = {}) => {
   return {
     provider: 'novofon',
     providerCallId,
-    direction,
+    direction: fallbackDirection,
     phone,
     startedAt,
     endedAt,
