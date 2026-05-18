@@ -20,6 +20,24 @@ const normalizeNumber = (value, fallback = 0) => {
   return Number.isFinite(number) ? number : fallback
 }
 
+const parseMaybeObject = (value) => {
+  if (!value) return null
+  if (typeof value === 'object') return value
+  if (typeof value !== 'string') return null
+
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch (error) {
+    return null
+  }
+}
+
+const getObjectValue = (object, ...keys) => {
+  if (!object || typeof object !== 'object') return ''
+  return getFirstString(...keys.map((key) => object?.[key]))
+}
+
 const normalizeNovofonDirection = (value) => {
   const normalized = String(value || '').toLowerCase()
   if (['in', 'incoming', 'входящий'].includes(normalized)) return 'incoming'
@@ -68,6 +86,9 @@ export const getNovofonSettings = async (tenantId) => {
 }
 
 export const normalizeNovofonWebhook = (body = {}) => {
+  const contactInfo = parseMaybeObject(body.contact_info)
+  const employeeInfo = parseMaybeObject(body.employee_info)
+  const callRecordFileInfo = parseMaybeObject(body.call_record_file_info)
   const direction = normalizeNovofonDirection(
     getFirstString(
       body.direction,
@@ -92,6 +113,13 @@ export const normalizeNovofonWebhook = (body = {}) => {
   )
   const incomingPhone = getFirstString(
     body.contact_phone_number,
+    getObjectValue(
+      contactInfo,
+      'contact_phone_number',
+      'phone_number',
+      'phone',
+      'number'
+    ),
     body.caller_id,
     body.caller,
     body.src,
@@ -101,6 +129,13 @@ export const normalizeNovofonWebhook = (body = {}) => {
   )
   const outgoingPhone = getFirstString(
     body.communication_number,
+    getObjectValue(
+      employeeInfo,
+      'communication_number',
+      'phone_number',
+      'phone',
+      'number'
+    ),
     body.called_did,
     body.called,
     body.dst,
@@ -113,6 +148,7 @@ export const normalizeNovofonWebhook = (body = {}) => {
       ? outgoingPhone || incomingPhone
       : incomingPhone || outgoingPhone
   const recordingUrl = getFirstString(
+    getObjectValue(callRecordFileInfo, 'file_link'),
     body.file_link,
     body.record_file_link,
     body.recording_url,
@@ -138,6 +174,7 @@ export const normalizeNovofonWebhook = (body = {}) => {
       body.duration,
       body.duration_sec,
       body.billsec,
+      getObjectValue(callRecordFileInfo, 'call_record_duration', 'file_duration'),
       body.file_duration
     ),
     0
