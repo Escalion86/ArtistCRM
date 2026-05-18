@@ -30,6 +30,19 @@ const patchCandidate = async ({ clientId, provider, conversationId, linked }) =>
     : []
 }
 
+const linkVkById = async ({ clientId, vk }) => {
+  const response = await fetch(`/api/clients/${clientId}/messenger/vk-link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vk }),
+  })
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok || result?.success === false) {
+    throw new Error(result?.error?.message || 'Не удалось привязать VK')
+  }
+  return result?.data?.conversation ?? null
+}
+
 const FILTER_PROVIDERS = [
   { value: 'all', label: 'Все' },
   { value: 'avito', label: 'Avito' },
@@ -58,8 +71,11 @@ const clientContactMergeFunc = (clientId) => {
     const [loading, setLoading] = useState(false)
     const [updatingKey, setUpdatingKey] = useState('')
     const [search, setSearch] = useState('')
+    const [vkInput, setVkInput] = useState(client?.vk || '')
+    const [vkLinking, setVkLinking] = useState(false)
     const [providerFilter, setProviderFilter] = useState('all')
     const [statusFilter, setStatusFilter] = useState('all')
+    const [vkInputInitialized, setVkInputInitialized] = useState(false)
 
     const load = useCallback(
       async ({ showSuccess = false } = {}) => {
@@ -80,6 +96,12 @@ const clientContactMergeFunc = (clientId) => {
     useEffect(() => {
       load()
     }, [load])
+
+    useEffect(() => {
+      if (vkInputInitialized || !client?.vk) return
+      setVkInput(client.vk)
+      setVkInputInitialized(true)
+    }, [client?.vk, vkInputInitialized])
 
     const filteredConversations = useMemo(() => {
       const query = search.trim().toLowerCase()
@@ -142,6 +164,31 @@ const clientContactMergeFunc = (clientId) => {
         snackbar.error(error?.message || 'Не удалось обновить связь')
       } finally {
         setUpdatingKey('')
+      }
+    }
+
+    const handleVkLink = async () => {
+      const value = vkInput.trim()
+      if (!value) {
+        snackbar.error('Укажите VK ID, короткое имя или ссылку')
+        return
+      }
+
+      setVkLinking(true)
+      try {
+        const linkedConversation = await linkVkById({ clientId, vk: value })
+        const nextConversations = await loadCandidates(clientId)
+        setConversations(nextConversations)
+        setProviderFilter('vk')
+        setStatusFilter('linked')
+        if (linkedConversation?.externalId) {
+          setSearch(linkedConversation.externalId)
+        }
+        snackbar.success('VK-диалог привязан')
+      } catch (error) {
+        snackbar.error(error?.message || 'Не удалось привязать VK')
+      } finally {
+        setVkLinking(false)
       }
     }
 
@@ -213,6 +260,33 @@ const clientContactMergeFunc = (clientId) => {
           >
             {loading ? 'Обновление...' : 'Обновить'}
           </button>
+        </div>
+
+        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+            Привязать VK по ID
+          </label>
+          <div className="mt-2 flex flex-col gap-2 tablet:flex-row">
+            <input
+              type="text"
+              className="min-h-10 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-general"
+              value={vkInput}
+              onChange={(event) => setVkInput(event.target.value)}
+              placeholder="id123456, 123456, vk.com/id123456 или screen_name"
+              disabled={vkLinking}
+            />
+            <button
+              type="button"
+              className="h-10 shrink-0 cursor-pointer rounded bg-general px-3 text-sm font-semibold text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+              onClick={handleVkLink}
+              disabled={vkLinking}
+            >
+              {vkLinking ? 'Привязка...' : 'Привязать VK'}
+            </button>
+          </div>
+          <div className="mt-2 text-xs text-gray-500">
+            Для отправки ответа VK должен разрешать сообщения от группы.
+          </div>
         </div>
 
         <div className="rounded border border-gray-200 bg-gray-50 p-3">

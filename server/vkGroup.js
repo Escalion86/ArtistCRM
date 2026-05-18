@@ -132,6 +132,7 @@ const getVkUserProfile = async ({ accessToken, userId }) => {
     const lastName = normalizeText(user.last_name, 120)
     const screenName = normalizeText(user.screen_name, 120)
     return {
+      id: normalizeText(user.id, 120),
       firstName,
       lastName,
       screenName,
@@ -333,18 +334,48 @@ const normalizeStoredVkContact = (value) => {
     .trim()
 }
 
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const buildVkContactMatchValues = ({ vkContact, screenName }) => {
+  const values = [
+    vkContact,
+    `https://vk.com/${vkContact}`,
+    `http://vk.com/${vkContact}`,
+  ]
+
+  const normalizedScreenName = normalizeStoredVkContact(screenName)
+  if (normalizedScreenName) {
+    values.push(
+      normalizedScreenName,
+      `@${normalizedScreenName}`,
+      `https://vk.com/${normalizedScreenName}`,
+      `http://vk.com/${normalizedScreenName}`,
+      `https://m.vk.com/${normalizedScreenName}`,
+      `http://m.vk.com/${normalizedScreenName}`
+    )
+  }
+
+  return [...new Set(values.filter(Boolean))]
+}
+
 const upsertVkLeadClient = async ({ tenantId, normalized }) => {
   const vkContact = getVkContactValue(normalized.vkUserId)
   if (!vkContact) return null
   const firstName = normalizeText(normalized.firstName || normalized.name, 120)
   const secondName = normalizeText(normalized.lastName, 120)
+  const vkContactValues = buildVkContactMatchValues({
+    vkContact,
+    screenName: normalized.vkScreenName,
+  })
 
-  let client = await Clients.findOne({ tenantId, vk: vkContact })
-  if (!client) {
-    client = await Clients.findOne({
-      tenantId,
-      vk: { $in: [`https://vk.com/${vkContact}`, `http://vk.com/${vkContact}`] },
-    })
+  let client = await Clients.findOne({ tenantId, vk: { $in: vkContactValues } })
+  const normalizedScreenName = normalizeStoredVkContact(normalized.vkScreenName)
+  if (!client && normalizedScreenName) {
+    const screenNameRegex = new RegExp(
+      `^(https?:\\/\\/(www\\.)?(m\\.)?vk\\.(com|ru)\\/|@)?${escapeRegExp(normalizedScreenName)}\\/?$`,
+      'i'
+    )
+    client = await Clients.findOne({ tenantId, vk: screenNameRegex })
   }
   if (client) {
     let hasChanges = false
@@ -794,6 +825,8 @@ export {
   createOrUpdateVkLead,
   createVkWebhookSecret,
   createVkWebhookToken,
+  getVkUserProfile,
+  normalizeStoredVkContact,
   normalizeVkSettings,
   sendVkMessage,
   updateVkCustom,
