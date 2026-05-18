@@ -6,6 +6,7 @@ import getPersonFullName from '@helpers/getPersonFullName'
 import useSnackbar from '@helpers/useSnackbar'
 import { useClientQuery, useClientsQuery } from '@helpers/useClientsQuery'
 import NovofonCallButton from '@components/NovofonCallButton'
+import AudioPlayer from '@components/AudioPlayer'
 
 const PROVIDER_LABELS = {
   avito: 'Avito',
@@ -126,15 +127,12 @@ const MessageBubble = ({ message }) => {
         {audioAttachments.length > 0 ? (
           <div className="mt-2 flex flex-col gap-2">
             {audioAttachments.map((attachment, index) => (
-              <audio
+              <AudioPlayer
                 key={`${message._id}-audio-${index}`}
-                className="w-full max-w-64"
-                controls
-                preload="none"
                 src={attachment.audioUrl}
-              >
-                Ваш браузер не поддерживает аудио.
-              </audio>
+                title={attachment.title || 'Голосовая запись'}
+                compact
+              />
             ))}
           </div>
         ) : null}
@@ -203,6 +201,13 @@ const clientMessengerFunc = (clientId) => {
         ) ?? null,
       [conversations, selectedKey]
     )
+    const replyConversations = useMemo(
+      () =>
+        conversations.filter((conversation) =>
+          ['avito', 'vk'].includes(conversation.provider)
+        ),
+      [conversations]
+    )
     const canReply = Boolean(
       selectedConversation &&
         ['avito', 'vk'].includes(selectedConversation.provider)
@@ -265,6 +270,20 @@ const clientMessengerFunc = (clientId) => {
     useEffect(() => {
       bottomRef.current?.scrollIntoView({ block: 'end' })
     }, [loading, messages.length])
+
+    useEffect(() => {
+      if (
+        selectedConversation &&
+        ['avito', 'vk'].includes(selectedConversation.provider)
+      ) {
+        return
+      }
+      const firstReplyConversation = replyConversations[0]
+      if (!firstReplyConversation) return
+      setSelectedKey(
+        `${firstReplyConversation.provider}:${firstReplyConversation._id}`
+      )
+    }, [replyConversations, selectedConversation])
 
     const sendMessage = async () => {
       const nextText = text.trim()
@@ -353,47 +372,49 @@ const clientMessengerFunc = (clientId) => {
           <div ref={bottomRef} />
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center">
-            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Ответить через
-            </label>
-            <select
-              className="min-h-10 cursor-pointer rounded border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-general"
-              value={selectedKey}
-              onChange={(event) => setSelectedKey(event.target.value)}
+        {replyConversations.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center">
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Ответить через
+              </label>
+              <select
+                className="min-h-10 cursor-pointer rounded border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-general"
+                value={
+                  canReply
+                    ? selectedKey
+                    : `${replyConversations[0].provider}:${replyConversations[0]._id}`
+                }
+                onChange={(event) => setSelectedKey(event.target.value)}
+              >
+                {replyConversations.map((conversation) => (
+                  <option
+                    key={`${conversation.provider}:${conversation._id}`}
+                    value={`${conversation.provider}:${conversation._id}`}
+                  >
+                    {PROVIDER_LABELS[conversation.provider] || conversation.provider}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <textarea
+              className="min-h-20 w-full resize-y rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:border-general"
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder="Написать клиенту"
+              disabled={!canReply}
+              maxLength={4000}
+            />
+            <button
+              type="button"
+              className="action-icon-button action-icon-button--success flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 tablet:w-auto tablet:self-end"
+              onClick={sendMessage}
+              disabled={sending || !canReply || !text.trim()}
             >
-              {conversations.map((conversation) => (
-                <option
-                  key={`${conversation.provider}:${conversation._id}`}
-                  value={`${conversation.provider}:${conversation._id}`}
-                >
-                  {PROVIDER_LABELS[conversation.provider] || conversation.provider}
-                </option>
-              ))}
-            </select>
+              {sending ? 'Отправка...' : 'Отправить'}
+            </button>
           </div>
-          <textarea
-            className="min-h-20 w-full resize-y rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:border-general"
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder="Написать клиенту"
-            disabled={!canReply}
-            maxLength={4000}
-          />
-          <button
-            type="button"
-            className="action-icon-button action-icon-button--success flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 tablet:w-auto tablet:self-end"
-            onClick={sendMessage}
-            disabled={sending || !canReply || !text.trim()}
-          >
-            {canReply
-              ? sending
-                ? 'Отправка...'
-                : 'Отправить'
-              : 'Ответ недоступен для звонков'}
-          </button>
-        </div>
+        ) : null}
       </div>
     )
   }

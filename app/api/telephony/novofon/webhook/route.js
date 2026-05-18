@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import Calls from '@models/Calls'
 import dbConnect from '@server/dbConnect'
-import { normalizeCallInput } from '@server/calls'
+import { normalizeCallInput, processCallRecording } from '@server/calls'
 import { notifyCallRecordingReady } from '@server/callPush'
 import { isTelephonyTariffAllowedForTenant } from '@server/telephonyAccess'
 import { logTelephonyWebhook } from '@server/telephonyWebhookLogger'
@@ -229,6 +229,51 @@ const handleNovofonWebhook = async (req) => {
       shouldNotifyRecording,
     },
   })
+
+  const shouldAutoProcessRecording =
+    call?.recordingUrl && call?.linkedClientId && !call?.transcript
+
+  if (shouldAutoProcessRecording) {
+    try {
+      call = await processCallRecording(call._id, tenantId)
+      await logNovofonWebhook({
+        tenantId,
+        body,
+        eventType: normalized.rawEvent,
+        status: 'processed',
+        httpStatus: 200,
+        reason: 'recording_auto_processed',
+        message: 'Novofon recording auto transcribed and analyzed',
+        providerCallId: payload.providerCallId,
+        direction: call?.direction || payload.direction,
+        hasRecordingUrl: Boolean(call?.recordingUrl),
+        hasTranscript: Boolean(call?.transcript),
+        callId: call?._id || null,
+        meta: {
+          linkedClient: Boolean(call?.linkedClientId),
+        },
+      })
+    } catch (error) {
+      call = await Calls.findOne({ _id: call._id, tenantId }).lean()
+      await logNovofonWebhook({
+        tenantId,
+        body,
+        eventType: normalized.rawEvent,
+        status: 'failed',
+        httpStatus: 200,
+        reason: 'recording_auto_process_failed',
+        message: error?.message || 'Novofon recording auto processing failed',
+        providerCallId: payload.providerCallId,
+        direction: call?.direction || payload.direction,
+        hasRecordingUrl: Boolean(call?.recordingUrl),
+        hasTranscript: Boolean(call?.transcript),
+        callId: call?._id || null,
+        meta: {
+          linkedClient: Boolean(call?.linkedClientId),
+        },
+      })
+    }
+  }
 
   if (shouldNotifyRecording) {
     await notifyCallRecordingReady({ tenantId, call })

@@ -1023,6 +1023,23 @@ body.theme-dark .cabinet-canvas {
     color: #6b7280;
     line-height: 1.35;
   }
+
+  .audio-player-shell {
+    background: rgba(255, 255, 255, 0.58);
+  }
+
+  .audio-player-icon {
+    border: 1px solid rgba(138, 111, 59, 0.24);
+    background: rgba(138, 111, 59, 0.12);
+    color: #6f582f;
+  }
+
+  .audio-player-control {
+    display: block;
+    height: 34px;
+    border-radius: 9999px;
+    background-color: transparent;
+  }
 }
 
 body.theme-dark .status-chip--overdue {
@@ -1098,6 +1115,21 @@ body.theme-dark .card-meta {
 
 body.theme-dark .card-muted {
   color: #9ca3af;
+}
+
+body.theme-dark .audio-player-shell {
+  border-color: rgba(201, 168, 106, 0.24);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.theme-dark .audio-player-icon {
+  border-color: rgba(201, 168, 106, 0.28);
+  background: rgba(201, 168, 106, 0.12);
+  color: #e8c984;
+}
+
+body.theme-dark .audio-player-control {
+  filter: invert(0.92) hue-rotate(180deg) saturate(0.85);
 }
 
 body.ui-compact .content-toolbar {

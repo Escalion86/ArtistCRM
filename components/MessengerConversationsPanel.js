@@ -5,6 +5,7 @@ import { faRotateRight } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import formatDateTime from '@helpers/formatDateTime'
 import useSnackbar from '@helpers/useSnackbar'
+import AudioPlayer from '@components/AudioPlayer'
 
 const buildQuery = ({ clientId, eventId }) => {
   const params = new URLSearchParams()
@@ -143,15 +144,12 @@ const MessageBubble = ({ message }) => {
         {audioAttachments.length > 0 ? (
           <div className="mt-2 flex flex-col gap-2">
             {audioAttachments.map((attachment, index) => (
-              <audio
+              <AudioPlayer
                 key={`${message._id}-audio-${index}`}
-                className="w-full max-w-64"
-                controls
-                preload="none"
                 src={attachment.audioUrl}
-              >
-                Ваш браузер не поддерживает аудио.
-              </audio>
+                title={attachment.title || 'Голосовая запись'}
+                compact
+              />
             ))}
           </div>
         ) : null}
