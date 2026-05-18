@@ -6,6 +6,7 @@ import getPersonFullName from '@helpers/getPersonFullName'
 import useSnackbar from '@helpers/useSnackbar'
 import { useClientQuery, useClientsQuery } from '@helpers/useClientsQuery'
 import clientsAtom from '@state/atoms/clientsAtom'
+import SurfaceCard from '@components/SurfaceCard'
 
 const loadCandidates = async (clientId) => {
   const response = await fetch(`/api/clients/${clientId}/messenger/candidates`)
@@ -307,9 +308,10 @@ const clientContactMergeFunc = (clientId) => {
     const renderConversation = (conversation, linked) => {
       const key = `${conversation.provider}:${conversation._id}`
       return (
-        <div
+        <SurfaceCard
           key={key}
-          className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3 tablet:flex-row tablet:items-center tablet:justify-between"
+          className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between"
+          paddingClassName="p-3"
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -335,7 +337,7 @@ const clientContactMergeFunc = (clientId) => {
             type="button"
             className={`h-10 shrink-0 cursor-pointer rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${
               linked
-                ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                ? 'ui-btn ui-btn-secondary'
                 : 'action-icon-button action-icon-button--success'
             }`}
             onClick={() => toggleConversation(conversation, !linked)}
@@ -347,7 +349,7 @@ const clientContactMergeFunc = (clientId) => {
                 ? 'Отвязать'
                 : 'Привязать'}
           </button>
-        </div>
+        </SurfaceCard>
       )
     }
 
@@ -369,25 +371,25 @@ const clientContactMergeFunc = (clientId) => {
 
     return (
       <div className="flex flex-col gap-3 text-sm text-gray-800">
-        <div className="rounded border border-gray-200 bg-gray-50 px-3 py-2">
+        <SurfaceCard paddingClassName="px-3 py-2">
           <div className="font-semibold text-gray-900">{clientName}</div>
           <div className="mt-1 text-xs text-gray-600">
             Привяжите внешние диалоги к этому клиенту. После привязки они
             попадут в общий чат клиента.
           </div>
-        </div>
+        </SurfaceCard>
 
-        <div className="rounded border border-amber-200 bg-amber-50 p-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+        <SurfaceCard paddingClassName="p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
             Объединить с дублем
           </div>
-          <div className="mt-1 text-xs text-amber-800">
+          <div className="mt-1 text-xs text-gray-600">
             Текущий клиент останется основным. Связанные записи выбранного дубля
             будут перенесены сюда, затем дубль будет удален.
           </div>
           <input
             type="search"
-            className="mt-3 min-h-10 w-full rounded border border-amber-300 bg-white px-3 py-2 text-sm outline-none focus:border-general"
+            className="mt-3 min-h-10 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-general"
             value={duplicateSearch}
             onChange={(event) => {
               setDuplicateSearch(event.target.value)
@@ -406,8 +408,8 @@ const clientContactMergeFunc = (clientId) => {
                   type="button"
                   className={`cursor-pointer rounded border px-3 py-2 text-left text-sm transition ${
                     selected
-                      ? 'border-amber-500 bg-white text-amber-900'
-                      : 'border-amber-200 bg-white/70 text-gray-800 hover:bg-white'
+                      ? 'border-general bg-gray-100 text-gray-900'
+                      : 'border-gray-200 bg-white text-gray-800 hover:bg-gray-50'
                   }`}
                   onClick={() => {
                     setDuplicateClientId(item._id)
@@ -426,7 +428,7 @@ const clientContactMergeFunc = (clientId) => {
             })}
           </div>
           {duplicateClient && (
-            <div className="mt-2 rounded border border-amber-200 bg-white px-3 py-2 text-xs text-gray-700">
+            <div className="mt-2 rounded border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
               Дубль выбран:{' '}
               <span className="font-semibold">
                 {getPersonFullName(duplicateClient, { fallback: 'Без имени' })}
@@ -434,7 +436,7 @@ const clientContactMergeFunc = (clientId) => {
             </div>
           )}
           {preview && (
-            <div className="mt-2 rounded border border-amber-200 bg-white px-3 py-2 text-xs text-gray-700">
+            <div className="mt-2 rounded border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
               <div className="font-semibold text-gray-900">
                 Будет перенесено записей: {preview.total}
               </div>
@@ -455,7 +457,7 @@ const clientContactMergeFunc = (clientId) => {
           <div className="mt-3 flex flex-col gap-2 tablet:flex-row">
             <button
               type="button"
-              className="h-10 cursor-pointer rounded border border-amber-300 bg-white px-3 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="ui-btn ui-btn-secondary h-10 cursor-pointer px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               onClick={handlePreviewMerge}
               disabled={!duplicateClientId || mergeLoading || merging}
             >
@@ -463,19 +465,19 @@ const clientContactMergeFunc = (clientId) => {
             </button>
             <button
               type="button"
-              className="h-10 cursor-pointer rounded bg-amber-600 px-3 text-sm font-semibold text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="ui-btn ui-btn-primary h-10 cursor-pointer px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               onClick={handleMergeClients}
               disabled={!duplicateClientId || !mergePreview || merging}
             >
               {merging ? 'Объединение...' : 'Объединить и удалить дубль'}
             </button>
           </div>
-        </div>
+        </SurfaceCard>
 
         <div className="flex justify-end">
           <button
             type="button"
-            className="cursor-pointer rounded border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="ui-btn ui-btn-secondary cursor-pointer px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
             onClick={() => load({ showSuccess: true })}
             disabled={loading}
           >
@@ -483,7 +485,7 @@ const clientContactMergeFunc = (clientId) => {
           </button>
         </div>
 
-        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+        <SurfaceCard paddingClassName="p-3">
           <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
             Привязать VK по ID
           </label>
@@ -498,7 +500,7 @@ const clientContactMergeFunc = (clientId) => {
             />
             <button
               type="button"
-              className="h-10 shrink-0 cursor-pointer rounded bg-general px-3 text-sm font-semibold text-white hover:bg-green-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="ui-btn ui-btn-primary h-10 shrink-0 cursor-pointer px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               onClick={handleVkLink}
               disabled={vkLinking}
             >
@@ -508,9 +510,9 @@ const clientContactMergeFunc = (clientId) => {
           <div className="mt-2 text-xs text-gray-500">
             Для отправки ответа VK должен разрешать сообщения от группы.
           </div>
-        </div>
+        </SurfaceCard>
 
-        <div className="rounded border border-gray-200 bg-gray-50 p-3">
+        <SurfaceCard paddingClassName="p-3">
           <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
             Поиск диалога
           </label>
@@ -529,7 +531,7 @@ const clientContactMergeFunc = (clientId) => {
                   type="button"
                   className={`cursor-pointer rounded border px-3 py-2 text-xs font-semibold transition ${
                     providerFilter === item.value
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      ? 'border-general bg-gray-100 text-gray-900'
                       : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                   onClick={() => setProviderFilter(item.value)}
@@ -545,7 +547,7 @@ const clientContactMergeFunc = (clientId) => {
                   type="button"
                   className={`cursor-pointer rounded border px-3 py-2 text-xs font-semibold transition ${
                     statusFilter === item.value
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      ? 'border-general bg-gray-100 text-gray-900'
                       : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                   onClick={() => setStatusFilter(item.value)}
@@ -559,7 +561,7 @@ const clientContactMergeFunc = (clientId) => {
             Найдено: {filteredConversations.length} · Связаны: {linkedCount} ·
             Непривязаны: {availableCount}
           </div>
-        </div>
+        </SurfaceCard>
 
         <div>
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -569,7 +571,7 @@ const clientContactMergeFunc = (clientId) => {
             {linkedConversations.length > 0 ? (
               linkedConversations.map((item) => renderConversation(item, true))
             ) : (
-              <div className="rounded border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+              <div className="rounded border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-500">
                 Связанных диалогов пока нет.
               </div>
             )}
@@ -584,7 +586,7 @@ const clientContactMergeFunc = (clientId) => {
             {availableConversations.length > 0 ? (
               availableConversations.map((item) => renderConversation(item, false))
             ) : (
-              <div className="rounded border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+              <div className="rounded border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-500">
                 Непривязанных диалогов Avito/VK не найдено.
               </div>
             )}

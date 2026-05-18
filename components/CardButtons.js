@@ -11,6 +11,7 @@ import {
   faMoneyBill,
   faPencilAlt,
   faKey,
+  faLink,
   faUser,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -211,6 +212,7 @@ const CardButtons = ({
           userTariff: typeOfItem === 'user' && canManageUsers,
           setPasswordBtn: typeOfItem === 'user' && canManageUsers,
           userEvents: typeOfItem === 'client',
+          contactMerge: typeOfItem === 'client',
         }
     : {
         copyId: canCopyId,
@@ -232,6 +234,7 @@ const CardButtons = ({
         deleteBtn:
           showDeleteButton && canManageItem && item.status !== 'closed',
         userEvents: typeOfItem === 'client',
+        contactMerge: typeOfItem === 'client',
       }
 
   const numberOfButtons = Object.keys(show).reduce(
@@ -357,6 +360,16 @@ const CardButtons = ({
           }
         />
       )}
+      {show.contactMerge && (
+        <ItemComponent
+          icon={faLink}
+          onClick={() => {
+            modalsFunc[typeOfItem].contactMerge(item._id)
+          }}
+          color="blue"
+          tooltipText="Объединение контактов"
+        />
+      )}
       {show.openCalendar && (
         <ItemComponent
           icon={faExternalLinkAlt}
@@ -467,14 +480,16 @@ const CardButtons = ({
   return isCompact ? (
     <DropDown
       trigger={
-        <div
+        <button
+          type="button"
           className={cn(
-            'text-general flex h-9 min-h-9 w-9 cursor-pointer flex-col items-center justify-center',
+            'text-general flex h-8 min-h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-transparent p-0 transition hover:border-general/30 hover:bg-general/10',
             compactTriggerClassName
           )}
+          aria-label="Открыть меню действий"
         >
-          <FontAwesomeIcon icon={faEllipsisV} className="h-7 min-h-7 w-7" />
-        </div>
+          <FontAwesomeIcon icon={faEllipsisV} className="h-5 min-h-5 w-5" />
+        </button>
       }
       className={className}
       menuPadding={false}

@@ -2,6 +2,7 @@ import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
 import AddIconButton from '@components/AddIconButton'
 import { faTrashAlt } from '@fortawesome/free-solid-svg-icons'
+import { faExchangeAlt } from '@fortawesome/free-solid-svg-icons/faExchangeAlt'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import getPersonFullName from '@helpers/getPersonFullName'
 import IconActionButton from '@components/IconActionButton'
@@ -13,6 +14,7 @@ const OtherContactsPicker = ({
   onChangeComment,
   onRemoveContact,
   onEditContact,
+  onViewContact,
   onAddContact,
   label = 'Прочие контакты',
 }) => (
@@ -34,7 +36,16 @@ const OtherContactsPicker = ({
               <button
                 type="button"
                 className="hover:shadow-card flex w-full cursor-pointer items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm transition"
-                onClick={() => onSelectContact?.(index)}
+                onClick={() =>
+                  contactClient
+                    ? onViewContact?.(index)
+                    : onSelectContact?.(index)
+                }
+                title={
+                  contactClient
+                    ? 'Открыть карточку клиента'
+                    : 'Выбрать клиента'
+                }
               >
                 <span className="font-semibold text-gray-900">
                   {contactName}
@@ -54,11 +65,20 @@ const OtherContactsPicker = ({
               />
             </div>
             <div className="flex items-center gap-2">
+              {contactClient && (
+                <IconActionButton
+                  icon={faPencilAlt}
+                  onClick={() => onEditContact?.(index)}
+                  title="Редактировать клиента"
+                  variant="warning"
+                  size="sm"
+                />
+              )}
               <IconActionButton
-                icon={faPencilAlt}
-                onClick={() => onEditContact?.(index)}
-                title="Редактировать клиента"
-                variant="warning"
+                icon={faExchangeAlt}
+                onClick={() => onSelectContact?.(index)}
+                title="Выбрать другого клиента"
+                variant="neutral"
                 size="sm"
               />
               <IconActionButton

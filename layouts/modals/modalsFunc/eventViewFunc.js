@@ -204,6 +204,25 @@ const eventViewFunc = (eventId) => {
       )
     }
 
+    const openClientView = (client) => {
+      if (!client?._id) return
+      modalsFunc.client?.view(client._id)
+    }
+
+    const getClientCardProps = (client) => {
+      if (!client?._id) return {}
+      return {
+        role: 'button',
+        tabIndex: 0,
+        onClick: () => openClientView(client),
+        onKeyDown: (event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          openClientView(client)
+        },
+      }
+    }
+
     useEffect(() => {
       if (setTopLeftComponent) {
         setTopLeftComponent(() => (
@@ -308,7 +327,10 @@ const eventViewFunc = (eventId) => {
             {(mainClient || otherContacts.length > 0) && (
               <SectionBlock title="Контакты">
                 {mainClient ? (
-                  <div className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50">
+                  <div
+                    {...getClientCardProps(mainClient)}
+                    className="p-2 border border-gray-200 rounded-lg cursor-pointer event-view-kpi bg-gray-50 transition hover:border-general hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-general/30"
+                  >
                     <div className="text-sm font-semibold text-gray-800">
                       Клиент:{' '}
                       {getPersonFullName(mainClient, {
@@ -320,7 +342,11 @@ const eventViewFunc = (eventId) => {
                         {line}
                       </div>
                     ))}
-                    <div className="mt-1">
+                    <div
+                      className="mt-1"
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
+                    >
                       <ContactsIconsButtons user={mainClient} showChat />
                     </div>
                   </div>
@@ -336,7 +362,13 @@ const eventViewFunc = (eventId) => {
                       {otherContacts.map((contact, index) => (
                         <div
                           key={`${contact.label}-${index}`}
-                          className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50"
+                          {...getClientCardProps(contact.client)}
+                          className={cn(
+                            'p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50 transition focus:outline-none focus:ring-2 focus:ring-general/30',
+                            contact.client
+                              ? 'cursor-pointer hover:border-general hover:bg-white hover:shadow-sm'
+                              : ''
+                          )}
                         >
                           <div className="text-sm font-semibold text-gray-800">
                             {contact.label}
@@ -355,7 +387,11 @@ const eventViewFunc = (eventId) => {
                               )
                             )}
                           {contact.client && (
-                            <div className="mt-1">
+                            <div
+                              className="mt-1"
+                              onClick={(event) => event.stopPropagation()}
+                              onKeyDown={(event) => event.stopPropagation()}
+                            >
                               <ContactsIconsButtons user={contact.client} showChat />
                             </div>
                           )}

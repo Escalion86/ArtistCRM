@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types'
+import { faExchangeAlt } from '@fortawesome/free-solid-svg-icons/faExchangeAlt'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import InputWrapper from '@components/InputWrapper'
 import AddIconButton from '@components/AddIconButton'
@@ -23,6 +24,7 @@ const ClientPicker = ({
   fullWidth,
   compact,
   tone,
+  showSelectButton,
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const isPartyTone = tone === 'party'
@@ -103,8 +105,22 @@ const ClientPicker = ({
           <IconActionButton
             icon={faPencilAlt}
             onClick={handleEdit}
-            title="Сменить клиента"
+            title="Редактировать клиента"
             variant={isPartyTone ? 'neutral' : 'warning'}
+            size={compact ? 'sm' : 'lg'}
+            className={
+              isPartyTone
+                ? 'border border-sky-100 bg-white text-sky-700 hover:bg-sky-50'
+                : ''
+            }
+          />
+        )}
+        {selectedClientId && !disabled && showSelectButton && onSelectClick && (
+          <IconActionButton
+            icon={faExchangeAlt}
+            onClick={onSelectClick}
+            title="Выбрать другого клиента"
+            variant={isPartyTone ? 'neutral' : 'neutral'}
             size={compact ? 'sm' : 'lg'}
             className={
               isPartyTone
@@ -150,6 +166,7 @@ ClientPicker.propTypes = {
   fullWidth: PropTypes.bool,
   compact: PropTypes.bool,
   tone: PropTypes.oneOf(['default', 'party']),
+  showSelectButton: PropTypes.bool,
 }
 
 ClientPicker.defaultProps = {
@@ -163,6 +180,7 @@ ClientPicker.defaultProps = {
   fullWidth: false,
   compact: false,
   tone: 'default',
+  showSelectButton: false,
   onCreateClick: null,
   onViewClick: null,
   onEditClick: null,

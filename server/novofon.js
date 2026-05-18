@@ -24,6 +24,8 @@ const normalizeNovofonDirection = (value) => {
   const normalized = String(value || '').toLowerCase()
   if (['in', 'incoming', 'входящий'].includes(normalized)) return 'incoming'
   if (['out', 'outgoing', 'исходящий'].includes(normalized)) return 'outgoing'
+  if (normalized.includes('out')) return 'outgoing'
+  if (normalized.includes('in')) return 'incoming'
   return normalizeCallDirection(value)
 }
 
@@ -67,9 +69,19 @@ export const getNovofonSettings = async (tenantId) => {
 
 export const normalizeNovofonWebhook = (body = {}) => {
   const direction = normalizeNovofonDirection(
-    getFirstString(body.direction, body.call_direction, body.call_type)
+    getFirstString(
+      body.direction,
+      body.call_direction,
+      body.call_type,
+      body.notification_name
+    )
   )
-  const event = getFirstString(body.event, body.event_type, body.type)
+  const event = getFirstString(
+    body.event,
+    body.event_type,
+    body.type,
+    body.notification_name
+  )
   const providerCallId = getFirstString(
     body.call_id,
     body.call_session_id,
@@ -79,6 +91,7 @@ export const normalizeNovofonWebhook = (body = {}) => {
     body.id
   )
   const incomingPhone = getFirstString(
+    body.contact_phone_number,
     body.caller_id,
     body.caller,
     body.src,
@@ -87,6 +100,7 @@ export const normalizeNovofonWebhook = (body = {}) => {
     body.phone
   )
   const outgoingPhone = getFirstString(
+    body.communication_number,
     body.called_did,
     body.called,
     body.dst,
@@ -110,6 +124,7 @@ export const normalizeNovofonWebhook = (body = {}) => {
     body.started_at,
     body.call_start,
     body.created_at,
+    body.notification_time,
     body.date
   )
   const endedAt = normalizeDate(
@@ -119,7 +134,12 @@ export const normalizeNovofonWebhook = (body = {}) => {
     body.call_end
   )
   const durationSec = normalizeNumber(
-    getFirstString(body.duration, body.duration_sec, body.billsec),
+    getFirstString(
+      body.duration,
+      body.duration_sec,
+      body.billsec,
+      body.file_duration
+    ),
     0
   )
 

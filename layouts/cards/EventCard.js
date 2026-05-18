@@ -407,7 +407,7 @@ const EventCard = ({
               typeOfItem="event"
               minimalActions
               alwaysCompact
-              compactTriggerClassName="event-card-menu-trigger h-11 min-h-11 w-11 rounded-full"
+              compactTriggerClassName="event-card-menu-trigger h-10 min-h-10 w-10 rounded-full"
               calendarLink={calendarLink}
               onEdit={() => modalsFunc.event?.edit(event._id)}
               onEditClientContacts={() =>

@@ -4,6 +4,7 @@ import dbConnect from '@server/dbConnect'
 import { normalizeCallInput } from '@server/calls'
 import { notifyCallRecordingReady } from '@server/callPush'
 import { isTelephonyTariffAllowedForTenant } from '@server/telephonyAccess'
+import { logTelephonyWebhook } from '@server/telephonyWebhookLogger'
 import {
   getNovofonSettings,
   getNovofonTenantId,
@@ -44,27 +45,63 @@ const parseWebhookBody = async (req) => {
     if (!formData) return {}
     return Object.fromEntries(formData.entries())
   }
-  return req.json().catch(() => ({}))
+
+  const text = await req.text().catch(() => '')
+  if (!text.trim()) return {}
+
+  try {
+    return JSON.parse(text)
+  } catch (error) {
+    return Object.fromEntries(new URLSearchParams(text).entries())
+  }
 }
 
-export const POST = async (req) => {
-  const body = await parseWebhookBody(req)
+const getSearchParamsPayload = (searchParams) =>
+  Object.fromEntries(searchParams.entries())
+
+const logNovofonWebhook = (entry) =>
+  logTelephonyWebhook({
+    provider: 'novofon',
+    ...entry,
+  })
+
+const handleNovofonWebhook = async (req) => {
   const { searchParams } = new URL(req.url)
+  const body = {
+    ...getSearchParamsPayload(searchParams),
+    ...(await parseWebhookBody(req)),
+  }
+  await dbConnect()
+
   const tenantId = getNovofonTenantId(body, searchParams)
   if (!isValidTenantId(tenantId)) {
+    await logNovofonWebhook({
+      body,
+      status: 'rejected',
+      httpStatus: 400,
+      reason: 'invalid_tenant_id',
+      message: 'Novofon webhook rejected: valid tenantId is required',
+    })
     return NextResponse.json(
       { success: false, error: 'valid tenantId is required' },
       { status: 400 }
     )
   }
 
-  await dbConnect()
   const settings = await getNovofonSettings(tenantId)
   const fallbackSecret =
     process.env.NOVOFON_WEBHOOK_SECRET || process.env.TELEPHONY_WEBHOOK_SECRET
   const expectedSecret = settings?.webhookSecret || fallbackSecret
 
   if (!settings?.enabled && !fallbackSecret) {
+    await logNovofonWebhook({
+      tenantId,
+      body,
+      status: 'rejected',
+      httpStatus: 403,
+      reason: 'integration_disabled',
+      message: 'Novofon webhook rejected: integration is disabled',
+    })
     return NextResponse.json(
       {
         success: false,
@@ -75,6 +112,14 @@ export const POST = async (req) => {
   }
 
   if (!expectedSecret) {
+    await logNovofonWebhook({
+      tenantId,
+      body,
+      status: 'rejected',
+      httpStatus: 503,
+      reason: 'missing_secret',
+      message: 'Novofon webhook rejected: webhook is not configured',
+    })
     return NextResponse.json(
       { success: false, error: 'Novofon webhook is not configured' },
       { status: 503 }
@@ -82,6 +127,14 @@ export const POST = async (req) => {
   }
 
   if (getNovofonWebhookSecret(req, body, searchParams) !== expectedSecret) {
+    await logNovofonWebhook({
+      tenantId,
+      body,
+      status: 'rejected',
+      httpStatus: 403,
+      reason: 'secret_mismatch',
+      message: 'Novofon webhook rejected: secret mismatch',
+    })
     return NextResponse.json(
       { success: false, error: 'Forbidden' },
       { status: 403 }
@@ -90,6 +143,14 @@ export const POST = async (req) => {
 
   const hasTariffAccess = await isTelephonyTariffAllowedForTenant(tenantId)
   if (!hasTariffAccess) {
+    await logNovofonWebhook({
+      tenantId,
+      body,
+      status: 'rejected',
+      httpStatus: 403,
+      reason: 'telephony_tariff_required',
+      message: 'Novofon webhook rejected: telephony tariff option is disabled',
+    })
     return NextResponse.json(
       {
         success: false,
@@ -100,6 +161,19 @@ export const POST = async (req) => {
   }
 
   const normalized = normalizeNovofonWebhook(body)
+  await logNovofonWebhook({
+    tenantId,
+    body,
+    eventType: normalized.rawEvent,
+    status: 'received',
+    httpStatus: 200,
+    reason: 'accepted_for_processing',
+    message: 'Novofon webhook accepted for call normalization',
+    providerCallId: normalized.providerCallId,
+    direction: normalized.direction,
+    hasRecordingUrl: Boolean(normalized.recordingUrl),
+    hasTranscript: Boolean(normalized.transcript),
+  })
   const payload = await normalizeCallInput(normalized, tenantId)
   const update = buildNovofonUpdate(payload, normalized, tenantId)
 
@@ -137,6 +211,25 @@ export const POST = async (req) => {
     (!existingCall?.recordingPushSentAt ||
       existingCall?.recordingUrl !== call.recordingUrl)
 
+  await logNovofonWebhook({
+    tenantId,
+    body,
+    eventType: normalized.rawEvent,
+    status: 'saved',
+    httpStatus: 200,
+    reason: shouldNotifyRecording ? 'call_saved_with_recording' : 'call_saved',
+    message: 'Novofon webhook saved call',
+    providerCallId: payload.providerCallId,
+    direction: call?.direction || payload.direction,
+    hasRecordingUrl: Boolean(call?.recordingUrl),
+    hasTranscript: Boolean(call?.transcript),
+    callId: call?._id || null,
+    meta: {
+      linkedClient: Boolean(call?.linkedClientId),
+      shouldNotifyRecording,
+    },
+  })
+
   if (shouldNotifyRecording) {
     await notifyCallRecordingReady({ tenantId, call })
     call = await Calls.findOneAndUpdate(
@@ -152,3 +245,6 @@ export const POST = async (req) => {
 
   return NextResponse.json({ success: true, data: call }, { status: 200 })
 }
+
+export const GET = handleNovofonWebhook
+export const POST = handleNovofonWebhook

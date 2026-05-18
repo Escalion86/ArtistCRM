@@ -1211,7 +1211,13 @@ const eventFunc = (
     }
 
     const handleOtherContactAdd = () => {
-      setOtherContacts((prev) => [...prev, { clientId: null, comment: '' }])
+      modalsFunc.client?.select((newClientId) => {
+        if (!newClientId) return
+        setOtherContacts((prev) => [
+          ...prev,
+          { clientId: newClientId, comment: '' },
+        ])
+      })
     }
 
     const handleAdditionalEventRemove = (index) => {
@@ -1760,6 +1766,7 @@ const eventFunc = (
                 selectedClientId={clientId}
                 onSelectClick={openClientSelectModal}
                 onViewClick={() => modalsFunc.client?.view(clientId)}
+                onEditClick={() => modalsFunc.client?.edit(clientId)}
                 onCreateClick={() =>
                   modalsFunc.client?.add((newClient) => {
                     if (!newClient?._id) return
@@ -1773,6 +1780,7 @@ const eventFunc = (
                 paddingY
                 fullWidth
                 compact
+                showSelectButton
               />
               <OtherContactsPicker
                 contacts={otherContacts}
@@ -1784,6 +1792,11 @@ const eventFunc = (
                   const contact = otherContacts[index]
                   if (contact?.clientId)
                     modalsFunc.client?.edit(contact.clientId)
+                }}
+                onViewContact={(index) => {
+                  const contact = otherContacts[index]
+                  if (contact?.clientId)
+                    modalsFunc.client?.view(contact.clientId)
                 }}
                 onAddContact={handleOtherContactAdd}
               />
