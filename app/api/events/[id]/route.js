@@ -7,6 +7,7 @@ import dbConnect from '@server/dbConnect'
 import { deleteEventFromCalendar, updateEventInCalendar } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import { notifyTaskCreated, notifyTaskCompleted, notifyTaskUpdated } from '@server/taskPushNotifications'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 import {
   hasDocuments,
@@ -308,6 +309,49 @@ export const PUT = async (req, { params }) => {
         { calendarSyncError: 'calendar_sync_failed' },
         { returnDocument: 'after' }
       )
+    }
+  }
+
+  // Send push notifications for task changes
+  if (responseEvent) {
+    const oldTasks = Array.isArray(oldEvent?.additionalEvents) ? oldEvent.additionalEvents : []
+    const newTasks = Array.isArray(responseEvent?.additionalEvents) ? responseEvent.additionalEvents : []
+
+    // Check for new tasks
+    for (let i = 0; i < newTasks.length; i++) {
+      const newTask = newTasks[i]
+      const oldTask = oldTasks[i]
+
+      if (!newTask || newTask.done) continue
+
+      if (!oldTask) {
+        // New task added
+        notifyTaskCreated({
+          tenantId,
+          event: responseEvent,
+          task: newTask,
+        }).catch((err) => console.log('Push notification error (task created)', err))
+      } else if (
+        oldTask.title !== newTask.title ||
+        String(oldTask.date) !== String(newTask.date) ||
+        oldTask.description !== newTask.description
+      ) {
+        // Task updated
+        notifyTaskUpdated({
+          tenantId,
+          event: responseEvent,
+          task: newTask,
+        }).catch((err) => console.log('Push notification error (task updated)', err))
+      }
+
+      // Task marked as done
+      if (newTask.done && oldTask && !oldTask.done) {
+        notifyTaskCompleted({
+          tenantId,
+          event: responseEvent,
+          task: newTask,
+        }).catch((err) => console.log('Push notification error (task completed)', err))
+      }
     }
   }
 

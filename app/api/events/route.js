@@ -5,6 +5,7 @@ import dbConnect from '@server/dbConnect'
 import { updateEventInCalendar } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import { notifyTaskCreated } from '@server/taskPushNotifications'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 import {
   hasDocuments,
@@ -402,5 +403,19 @@ export const POST = async (req) => {
   } else if (!event?.importedFromCalendar && !access?.allowCalendarSync) {
     responseEvent = await Events.findById(event._id).lean()
   }
+
+  // Send push notifications for new tasks (additionalEvents)
+  if (responseEvent?.additionalEvents && responseEvent.additionalEvents.length > 0) {
+    for (const task of responseEvent.additionalEvents) {
+      if (task && !task.done) {
+        notifyTaskCreated({
+          tenantId,
+          event: responseEvent,
+          task,
+        }).catch((err) => console.log('Push notification error (task created)', err))
+      }
+    }
+  }
+
   return NextResponse.json({ success: true, data: responseEvent }, { status: 201 })
 }

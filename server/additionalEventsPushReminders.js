@@ -2,6 +2,8 @@ import Events from '@models/Events'
 import SiteSettings from '@models/SiteSettings'
 import PushReminderLogs from '@models/PushReminderLogs'
 import { sendPushToTenant } from '@server/pushNotifications'
+import { sendExpoPushToTenant } from '@server/expoPushNotifications'
+import { buildTaskPushPayload } from '@server/taskPushNotifications'
 
 const toDate = (value) => {
   if (!value) return null
@@ -189,6 +191,17 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
         tenantId: event.tenantId,
         payload,
       })
+
+      // Also send via Expo push for mobile app
+      const expoPayload = buildTaskPushPayload({
+        event,
+        task: item,
+        triggerType: reminderType === 'overdue' ? 'task_overdue' : 'task_tomorrow',
+      })
+      sendExpoPushToTenant({
+        tenantId: event.tenantId,
+        payload: expoPayload,
+      }).catch((err) => console.log('Expo push reminder error', err))
 
       if (!result?.ok) {
         failed += 1
