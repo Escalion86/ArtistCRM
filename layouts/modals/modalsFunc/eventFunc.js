@@ -864,7 +864,7 @@ const eventFunc = (
     const selectedClient = useMemo(
       () =>
         clientId && clients.length
-          ? clients.find((client) => client._id === clientId)
+          ? clients.find((client) => String(client._id) === String(clientId))
           : null,
       [clientId, clients]
     )

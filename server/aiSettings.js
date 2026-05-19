@@ -6,6 +6,13 @@ const getCustomValue = (custom, key) => {
   return custom[key]
 }
 
+const normalizeStringList = (items) =>
+  Array.isArray(items)
+    ? items
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean)
+    : []
+
 export const getTenantAiSettings = async (tenantId) => {
   if (!tenantId) return {}
   const siteSettings = await SiteSettings.findOne({ tenantId }).lean()
@@ -24,5 +31,6 @@ export const getTenantAiSettings = async (tenantId) => {
     aiTranscriptionModel: String(
       getCustomValue(custom, 'aiTranscriptionModel') || ''
     ).trim(),
+    eventTypes: normalizeStringList(getCustomValue(custom, 'eventTypes')),
   }
 }

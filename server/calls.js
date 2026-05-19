@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import Clients from '@models/Clients'
 import Events from '@models/Events'
 import Calls from '@models/Calls'
+import SiteSettings from '@models/SiteSettings'
 import { analyzeCallTranscript } from '@server/callAiAnalysis'
 import { transcribeCallRecording } from '@server/callTranscription'
 import { getTenantAiSettings } from '@server/aiSettings'
@@ -66,6 +67,37 @@ const normalizeObjectId = (value) => {
   if (!value) return null
   const stringValue = String(value)
   return mongoose.Types.ObjectId.isValid(stringValue) ? stringValue : null
+}
+
+const getSiteSettingsCustomValue = (siteSettings, key) => {
+  const custom = siteSettings?.custom
+  if (!custom) return undefined
+  if (custom instanceof Map) return custom.get(key)
+  return custom[key]
+}
+
+const normalizeStringList = (items) =>
+  Array.isArray(items)
+    ? items
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean)
+    : []
+
+const getExistingEventTypes = async (tenantId) => {
+  if (!tenantId) return []
+  const siteSettings = await SiteSettings.findOne({ tenantId })
+    .select('custom')
+    .lean()
+  return normalizeStringList(getSiteSettingsCustomValue(siteSettings, 'eventTypes'))
+}
+
+const matchExistingEventType = (value, eventTypes) => {
+  const normalized = String(value ?? '').trim()
+  if (!normalized) return ''
+  const lowerNormalized = normalized.toLowerCase()
+  return (
+    eventTypes.find((item) => item.toLowerCase() === lowerNormalized) || ''
+  )
 }
 
 export const findClientByCallPhone = async (tenantId, normalizedPhone) => {
@@ -163,6 +195,10 @@ export const buildEventDraftFromCall = async (call, tenantId) => {
   const linkedEvent = linkedEventId
     ? await Events.findOne({ _id: linkedEventId, tenantId }).lean()
     : null
+  const eventTypes = await getExistingEventTypes(tenantId)
+  const eventType =
+    matchExistingEventType(fields?.eventType, eventTypes) ||
+    matchExistingEventType(linkedEvent?.eventType, eventTypes)
 
   const additionalEvents = []
   if (fields?.nextContactAt) {
@@ -194,7 +230,7 @@ export const buildEventDraftFromCall = async (call, tenantId) => {
       comment: fields?.eventLocation ?? '',
     },
     contractSum: fields?.budget ?? 0,
-    eventType: fields?.eventType ?? linkedEvent?.eventType ?? 'other',
+    eventType,
     description: summaryParts.join('\n').trim(),
     financeComment: fields?.budget
       ? `Бюджет из разговора: ${fields.budget}`

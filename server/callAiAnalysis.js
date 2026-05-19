@@ -6,7 +6,6 @@ const EVENT_TYPES = new Set([
   'presentation',
   'opening',
   'club',
-  'other',
 ])
 
 const AI_PROVIDERS = Object.freeze({
@@ -60,19 +59,33 @@ const parseBudget = (value) => {
   return Number.isFinite(number) && number >= 0 ? number : null
 }
 
-const normalizeEventType = (value) => {
+const normalizeStringList = (items) =>
+  Array.isArray(items)
+    ? items
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter(Boolean)
+    : []
+
+const normalizeEventType = (value, allowedEventTypes = []) => {
   const normalized = String(value ?? '').trim()
-  return EVENT_TYPES.has(normalized) ? normalized : 'other'
+  const lowerNormalized = normalized.toLowerCase()
+  const existingEventType = allowedEventTypes.find(
+    (item) => item.toLowerCase() === lowerNormalized
+  )
+  if (existingEventType) return existingEventType
+  if (allowedEventTypes.length) return ''
+  return EVENT_TYPES.has(normalized) ? normalized : ''
 }
 
-export const normalizeAiCallAnalysis = (raw) => {
+export const normalizeAiCallAnalysis = (raw, options = {}) => {
   const data = raw && typeof raw === 'object' ? raw : {}
+  const allowedEventTypes = normalizeStringList(options.eventTypes)
   const confidence = Number(data.confidence)
   return {
     summary: trimText(data.summary, 3000),
     extractedFields: {
       clientName: trimText(data.clientName, 120),
-      eventType: normalizeEventType(data.eventType),
+      eventType: normalizeEventType(data.eventType, allowedEventTypes),
       eventDate: parseDateOrNull(data.eventDate),
       eventCity: trimText(data.eventCity, 120),
       eventLocation: trimText(data.eventLocation, 240),
@@ -90,16 +103,19 @@ export const normalizeAiCallAnalysis = (raw) => {
   }
 }
 
-const buildFallbackAnalysis = (transcript) => {
+const buildFallbackAnalysis = (transcript, settings = {}) => {
   const text = trimText(transcript, 3000)
   const firstLine = text.split('\n').find(Boolean) || text.slice(0, 220)
-  return normalizeAiCallAnalysis({
-    summary: firstLine
-      ? `AI-анализ не настроен. Черновое резюме по transcript: ${firstLine}`
-      : 'AI-анализ не настроен. Добавьте transcript или настройте AI provider API key.',
-    eventType: 'other',
-    confidence: 0.1,
-  })
+  return normalizeAiCallAnalysis(
+    {
+      summary: firstLine
+        ? `AI-анализ не настроен. Черновое резюме по transcript: ${firstLine}`
+        : 'AI-анализ не настроен. Добавьте transcript или настройте AI provider API key.',
+      eventType: '',
+      confidence: 0.1,
+    },
+    settings
+  )
 }
 
 const getAiProviderConfig = (settings = {}) => {
@@ -129,7 +145,7 @@ const getAiProviderConfig = (settings = {}) => {
   }
 }
 
-const buildProviderRequestBody = (provider, cleanTranscript) => {
+const buildProviderRequestBody = (provider, cleanTranscript, settings = {}) => {
   const body = {
     model: provider.model,
     temperature: 0.1,
@@ -141,7 +157,7 @@ const buildProviderRequestBody = (provider, cleanTranscript) => {
         content:
           'Ты аккуратный CRM-ассистент. Извлекаешь только явно подтвержденные данные и возвращаешь строгий JSON.',
       },
-      { role: 'user', content: buildPrompt(cleanTranscript) },
+      { role: 'user', content: buildPrompt(cleanTranscript, settings) },
     ],
   }
 
@@ -152,14 +168,24 @@ const buildProviderRequestBody = (provider, cleanTranscript) => {
   return body
 }
 
-const buildPrompt = (transcript) => `
+const buildEventTypeInstruction = (settings = {}) => {
+  const eventTypes = normalizeStringList(settings.eventTypes)
+  if (!eventTypes.length) {
+    return 'одно из kids, birthday, wedding, corporate, presentation, opening, club; если нет уверенного совпадения, верни пустую строку.'
+  }
+  return `строго одно из существующих значений: ${eventTypes
+    .map((item) => JSON.stringify(item))
+    .join(', ')}; если нет уверенного совпадения, верни пустую строку.`
+}
+
+const buildPrompt = (transcript, settings = {}) => `
 Ты анализируешь телефонный разговор артиста с потенциальным клиентом CRM.
 Верни только JSON без markdown.
 
 Нужно извлечь поля:
 - summary: краткое резюме разговора на русском языке.
 - clientName: имя клиента, если оно явно звучит.
-- eventType: одно из kids, birthday, wedding, corporate, presentation, opening, club, other.
+- eventType: ${buildEventTypeInstruction(settings)}
 - eventDate: дата/время мероприятия в ISO 8601 или null.
 - eventCity: город, если есть.
 - eventLocation: площадка/адрес/комментарий к месту, если есть.
@@ -179,11 +205,11 @@ ${transcript}
 export const analyzeCallTranscript = async (transcript, settings = {}) => {
   const cleanTranscript = trimText(transcript)
   if (!cleanTranscript) {
-    return buildFallbackAnalysis('')
+    return buildFallbackAnalysis('', settings)
   }
 
   const provider = getAiProviderConfig(settings)
-  if (!provider.apiKey) return buildFallbackAnalysis(cleanTranscript)
+  if (!provider.apiKey) return buildFallbackAnalysis(cleanTranscript, settings)
 
   const response = await fetch(provider.apiUrl, {
     method: 'POST',
@@ -191,7 +217,9 @@ export const analyzeCallTranscript = async (transcript, settings = {}) => {
       Authorization: `Bearer ${provider.apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(buildProviderRequestBody(provider, cleanTranscript)),
+    body: JSON.stringify(
+      buildProviderRequestBody(provider, cleanTranscript, settings)
+    ),
   })
 
   const payload = await response.json().catch(() => null)
@@ -206,5 +234,5 @@ export const analyzeCallTranscript = async (transcript, settings = {}) => {
   const json = parseJsonObject(content)
   if (!json) throw new Error('AI вернул некорректный JSON')
 
-  return normalizeAiCallAnalysis(json)
+  return normalizeAiCallAnalysis(json, settings)
 }

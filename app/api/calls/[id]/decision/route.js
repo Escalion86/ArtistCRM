@@ -19,7 +19,7 @@ import {
 } from '@server/eventApiNormalization'
 
 const createEventFromCallDraft = async ({ draft, req, tenantId, user, access }) => {
-  const eventTypeValue = normalizeEventType(draft?.eventType) || 'other'
+  const eventTypeValue = normalizeEventType(draft?.eventType)
   const event = await Events.create({
     ...draft,
     tenantId,

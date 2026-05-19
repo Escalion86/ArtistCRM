@@ -101,6 +101,15 @@ const getClientLabel = (client) => {
   )
 }
 
+const normalizeId = (value) => {
+  if (!value) return null
+  if (typeof value === 'object') {
+    if (value._id) return normalizeId(value._id)
+    if (value.$oid) return String(value.$oid)
+  }
+  return String(value)
+}
+
 const formatClientContactLines = (client) => {
   if (!client || typeof client !== 'object') return []
   const lines = []
@@ -373,20 +382,22 @@ const CallsContent = () => {
 
   const openEventDraft = async (call) => {
     let nextCall = call
-    if (!nextCall?.linkedClientId) {
+    let linkedClientId = normalizeId(nextCall?.linkedClientId)
+    if (!linkedClientId) {
       const client = await createClientFromCall(call)
-      nextCall = { ...call, linkedClientId: client._id }
+      linkedClientId = normalizeId(client?._id)
+      nextCall = { ...call, linkedClientId }
     }
     const draft = await callActions.getEventDraft(nextCall._id)
     modalsFunc.event?.createFromDraft?.(
       {
         ...draft,
-        clientId: nextCall.linkedClientId,
+        clientId: linkedClientId || normalizeId(draft?.clientId),
       },
       async (event) => {
         await callActions.link(nextCall._id, {
-          clientId: event?.clientId,
-          eventId: event?._id,
+          clientId: normalizeId(event?.clientId),
+          eventId: normalizeId(event?._id),
         })
         snackbar.success('Заявка создана из звонка')
         refetch()
@@ -630,8 +641,9 @@ const CallsContent = () => {
         )}
         <div className="grid grid-cols-1 gap-3 desktop:grid-cols-2">
           {calls.map((call) => {
-            const client = call?.linkedClientId
-              ? clientsById.get(String(call.linkedClientId))
+            const linkedClientId = normalizeId(call?.linkedClientId)
+            const client = linkedClientId
+              ? clientsById.get(linkedClientId)
               : null
             return (
               <CardWrapper
