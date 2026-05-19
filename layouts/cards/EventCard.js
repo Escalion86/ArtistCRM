@@ -31,7 +31,7 @@ import CardOverlay from '@components/CardOverlay'
 import CardActions from '@components/CardActions'
 import CardWrapper from '@components/CardWrapper'
 import StatusChip from '@components/StatusChip'
-import { getSoonNoDepositEvents } from '@helpers/additionalEvents'
+import { getSoonNoDepositEvents, getEventOverdueAdditionalCount } from '@helpers/additionalEvents'
 import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getPersonFullName from '@helpers/getPersonFullName'
 import { isEventCreatedViaPublicApi } from '@helpers/eventSource'
@@ -176,6 +176,11 @@ const EventCard = ({ eventId, style }) => {
     const items = getSoonNoDepositEvents([event], transactions, new Date(), 3)
     return items.length > 0
   }, [event, transactions])
+
+  const overdueAdditionalCount = useMemo(() => {
+    if (!event?._id) return 0
+    return getEventOverdueAdditionalCount(event, new Date())
+  }, [event])
 
   const isCreatedViaApi = isEventCreatedViaPublicApi(event)
 
@@ -341,6 +346,11 @@ const EventCard = ({ eventId, style }) => {
               className="h-4 w-4 text-blue-500"
               aria-label="Мероприятие"
             />
+          )}
+          {overdueAdditionalCount > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">
+              {overdueAdditionalCount}
+            </span>
           )}
           {!client && (
             <FontAwesomeIcon

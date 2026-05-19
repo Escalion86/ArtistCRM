@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAtom, useAtomValue } from 'jotai'
+import { additionalEventsOverdueCountAtom } from '@state/selectors/additionalEventsOverdueCountAtom'
 
 const menuCfg = (role) => {
   // const visiblePages = pages.filter((page) => )
@@ -100,7 +101,7 @@ const MenuItem = ({ item, active = false, badge, pending = false, onNavigate }) 
   )
 }
 
-const Menu = ({ menuCfg, activePage, pendingPage, onNavigate }) => {
+const Menu = ({ menuCfg, activePage, pendingPage, onNavigate, pageBadges }) => {
   const [menuOpen, setMenuOpen] = useAtom(menuOpenAtom)
   const [openedMenuIndex, setOpenedMenuIndex] = useState(1)
 
@@ -240,7 +241,7 @@ const Menu = ({ menuCfg, activePage, pendingPage, onNavigate }) => {
                           active={activePage === subitem.href}
                           pending={pendingPage === subitem.href}
                           onNavigate={onNavigate}
-                          // badge={itemsBadges[subitem.id]}
+                          badge={pageBadges?.[subitem.href]}
                         />
                       ))}
                     </motion.div>
@@ -275,6 +276,7 @@ const SideBar = ({ page }) => {
   const { height } = useAtomValue(windowDimensionsAtom)
   const device = useAtomValue(windowDimensionsTailwindSelector)
   const loggedUser = useAtomValue(loggedUserAtom)
+  const overdueAdditionalCount = useAtomValue(additionalEventsOverdueCountAtom)
   const role = loggedUser?.role ?? 'user'
   const isMobile =
     device === 'phoneV' || device === 'phoneH' || device === 'tablet'
@@ -379,6 +381,7 @@ const SideBar = ({ page }) => {
             activePage={page}
             pendingPage={pendingPage}
             onNavigate={handleNavigate}
+            pageBadges={{ eventsUpcoming: overdueAdditionalCount }}
           />
         </div>
       </motion.div>

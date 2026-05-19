@@ -14,6 +14,7 @@ import getPersonFullName from '@helpers/getPersonFullName'
 import Image from 'next/image'
 import eventSelector from '@state/selectors/eventSelector'
 import sanitizeHtml from '@helpers/sanitizeHtml'
+import { isAdditionalEventOverdue } from '@helpers/additionalEvents'
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
@@ -371,13 +372,17 @@ const eventViewFunc = (eventId) => {
             {additionalEvents.length > 0 && (
               <SectionBlock title="Доп. события">
                 <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
-                  {additionalEvents.map((item, index) => (
+                  {additionalEvents.map((item, index) => {
+                    const isOverdue = isAdditionalEventOverdue(item)
+                    return (
                     <div
                       key={`additional-event-view-${index}`}
                       className={`w-full cursor-pointer rounded-lg border p-2 transition hover:shadow-sm ${
                         item?.done
                           ? 'event-view-additional-done border-emerald-200 bg-emerald-50'
-                          : 'event-view-kpi border-gray-200 bg-gray-50'
+                          : isOverdue
+                            ? 'border-red-300 bg-red-50'
+                            : 'event-view-kpi border-gray-200 bg-gray-50'
                       }`}
                       onClick={() =>
                         modalsFunc.add({
@@ -466,14 +471,19 @@ const eventViewFunc = (eventId) => {
                     >
                       <div
                         className={`truncate text-sm font-semibold ${
-                          item?.done ? 'text-emerald-700' : 'text-gray-900'
+                          item?.done ? 'text-emerald-700' : isOverdue ? 'text-red-700' : 'text-gray-900'
                         }`}
                       >
-                        {item?.done ? '✓ ' : ''}
+                        {item?.done ? '✓ ' : isOverdue ? '⚠ ' : ''}
                         {item?.title || `Событие #${index + 1}`}
                       </div>
                       <div className="text-xs text-gray-600">
                         {formatDateTime(item?.date)}
+                        {isOverdue && !item?.done && (
+                          <span className="ml-1.5 inline-flex rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+                            Просрочено
+                          </span>
+                        )}
                       </div>
                       {item?.description ? (
                         <div className="text-xs text-gray-700">
@@ -481,7 +491,7 @@ const eventViewFunc = (eventId) => {
                         </div>
                       ) : null}
                     </div>
-                  ))}
+                  }))}
                 </div>
               </SectionBlock>
             )}
