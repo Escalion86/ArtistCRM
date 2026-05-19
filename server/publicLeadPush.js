@@ -15,22 +15,27 @@ const formatPhone = (value) => {
   return `+${digits}`
 }
 
-const buildApiLeadPushPayload = ({ event, normalizedData }) => {
+const buildApiLeadPushPayload = ({ event, normalizedData, orgId }) => {
   const source = String(normalizedData?.source || 'public_api')
   const formattedPhone = formatPhone(normalizedData?.phone)
   const bodyParts = []
   if (formattedPhone) bodyParts.push(`Телефон: ${formattedPhone}`)
   if (source) bodyParts.push(`Источник: ${source}`)
 
+  const eventId = String(event?._id || '')
+  const deepLinkUrl = orgId
+    ? `https://crm.escalion.ru/v1/request?request_id=${eventId}&org_id=${orgId}`
+    : `/cabinet/eventsUpcoming?openEvent=${eventId}`
+
   return {
     title: 'Новая заявка',
     body: bodyParts.join(' | ') || 'Откройте кабинет для просмотра',
     icon: '/icons/AppImages/android/android-launchericon-192-192.png',
     badge: '/icons/AppImages/android/android-launchericon-192-192.png',
-    tag: `api-lead-${event?._id || Date.now()}`,
+    tag: `api-lead-${eventId}`,
     data: {
-      url: `/cabinet/eventsUpcoming?openEvent=${event?._id}`,
-      eventId: String(event?._id || ''),
+      url: deepLinkUrl,
+      eventId,
       type: 'api_lead',
     },
   }
@@ -38,7 +43,7 @@ const buildApiLeadPushPayload = ({ event, normalizedData }) => {
 
 const notifyApiLeadCreated = async ({ tenantId, event, normalizedData }) => {
   if (!tenantId || !event?._id) return null
-  const payload = buildApiLeadPushPayload({ event, normalizedData })
+  const payload = buildApiLeadPushPayload({ event, normalizedData, orgId: tenantId })
   return sendPushToTenant({ tenantId, payload })
 }
 

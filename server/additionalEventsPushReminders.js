@@ -48,7 +48,7 @@ const canSendForTenant = (siteSettings) => {
   return true
 }
 
-const buildReminderPayload = ({ event, additionalEvent, reminderType }) => {
+const buildReminderPayload = ({ event, additionalEvent, reminderType, orgId }) => {
   const eventId = String(event?._id || '')
   const title =
     reminderType === 'overdue'
@@ -75,6 +75,10 @@ const buildReminderPayload = ({ event, additionalEvent, reminderType }) => {
       ? `${additionalTitle} • ${eventTitle} • просрочено`
       : `${additionalTitle} • ${eventTitle} • ${dateLabel} ${timeLabel}`
 
+  const deepLinkUrl = orgId
+    ? `https://crm.escalion.ru/v1/event?event_id=${eventId}&org_id=${orgId}`
+    : `/cabinet/eventsUpcoming?openEvent=${eventId}`
+
   return {
     title,
     body,
@@ -84,7 +88,7 @@ const buildReminderPayload = ({ event, additionalEvent, reminderType }) => {
     renotify: false,
     requireInteraction: reminderType === 'overdue',
     data: {
-      url: `/cabinet/eventsUpcoming?openEvent=${eventId}`,
+      url: deepLinkUrl,
       eventId,
       type: `additional_event_${reminderType}`,
     },
@@ -178,6 +182,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
         event,
         additionalEvent: item,
         reminderType,
+        orgId: event.tenantId,
       })
 
       const result = await sendPushToTenant({
