@@ -4,6 +4,7 @@ import Events from '@models/Events'
 import Transactions from '@models/Transactions'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import { sendContactUpdatedPush } from '@server/contactPush'
 
 export const GET = async (req, { params }) => {
   const { id } = await params
@@ -35,6 +36,10 @@ export const PUT = async (req, { params }) => {
     )
   }
   await dbConnect()
+
+  // Fetch old client data for change detection
+  const oldClient = await Clients.findOne({ _id: id, tenantId }).lean()
+
   const client = await Clients.findOneAndUpdate(
     { _id: id, tenantId },
     body,
@@ -47,6 +52,16 @@ export const PUT = async (req, { params }) => {
       { success: false, error: 'Клиент не найден' },
       { status: 404 }
     )
+
+  // Send push notification asynchronously (don't block response)
+  sendContactUpdatedPush({ tenantId, client, oldData: oldClient }).catch((err) => {
+    console.warn('contact push notification failed', {
+      tenantId: String(tenantId),
+      clientId: String(client._id),
+      error: err?.message,
+    })
+  })
+
   return NextResponse.json({ success: true, data: client }, { status: 200 })
 }
 
