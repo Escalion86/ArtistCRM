@@ -107,6 +107,11 @@ const faqItems = [
     answer:
       'Да, веб-интерфейс адаптирован под мобильные устройства, чтобы ключевые действия были удобны на смартфоне.',
   },
+  {
+    question: 'Можно ли попробовать бесплатно?',
+    answer:
+      'Да, бесплатный тариф не требует привязки банковской карты. Платный тариф — первые 14 дней бесплатно. Отмена подписки в любой момент.',
+  },
 ]
 
 export default async function HomePage() {
@@ -257,7 +262,7 @@ export default async function HomePage() {
               href="/login"
               className="cursor-pointer ui-btn ui-btn-primary"
             >
-              Войти в систему
+              Попробовать бесплатно
             </Link>
             <Link
               href="#pricing"
@@ -266,6 +271,9 @@ export default async function HomePage() {
               Посмотреть тарифы
             </Link>
           </div>
+          <p className="mt-4 text-sm text-gray-500 landing-reveal">
+            Бесплатно до 5 мероприятий в месяц. Без карты и обязательств.
+          </p>
         </div>
 
         <div className="relative flex-1 hidden lg:block">
@@ -401,7 +409,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section id="pricing" className="relative max-w-6xl px-6 pb-20 mx-auto">
+      <section id="pricing" className="relative max-w-6xl px-6 pb-16 mx-auto">
         <div className="flex flex-col items-start gap-6 landing-reveal sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
@@ -411,8 +419,8 @@ export default async function HomePage() {
               Выберите формат работы
             </h2>
             <p className="mt-3 text-sm text-gray-600">
-              Подберите вариант, который подходит по объему мероприятий и
-              доступным функциям.
+              Начните бесплатно — без карты и обязательств. Переходите на
+              платный тариф, когда будете готовы.
             </p>
           </div>
           <Link href="/login" className="cursor-pointer ui-btn ui-btn-primary">
@@ -424,6 +432,7 @@ export default async function HomePage() {
           {publicTariffs.length > 0 ? (
             publicTariffs.map((tariff, index) => {
               const isFree = Number(tariff?.price ?? 0) === 0
+              const isPopular = !isFree && index === 1
               const features = isFree
                 ? [
                     'Создание заявок без ограничений',
@@ -432,40 +441,67 @@ export default async function HomePage() {
                   ]
                 : [
                     'Все что в бесплатном тарифе',
-                    'Синхронизация с Google календарем',
-                    'Просмотр статистики',
-                    'Автоформирование договоров/актов и хранение счетов/чеков',
-                  ]
+                    tariff?.allowCalendarSync ? 'Синхронизация с Google Календарем' : null,
+                    tariff?.allowStatistics ? 'Просмотр статистики' : null,
+                    tariff?.allowDocuments
+                      ? 'Автоформирование договоров/актов и хранение счетов/чеков'
+                      : null,
+                  ].filter(Boolean)
+              const annualPrice = isFree ? 0 : Math.round(Number(tariff.price) * 12 * 0.8)
               return (
                 <div
                   key={tariff._id}
-                  className={`landing-reveal rounded-3xl border ${
-                    index % 2 === 0
-                      ? 'home-panel border-gray-200/70 bg-white'
-                      : 'home-panel border-general/30 from-general/10 bg-gradient-to-br via-white to-white'
-                  } p-8 shadow-lg`}
+                  className={`landing-reveal rounded-3xl border p-8 shadow-lg relative ${
+                    isPopular
+                      ? 'home-panel border-general/40 from-general/15 bg-gradient-to-br via-white to-white ring-2 ring-general/20'
+                      : 'home-panel border-gray-200/70 bg-white'
+                  }`}
                 >
+                  {isPopular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 text-xs font-semibold tracking-wide text-white rounded-full bg-general">
+                      Популярный
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-2xl font-semibold text-black font-futuraPT">
                       {tariff.title || 'Тариф'}
                     </h3>
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-general/15 text-general">
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                      isPopular
+                        ? 'bg-general text-white'
+                        : 'bg-general/15 text-general'
+                    }`}>
                       {formatPrice(tariff.price)}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-gray-600">
                     {formatEventsLimit(tariff.eventsPerMonth)}
                   </p>
+                  {!isFree && annualPrice > 0 && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      или {annualPrice.toLocaleString('ru-RU')} ₽/год (−20%)
+                    </p>
+                  )}
                   <ul className="mt-6 space-y-3 text-sm text-gray-700">
                     {features.map((name) => (
                       <li key={name} className="flex items-start gap-3">
-                        <span className="w-2 h-2 mt-1 rounded-full bg-general" />
+                        <span className={`w-2 h-2 mt-1.5 rounded-full ${isPopular ? 'bg-general' : 'bg-general/60'}`} />
                         <span className="font-medium text-gray-900">
                           {name}
                         </span>
                       </li>
                     ))}
                   </ul>
+                  <div className="mt-8">
+                    <Link
+                      href="/login"
+                      className={`cursor-pointer ui-btn w-full text-center justify-center ${
+                        isPopular ? 'ui-btn-primary' : 'ui-btn-secondary'
+                      }`}
+                    >
+                      {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
+                    </Link>
+                  </div>
                 </div>
               )
             })
@@ -474,6 +510,43 @@ export default async function HomePage() {
               Тарифы пока не настроены. Скоро здесь появятся варианты подписки.
             </div>
           )}
+        </div>
+
+        <div className="mt-10 p-6 rounded-2xl bg-general/5 border border-general/15 text-center">
+          <p className="text-sm text-gray-600">
+            💳 Оплата через ЮKassa. Отмена подписки в любой момент.
+            <br className="hidden sm:block" />
+            <span className="text-gray-500">Бесплатный тариф — без привязки карты. Платный — первые 14 дней бесплатно.</span>
+          </p>
+        </div>
+      </section>
+
+      <section className="relative max-w-6xl px-6 pb-20 mx-auto">
+        <div className="p-10 border shadow-lg home-panel landing-reveal rounded-3xl border-general/20 bg-gradient-to-br from-general/5 via-white to-white text-center">
+          <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
+            Начните сейчас
+          </p>
+          <h2 className="mt-4 text-3xl font-semibold text-black font-futuraPT">
+            Попробуйте ArtistCRM бесплатно
+          </h2>
+          <p className="max-w-lg mx-auto mt-4 text-sm text-gray-600">
+            Никаких обязательств. Полный доступ ко всем функциям на 14 дней.
+            Бесплатный тариф — без привязки банковской карты.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 mt-8">
+            <Link
+              href="/login"
+              className="cursor-pointer ui-btn ui-btn-primary"
+            >
+              Начать бесплатно
+            </Link>
+            <Link
+              href="#pricing"
+              className="cursor-pointer ui-btn ui-btn-secondary"
+            >
+              Сравнить тарифы
+            </Link>
+          </div>
         </div>
       </section>
 
