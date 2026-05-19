@@ -139,7 +139,7 @@ const AddressPoolPicker = ({
     >
       <div className="mt-0.5 mb-1 min-w-0 flex-1">
         <div className="flex flex-col">
-          <div className="flex flex-wrap items-end gap-x-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-2">
             <div className="relative mt-2.5 w-full min-w-0 flex-1">
               <ComboBox
                 label="Выбрать адрес"
@@ -151,6 +151,7 @@ const AddressPoolPicker = ({
                 fullWidth
                 error={errors?.address}
                 className="flex-1 w-full min-w-0"
+                selectClassName="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
               />
             </div>
             <IconActionButton
