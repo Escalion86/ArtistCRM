@@ -1,18 +1,16 @@
 import './globals.css'
 import './burger.css'
 import '../fonts/InterTight.css'
-import '../fonts/Buyan.css'
-import '../fonts/Montserrat.css'
 import '../fonts/FuturaPT.css'
 
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter'
 import ClientErrorLogger from '@components/ClientErrorLogger'
 import AppSnackbarProvider from '@components/AppSnackbarProvider'
 import AppQueryProvider from '@components/AppQueryProvider'
+import Head from 'next/head'
 // import { Suspense } from 'react'
 // import Metrika from './components/metrika'
 // import Script from 'next/script'
-// import Head from 'next/head'
 
 export const metadata = {
   title: 'ArtistCRM — CRM для артистов',
@@ -52,6 +50,40 @@ export default function RootLayout({ children }) {
   const isProduction = process.env.NODE_ENV !== 'development'
   return (
     <html lang="ru" className="scroll-smooth" data-scroll-behavior="smooth">
+      <Head>
+        {/* Preload critical fonts for LCP optimization */}
+        {/* FuturaPT-Heavy: used by h1 headings (LCP element) */}
+        <link
+          rel="preload"
+          href="/fonts/FuturaPT-Heavy.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        {/* FuturaPT-Bold: used by h1 with font-semibold (600) */}
+        <link
+          rel="preload"
+          href="/fonts/FuturaPT-Bold.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        {/* InterTight: body text and UI elements */}
+        <link
+          rel="preload"
+          href="/fonts/InterTight-Regular.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/InterTight-SemiBold.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+      </Head>
       <body>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <ClientErrorLogger enabled={isProduction} />
