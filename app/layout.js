@@ -12,7 +12,7 @@ import AppQueryProvider from '@components/AppQueryProvider'
 // import { Suspense } from 'react'
 // import Metrika from './components/metrika'
 // import Script from 'next/script'
-// import Head from 'next/head'
+import Head from 'next/head'
 
 export const metadata = {
   title: 'ArtistCRM — бесплатная CRM для артистов, ведущих и музыкантов',
@@ -52,10 +52,36 @@ export default function RootLayout({ children }) {
   const isProduction = process.env.NODE_ENV !== 'development'
   return (
     <html lang="ru" className="scroll-smooth" data-scroll-behavior="smooth">
-      <link rel="preload" href="/fonts/FuturaPT-Demi.woff" as="font" type="font/woff" crossorigin />
-      <link rel="preload" href="/fonts/FuturaPT-Medium.woff" as="font" type="font/woff" crossorigin />
-      <link rel="preload" href="/fonts/InterTight-Regular.ttf" as="font" type="font/ttf" crossorigin />
-      <link rel="preload" href="/fonts/InterTight-SemiBold.ttf" as="font" type="font/ttf" crossorigin />
+      <Head>
+        <link
+          rel="preload"
+          href="/fonts/FuturaPT-Heavy.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/FuturaPT-Bold.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/InterTight-Regular.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/InterTight-SemiBold.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+      </Head>
       <body>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <ClientErrorLogger enabled={isProduction} />
