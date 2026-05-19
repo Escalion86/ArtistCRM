@@ -8,6 +8,8 @@ import PhoneInput from '@components/PhoneInput'
 import Textarea from '@components/Textarea'
 import { CLIENT_TYPES, DEFAULT_CLIENT } from '@helpers/constants'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   normalizeInstagramInput,
   normalizeTelegramInput,
@@ -43,6 +45,45 @@ const normalizeSignificantDates = (items) =>
       comment: String(item?.comment ?? '').trim(),
     }))
     .filter((item) => item.title || item.date || item.comment)
+
+const getRequisitesSummary = ({
+  legalName,
+  inn,
+  kpp,
+  ogrn,
+  bankName,
+  bik,
+  checkingAccount,
+  correspondentAccount,
+  legalAddress,
+}) => {
+  const items = [
+    { label: 'Наименование', value: legalName },
+    { label: 'ИНН', value: inn },
+    { label: 'КПП', value: kpp },
+    { label: 'ОГРН', value: ogrn },
+    { label: 'Банк', value: bankName },
+    { label: 'БИК', value: bik },
+    { label: 'Р/с', value: checkingAccount },
+    { label: 'К/с', value: correspondentAccount },
+    { label: 'Адрес', value: legalAddress },
+  ]
+    .map((item) => ({
+      ...item,
+      value: String(item.value ?? '').trim(),
+    }))
+    .filter((item) => item.value)
+
+  if (!items.length) return 'Реквизиты не заполнены'
+
+  const visibleItems = items.slice(0, 3)
+  const summary = visibleItems
+    .map((item) => `${item.label}: ${item.value}`)
+    .join(', ')
+  const hiddenCount = items.length - visibleItems.length
+
+  return hiddenCount > 0 ? `${summary} +${hiddenCount}` : summary
+}
 
 const clientFunc = (clientId, clone = false, onSuccess) => {
   const ClientModal = ({
@@ -123,7 +164,34 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     const [legalAddress, setLegalAddress] = useState(
       client?.legalAddress ?? DEFAULT_CLIENT.legalAddress
     )
+    const [isRequisitesCollapsed, setIsRequisitesCollapsed] = useState(true)
     const [errors, checkErrors, addError, removeError] = useErrors()
+
+    const requisitesSummary = useMemo(
+      () =>
+        getRequisitesSummary({
+          legalName,
+          inn,
+          kpp,
+          ogrn,
+          bankName,
+          bik,
+          checkingAccount,
+          correspondentAccount,
+          legalAddress,
+        }),
+      [
+        legalName,
+        inn,
+        kpp,
+        ogrn,
+        bankName,
+        bik,
+        checkingAccount,
+        correspondentAccount,
+        legalAddress,
+      ]
+    )
 
     const normalizePhoneValue = useCallback((value) => {
       if (!value) return null
@@ -196,65 +264,66 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     )
 
     const onClickConfirm = useCallback(async () => {
-        const hasContactValidationError = checkErrors({
-          phoneNoRequired: phone,
-          whatsapp,
+      const hasContactValidationError = checkErrors({
+        phoneNoRequired: phone,
+        whatsapp,
+      })
+      let customError = false
+      if (!firstName || !firstName.trim()) {
+        addError({ firstName: 'Укажите имя' })
+        customError = true
+      }
+      const hasAnyContact =
+        Boolean(normalizePhoneValue(phone)) ||
+        Boolean(normalizePhoneValue(whatsapp)) ||
+        Boolean(String(telegram || '').trim()) ||
+        Boolean(String(instagram || '').trim()) ||
+        Boolean(String(vk || '').trim())
+      if (!hasAnyContact) {
+        addError({
+          phone:
+            'Укажите хотя бы один контакт: телефон, WhatsApp, Telegram, Instagram или VK',
         })
-        let customError = false
-        if (!firstName || !firstName.trim()) {
-          addError({ firstName: 'Укажите имя' })
-          customError = true
-        }
-        const hasAnyContact =
-          Boolean(normalizePhoneValue(phone)) ||
-          Boolean(normalizePhoneValue(whatsapp)) ||
-          Boolean(String(telegram || '').trim()) ||
-          Boolean(String(instagram || '').trim()) ||
-          Boolean(String(vk || '').trim())
-        if (!hasAnyContact) {
-          addError({
-            phone:
-              'Укажите хотя бы один контакт: телефон, WhatsApp, Telegram, Instagram или VK',
-          })
-          customError = true
-        }
-        if (!hasContactValidationError && !customError) {
-          const normalizedPhone = normalizePhoneValue(phone)
-          if (normalizedPhone) {
-            const existedClient = clients.find(
-              (item) =>
-                item?.phone &&
-                normalizePhoneValue(item.phone) === normalizedPhone &&
-                item._id !== client?._id
-            )
-            if (existedClient) {
-              const existingName =
-                getPersonFullName(existedClient, { fallback: 'Без имени' })
-              if (typeof onSuccess === 'function') {
-                modalsFunc.add({
-                  title: 'Клиент уже существует',
-                  text: `Клиент с таким номером телефона уже существует: ${existingName}.\n\nВы можете выбрать существующего клиента.`,
-                  confirmButtonName: 'Выбрать клиента',
-                  declineButtonName: 'Закрыть',
-                  onConfirm: () => {
-                    onSuccess(existedClient)
-                    closeModal()
-                  },
-                })
-              } else {
-                modalsFunc.add({
-                  title: 'Клиент уже существует',
-                  text: `Клиент с таким номером телефона уже существует: ${existingName}.\n\nСоздать клиента с этим номером нельзя.`,
-                  confirmButtonName: 'Понятно',
-                  onConfirm: true,
-                  showDecline: false,
-                })
-              }
-              return
+        customError = true
+      }
+      if (!hasContactValidationError && !customError) {
+        const normalizedPhone = normalizePhoneValue(phone)
+        if (normalizedPhone) {
+          const existedClient = clients.find(
+            (item) =>
+              item?.phone &&
+              normalizePhoneValue(item.phone) === normalizedPhone &&
+              item._id !== client?._id
+          )
+          if (existedClient) {
+            const existingName = getPersonFullName(existedClient, {
+              fallback: 'Без имени',
+            })
+            if (typeof onSuccess === 'function') {
+              modalsFunc.add({
+                title: 'Клиент уже существует',
+                text: `Клиент с таким номером телефона уже существует: ${existingName}.\n\nВы можете выбрать существующего клиента.`,
+                confirmButtonName: 'Выбрать клиента',
+                declineButtonName: 'Закрыть',
+                onConfirm: () => {
+                  onSuccess(existedClient)
+                  closeModal()
+                },
+              })
+            } else {
+              modalsFunc.add({
+                title: 'Клиент уже существует',
+                text: `Клиент с таким номером телефона уже существует: ${existingName}.\n\nСоздать клиента с этим номером нельзя.`,
+                confirmButtonName: 'Понятно',
+                onConfirm: true,
+                showDecline: false,
+              })
             }
+            return
           }
-          const result = await setClient(
-            {
+        }
+        const result = await setClient(
+          {
             _id: client?._id,
             firstName: firstName.trim(),
             secondName: secondName.trim(),
@@ -532,12 +601,6 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
         />
         <LabeledContainer label="Значимые даты">
           <div className="flex flex-col gap-3">
-            {significantDates.length === 0 && (
-              <div className="rounded border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                Добавьте даты, о которых важно помнить: день рождения, годовщина
-                свадьбы, день рождения ребенка.
-              </div>
-            )}
             {significantDates.map((item, index) => (
               <div
                 key={index}
@@ -595,73 +658,100 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
             </button>
           </div>
         </LabeledContainer>
-        <LabeledContainer label="Реквизиты для договора">
-          <div className="grid gap-0 sm:grid-cols-2">
-            <Input
-              label="Наименование / ФИО"
-              value={legalName}
-              onChange={setLegalName}
-              className="w-full"
-              smallMargin
+        <div className="border-input mt-3.5 mb-1 overflow-hidden rounded border-2 bg-white">
+          <button
+            type="button"
+            className="flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left transition hover:bg-gray-50"
+            onClick={() => setIsRequisitesCollapsed((value) => !value)}
+            aria-expanded={!isRequisitesCollapsed}
+          >
+            <div className="min-w-0 flex-1">
+              <div className="text-general text-sm font-semibold">
+                Реквизиты для договора
+              </div>
+              {isRequisitesCollapsed && (
+                <div className="mt-0.5 truncate text-sm text-gray-500">
+                  {requisitesSummary}
+                </div>
+              )}
+            </div>
+            <FontAwesomeIcon
+              icon={faChevronDown}
+              className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${
+                isRequisitesCollapsed ? '' : 'rotate-180'
+              }`}
             />
-            <Input
-              label="ИНН"
-              value={inn}
-              onChange={setInn}
-              className="w-full"
-              smallMargin
-            />
-            <Input
-              label="КПП"
-              value={kpp}
-              onChange={setKpp}
-              className="w-full"
-              smallMargin
-            />
-            <Input
-              label="ОГРН / ОГРНИП"
-              value={ogrn}
-              onChange={setOgrn}
-              className="w-full"
-              smallMargin
-            />
-            <Input
-              label="Банк"
-              value={bankName}
-              onChange={setBankName}
-              className="w-full"
-              smallMargin
-            />
-            <Input
-              label="БИК"
-              value={bik}
-              onChange={setBik}
-              className="w-full"
-              smallMargin
-            />
-            <Input
-              label="Расчетный счет"
-              value={checkingAccount}
-              onChange={setCheckingAccount}
-              className="w-full"
-              smallMargin
-            />
-            <Input
-              label="Корр. счет"
-              value={correspondentAccount}
-              onChange={setCorrespondentAccount}
-              className="w-full"
-              smallMargin
-            />
-            <Input
-              label="Юридический адрес"
-              value={legalAddress}
-              onChange={setLegalAddress}
-              className="w-full sm:col-span-2"
-              smallMargin
-            />
-          </div>
-        </LabeledContainer>
+          </button>
+          {!isRequisitesCollapsed && (
+            <div className="border-t border-gray-100 px-2 pb-2">
+              <div className="grid gap-0 sm:grid-cols-2">
+                <Input
+                  label="Наименование / ФИО"
+                  value={legalName}
+                  onChange={setLegalName}
+                  className="w-full"
+                  smallMargin
+                />
+                <Input
+                  label="ИНН"
+                  value={inn}
+                  onChange={setInn}
+                  className="w-full"
+                  smallMargin
+                />
+                <Input
+                  label="КПП"
+                  value={kpp}
+                  onChange={setKpp}
+                  className="w-full"
+                  smallMargin
+                />
+                <Input
+                  label="ОГРН / ОГРНИП"
+                  value={ogrn}
+                  onChange={setOgrn}
+                  className="w-full"
+                  smallMargin
+                />
+                <Input
+                  label="Банк"
+                  value={bankName}
+                  onChange={setBankName}
+                  className="w-full"
+                  smallMargin
+                />
+                <Input
+                  label="БИК"
+                  value={bik}
+                  onChange={setBik}
+                  className="w-full"
+                  smallMargin
+                />
+                <Input
+                  label="Расчетный счет"
+                  value={checkingAccount}
+                  onChange={setCheckingAccount}
+                  className="w-full"
+                  smallMargin
+                />
+                <Input
+                  label="Корр. счет"
+                  value={correspondentAccount}
+                  onChange={setCorrespondentAccount}
+                  className="w-full"
+                  smallMargin
+                />
+                <Input
+                  label="Юридический адрес"
+                  value={legalAddress}
+                  onChange={setLegalAddress}
+                  className="w-full sm:col-span-2"
+                  smallMargin
+                />
+              </div>
+            </div>
+          )}
+        </div>
         <ErrorsList errors={errors} />
       </FormWrapper>
     )
