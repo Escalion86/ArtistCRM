@@ -13,8 +13,7 @@ const pushReminderLogsSchema = {
   },
   additionalEventIndex: {
     type: Number,
-    required: true,
-    min: 0,
+    default: null,
   },
   reminderType: {
     type: String,

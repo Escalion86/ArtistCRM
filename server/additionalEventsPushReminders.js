@@ -1,4 +1,4 @@
-import Events from '@models/Events'
+﻿import Events from '@models/Events'
 import SiteSettings from '@models/SiteSettings'
 import PushReminderLogs from '@models/PushReminderLogs'
 import { logPushDelivery, sendPushToTenant } from '@server/pushNotifications'
@@ -104,7 +104,54 @@ const shouldRunForTenantTime = (siteSettings, nowDate) => {
   return currentTime === normalizeReminderTime(reminderTime)
 }
 
-const buildReminderPayload = ({
+const buildMainEventPayload = ({
+  event,
+  reminderType,
+  timeZone = DEFAULT_TIME_ZONE,
+}) => {
+  const eventId = String(event?._id || '')
+  const title =
+    reminderType === 'overdue'
+      ? '╨Я╤А╨╛╤Б╤А╨╛╤З╨╡╨╜╨╛ ╨╝╨╡╤А╨╛╨┐╤А╨╕╤П╤В╨╕╨╡'
+      : '╨Э╨░╨┐╨╛╨╝╨╕╨╜╨░╨╜╨╕╨╡ ╨╛ ╨╝╨╡╤А╨╛╨┐╤А╨╕╤П╤В╨╕╨╕'
+  const eventTitle = String(event?.eventType || '╨Ь╨╡╤А╨╛╨┐╤А╨╕╤П╤В╨╕╨╡').trim() || '╨Ь╨╡╤А╨╛╨┐╤А╨╕╤П╤В╨╕╨╡'
+  const eventDate = toDate(event?.eventDate)
+  const timeLabel = eventDate
+    ? eventDate.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone,
+      })
+    : '--:--'
+  const dateLabel = eventDate
+    ? eventDate.toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        timeZone,
+      })
+    : '--.--'
+  const body =
+    reminderType === 'overdue'
+      ? `${eventTitle} тАв ╨┐╤А╨╛╤Б╤А╨╛╤З╨╡╨╜╨╛`
+      : `${eventTitle} тАв ${dateLabel} ${timeLabel}`
+
+  return {
+    title,
+    body,
+    icon: '/icons/AppImages/android/android-launchericon-192-192.png',
+    badge: '/icons/notification-badge.svg',
+    tag: `main-${reminderType}-${eventId}-${toDateKey(event?.eventDate, timeZone) || Date.now()}`,
+    renotify: false,
+    requireInteraction: reminderType === 'overdue',
+    data: {
+      url: `/cabinet/eventsUpcoming?openEvent=${eventId}`,
+      eventId,
+      type: `main_event_${reminderType}`,
+    },
+  }
+}
+
+const buildAdditionalEventPayload = ({
   event,
   additionalEvent,
   reminderType,
@@ -113,11 +160,11 @@ const buildReminderPayload = ({
   const eventId = String(event?._id || '')
   const title =
     reminderType === 'overdue'
-      ? 'Просрочено доп. событие'
-      : 'Напоминание по доп. событию'
-  const eventTitle = String(event?.eventType || 'Событие').trim() || 'Событие'
+      ? '╨Я╤А╨╛╤Б╤А╨╛╤З╨╡╨╜╨╛ ╨┤╨╛╨┐. ╤Б╨╛╨▒╤Л╤В╨╕╨╡'
+      : '╨Э╨░╨┐╨╛╨╝╨╕╨╜╨░╨╜╨╕╨╡ ╨┐╨╛ ╨┤╨╛╨┐. ╤Б╨╛╨▒╤Л╤В╨╕╤О'
+  const eventTitle = String(event?.eventType || '╨б╨╛╨▒╤Л╤В╨╕╨╡').trim() || '╨б╨╛╨▒╤Л╤В╨╕╨╡'
   const additionalTitle =
-    String(additionalEvent?.title || 'Доп. событие').trim() || 'Доп. событие'
+    String(additionalEvent?.title || '╨Ф╨╛╨┐. ╤Б╨╛╨▒╤Л╤В╨╕╨╡').trim() || '╨Ф╨╛╨┐. ╤Б╨╛╨▒╤Л╤В╨╕╨╡'
   const eventDate = toDate(additionalEvent?.date)
   const timeLabel = eventDate
     ? eventDate.toLocaleTimeString('ru-RU', {
@@ -135,8 +182,8 @@ const buildReminderPayload = ({
     : '--.--'
   const body =
     reminderType === 'overdue'
-      ? `${additionalTitle} • ${eventTitle} • просрочено`
-      : `${additionalTitle} • ${eventTitle} • ${dateLabel} ${timeLabel}`
+      ? `${additionalTitle} тАв ${eventTitle} тАв ╨┐╤А╨╛╤Б╤А╨╛╤З╨╡╨╜╨╛`
+      : `${additionalTitle} тАв ${eventTitle} тАв ${dateLabel} ${timeLabel}`
 
   return {
     title,
@@ -163,7 +210,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
     .select('tenantId custom timeZone')
     .lean()
 
-  const enabledTenantSettings = siteSettings.filter((item) =>
+  const enabledTenantSettings = (siteSettings || []).filter((item) =>
     canSendForTenant(item)
   )
   const scheduledTenantSettings = enabledTenantSettings.filter((item) =>
@@ -193,9 +240,12 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
   const events = await Events.find({
     tenantId: { $in: tenantIds },
     status: { $nin: ['canceled', 'closed'] },
-    additionalEvents: { $exists: true, $ne: [] },
+    $or: [
+      { eventDate: { $ne: null } },
+      { additionalEvents: { $exists: true, $ne: [] } },
+    ],
   })
-    .select('_id tenantId eventType additionalEvents')
+    .select('_id tenantId eventType eventDate additionalEvents')
     .lean()
 
   let dueCandidates = 0
@@ -220,12 +270,79 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
 
   for (const event of events) {
     const tenantSettings = settingsByTenant.get(String(event.tenantId))
+    if (!tenantSettings) continue
     const timeZone = tenantSettings?.timeZone || DEFAULT_TIME_ZONE
     const todayKey = toDateKey(nowDate, timeZone)
     const tomorrowKey = addDaysToDateKey(todayKey, 1)
     const stats = getTenantStats(event.tenantId)
     stats.processedEvents += 1
 
+    // --- Main event date reminder ---
+    if (event.eventDate) {
+      const mainDate = toDate(event.eventDate)
+      if (mainDate) {
+        let reminderType = ''
+        let dateKey = ''
+        const mainDateKey = toDateKey(mainDate, timeZone)
+        if (mainDate.getTime() < nowDate.getTime()) {
+          reminderType = 'overdue'
+          dateKey = todayKey
+        } else if (mainDateKey && mainDateKey === tomorrowKey) {
+          reminderType = 'tomorrow'
+          dateKey = mainDateKey
+        }
+
+        if (reminderType) {
+          dueCandidates += 1
+          stats.dueCandidates += 1
+
+          const dedupKey = {
+            tenantId: event.tenantId,
+            eventId: event._id,
+            additionalEventIndex: null,
+            reminderType,
+            dateKey,
+          }
+
+          const exists = await PushReminderLogs.findOne(dedupKey).lean()
+          if (exists) {
+            skippedByDedup += 1
+            stats.skippedByDedup += 1
+          } else {
+            const payload = buildMainEventPayload({
+              event,
+              reminderType,
+              timeZone,
+            })
+
+            const result = await sendPushToTenant({
+              tenantId: event.tenantId,
+              payload,
+              source: 'main_event_reminder',
+            })
+
+            if (!result?.ok) {
+              failed += 1
+              stats.failed += 1
+            } else if (Number(result.sent || 0) <= 0) {
+              await PushReminderLogs.create({
+                ...dedupKey,
+                sentAt: new Date(),
+              })
+            } else {
+              await PushReminderLogs.create({
+                ...dedupKey,
+                sentAt: new Date(),
+              })
+              sentReminders += 1
+              stats.sentReminders += 1
+            }
+          }
+        }
+      }
+    }
+
+    // --- Additional events reminders ---
     const additionalEvents = Array.isArray(event?.additionalEvents)
       ? event.additionalEvents
       : []
@@ -267,7 +384,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
         continue
       }
 
-      const payload = buildReminderPayload({
+      const payload = buildAdditionalEventPayload({
         event,
         additionalEvent: item,
         reminderType,
@@ -302,13 +419,13 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
   for (const [tenantId, stats] of tenantStats) {
     await logPushDelivery({
       tenantId,
-      source: 'additional_event_reminder',
+      source: 'push_reminder_summary',
       eventType: 'summary',
       status: stats.failed > 0 ? 'partial' : 'ok',
-      payloadType: 'additional_event_reminder',
+      payloadType: 'push_reminder',
       sent: stats.sentReminders,
       failed: stats.failed,
-      message: `Итог напоминаний: кандидатов ${stats.dueCandidates}, отправлено ${stats.sentReminders}, дублей ${stats.skippedByDedup}, ошибок ${stats.failed}`,
+      message: `╨Ш╤В╨╛╨│ ╨╜╨░╨┐╨╛╨╝╨╕╨╜╨░╨╜╨╕╨╣: ╨║╨░╨╜╨┤╨╕╨┤╨░╤В╨╛╨▓ ${stats.dueCandidates}, ╨╛╤В╨┐╤А╨░╨▓╨╗╨╡╨╜╨╛ ${stats.sentReminders}, ╨┤╤Г╨▒╨╗╨╡╨╣ ${stats.skippedByDedup}, ╨╛╤И╨╕╨▒╨╛╨║ ${stats.failed}`,
       meta: stats,
     })
   }
