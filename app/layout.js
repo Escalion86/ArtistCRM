@@ -25,18 +25,18 @@ export const metadata = {
   icons: {
     icon: [
       {
-        url: '/icons/AppImages/android/android-launchericon-192-192.png',
+        url: '/icons/AppImages/android/android-launchericon-192-192.webp',
         sizes: '192x192',
-        type: 'image/png',
+        type: 'image/webp',
       },
       {
-        url: '/icons/AppImages/android/android-launchericon-512-512.png',
+        url: '/icons/AppImages/android/android-launchericon-512-512.webp',
         sizes: '512x512',
-        type: 'image/png',
+        type: 'image/webp',
       },
     ],
     apple: [
-      { url: '/icons/AppImages/ios/180.png', sizes: '180x180', type: 'image/png' },
+      { url: '/icons/AppImages/ios/180.webp', sizes: '180x180', type: 'image/webp' },
     ],
   },
 }
