@@ -492,7 +492,7 @@ const eventViewFunc = (eventId) => {
                       ) : null}
                     </div>
                   )
-                  })
+                  }})
               </SectionBlock>
             )}
             {event?.address && event.address?.town && event.address?.street && (
