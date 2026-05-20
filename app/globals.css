@@ -68,7 +68,7 @@ body {
   background: linear-gradient(to bottom,
       transparent,
       rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb)); */
-  font-family: 'Inter Tight', sans-serif;
+  font-family: 'Inter Tight', 'Inter Tight Fallback', sans-serif;
 }
 
 .contact-button {
@@ -636,23 +636,25 @@ body.theme-dark .MuiTabs-indicator {
 .landing-reveal {
   will-change: transform, opacity;
   opacity: 0;
-  transform: translateY(18px);
-  animation: landing-reveal 700ms ease forwards;
+  transform: translateY(12px);
+  animation: landing-reveal 500ms ease forwards;
   animation-delay: var(--delay, 0ms);
+  content-visibility: visible;
 }
 
 .landing-stagger {
   opacity: 0;
-  transform: translateY(14px);
-  animation: landing-reveal 650ms ease forwards;
+  transform: translateY(10px);
+  animation: landing-reveal 450ms ease forwards;
   animation-delay: var(--delay, 0ms);
   will-change: transform, opacity;
+  content-visibility: visible;
 }
 
 @keyframes landing-reveal {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -668,7 +670,14 @@ body.theme-dark .MuiTabs-indicator {
 /* CLS: content-visibility for below-the-fold sections */
 .home-page section:nth-child(n+3) {
   content-visibility: auto;
-  contain-intrinsic-size: auto 500px;
+  contain-intrinsic-size: 0 600px;
+}
+
+/* CLS: ensure animated elements are not hidden by content-visibility */
+.home-page .landing-reveal,
+.home-page .landing-stagger {
+  content-visibility: visible;
+  contain-intrinsic-size: none;
 }
 
 /* CLS: aspect-ratio fallback for images */

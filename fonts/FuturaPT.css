@@ -1,12 +1,12 @@
 /**
- * Futura PT — Optimized for homepage LCP
+ * Futura PT — Optimized for homepage CLS
  * Only 3 variants used on the landing page:
  * Heavy (900): h1 headings via .font-futuraPT
- * Bold (700): h1 with font-semibold (600) — closest match
+ * Bold (700): h1 with font-semibold (600)
  * Medium (500): h2/h3 headings
  *
- * Removed: 19 unused variants (all Cond, Book, Demi, Extra, Light, etc.)
- * Savings: ~1.7 MB of font data
+ * font-display: optional to prevent CLS from font-swap
+ * size-adjust + ascent-override to match fallback metrics
  */
 
 @font-face {
@@ -18,7 +18,20 @@
         url('/fonts/FuturaPT-Heavy.ttf') format('truetype');
     font-weight: 900;
     font-style: normal;
-    font-display: swap;
+    font-display: optional;
+    size-adjust: 100%;
+    ascent-override: 85%;
+    descent-override: 20%;
+    line-gap-override: 0%;
+}
+
+@font-face {
+    font-family: 'Futura PT Fallback';
+    src: local('Trebuchet MS');
+    size-adjust: 106%;
+    ascent-override: 85%;
+    descent-override: 20%;
+    line-gap-override: 0%;
 }
 
 @font-face {
@@ -30,7 +43,11 @@
         url('/fonts/FuturaPT-Bold.ttf') format('truetype');
     font-weight: 700;
     font-style: normal;
-    font-display: swap;
+    font-display: optional;
+    size-adjust: 100%;
+    ascent-override: 85%;
+    descent-override: 20%;
+    line-gap-override: 0%;
 }
 
 @font-face {
@@ -42,5 +59,9 @@
         url('/fonts/FuturaPT-Medium.ttf') format('truetype');
     font-weight: 500;
     font-style: normal;
-    font-display: swap;
+    font-display: optional;
+    size-adjust: 100%;
+    ascent-override: 85%;
+    descent-override: 20%;
+    line-gap-override: 0%;
 }

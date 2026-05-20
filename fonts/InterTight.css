@@ -1,13 +1,13 @@
 /**
- * Inter Tight — Optimized for homepage LCP
+ * Inter Tight — Optimized for homepage CLS
  * Only 4 variants used on the landing page:
  * Regular (400): body text
  * Medium (500): .font-medium elements
  * SemiBold (600): .font-semibold, headings
  * Bold (700): strong text
  *
- * Removed: 14 unused variants (100, 200, 300, 800, 900 + all italics)
- * Savings: ~3.9 MB of font data
+ * font-display: optional to prevent CLS from font-swap
+ * size-adjust + ascent-override to match fallback metrics
  */
 
 @font-face {
@@ -16,7 +16,20 @@
         url('/fonts/InterTight-Regular.ttf') format('truetype');
     font-weight: 400;
     font-style: normal;
-    font-display: swap;
+    font-display: optional;
+    size-adjust: 100%;
+    ascent-override: 90%;
+    descent-override: 22%;
+    line-gap-override: 0%;
+}
+
+@font-face {
+    font-family: 'Inter Tight Fallback';
+    src: local('Arial');
+    size-adjust: 107.5%;
+    ascent-override: 90%;
+    descent-override: 22%;
+    line-gap-override: 0%;
 }
 
 @font-face {
@@ -25,7 +38,11 @@
         url('/fonts/InterTight-Medium.ttf') format('truetype');
     font-weight: 500;
     font-style: normal;
-    font-display: swap;
+    font-display: optional;
+    size-adjust: 100%;
+    ascent-override: 90%;
+    descent-override: 22%;
+    line-gap-override: 0%;
 }
 
 @font-face {
@@ -34,7 +51,11 @@
         url('/fonts/InterTight-SemiBold.ttf') format('truetype');
     font-weight: 600;
     font-style: normal;
-    font-display: swap;
+    font-display: optional;
+    size-adjust: 100%;
+    ascent-override: 90%;
+    descent-override: 22%;
+    line-gap-override: 0%;
 }
 
 @font-face {
@@ -43,5 +64,9 @@
         url('/fonts/InterTight-Bold.ttf') format('truetype');
     font-weight: 700;
     font-style: normal;
-    font-display: swap;
+    font-display: optional;
+    size-adjust: 100%;
+    ascent-override: 90%;
+    descent-override: 22%;
+    line-gap-override: 0%;
 }
