@@ -1,0 +1,60 @@
+name: iOS TestFlight Beta
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Upload to TestFlight
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build iOS IPA
+        run: eas build --platform ios --profile internal --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Upload to TestFlight
+        if: success()
+        run: eas submit --platform ios --profile internal --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## iOS TestFlight Beta Build" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
