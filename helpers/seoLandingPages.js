@@ -222,7 +222,7 @@ export const seoLandingSlugs = Object.keys(seoLandingPages)
 
 export const buildSeoLandingMetadata = (page) => {
   const url = `${normalizedSiteUrl}/${page.slug}`
-  const imageUrl = `${normalizedSiteUrl}/og-image.jpg`
+  const imageUrl = `${normalizedSiteUrl}/og-image.webp`
 
   return {
     title: page.metaTitle,

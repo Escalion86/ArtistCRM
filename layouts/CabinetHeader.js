@@ -1,6 +1,6 @@
 'use client'
 
-/* eslint-disable @next/next/no-img-element */
+import Image from 'next/image'
 // import DevSwitch from '@components/DevSwitch'
 import Link from 'next/link'
 import UserMenu from './UserMenu'
@@ -21,10 +21,12 @@ const CabinetHeader = ({ title = '', titleLink, icon }) => {
       {title ? (
         <div className="flex flex-1 items-center">
           <Link href="/" shallow className="hidden tablet:block">
-            <img
+            <Image
               className="h-14 rounded-full"
               src={icon || '/img/logo.png'}
               alt="logo"
+              width={56}
+              height={56}
             />
           </Link>
           <div className="tablet:border-l-1 flex min-h-[42px] flex-1 items-center leading-4 tablet:ml-3 tablet:border-gray-600 tablet:pl-3">
@@ -40,7 +42,13 @@ const CabinetHeader = ({ title = '', titleLink, icon }) => {
       ) : (
         <div className="absolute left-1/2 z-10 -translate-x-1/2">
           <Link href="/" shallow>
-            <img className="h-12" src="/img/logo.png" alt="logo" />
+            <Image
+              className="h-12"
+              src="/img/logo.png"
+              alt="logo"
+              width={48}
+              height={48}
+            />
           </Link>
         </div>
       )}
