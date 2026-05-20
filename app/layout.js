@@ -1,8 +1,6 @@
 import './globals.css'
 import './burger.css'
 import '../fonts/InterTight.css'
-import '../fonts/Buyan.css'
-import '../fonts/Montserrat.css'
 import '../fonts/FuturaPT.css'
 
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter'
@@ -11,6 +9,7 @@ import DevelopmentServiceWorkerCleanup from '@components/DevelopmentServiceWorke
 import AppSnackbarProvider from '@components/AppSnackbarProvider'
 import AppQueryProvider from '@components/AppQueryProvider'
 import Script from 'next/script'
+import Head from 'next/head'
 
 const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
 const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
@@ -60,6 +59,12 @@ export default function RootLayout({ children }) {
   const isProduction = process.env.NODE_ENV !== 'development'
   return (
     <html lang="ru" className="scroll-smooth" data-scroll-behavior="smooth">
+      <Head>
+        <link rel="preload" href="/fonts/FuturaPT-Heavy.ttf" as="font" type="font/ttf" crossorigin="anonymous" />
+        <link rel="preload" href="/fonts/FuturaPT-Bold.ttf" as="font" type="font/ttf" crossorigin="anonymous" />
+        <link rel="preload" href="/fonts/InterTight-Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous" />
+        <link rel="preload" href="/fonts/InterTight-SemiBold.ttf" as="font" type="font/ttf" crossorigin="anonymous" />
+      </Head>
       <body>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <ClientErrorLogger enabled={isProduction} />

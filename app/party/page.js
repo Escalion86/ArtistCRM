@@ -206,7 +206,7 @@ export default function PartyCrmLandingPage() {
     '@type': 'Organization',
     name: 'PartyCRM',
     url: partyHomeUrl,
-    logo: `${normalizedPartyUrl}/img/logo-96.png`,
+    logo: `${normalizedPartyUrl}/img/logo-96.webp`,
   }
 
   const softwareApplicationSchema = {

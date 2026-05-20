@@ -156,7 +156,7 @@ export default async function HomePage() {
     '@type': 'Organization',
     name: 'ArtistCRM',
     url: homeUrl,
-    logo: `${normalizedSiteUrl}/img/logo-96.png`,
+    logo: `${normalizedSiteUrl}/img/logo-96.webp`,
   }
 
   const faqSchema = {
@@ -191,6 +191,7 @@ export default async function HomePage() {
             alt="ArtistCRM"
             width={36}
             height={36}
+            sizes="36px"
             className="object-cover rounded-full h-9 w-9"
             priority
           />
@@ -315,7 +316,7 @@ export default async function HomePage() {
                 <div
                   key={item}
                   className="px-4 py-4 text-sm text-gray-700 bg-white border shadow-sm home-mini-card landing-stagger rounded-2xl border-gray-200/60"
-                  style={{ '--delay': `${index * 120 + 120}ms` }}
+                  style={{ '--delay': `${index * 60 + 60}ms` }}
                 >
                   <div className="flex items-start gap-3">
                     <span className="w-3 h-3 mt-1 rounded-full bg-general" />
@@ -328,7 +329,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="relative max-w-6xl px-6 pb-16 mx-auto">
+      <section className="relative max-w-6xl px-6 pb-16 mx-auto landing-section-below">
         <div className="grid gap-8 lg:grid-cols-2">
           <div className="p-8 border shadow-lg home-panel home-panel--light landing-reveal border-general/20 to-general/10 rounded-3xl bg-gradient-to-br from-white via-white">
             <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
@@ -383,7 +384,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section id="pricing" className="relative max-w-6xl px-6 pb-20 mx-auto">
+      <section id="pricing" className="relative max-w-6xl px-6 pb-20 mx-auto landing-section-below">
         <div className="flex flex-col items-start gap-6 landing-reveal sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
@@ -459,7 +460,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="relative max-w-6xl px-6 pb-16 mx-auto">
+      <section className="relative max-w-6xl px-6 pb-16 mx-auto landing-section-below">
         <div className="p-8 border shadow-lg home-panel rounded-3xl border-white/70 bg-white/80 backdrop-blur">
           <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
             FAQ
@@ -483,7 +484,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="relative max-w-6xl px-6 pb-16 mx-auto">
+      <section className="relative max-w-6xl px-6 pb-16 mx-auto landing-section-below">
         <div className="p-8 border shadow-lg home-panel rounded-3xl border-white/70 bg-white">
           <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
             Сравнение
@@ -548,7 +549,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t home-footer border-gray-200/70 bg-white/70">
+      <footer className="border-t home-footer border-gray-200/70 bg-white/70 landing-section-below">
         <div className="flex flex-col w-full max-w-6xl gap-4 px-6 py-8 mx-auto text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} ArtistCRM</span>
           <div className="flex flex-wrap gap-4">

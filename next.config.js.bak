@@ -9,7 +9,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    unoptimized: false,
+    unoptimized: true,
   },
   async headers() {
     return [

@@ -342,10 +342,6 @@ body.theme-dark .modal-action-button:disabled:hover {
   background-color: #4b5563 !important;
 }
 
-.home-page {
-  contain: layout style paint;
-}
-
 .home-page,
 .home-page * {
   transition: background-color 260ms ease, color 260ms ease, border-color 260ms ease,
@@ -816,26 +812,22 @@ body.theme-dark .MuiTabs-indicator {
 
 .landing-reveal {
   opacity: 0;
-  transform: translateY(12px);
-  animation: landing-reveal 500ms ease forwards;
+  transform: translateY(18px);
+  animation: landing-reveal 700ms ease forwards;
   animation-delay: var(--delay, 0ms);
-  will-change: opacity, transform;
-  contain: layout style paint;
 }
 
 .landing-stagger {
   opacity: 0;
-  transform: translateY(10px);
-  animation: landing-reveal 450ms ease forwards;
+  transform: translateY(14px);
+  animation: landing-reveal 650ms ease forwards;
   animation-delay: var(--delay, 0ms);
-  will-change: opacity, transform;
-  contain: layout style paint;
 }
 
 @keyframes landing-reveal {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(18px);
   }
   to {
     opacity: 1;
@@ -1291,42 +1283,4 @@ body.theme-dark .statistics-tooltip {
   background-color: #16120d;
   border-color: #3b2f1d;
   color: #e2e8f0;
-}
-
-/* CLS optimization: content-visibility for below-fold sections */
-@supports (content-visibility: auto) {
-  .landing-section-below {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 500px;
-  }
-}
-
-/* Prevent font swap layout shift */
-.font-futuraPT {
-  font-family: 'Futura PT', 'Futura PT Fallback', 'Arial Narrow', 'Helvetica Neue', sans-serif;
-  size-adjust: 100%;
-  ascent-override: 95%;
-  descent-override: 25%;
-  line-gap-override: 0%;
-}
-
-/* Font metric overrides to reduce CLS from font swap */
-@font-face {
-  font-family: 'Futura PT Fallback';
-  src: local('Arial Narrow');
-  size-adjust: 102%;
-  ascent-override: 92%;
-  descent-override: 22%;
-  line-gap-override: 0%;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Futura PT Book Fallback';
-  src: local('Arial');
-  size-adjust: 100%;
-  ascent-override: 90%;
-  descent-override: 20%;
-  line-gap-override: 0%;
-  font-display: swap;
 }
