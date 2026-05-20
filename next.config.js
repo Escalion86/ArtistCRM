@@ -17,6 +17,28 @@ const nextConfig = {
   },
   productionBrowserSourceMaps: true,
   turbopack: {},
+  async headers() {
+    return [
+      {
+        source: '/',
+        headers: [
+          {
+            key: 'Link',
+            value: '</fonts/FuturaPT-Heavy.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/FuturaPT-Bold.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/InterTight-Regular.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/InterTight-SemiBold.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/InterTight-Medium.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous',
+          },
+        ],
+      },
+      {
+        source: '/fonts/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ]
+  },
 }
 
 module.exports = withPWA(nextConfig)

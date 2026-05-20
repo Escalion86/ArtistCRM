@@ -10,25 +10,11 @@ import AppQueryProvider from '@components/AppQueryProvider'
 // import { Suspense } from 'react'
 // import Metrika from './components/metrika'
 // import Script from 'next/script'
-// import Head from 'next/head'
-
-const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
-const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
-const normalizedSiteUrl = siteUrl.replace(/\/$/, '')
-const defaultOgImage = `${normalizedSiteUrl}/og-image.jpg`
 
 export const metadata = {
-  title: 'ArtistCRM — CRM для артистов',
+  title: 'ArtistCRM — бесплатная CRM для артистов, ведущих и музыкантов',
   description:
-    'CRM-система для артистов: заявки, мероприятия, финансы, договоры и напоминания.',
-  keywords: [
-    'CRM для артистов',
-    'CRM для ведущих',
-    'CRM для музыкантов',
-    'учет заявок',
-    'управление мероприятиями',
-    'ArtistCRM',
-  ],
+    'Бесплатная CRM для артистов, ведущих и музыкантов. Учёт заявок, клиентов, оплат и мероприятий. Договоры, акты, Google Календарь.',
   applicationName: 'ArtistCRM',
   manifest: '/manifest.json',
   appleWebApp: {
@@ -53,42 +39,9 @@ export const metadata = {
       { url: '/icons/AppImages/ios/180.png', sizes: '180x180', type: 'image/png' },
     ],
   },
-  alternates: {
-    canonical: normalizedSiteUrl,
-  },
-  openGraph: {
-    type: 'website',
-    locale: 'ru_RU',
-    url: normalizedSiteUrl,
-    siteName: 'ArtistCRM',
-    title: 'ArtistCRM — CRM для артистов, ведущих и музыкантов',
-    description:
-      'Управляйте заявками, клиентами, финансами и документами в одном кабинете. Синхронизация с Google Календарем.',
-    images: [
-      {
-        url: defaultOgImage,
-        width: 1200,
-        height: 630,
-        alt: 'ArtistCRM — CRM для артистов',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'ArtistCRM — CRM для артистов',
-    description:
-      'Управляйте заявками, клиентами, финансами и документами в одном кабинете.',
-    images: [defaultOgImage],
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
 }
 
 export const viewport = {
-  width: "device-width",
-  initialScale: 1,
   themeColor: '#ebd3a5',
 }
 
