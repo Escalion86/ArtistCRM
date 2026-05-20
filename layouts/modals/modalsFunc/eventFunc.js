@@ -53,6 +53,7 @@ import { getActTemplateVariablesMap } from '@helpers/generateActTemplate'
 import exportDocxFromTemplate from '@helpers/exportDocxFromTemplate'
 import getPersonFullName from '@helpers/getPersonFullName'
 import { useDeleteTransactionMutation } from '@helpers/useTransactionsQuery'
+import { isAdditionalEventOverdue } from '@helpers/additionalEvents'
 
 const normalizeAddressValue = (rawAddress) => {
   const normalized = { ...DEFAULT_ADDRESS }
@@ -1904,7 +1905,9 @@ const eventFunc = (
                           className={`w-full rounded border p-2 ${
                             item?.done
                               ? 'border-emerald-200 bg-emerald-50/70'
-                              : 'border-gray-200'
+                              : isAdditionalEventOverdue(item)
+                                ? 'border-red-300 bg-red-50'
+                                : 'border-gray-200'
                           }`}
                         >
                           <div className="flex items-start gap-2">

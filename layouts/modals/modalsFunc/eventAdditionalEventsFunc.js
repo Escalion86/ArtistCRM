@@ -11,6 +11,7 @@ import { faCircleCheck, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
+import { isAdditionalEventOverdue } from '@helpers/additionalEvents'
 
 const eventAdditionalEventsFunc = (eventId) => {
   const EventAdditionalEventsModal = () => {
@@ -143,7 +144,9 @@ const eventAdditionalEventsFunc = (eventId) => {
                 className={
                   item?.done
                     ? 'border-emerald-200 bg-emerald-50/60'
-                    : 'border-gray-200'
+                    : isAdditionalEventOverdue(item)
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-200'
                 }
               >
                 <div className="flex items-start gap-2">
@@ -172,10 +175,10 @@ const eventAdditionalEventsFunc = (eventId) => {
                     <div className="min-w-0 flex-1">
                     <div
                       className={`truncate text-sm font-semibold ${
-                        item?.done ? 'text-emerald-700' : 'text-gray-900'
+                        item?.done ? 'text-emerald-700' : isAdditionalEventOverdue(item) ? 'text-red-700' : 'text-gray-900'
                       }`}
                     >
-                      {item?.done ? '✓ ' : ''}
+                      {item?.done ? '✓ ' : isAdditionalEventOverdue(item) ? '⚠ ' : ''}
                       {item?.title || `Событие #${index + 1}`}
                     </div>
                     <div className="text-xs text-gray-600">
