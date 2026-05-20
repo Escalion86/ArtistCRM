@@ -123,8 +123,8 @@ export default function TasksScreen() {
       if (res?.success && Array.isArray(res.data)) {
         setEvents(res.data)
       }
-    } catch (e: any) {
-      setError(e?.message || 'Не удалось загрузить задачи')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Не удалось загрузить задачи')
     } finally {
       setLoading(false)
       setRefreshing(false)

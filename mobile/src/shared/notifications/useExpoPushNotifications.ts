@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
 import * as Notifications from 'expo-notifications'
-import * as Device from 'expo-device'
 import { Platform, AppState } from 'react-native'
 import { router } from 'expo-router'
 import { env } from '../config/env'
@@ -8,14 +7,15 @@ import { getAuthToken } from '../auth/tokenStore'
 
 // Configure notification handler
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
+  handleNotification: async (): Promise<Notifications.NotificationBehavior> => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    priority: Notifications.AndroidNotificationPriority.MAX,
   }),
 })
 
-const registerPushTokenOnServer = async (token) => {
+const registerPushTokenOnServer = async (token: string) => {
   try {
     const authToken = await getAuthToken()
     if (!authToken) return
@@ -28,9 +28,9 @@ const registerPushTokenOnServer = async (token) => {
       },
       body: JSON.stringify({
         pushToken: token,
-        deviceId: Device.deviceName || '',
+        deviceId: '',
         platform: Platform.OS,
-        appVersion: Device.osVersion || '',
+        appVersion: Platform.Version?.toString() || '',
       }),
     })
   } catch (error) {
@@ -38,7 +38,7 @@ const registerPushTokenOnServer = async (token) => {
   }
 }
 
-const unregisterPushTokenOnServer = async (token) => {
+const unregisterPushTokenOnServer = async (token: string) => {
   try {
     const authToken = await getAuthToken()
     if (!authToken) return
@@ -56,16 +56,13 @@ const unregisterPushTokenOnServer = async (token) => {
   }
 }
 
-const handleNotificationResponse = (response) => {
-  const data = response?.notification?.request?.content?.data
+const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+  const data = response?.notification?.request?.content?.data as Record<string, string> | undefined
   if (!data?.url) return
 
   const url = data.url
   if (url.includes('openEvent=')) {
-    const eventId = url.split('openEvent=')[1]?.split('&')[0]
-    if (eventId) {
-      router.push(`/(tabs)/events`)
-    }
+    router.push('/(tabs)/events')
   } else if (url.includes('/cabinet/')) {
     router.push('/(tabs)/tasks')
   } else {
@@ -74,13 +71,18 @@ const handleNotificationResponse = (response) => {
 }
 
 export const useExpoPushNotifications = () => {
-  const notificationListener = useRef(null)
-  const responseListener = useRef(null)
+  const notificationListener = useRef<Notifications.EventSubscription | null>(null)
+  const responseListener = useRef<Notifications.EventSubscription | null>(null)
   const appStateRef = useRef(AppState.currentState)
-  const pushTokenRef = useRef(null)
+  const pushTokenRef = useRef<string | null>(null)
 
-  const registerForPushNotifications = useCallback(async () => {
-    if (!Device.isDevice) {
+  const isDevice = () => {
+    // expo-device not available; assume true on mobile platforms
+    return Platform.OS === 'android' || Platform.OS === 'ios'
+  }
+
+  const registerForPushNotifications = useCallback(async (): Promise<string | null> => {
+    if (!isDevice()) {
       console.log('Push notifications require a physical device')
       return null
     }
@@ -100,7 +102,7 @@ export const useExpoPushNotifications = () => {
 
     try {
       const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: 'your-project-id',
+        projectId: '7676a13a-3d4a-4da0-ad23-5b4df7b3bb38',
       })
       const token = tokenData.data
 
@@ -125,21 +127,18 @@ export const useExpoPushNotifications = () => {
   useEffect(() => {
     registerForPushNotifications()
 
-    // Foreground notification listener
     notificationListener.current = Notifications.addNotificationReceivedListener(
-      (notification) => {
+      () => {
         // Notification will be shown automatically by the handler
       }
     )
 
-    // Notification tap listener
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         handleNotificationResponse(response)
       }
     )
 
-    // Re-register token when app comes to foreground
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (
         appStateRef.current.match(/inactive|background/) &&

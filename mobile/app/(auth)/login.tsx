@@ -6,6 +6,12 @@ import { setAuthToken } from '../../src/shared/auth/tokenStore'
 
 const api = createApiClient()
 
+type LoginResponse = {
+  success: boolean
+  token?: string
+  error?: string
+}
+
 export default function LoginScreen() {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -25,7 +31,7 @@ export default function LoginScreen() {
 
     setLoading(true)
     try {
-      const result = await api.post('/mobile/auth/login', {
+      const result = await api.post<LoginResponse>('/mobile/auth/login', {
         phone: phone.trim(),
         password: password.trim(),
       })
@@ -35,10 +41,10 @@ export default function LoginScreen() {
         return
       }
 
-      await setAuthToken(result.token)
+      await setAuthToken(result.token as string)
       router.replace('/(tabs)/tasks')
-    } catch (e: any) {
-      const msg = e?.message || ''
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : ''
       if (msg.includes('Неверный')) {
         setError('Неверный телефон или пароль')
       } else if (msg.includes('Укажите')) {
