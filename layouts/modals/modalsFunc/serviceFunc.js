@@ -8,7 +8,6 @@ import { DEFAULT_SERVICE } from '@helpers/constants'
 import compareArrays from '@helpers/compareArrays'
 import useErrors from '@helpers/useErrors'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
-import serviceSelector from '@state/selectors/serviceSelector'
 import { useEffect, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
 

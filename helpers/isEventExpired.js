@@ -1,9 +1,7 @@
 import getDiffBetweenDates from './getDiffBetweenDates'
-import serverSettingsAtom from '@state/atoms/serverSettingsAtom'
-import { getAtomValue } from '@state/storeHelpers'
 
 const isEventExpired = (event) => {
-  const serverDate = new Date(getAtomValue(serverSettingsAtom)?.dateTime)
+  const serverDate = new Date()
   return getDiffBetweenDates(event?.dateEnd, serverDate) >= 0
 }
 

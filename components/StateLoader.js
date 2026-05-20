@@ -1,13 +1,4 @@
-import { useAtom, useSetAtom } from 'jotai'
 
-import eventsAtom from '@state/atoms/eventsAtom'
-import clientsAtom from '@state/atoms/clientsAtom'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
-import servicesAtom from '@state/atoms/servicesAtom'
-import usersAtom from '@state/atoms/usersAtom'
-import tariffsAtom from '@state/atoms/tariffsAtom'
 import { useEffect, useRef } from 'react'
 import LoadingSpinner from '@components/LoadingSpinner'
 import ReleaseOnboardingCoach from '@components/ReleaseOnboardingCoach'
@@ -16,6 +7,7 @@ import isSiteLoadingAtom from '@state/atoms/isSiteLoadingAtom'
 import cn from 'classnames'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
+import { useLoggedUserQuery, useSiteSettingsQuery } from '@helpers/useEntityQueries'
 import { useWindowDimensionsRecoil } from '@helpers/useWindowDimensions'
 import { modalsFuncAtom } from '@state/atoms'
 import modalsFuncGenerator from '@layouts/modals/modalsFuncGenerator'
@@ -51,30 +43,23 @@ const StateLoader = (props) => {
   const queryClient = useQueryClient()
 
   const [modalFunc, setModalsFunc] = useAtom(modalsFuncAtom)
+  const { data: loggedUser } = useLoggedUserQuery()
+  const { data: siteSettingsData } = useSiteSettingsQuery()
 
   const [isSiteLoading, setIsSiteLoading] = useAtom(isSiteLoadingAtom)
 
   // const [mode, setMode] = useAtom(modeAtom)
 
-  const [loggedUser, setLoggedUser] = useAtom(loggedUserAtom)
 
-  const setEventsState = useSetAtom(eventsAtom)
-  const setClientsState = useSetAtom(clientsAtom)
-  const setTransactionsState = useSetAtom(transactionsAtom)
-  const [siteSettingsState, setSiteSettingsState] =
-    useAtom(siteSettingsAtom)
-  const setUsersState = useSetAtom(usersAtom)
   // const setRolesSettingsState = useSetAtom(rolesAtom)
   // const setHistoriesState = useSetAtom(historiesAtom)
   // const setQuestionnairesState = useSetAtom(questionnairesAtom)
   // const setQuestionnairesUsersState = useSetAtom(questionnairesUsersAtom)
-  const setServicesState = useSetAtom(servicesAtom)
-  const setTariffsState = useSetAtom(tariffsAtom)
   // const setServicesUsersState = useSetAtom(servicesUsersAtom)
   // const setServerSettingsState = useSetAtom(serverSettingsAtom)
 
   const setItemsFunc = useSetAtom(itemsFuncAtom)
-  const serverSyncDisabled = resolveServerSyncDisabled(siteSettingsState)
+  const serverSyncDisabled = resolveServerSyncDisabled(siteSettingsData)
   const eventActions = useEventActions()
   const clientActions = useClientActions()
 
@@ -98,7 +83,7 @@ const StateLoader = (props) => {
     return outputArray
   }
 
-  const customSettings = siteSettingsState?.custom
+  const customSettings = siteSettingsData?.custom
   const isTenantPushEnabled =
     (typeof customSettings?.get === 'function'
       ? customSettings.get('publicLeadPushEnabled')
@@ -118,7 +103,7 @@ const StateLoader = (props) => {
         loggedUser,
         { disableServerSync: serverSyncDisabled }
         // loggedUser,
-        // siteSettingsState,
+        // siteSettingsData,
       )
     )
   }, [
@@ -160,16 +145,6 @@ const StateLoader = (props) => {
       queryClient.setQueryData(queryKeys.loggedUser, props.loggedUser)
     }
 
-    // Keep Jotai atoms populated for backward compatibility during transition
-    setLoggedUser(props.loggedUser)
-    setEventsState(props.events)
-    setClientsState(props.clients)
-    setTransactionsState(props.transactions ?? [])
-    setServicesState(props.services ?? [])
-    setTariffsState(props.tariffs ?? [])
-    setUsersState(props.users ?? [])
-    setSiteSettingsState(props.siteSettings)
-
     setIsSiteLoading(false)
   }, [
     props.clients,
@@ -183,15 +158,7 @@ const StateLoader = (props) => {
     props.transactions,
     props.users,
     queryClient,
-    setClientsState,
-    setEventsState,
     setIsSiteLoading,
-    setLoggedUser,
-    setServicesState,
-    setTariffsState,
-    setUsersState,
-    setSiteSettingsState,
-    setTransactionsState,
   ])
 
   useEffect(() => {
@@ -483,10 +450,10 @@ const StateLoader = (props) => {
     if (!loggedUser?._id || onboardingShownRef.current) return
     const firstName = loggedUser?.firstName?.trim() ?? ''
     const secondName = loggedUser?.secondName?.trim() ?? ''
-    const town = siteSettingsState?.defaultTown?.trim() ?? ''
-    const timeZone = siteSettingsState?.timeZone ?? ''
+    const town = siteSettingsData?.defaultTown?.trim() ?? ''
+    const timeZone = siteSettingsData?.timeZone ?? ''
     const timeZoneConfirmed =
-      siteSettingsState?.custom?.timeZoneConfirmed === true
+      siteSettingsData?.custom?.timeZoneConfirmed === true
     const needsOnboarding =
       !firstName || !secondName || !town || !timeZone || !timeZoneConfirmed
 
@@ -498,9 +465,9 @@ const StateLoader = (props) => {
     loggedUser?._id,
     loggedUser?.firstName,
     loggedUser?.secondName,
-    siteSettingsState?.defaultTown,
-    siteSettingsState?.timeZone,
-    siteSettingsState?.custom?.timeZoneConfirmed,
+    siteSettingsData?.defaultTown,
+    siteSettingsData?.timeZone,
+    siteSettingsData?.custom?.timeZoneConfirmed,
     modalFunc,
   ])
 

@@ -11,15 +11,11 @@ import {
   TRANSACTION_PAYMENT_METHODS,
   TRANSACTION_TYPES,
 } from '@helpers/constants'
-import clientsAtom from '@state/atoms/clientsAtom'
-import eventsAtom from '@state/atoms/eventsAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useAtomValue } from 'jotai'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
-import { setAtomValue } from '@state/storeHelpers'
 import {
   useCreateTransactionMutation,
   useUpdateTransactionMutation,

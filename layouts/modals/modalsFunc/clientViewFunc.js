@@ -1,8 +1,5 @@
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
-import clientSelector from '@state/selectors/clientSelector'
-import eventsAtom from '@state/atoms/eventsAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'

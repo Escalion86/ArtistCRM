@@ -1,10 +1,8 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSetAtom } from 'jotai'
 import { apiJson } from '@helpers/apiClient'
 import { queryKeys } from '@helpers/queryKeys'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 
 const normalizeTransactionsPayload = (payload) =>
   Array.isArray(payload?.data) ? payload.data : []
@@ -26,7 +24,6 @@ const upsertTransaction = (items, transaction) => {
 
 export const useCreateTransactionMutation = () => {
   const queryClient = useQueryClient()
-  const setTransactions = useSetAtom(transactionsAtom)
 
   return useMutation({
     mutationFn: async (payload) =>
@@ -50,7 +47,6 @@ export const useCreateTransactionMutation = () => {
 
 export const useUpdateTransactionMutation = () => {
   const queryClient = useQueryClient()
-  const setTransactions = useSetAtom(transactionsAtom)
 
   return useMutation({
     mutationFn: async ({ transactionId, payload }) =>
@@ -74,7 +70,6 @@ export const useUpdateTransactionMutation = () => {
 
 export const useDeleteTransactionMutation = () => {
   const queryClient = useQueryClient()
-  const setTransactions = useSetAtom(transactionsAtom)
 
   return useMutation({
     mutationFn: async (transactionId) =>
@@ -88,7 +83,6 @@ export const useDeleteTransactionMutation = () => {
           ? prev.filter((item) => item?._id !== transactionId)
           : prev
       queryClient.setQueryData(queryKeys.transactionsAll, removeTransaction)
-      setTransactions(removeTransaction)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })

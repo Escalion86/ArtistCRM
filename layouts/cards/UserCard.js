@@ -10,10 +10,6 @@ import getUserAvatarSrc from '@helpers/getUserAvatarSrc'
 import modalsFuncAtom from '@state/atoms/modalsFuncAtom'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
-import userSelector from '@state/selectors/userSelector'
-import { useAtomValue } from 'jotai'
-import tariffsAtom from '@state/atoms/tariffsAtom'
-import eventsAtom from '@state/atoms/eventsAtom'
 import formatDate from '@helpers/formatDate'
 import CardWrapper from '@components/CardWrapper'
 
@@ -22,8 +18,9 @@ const UserCard = ({ userId, hidden = false, style }) => {
   const user = useAtomValue(userSelector(userId))
   const loading = useAtomValue(loadingAtom('user' + userId))
   const error = useAtomValue(errorAtom('user' + userId))
-  const tariffs = useAtomValue(tariffsAtom)
-  const events = useAtomValue(eventsAtom)
+  const { data: tariffs } = useTariffsQuery()
+  const { data: eventsData } = useEventsQuery({ scope: 'all' })
+  const events = eventsData?.data
   // const widthNum = useWindowDimensionsTailwindNum()
   // const itemFunc = useAtomValue(itemsFuncAtom)
 

@@ -2,15 +2,12 @@
 import Burger from '@components/Burger'
 import { faSignInAlt } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import menuOpenAtom from '@state/atoms/menuOpen'
-import filteredEventsSelector from '@state/selectors/filteredEventsSelector'
 import cn from 'classnames'
 import Link from 'next/link'
 import { useAtomValue, useSetAtom } from 'jotai'
 import Avatar from './Avatar'
 import UserMenu from './UserMenu'
-import filteredServicesSelector from '@state/selectors/filteredServicesSelector'
 
 const MenuItem = ({ text, href = '#' }) => (
   <li>
@@ -40,7 +37,7 @@ const BurgerMenuItem = ({ text, href = '#' }) => {
 
 
 const Header = ({ noMenu }) => {
-  const loggedUser = useAtomValue(loggedUserAtom)
+  const { data: loggedUser } = useLoggedUserQuery()
   const events = useAtomValue(filteredEventsSelector)
   const services = useAtomValue(filteredServicesSelector)
 

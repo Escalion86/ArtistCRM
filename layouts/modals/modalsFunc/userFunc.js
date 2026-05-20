@@ -16,10 +16,6 @@ import {
 } from '@helpers/socialInput'
 import useErrors from '@helpers/useErrors'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import usersAtom from '@state/atoms/usersAtom'
-import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
-import userSelector from '@state/selectors/userSelector'
 import { useEffect, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 

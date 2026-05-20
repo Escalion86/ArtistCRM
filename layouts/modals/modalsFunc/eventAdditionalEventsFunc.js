@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { useAtomValue } from 'jotai'
-import eventSelector from '@state/selectors/eventSelector'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import SurfaceCard from '@components/SurfaceCard'

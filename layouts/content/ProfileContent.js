@@ -14,9 +14,6 @@ import {
 } from '@helpers/socialInput'
 import useErrors from '@helpers/useErrors'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import usersAtom from '@state/atoms/usersAtom'
-import { useAtom, useAtomValue } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import { modalsFuncAtom } from '@state/atoms'
 

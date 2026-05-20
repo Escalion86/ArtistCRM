@@ -5,8 +5,6 @@ import FormWrapper from '@components/FormWrapper'
 import AppButton from '@components/AppButton'
 import Input from '@components/Input'
 import LabeledContainer from '@components/LabeledContainer'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { postData } from '@helpers/CRUD'
 import getPersonFullName from '@helpers/getPersonFullName'
 

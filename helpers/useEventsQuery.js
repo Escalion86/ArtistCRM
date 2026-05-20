@@ -2,11 +2,8 @@
 
 import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSetAtom } from 'jotai'
 import { apiJson } from '@helpers/apiClient'
 import { queryKeys } from '@helpers/queryKeys'
-import eventsAtom from '@state/atoms/eventsAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 
 const normalizeEventsPayload = (payload, fallbackMeta = {}) => ({
   data: Array.isArray(payload?.data) ? payload.data : [],
@@ -95,8 +92,6 @@ export const useEventQuery = (eventId, initialData) =>
 
 export const useLoadMorePastEventsMutation = () => {
   const queryClient = useQueryClient()
-  const setEvents = useSetAtom(eventsAtom)
-  const setTransactions = useSetAtom(transactionsAtom)
 
   return useMutation({
     mutationFn: async ({ before, limit = 120 } = {}) => {
@@ -137,7 +132,6 @@ export const useLoadMorePastEventsMutation = () => {
 
 export const useEventActions = () => {
   const queryClient = useQueryClient()
-  const setEvents = useSetAtom(eventsAtom)
 
   const { mutateAsync: saveEvent } = useMutation({
     mutationFn: async ({ item, clone } = {}) => {

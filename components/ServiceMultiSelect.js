@@ -2,8 +2,6 @@ import PropTypes from 'prop-types'
 import CheckBox from '@components/CheckBox'
 import AddIconButton from '@components/AddIconButton'
 import InputWrapper from '@components/InputWrapper'
-import servicesAtom from '@state/atoms/servicesAtom'
-import { useAtomValue } from 'jotai'
 
 const ServiceMultiSelect = ({
   value,
@@ -13,7 +11,7 @@ const ServiceMultiSelect = ({
   required,
   onClearError,
 }) => {
-  const services = useAtomValue(servicesAtom)
+  const { data: services } = useServicesQuery()
   const selectedIds = Array.isArray(value) ? value : []
 
   const toggleService = (serviceId) => {

@@ -12,7 +12,6 @@ import { eventKeys } from './historyKeyValuesItems/keys'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import dateToDateTimeStr from '@helpers/dateToDateTimeStr'
-import eventSelector from '@state/selectors/eventSelector'
 import formatAddress from '@helpers/formatAddress'
 
 const eventHistoryFunc = (eventId) => {

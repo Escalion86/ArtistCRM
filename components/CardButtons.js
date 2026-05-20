@@ -15,10 +15,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { EVENT_STATUSES, SERVICE_USER_STATUSES } from '@helpers/constants'
 import { modalsFuncAtom } from '@state/atoms'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import windowDimensionsTailwindSelector from '@state/selectors/windowDimensionsTailwindSelector'
 import cn from 'classnames'
-import { useAtomValue } from 'jotai'
 import CardButton from './CardButton'
 import DropDown from './DropDown'
 import useCopyToClipboard from '@helpers/useCopyToClipboard'
@@ -128,7 +125,7 @@ const CardButtons = ({
   showStatusButton = true,
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
-  const loggedUser = useAtomValue(loggedUserAtom)
+  const { data: loggedUser } = useLoggedUserQuery()
   const device = useAtomValue(windowDimensionsTailwindSelector)
 
   const canManageUsers = ['dev', 'admin'].includes(loggedUser?.role)

@@ -9,16 +9,12 @@ import { pages, pagesGroups } from '@helpers/constants'
 import isPageAllowedForRole from '@helpers/pageAccess'
 import menuOpenAtom from '@state/atoms/menuOpen'
 import windowDimensionsAtom from '@state/atoms/windowDimensionsAtom'
-import windowDimensionsTailwindSelector from '@state/selectors/windowDimensionsTailwindSelector'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
-// import badgesSelector from '@state/selectors/badgesSelector'
+// import { useAtom, useAtomValue } from 'jotai'
 import cn from 'classnames'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { useAtom, useAtomValue } from 'jotai'
-import { additionalEventsOverdueCountAtom } from '@state/selectors/additionalEventsOverdueCountAtom'
 
 const menuCfg = (role) => {
   // const visiblePages = pages.filter((page) => )
@@ -275,8 +271,8 @@ const SideBar = ({ page }) => {
   const [pendingPage, setPendingPage] = useState(null)
   const { height } = useAtomValue(windowDimensionsAtom)
   const device = useAtomValue(windowDimensionsTailwindSelector)
-  const loggedUser = useAtomValue(loggedUserAtom)
-  const overdueAdditionalCount = useAtomValue(additionalEventsOverdueCountAtom)
+  const { data: loggedUser } = useLoggedUserQuery()
+  const overdueAdditionalCount = 0 // TODO: migrate to React Query if needed
   const role = loggedUser?.role ?? 'user'
   const isMobile =
     device === 'phoneV' || device === 'phoneH' || device === 'tablet'

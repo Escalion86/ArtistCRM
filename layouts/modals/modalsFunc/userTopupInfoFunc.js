@@ -1,7 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import FormWrapper from '@components/FormWrapper'
 import UserName from '@components/UserName'
-import userSelector from '@state/selectors/userSelector'
 import { useEffect } from 'react'
 import { useAtomValue } from 'jotai'
 

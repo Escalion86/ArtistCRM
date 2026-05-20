@@ -13,17 +13,14 @@ import CabinetWrapper from '@layouts/wrappers/CabinetWrapper'
 import ContentWrapper from '@layouts/wrappers/ContentWrapper'
 // import fetchProps from '@server/fetchProps'
 // import loggedUserActiveStatusAtom from '@state/atoms/loggedUserActiveStatusAtom'
-// import loggedUserAtom from '@state/atoms/loggedUserAtom'
-// import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
-// import { getSession } from 'next-auth/react'
+// // // import { getSession } from 'next-auth/react'
 import Head from 'next/head'
 // import { useRouter } from 'next/router'
 import { Provider } from 'jotai'
 import store from '@state/store'
 import { useEffect, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
-// import { useAtomValue } from 'jotai'
-
+// 
 // const SuspenseChild = () => (
 //   <div className="z-10 flex h-[calc(100vh-4rem)] w-full items-center justify-center">
 //     <LoadingSpinner text="идет загрузка...." />

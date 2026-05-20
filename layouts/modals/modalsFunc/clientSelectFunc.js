@@ -1,6 +1,5 @@
 import Input from '@components/Input'
 import getPersonFullName from '@helpers/getPersonFullName'
-import clientsAtom from '@state/atoms/clientsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useState } from 'react'
 import { useAtomValue } from 'jotai'

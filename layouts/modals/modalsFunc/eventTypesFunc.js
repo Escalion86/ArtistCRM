@@ -6,8 +6,6 @@ import FormWrapper from '@components/FormWrapper'
 import Button from '@components/Button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { postData } from '@helpers/CRUD'
 import compareObjects from '@helpers/compareObjects'
 

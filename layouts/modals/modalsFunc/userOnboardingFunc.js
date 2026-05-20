@@ -3,8 +3,6 @@ import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
 import { postData } from '@helpers/CRUD'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 

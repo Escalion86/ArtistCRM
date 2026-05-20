@@ -670,7 +670,7 @@ body.theme-dark .MuiTabs-indicator {
 /* CLS: content-visibility for below-the-fold sections */
 .home-page section:nth-child(n+3) {
   content-visibility: auto;
-  contain-intrinsic-size: auto 600px;
+  contain-intrinsic-size: 0 600px;
 }
 
 /* CLS: ensure animated elements are not hidden by content-visibility */
@@ -683,30 +683,6 @@ body.theme-dark .MuiTabs-indicator {
 /* CLS: aspect-ratio fallback for images */
 .home-page img {
   aspect-ratio: auto;
-}
-
-
-/* CLS: reserve space for dynamic pricing section to prevent layout shift */
-.home-page #pricing {
-  min-height: 400px;
-}
-
-/* CLS: reserve space for hero section content area */
-.home-page .home-hero-bg + section {
-  min-height: 500px;
-}
-
-/* CLS: prevent shift from font loading - ensure text wraps consistently */
-.home-page h1,
-.home-page h2,
-.home-page h3 {
-  overflow-wrap: break-word;
-  text-wrap: balance;
-}
-
-/* CLS: reserve space for CTA buttons row */
-.home-page .landing-reveal .ui-btn {
-  min-height: 44px;
 }
 
 .mask-bottom {
@@ -1125,12 +1101,4 @@ body.theme-dark .statistics-tooltip {
   background-color: #16120d;
   border-color: #3b2f1d;
   color: #e2e8f0;
-}
-
-/* Font utility classes */
-.font-futuraPT {
-  font-family: 'Futura PT', 'Futura PT Fallback', 'Trebuchet MS', sans-serif;
-}
-.font-inter-tight {
-  font-family: 'Inter Tight', 'Inter Tight Fallback', 'Arial', sans-serif;
 }

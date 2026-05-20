@@ -11,11 +11,7 @@ import EventCheckToggleButtons from '@components/IconToggleButtons/EventCheckTog
 import EventStatusToggleButtons from '@components/IconToggleButtons/EventStatusToggleButtons'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
-import eventsAtom from '@state/atoms/eventsAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
-// import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
-import { useAtomValue, useSetAtom } from 'jotai'
-import { modalsFuncAtom, modalsAtom } from '@state/atoms'
+// import { modalsFuncAtom, modalsAtom } from '@state/atoms'
 import EventCard from '@layouts/cards/EventCard'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import {

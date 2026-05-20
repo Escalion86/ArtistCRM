@@ -1,20 +1,14 @@
 'use client'
 
 // import cn from 'classnames'
-import { useAtomValue } from 'jotai'
 import { useMemo } from 'react'
 import Image from 'next/image'
 import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
 import { modalsFuncAtom } from '@state/atoms'
-import transactionsAtom from '@state/atoms/transactionsAtom'
-import eventSelector from '@state/selectors/eventSelector'
-import clientSelector from '@state/selectors/clientSelector'
-import servicesAtom from '@state/atoms/servicesAtom'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faShare,

@@ -2,7 +2,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAtom } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
 import HeaderActions from '@components/HeaderActions'
 import Input from '@components/Input'
@@ -11,7 +10,6 @@ import ComboBox from '@components/ComboBox'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import LabeledContainer from '@components/LabeledContainer'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { postData } from '@helpers/CRUD'
 import {
   resolveServerSyncDisabled,
@@ -42,7 +40,7 @@ const TIME_ZONE_OPTIONS = [
 
 const SettingsContent = () => {
   const { data: siteSettings = {} } = useSiteSettingsQuery()
-  const [siteSettingsState, setSiteSettings] = useAtom(siteSettingsAtom)
+  const { data: siteSettingsState } = useSiteSettingsQuery()
   const [darkTheme, setDarkTheme] = useState(false)
   const [defaultEventDuration, setDefaultEventDuration] = useState(60)
   const [queuedChangesCount, setQueuedChangesCount] = useState(0)

@@ -2,12 +2,8 @@
 
 import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSetAtom } from 'jotai'
 import { apiJson } from '@helpers/apiClient'
 import { queryKeys } from '@helpers/queryKeys'
-import clientsAtom from '@state/atoms/clientsAtom'
-import eventsAtom from '@state/atoms/eventsAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 
 const normalizeListPayload = (payload) =>
   Array.isArray(payload?.data) ? payload.data : []
@@ -70,8 +66,6 @@ export const useClientQuery = (clientId, initialData) =>
 
 export const useClientRelationsQuery = (clientId) => {
   const queryClient = useQueryClient()
-  const setEvents = useSetAtom(eventsAtom)
-  const setTransactions = useSetAtom(transactionsAtom)
 
   return useQuery({
     queryKey: queryKeys.clientRelations(clientId),
@@ -105,7 +99,6 @@ export const useClientRelationsQuery = (clientId) => {
 
 export const useClientActions = () => {
   const queryClient = useQueryClient()
-  const setClients = useSetAtom(clientsAtom)
 
   const { mutateAsync: saveClient } = useMutation({
     mutationFn: async ({ item, clone } = {}) => {

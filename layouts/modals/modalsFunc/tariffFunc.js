@@ -5,7 +5,6 @@ import IconCheckBox from '@components/IconCheckBox'
 import { DEFAULT_TARIFF } from '@helpers/constants'
 import useErrors from '@helpers/useErrors'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
-import tariffSelector from '@state/selectors/tariffSelector'
 import { useCallback, useEffect, useState } from 'react'
 import { useAtomValue } from 'jotai'
 

@@ -15,9 +15,7 @@ import {
   getUpcomingEventsByDays,
 } from '@helpers/additionalEvents'
 import { modalsFuncAtom } from '@state/atoms'
-import eventsAtom from '@state/atoms/eventsAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 import { useAtomValue } from 'jotai'
 import { useMemo, useState } from 'react'
 

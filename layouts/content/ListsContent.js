@@ -1,12 +1,10 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
 import HeaderActions from '@components/HeaderActions'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
@@ -30,7 +28,7 @@ const normalizeEventTypes = (eventTypes = []) =>
   ).sort((a, b) => a.localeCompare(b, 'ru'))
 
 const ListsContent = () => {
-  const siteSettings = useAtomValue(siteSettingsAtom)
+  const { data: siteSettings } = useSiteSettingsQuery()
   const modalsFunc = useAtomValue(modalsFuncAtom)
 
   const townsOptions = useMemo(

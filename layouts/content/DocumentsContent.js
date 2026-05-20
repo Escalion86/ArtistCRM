@@ -1,15 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAtom, useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
 import HeaderActions from '@components/HeaderActions'
 import LabeledContainer from '@components/LabeledContainer'
 import SectionCard from '@components/SectionCard'
 import ReactMarkdown from 'react-markdown'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
-import tariffsAtom from '@state/atoms/tariffsAtom'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
@@ -108,9 +104,9 @@ const DocxDocumentsGuide = () => {
 }
 
 const DocumentsContent = () => {
-  const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
-  const tariffs = useAtomValue(tariffsAtom)
-  const loggedUser = useAtomValue(loggedUserAtom)
+  const { data: siteSettings } = useSiteSettingsQuery()
+  const { data: tariffs } = useTariffsQuery()
+  const { data: loggedUser } = useLoggedUserQuery()
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const contractTemplateInputRef = useRef(null)
   const actTemplateInputRef = useRef(null)

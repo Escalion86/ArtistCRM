@@ -1,7 +1,5 @@
 import { useMemo } from 'react'
 import { useAtomValue } from 'jotai'
-import clientSelector from '@state/selectors/clientSelector'
-import eventsAtom from '@state/atoms/eventsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import formatDate from '@helpers/formatDate'
 import formatDateTime from '@helpers/formatDateTime'

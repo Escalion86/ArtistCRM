@@ -4,7 +4,6 @@ import Search from '@components/Search'
 import filterItems from '@helpers/filterItems'
 import isObject from '@helpers/isObject'
 import ListWrapper from '@layouts/lists/ListWrapper'
-import usersAtom from '@state/atoms/usersAtom'
 import { useCallback, useEffect, useState } from 'react'
 import { useAtomValue } from 'jotai'
 

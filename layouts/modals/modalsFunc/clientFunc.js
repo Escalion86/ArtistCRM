@@ -12,9 +12,7 @@ import {
   normalizeVkInput,
 } from '@helpers/socialInput'
 import useErrors from '@helpers/useErrors'
-import clientSelector from '@state/selectors/clientSelector'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
-import clientsAtom from '@state/atoms/clientsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'

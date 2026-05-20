@@ -5,12 +5,10 @@
 import Link from 'next/link'
 import UserMenu from './UserMenu'
 import useUiDensity from '@helpers/useUiDensity'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import { useAtomValue } from 'jotai'
 
 const CabinetHeader = ({ title = '', titleLink, icon }) => {
   const { isCompact, toggleMode } = useUiDensity()
-  const loggedUser = useAtomValue(loggedUserAtom)
+  const { data: loggedUser } = useLoggedUserQuery()
   const isDev = loggedUser?.role === 'dev'
 
   return (

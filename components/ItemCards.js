@@ -5,16 +5,11 @@ import birthDateToAge from '@helpers/birthDateToAge'
 import { EVENT_STATUSES_WITH_TIME, GENDERS } from '@helpers/constants'
 import eventStatusFunc from '@helpers/eventStatus'
 import getUserAvatarSrc from '@helpers/getUserAvatarSrc'
-import serverSettingsAtom from '@state/atoms/serverSettingsAtom'
 // import eventFullAtomAsync from '@state/async/eventFullAtomAsync'
-import userSelector from '@state/selectors/userSelector'
 import cn from 'classnames'
-import { useAtomValue } from 'jotai'
 import DateTimeEvent from './DateTimeEvent'
 import TextLinesLimiter from './TextLinesLimiter'
 import UserName from './UserName'
-import serviceSelector from '@state/selectors/serviceSelector'
-import eventSelector from '@state/selectors/eventSelector'
 import Image from 'next/image'
 import formatAddress from '@helpers/formatAddress'
 
@@ -100,7 +95,7 @@ export const UserItem = ({
   children,
   nameFieldWrapperClassName,
 }) => {
-  const serverDate = new Date(useAtomValue(serverSettingsAtom)?.dateTime)
+  const serverDate = new Date()
 
   const seeBirthday = true
 

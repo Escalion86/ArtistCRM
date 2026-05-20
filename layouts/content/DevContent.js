@@ -7,12 +7,10 @@ import HeaderActions from '@components/HeaderActions'
 import IconCheckBox from '@components/IconCheckBox'
 import SectionCard from '@components/SectionCard'
 import Input from '@components/Input'
-import { useAtom } from 'jotai'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { postData } from '@helpers/CRUD'
 
 const DevContent = () => {
-  const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
+  const { data: siteSettings } = useSiteSettingsQuery()
   const forceFullSync = true
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

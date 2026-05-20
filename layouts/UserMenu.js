@@ -18,8 +18,6 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import Avatar from './Avatar'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import tariffsAtom from '@state/atoms/tariffsAtom'
 import { getNounDays } from '@helpers/getNoun'
 import { modalsFuncAtom } from '@state/atoms'
 import Button from '@components/Button'
@@ -77,8 +75,8 @@ const UserMenu = () => {
   const [isUserMenuOpened, setIsUserMenuOpened] = useState(false)
   const [turnOnHandleMouseOver, setTurnOnHandleMouseOver] = useState(true)
   const [nowTs] = useState(() => Date.now())
-  const loggedUser = useAtomValue(loggedUserAtom)
-  const tariffs = useAtomValue(tariffsAtom)
+  const { data: loggedUser } = useLoggedUserQuery()
+  const { data: tariffs } = useTariffsQuery()
   const modalsFunc = useAtomValue(modalsFuncAtom)
 
   const selectedTariffTitle = useMemo(() => {

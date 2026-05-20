@@ -1,12 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { postData } from '@helpers/CRUD'
 import { modalsFuncAtom } from '@state/atoms'
-import eventsAtom from '@state/atoms/eventsAtom'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import servicesAtom from '@state/atoms/servicesAtom'
-import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import cn from 'classnames'
-import { useAtom, useAtomValue } from 'jotai'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -25,10 +20,10 @@ const hasAdditionalEvents = (events = []) =>
 const ReleaseOnboardingCoach = () => {
   const router = useRouter()
   const modalsFunc = useAtomValue(modalsFuncAtom)
-  const loggedUser = useAtomValue(loggedUserAtom)
-  const services = useAtomValue(servicesAtom)
-  const events = useAtomValue(eventsAtom)
-  const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
+  const { data: loggedUser } = useLoggedUserQuery()
+  const { data: services } = useServicesQuery()
+  const { data: events } = useEventsQuery({ scope: 'all' })
+  const { data: siteSettings } = useSiteSettingsQuery()
   const [collapsed, setCollapsed] = useState(false)
   const [showPreviousSteps, setShowPreviousSteps] = useState(false)
   const [selectedStepIndex, setSelectedStepIndex] = useState(null)

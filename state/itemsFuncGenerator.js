@@ -1,7 +1,6 @@
 import { postData, putData, deleteData } from '@helpers/CRUD'
 import isSiteLoadingAtom from './atoms/isSiteLoadingAtom'
 
-import { getAtomValue, setAtomValue } from '@state/storeHelpers'
 import addErrorModalSelector from './selectors/addErrorModalSelector'
 import setLoadingSelector from './selectors/setLoadingSelector'
 import setNotLoadingSelector from './selectors/setNotLoadingSelector'
@@ -156,26 +155,11 @@ const messages = {
   // },
 }
 
-const setFunc = (atom) => (value) => setAtomValue(atom, value)
 
 const createLocalId = (itemName) =>
   `local-${itemName}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 
-const atomByItemName = {
-  event: eventsAtom,
-  client: clientsAtom,
-  service: servicesAtom,
-  user: usersAtom,
-  tariff: tariffsAtom,
-}
 
-const getCurrentItemById = (itemName, itemId) => {
-  const sourceAtom = atomByItemName[itemName]
-  if (!sourceAtom || !itemId) return null
-  const list = getAtomValue(sourceAtom)
-  if (!Array.isArray(list)) return null
-  return list.find((item) => item?._id === itemId) ?? null
-}
 
 // const setFamilyFunc = (selector) => (id, value) =>
 //   setRecoil(selector(id), value)
@@ -187,12 +171,6 @@ const props = {
   setNotLoadingCard: setFunc(setNotLoadingSelector),
   setErrorCard: setFunc(setErrorSelector),
   setNotErrorCard: setFunc(setNotErrorSelector),
-  setEvent: setFunc(eventEditSelector),
-  deleteEvent: setFunc(eventDeleteSelector),
-  setClient: setFunc(clientEditSelector),
-  deleteClient: setFunc(clientDeleteSelector),
-  setUser: setFunc(userEditSelector),
-  setTariff: setFunc(tariffEditSelector),
 
   // setEventsUsers: setFamilyFunc(setEventsUsersSelector),
   // updateEventsUsers: setFamilyFunc(updateEventsUsersSelector),
@@ -205,10 +183,6 @@ const props = {
   // deleteQuestionnaire: setFunc(questionnaireDeleteSelector),
   // setQuestionnaireUsers: setFunc(questionnaireUsersEditSelector),
   // deleteQuestionnaireUsers: setFunc(questionnaireUsersDeleteSelector),
-  setService: setFunc(serviceEditSelector),
-  deleteService: setFunc(serviceDeleteSelector),
-  deleteUser: setFunc(userDeleteSelector),
-  deleteTariff: setFunc(tariffDeleteSelector),
   // setServicesUser: setFunc(servicesUsersEditSelector),
   // deleteServicesUser: setFunc(servicesUsersDeleteSelector),
   // setRoles: setFunc(rolesAtom),
@@ -252,10 +226,12 @@ const itemsFuncGenerator = (
         set: async (item, clone, noSnackbar) => {
           if (disableServerSync) {
             const localId = item?._id && !clone ? item._id : createLocalId(itemName)
-            const prevItem =
-              item?._id && !clone ? getCurrentItemById(itemName, item._id) : null
             const localItem = {
-              ...(prevItem ?? {}),
+              ...(item ?? {}),
+              _id: localId,
+              _localOnly: true,
+              _localUpdatedAt: new Date().toISOString(),
+            }),
               ...item,
               _id: localId,
               _localOnly: true,
