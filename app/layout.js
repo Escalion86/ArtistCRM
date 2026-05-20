@@ -1,8 +1,6 @@
 import './globals.css'
 import './burger.css'
 import '../fonts/InterTight.css'
-import '../fonts/Buyan.css'
-import '../fonts/Montserrat.css'
 import '../fonts/FuturaPT.css'
 
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter'
