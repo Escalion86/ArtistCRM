@@ -491,8 +491,8 @@ const eventViewFunc = (eventId) => {
                         </div>
                       ) : null}
                     </div>
-                  )
-                  }})
+                  }))}
+                </div>
               </SectionBlock>
             )}
             {event?.address && event.address?.town && event.address?.street && (
