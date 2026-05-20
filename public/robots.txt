@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /cabinet
+Disallow: /api/
+Disallow: /event/
+
+Sitemap: https://artistcrm.ru/sitemap.xml

@@ -231,11 +231,6 @@ const itemsFuncGenerator = (
               _id: localId,
               _localOnly: true,
               _localUpdatedAt: new Date().toISOString(),
-            }),
-              ...item,
-              _id: localId,
-              _localOnly: true,
-              _localUpdatedAt: new Date().toISOString(),
             }
             if (item?._id && !clone) setLoadingCard(itemName + item._id)
             props['set' + capitalizeFirstLetter(itemName)](localItem)
