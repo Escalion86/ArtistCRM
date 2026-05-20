@@ -133,14 +133,7 @@ const StateLoader = (props) => {
   ])
 
   useEffect(() => {
-    setLoggedUser(props.loggedUser)
-    setEventsState(props.events)
-    setClientsState(props.clients)
-    setTransactionsState(props.transactions ?? [])
-    setServicesState(props.services ?? [])
-    setTariffsState(props.tariffs ?? [])
-    setUsersState(props.users ?? [])
-    setSiteSettingsState(props.siteSettings)
+    // Seed React Query cache with SSR props for all server data collections
     queryClient.setQueryData(
       queryKeys.events({
         scope:
@@ -159,6 +152,24 @@ const StateLoader = (props) => {
     )
     queryClient.setQueryData(queryKeys.clients(), props.clients ?? [])
     queryClient.setQueryData(queryKeys.transactionsAll, props.transactions ?? [])
+    queryClient.setQueryData(queryKeys.services(), props.services ?? [])
+    queryClient.setQueryData(queryKeys.tariffs(), props.tariffs ?? [])
+    queryClient.setQueryData(queryKeys.users(), props.users ?? [])
+    queryClient.setQueryData(queryKeys.siteSettings, props.siteSettings ?? {})
+    if (props.loggedUser) {
+      queryClient.setQueryData(queryKeys.loggedUser, props.loggedUser)
+    }
+
+    // Keep Jotai atoms populated for backward compatibility during transition
+    setLoggedUser(props.loggedUser)
+    setEventsState(props.events)
+    setClientsState(props.clients)
+    setTransactionsState(props.transactions ?? [])
+    setServicesState(props.services ?? [])
+    setTariffsState(props.tariffs ?? [])
+    setUsersState(props.users ?? [])
+    setSiteSettingsState(props.siteSettings)
+
     setIsSiteLoading(false)
   }, [
     props.clients,
