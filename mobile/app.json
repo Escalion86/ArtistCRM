@@ -6,6 +6,12 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1c1d1f"
+    },
     "plugins": ["expo-router", "expo-secure-store", "expo-notifications"],
     "experiments": {
       "typedRoutes": true
@@ -16,6 +22,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#f7efe1"
       },
       "package": "ru.escalion.artistcrm",
@@ -24,6 +31,15 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ]
-    }
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7676a13a-3d4a-4da0-ad23-5b4df7b3bb38"
+      }
+    },
+    "owner": "escalion"
   }
 }
