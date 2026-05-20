@@ -11,13 +11,13 @@ import SectionCard from '@components/SectionCard'
 import TariffCard from '@layouts/cards/TariffCard'
 import { modalsFuncAtom } from '@state/atoms'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
-import tariffsAtom from '@state/atoms/tariffsAtom'
 import { useAtomValue } from 'jotai'
 import useUiDensity from '@helpers/useUiDensity'
+import { useTariffsQuery } from '@helpers/useEntityQueries'
 
 const TariffsContent = () => {
   const { isCompact } = useUiDensity()
-  const tariffs = useAtomValue(tariffsAtom)
+  const { data: tariffs = [] } = useTariffsQuery()
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
   const itemHeight = isCompact ? 136 : 156
@@ -82,7 +82,7 @@ const TariffsContent = () => {
             rowHeight={itemHeight}
             rowComponent={RowComponent}
             rowProps={{}}
-                                    style={{ height: '100%', width: '100%' }}
+            style={{ height: '100%', width: '100%' }}
           />
         ) : (
           <EmptyState text="Тарифы не настроены" bordered={false} />

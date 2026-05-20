@@ -9,14 +9,14 @@ import HeaderActions from '@components/HeaderActions'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import ServiceCard from '@layouts/cards/ServiceCard'
-import servicesAtom from '@state/atoms/servicesAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useAtomValue } from 'jotai'
 import useUiDensity from '@helpers/useUiDensity'
+import { useServicesQuery } from '@helpers/useEntityQueries'
 
 const ServicesContent = () => {
   const { isCompact } = useUiDensity()
-  const services = useAtomValue(servicesAtom)
+  const { data: services = [] } = useServicesQuery()
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const itemHeight = isCompact ? 138 : 160
 
@@ -62,7 +62,7 @@ const ServicesContent = () => {
             rowHeight={itemHeight}
             rowComponent={RowComponent}
             rowProps={{}}
-                                    style={{ height: '100%', width: '100%' }}
+            style={{ height: '100%', width: '100%' }}
           />
         ) : (
           <EmptyState text="Услуги не найдены" bordered={false} />

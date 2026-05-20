@@ -3,7 +3,6 @@
 
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { Bar } from '@nivo/bar'
-import { useAtomValue } from 'jotai'
 import ContentHeader from '@components/ContentHeader'
 import ComboBox from '@components/ComboBox'
 import Button from '@components/Button'
@@ -11,18 +10,14 @@ import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import SectionCard from '@components/SectionCard'
 import SurfaceCard from '@components/SurfaceCard'
-import clientsAtom from '@state/atoms/clientsAtom'
-import servicesAtom from '@state/atoms/servicesAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
-import eventsAtom from '@state/atoms/eventsAtom'
-import tariffsAtom from '@state/atoms/tariffsAtom'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { MONTHS_FULL_1, TRANSACTION_CATEGORIES } from '@helpers/constants'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { useRouter } from 'next/navigation'
 import formatAddress from '@helpers/formatAddress'
 import getPersonFullName from '@helpers/getPersonFullName'
 import { useStatisticsQuery } from '@helpers/useStatisticsQuery'
+import { useTariffsQuery } from '@helpers/useEntityQueries'
+import { useLoggedUserQuery } from '@helpers/useEntityQueries'
 
 const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
 const ALL_TOWNS_OPTION = 'Все города'
@@ -64,18 +59,9 @@ const formatCurrency = (value) =>
   `${Number(value || 0).toLocaleString('ru-RU')} ₽`
 
 const StatisticsContent = () => {
-  const transactionsRaw = useAtomValue(transactionsAtom)
-  const eventsRaw = useAtomValue(eventsAtom)
-  const clientsRaw = useAtomValue(clientsAtom)
-  const servicesRaw = useAtomValue(servicesAtom)
-  const tariffsRaw = useAtomValue(tariffsAtom)
-  const loggedUser = useAtomValue(loggedUserAtom)
-  const statisticsQuery = useStatisticsQuery({
-    transactions: transactionsRaw,
-    events: eventsRaw,
-    clients: clientsRaw,
-    services: servicesRaw,
-  })
+  const { data: loggedUser = null } = useLoggedUserQuery()
+  const { data: tariffsRaw = [] } = useTariffsQuery()
+  const statisticsQuery = useStatisticsQuery({})
   const statisticsData = statisticsQuery.data ?? {}
 
   const transactions = Array.isArray(statisticsData.transactions)

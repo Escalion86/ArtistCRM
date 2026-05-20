@@ -9,12 +9,12 @@ import Input from '@components/Input'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import UsersList from '@layouts/lists/UsersList'
-import usersAtom from '@state/atoms/usersAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { useAtomValue } from 'jotai'
+import { useUsersQuery } from '@helpers/useEntityQueries'
 
 const UsersContent = () => {
-  const users = useAtomValue(usersAtom)
+  const { data: users = [] } = useUsersQuery()
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const [search, setSearch] = useState('')
 
