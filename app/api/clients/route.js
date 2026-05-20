@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Clients from '@models/Clients'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import { sendContactCreatedPush } from '@server/contactPush'
 
 export const GET = async () => {
   const { tenantId } = await getTenantContext()
@@ -29,5 +30,15 @@ export const POST = async (req) => {
   }
   await dbConnect()
   const client = await Clients.create({ ...body, tenantId })
+
+  // Send push notification asynchronously (don't block response)
+  sendContactCreatedPush({ tenantId, client }).catch((err) => {
+    console.warn('contact push notification failed', {
+      tenantId: String(tenantId),
+      clientId: String(client._id),
+      error: err?.message,
+    })
+  })
+
   return NextResponse.json({ success: true, data: client }, { status: 201 })
 }

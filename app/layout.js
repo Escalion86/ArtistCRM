@@ -10,12 +10,25 @@ import AppQueryProvider from '@components/AppQueryProvider'
 // import { Suspense } from 'react'
 // import Metrika from './components/metrika'
 // import Script from 'next/script'
-import Head from 'next/head'
+// import Head from 'next/head'
+
+const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
+const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
+const normalizedSiteUrl = siteUrl.replace(/\/$/, '')
+const defaultOgImage = `${normalizedSiteUrl}/og-image.jpg`
 
 export const metadata = {
-  title: 'ArtistCRM — бесплатная CRM для артистов, ведущих и музыкантов',
+  title: 'ArtistCRM — CRM для артистов',
   description:
-    'Бесплатная CRM для артистов, ведущих и музыкантов. Учёт заявок, клиентов, оплат и мероприятий. Договоры, акты, Google Календарь.',
+    'CRM-система для артистов: заявки, мероприятия, финансы, договоры и напоминания.',
+  keywords: [
+    'CRM для артистов',
+    'CRM для ведущих',
+    'CRM для музыкантов',
+    'учет заявок',
+    'управление мероприятиями',
+    'ArtistCRM',
+  ],
   applicationName: 'ArtistCRM',
   manifest: '/manifest.json',
   appleWebApp: {
@@ -40,6 +53,37 @@ export const metadata = {
       { url: '/icons/AppImages/ios/180.png', sizes: '180x180', type: 'image/png' },
     ],
   },
+  alternates: {
+    canonical: normalizedSiteUrl,
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'ru_RU',
+    url: normalizedSiteUrl,
+    siteName: 'ArtistCRM',
+    title: 'ArtistCRM — CRM для артистов, ведущих и музыкантов',
+    description:
+      'Управляйте заявками, клиентами, финансами и документами в одном кабинете. Синхронизация с Google Календарем.',
+    images: [
+      {
+        url: defaultOgImage,
+        width: 1200,
+        height: 630,
+        alt: 'ArtistCRM — CRM для артистов',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ArtistCRM — CRM для артистов',
+    description:
+      'Управляйте заявками, клиентами, финансами и документами в одном кабинете.',
+    images: [defaultOgImage],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 export const viewport = {
@@ -52,36 +96,6 @@ export default function RootLayout({ children }) {
   const isProduction = process.env.NODE_ENV !== 'development'
   return (
     <html lang="ru" className="scroll-smooth" data-scroll-behavior="smooth">
-      <Head>
-        <link
-          rel="preload"
-          href="/fonts/FuturaPT-Heavy.ttf"
-          as="font"
-          type="font/ttf"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/FuturaPT-Bold.ttf"
-          as="font"
-          type="font/ttf"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/InterTight-Regular.ttf"
-          as="font"
-          type="font/ttf"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/InterTight-SemiBold.ttf"
-          as="font"
-          type="font/ttf"
-          crossOrigin="anonymous"
-        />
-      </Head>
       <body>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <ClientErrorLogger enabled={isProduction} />

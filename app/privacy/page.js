@@ -1,8 +1,41 @@
 import Link from 'next/link'
 
+const siteUrl = (process.env.DOMAIN || 'https://artistcrm.ru').replace(/\/$/, '')
+const pageUrl = `${siteUrl}/privacy`
+const ogImage = `${siteUrl}/og-image.jpg`
+
 export const metadata = {
   title: 'Политика конфиденциальности — ArtistCRM',
   description: 'Политика конфиденциальности сервиса ArtistCRM.',
+  alternates: {
+    canonical: pageUrl,
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'ru_RU',
+    url: pageUrl,
+    siteName: 'ArtistCRM',
+    title: 'Политика конфиденциальности — ArtistCRM',
+    description: 'Политика конфиденциальности сервиса ArtistCRM.',
+    images: [
+      {
+        url: ogImage,
+        width: 1200,
+        height: 630,
+        alt: 'ArtistCRM — Политика конфиденциальности',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Политика конфиденциальности — ArtistCRM',
+    description: 'Политика конфиденциальности сервиса ArtistCRM.',
+    images: [ogImage],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 const EffectiveDate = '20.01.2026'

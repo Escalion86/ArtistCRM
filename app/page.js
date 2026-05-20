@@ -13,7 +13,7 @@ const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
 const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
 const normalizedSiteUrl = siteUrl.replace(/\/$/, '')
 const homeUrl = `${normalizedSiteUrl}/`
-const ogImageUrl = `${normalizedSiteUrl}/icons/AppImages/android/android-launchericon-512-512.png`
+const ogImageUrl = `${normalizedSiteUrl}/og-image.jpg`
 
 export const metadata = {
   title: 'ArtistCRM - CRM для артистов, ведущих и музыкантов',
@@ -41,8 +41,8 @@ export const metadata = {
     images: [
       {
         url: ogImageUrl,
-        width: 512,
-        height: 512,
+        width: 1200,
+        height: 630,
         alt: 'ArtistCRM — CRM для артистов',
       },
     ],
