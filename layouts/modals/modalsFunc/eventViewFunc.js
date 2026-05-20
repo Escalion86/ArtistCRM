@@ -491,7 +491,8 @@ const eventViewFunc = (eventId) => {
                         </div>
                       ) : null}
                     </div>
-                  )})
+                  )
+                  })
                 </div>
               </SectionBlock>
             )}
