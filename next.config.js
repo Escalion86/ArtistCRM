@@ -45,7 +45,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Link',
-            value: '</fonts/FuturaPT-Heavy.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/FuturaPT-Bold.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/InterTight-Regular.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/InterTight-SemiBold.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/InterTight-Medium.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous',
+            value: '</fonts/FuturaPT-Heavy.woff2>; rel=preload; as=font; type=font/woff2; crossorigin=anonymous'
           },
         ],
       },
