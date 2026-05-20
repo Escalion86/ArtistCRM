@@ -11,11 +11,11 @@ import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import TransactionCard from '@layouts/cards/TransactionCard'
 import { useAtomValue } from 'jotai'
+import { setAtomValue } from '@state/storeHelpers'
 import { modalsFuncAtom } from '@state/atoms'
 import { TRANSACTION_TYPES } from '@helpers/constants'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
-import { setAtomValue } from '@state/storeHelpers'
 import useUiDensity from '@helpers/useUiDensity'
 import {
   useDeleteTransactionMutation,

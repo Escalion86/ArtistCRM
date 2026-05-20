@@ -1,10 +1,10 @@
 import EventCard from '@layouts/cards/EventCard'
-import windowDimensionsNumSelector from '@state/selectors/windowDimensionsNumSelector'
+import windowDimensionsAtom from '@state/atoms/windowDimensionsAtom'
 import { useAtomValue } from 'jotai'
 import ListWrapper from './ListWrapper'
 
 const EventsList = ({ events, onTagClick }) => {
-  const widthNum = useAtomValue(windowDimensionsNumSelector)
+  const widthNum = useAtomValue(windowDimensionsAtom)
 
   return (
     <ListWrapper

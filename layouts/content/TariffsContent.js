@@ -10,7 +10,7 @@ import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import TariffCard from '@layouts/cards/TariffCard'
 import { modalsFuncAtom } from '@state/atoms'
-import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
+import { useLoggedUserQuery } from '@helpers/useEntityQueries'
 import { useAtomValue } from 'jotai'
 import useUiDensity from '@helpers/useUiDensity'
 import { useTariffsQuery } from '@helpers/useEntityQueries'
@@ -19,7 +19,8 @@ const TariffsContent = () => {
   const { isCompact } = useUiDensity()
   const { data: tariffs = [] } = useTariffsQuery()
   const modalsFunc = useAtomValue(modalsFuncAtom)
-  const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
+  const { data: loggedUser } = useLoggedUserQuery()
+  const loggedUserActiveRole = loggedUser?.activeRole
   const itemHeight = isCompact ? 136 : 156
   const canEdit =
     loggedUserActiveRole?.dev || loggedUserActiveRole?.users?.setRole

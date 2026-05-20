@@ -1,11 +1,11 @@
 import UserCard from '@layouts/cards/UserCard'
-import windowDimensionsNumSelector from '@state/selectors/windowDimensionsNumSelector'
+import windowDimensionsAtom from '@state/atoms/windowDimensionsAtom'
 import { useAtomValue } from 'jotai'
 import ListWrapper from './ListWrapper'
 import useUiDensity from '@helpers/useUiDensity'
 
 const UsersList = ({ users }) => {
-  const widthNum = useAtomValue(windowDimensionsNumSelector)
+  const widthNum = useAtomValue(windowDimensionsAtom)
   const { isCompact } = useUiDensity()
   const itemSize = isCompact
     ? widthNum > 2

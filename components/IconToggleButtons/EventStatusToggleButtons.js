@@ -1,6 +1,6 @@
 import Button from '@mui/material/Button'
 import ButtonGroup from '@mui/material/ButtonGroup'
-import windowDimensionsNumSelector from '@state/selectors/windowDimensionsNumSelector'
+import windowDimensionsAtom from '@state/atoms/windowDimensionsAtom'
 import { useAtomValue } from 'jotai'
 
 const BUTTON_STYLES = {
@@ -63,7 +63,7 @@ const getButtonSx = (selected, tone) => {
 const getModeKeys = (mode) => MODE_KEYS[mode] || MODE_KEYS.all
 
 const EventStatusToggleButtons = ({ value, onChange, mode = 'all' }) => {
-  const windowDimensionsNum = useAtomValue(windowDimensionsNumSelector)
+  const windowDimensionsNum = useAtomValue(windowDimensionsAtom)
   const keys = getModeKeys(mode)
 
   const handleToggle = (key) => {

@@ -1,7 +1,5 @@
 // import goToUrlForAddEventToCalendar from '@helpers/goToUrlForAddEventToCalendar'
 // import isUserQuestionnaireFilled from '@helpers/isUserQuestionnaireFilled'
-import addModalSelector from '@state/selectors/addModalSelector'
-import { setAtomValue } from '@state/storeHelpers'
 // import copyLinkFunc from './modalsFunc/copyLinkFunc'
 import cropImageFunc from './modalsFunc/cropImageFunc'
 import errorFunc from './modalsFunc/errorFunc'
@@ -50,6 +48,7 @@ import clientViewFunc from './modalsFunc/clientViewFunc'
 import clientTransactionsFunc from './modalsFunc/clientTransactionsFunc'
 import clientSelectFunc from './modalsFunc/clientSelectFunc'
 import clientEventsFunc from './modalsFunc/clientEventsFunc'
+import { setAtomValue, getAtomValue } from '@state/storeHelpers'
 // import userHistoryFunc from './modalsFunc/userHistoryFunc'
 // import userActionsHistoryFunc from './modalsFunc/userActionsHistoryFunc'
 // import userPersonalStatusEditFunc from './modalsFunc/userPersonalStatusEditFunc'
@@ -60,7 +59,7 @@ import clientEventsFunc from './modalsFunc/clientEventsFunc'
 // import subEventFunc from './modalsFunc/subEventFunc'
 
 const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
-  const addModal = (value) => setAtomValue(addModalSelector, value)
+  const addModal = (value) => setAtomValue(modalsAtom, [...(getAtomValue(modalsAtom) || []), value])
   // const itemsFunc = getRecoil(itemsFuncAtom)
   const canManageUsers = ['dev', 'admin'].includes(loggedUser?.role)
   const disableServerSync = Boolean(options?.disableServerSync)
