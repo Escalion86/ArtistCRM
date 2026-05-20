@@ -40,6 +40,15 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/',
+        headers: [
+          {
+            key: 'Link',
+            value: '</fonts/FuturaPT-Heavy.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/FuturaPT-Bold.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/InterTight-Regular.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous, </fonts/InterTight-SemiBold.ttf>; rel=preload; as=font; type=font/ttf; crossorigin=anonymous',
+          },
+        ],
+      },
     ]
   },
   productionBrowserSourceMaps:
