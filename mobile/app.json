@@ -11,12 +11,19 @@
       "typedRoutes": true
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "ru.escalion.artistcrm"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#f7efe1"
-      }
+      },
+      "package": "ru.escalion.artistcrm",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE"
+      ]
     }
   }
 }

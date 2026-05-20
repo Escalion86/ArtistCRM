@@ -119,7 +119,7 @@ export default function TasksScreen() {
   const fetchTasks = useCallback(async () => {
     try {
       setError('')
-      const res = await api.get<{ success: boolean; data: EventItem[] }>('/events?scope=upcoming')
+      const res = await api.get<{ success: boolean; data: EventItem[] }>('/mobile/events?scope=upcoming')
       if (res?.success && Array.isArray(res.data)) {
         setEvents(res.data)
       }
