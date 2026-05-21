@@ -159,6 +159,13 @@ const StateLoader = (props) => {
     })
     queryClient.setQueryData(queryKeys.clients(), props.clients ?? [])
     queryClient.setQueryData(queryKeys.transactionsAll, props.transactions ?? [])
+    queryClient.setQueryData(queryKeys.services(), props.services ?? [])
+    queryClient.setQueryData(queryKeys.tariffs(), props.tariffs ?? [])
+    queryClient.setQueryData(queryKeys.users(), props.users ?? [])
+    queryClient.setQueryData(queryKeys.siteSettings, props.siteSettings ?? {})
+    if (props.loggedUser) {
+      queryClient.setQueryData(queryKeys.loggedUser, props.loggedUser)
+    }
     queryClient.setQueryData(queryKeys.statistics(), {
       events: props.events ?? [],
       clients: props.clients ?? [],

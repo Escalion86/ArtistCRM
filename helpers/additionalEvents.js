@@ -165,6 +165,21 @@ export const getAdditionalEventsListBySegments = (events, now = new Date()) => {
   return segments
 }
 
+export const isAdditionalEventOverdue = (item, now = new Date()) => {
+  if (!item || item?.done) return false
+  const date = toDate(item?.date)
+  if (!date) return false
+  return date.getTime() < now.getTime()
+}
+
+export const getEventOverdueAdditionalCount = (event, now = new Date()) => {
+  const additionalEvents = Array.isArray(event?.additionalEvents)
+    ? event.additionalEvents
+    : []
+  return additionalEvents.filter((item) => isAdditionalEventOverdue(item, now))
+    .length
+}
+
 export const getSoonNoDepositEvents = (
   events,
   transactions = [],

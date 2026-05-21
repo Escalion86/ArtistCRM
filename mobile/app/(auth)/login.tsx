@@ -6,6 +6,12 @@ import { setAuthToken } from '../../src/shared/auth/tokenStore'
 
 const api = createApiClient()
 
+type LoginResponse = {
+  success: boolean
+  token?: string
+  error?: string
+}
+
 export default function LoginScreen() {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -14,14 +20,38 @@ export default function LoginScreen() {
 
   const onLogin = async () => {
     setError('')
+    if (!phone.trim()) {
+      setError('Введите телефон')
+      return
+    }
+    if (!password.trim()) {
+      setError('Введите пароль')
+      return
+    }
+
     setLoading(true)
     try {
-      // TODO: заменить на реальный auth endpoint при интеграции M1-T2.
-      await api.get('/events')
-      await setAuthToken('temp-dev-token')
+      const result = await api.post<LoginResponse>('/mobile/auth/login', {
+        phone: phone.trim(),
+        password: password.trim(),
+      })
+
+      if (!result.success) {
+        setError(result.error || 'Ошибка авторизации')
+        return
+      }
+
+      await setAuthToken(result.token as string)
       router.replace('/(tabs)/tasks')
-    } catch (e) {
-      setError('Не удалось авторизоваться. Проверьте доступность API.')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : ''
+      if (msg.includes('Неверный')) {
+        setError('Неверный телефон или пароль')
+      } else if (msg.includes('Укажите')) {
+        setError('Введите телефон и пароль')
+      } else {
+        setError('Не удалось авторизоваться. Проверьте доступность API.')
+      }
     } finally {
       setLoading(false)
     }
@@ -36,6 +66,8 @@ export default function LoginScreen() {
         value={phone}
         onChangeText={setPhone}
         placeholder="Телефон"
+        keyboardType="phone-pad"
+        autoCapitalize="none"
         style={styles.input}
       />
       <TextInput

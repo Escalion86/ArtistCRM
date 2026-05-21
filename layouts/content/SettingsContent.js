@@ -20,6 +20,7 @@ import {
   SERVER_SYNC_FLUSH_NOW_EVENT,
   SERVER_SYNC_QUEUE_CHANGED_EVENT,
 } from '@helpers/serverSyncQueue'
+import { useSiteSettingsQuery } from '@helpers/useEntityQueries'
 
 const TIME_ZONE_OPTIONS = [
   { value: 'UTC', name: 'UTC' },
@@ -37,11 +38,19 @@ const TIME_ZONE_OPTIONS = [
 ]
 
 const SettingsContent = () => {
-  const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
+  const { data: siteSettings = {} } = useSiteSettingsQuery()
+  const [siteSettingsState, setSiteSettings] = useAtom(siteSettingsAtom)
   const [darkTheme, setDarkTheme] = useState(false)
   const [defaultEventDuration, setDefaultEventDuration] = useState(60)
   const [queuedChangesCount, setQueuedChangesCount] = useState(0)
   const durationTimeoutRef = useRef(null)
+
+  // Keep Jotai atom in sync with React Query for backward compatibility
+  useEffect(() => {
+    if (siteSettings && Object.keys(siteSettings).length > 0) {
+      setSiteSettings(siteSettings)
+    }
+  }, [siteSettings, setSiteSettings])
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme')
@@ -50,8 +59,8 @@ const SettingsContent = () => {
     document.body.classList.toggle('theme-dark', isDark)
   }, [])
 
-  const customSettings = siteSettings?.custom ?? {}
-  const serverSyncDisabled = resolveServerSyncDisabled(siteSettings)
+  const customSettings = siteSettingsState?.custom ?? {}
+  const serverSyncDisabled = resolveServerSyncDisabled(siteSettingsState)
   const checkBoxColors = darkTheme
     ? { checked: '#f8fafc', unchecked: '#94a3b8' }
     : { checked: '#111827', unchecked: '#9ca3af' }
@@ -69,7 +78,7 @@ const SettingsContent = () => {
   }
 
   const saveSiteSettingsPatch = async (patch, forceServerSync = false) => {
-    const merged = mergeSiteSettingsPatch(siteSettings, patch)
+    const merged = mergeSiteSettingsPatch(siteSettingsState, patch)
     setSiteSettings(merged)
 
     if (serverSyncDisabled && !forceServerSync) return merged
@@ -106,11 +115,11 @@ const SettingsContent = () => {
   }, [customSettings?.defaultEventDurationMinutes])
 
   useEffect(() => {
-    if (!siteSettings?._id) return
+    if (!siteSettingsState?._id) return
     if (!Number.isFinite(defaultEventDuration)) return
     if (defaultEventDuration <= 0) return
     const currentDuration = Number(
-      siteSettings?.custom?.defaultEventDurationMinutes ?? 60
+      siteSettingsState?.custom?.defaultEventDurationMinutes ?? 60
     )
     if (currentDuration === defaultEventDuration) return
     if (durationTimeoutRef.current) {
@@ -128,7 +137,7 @@ const SettingsContent = () => {
         clearTimeout(durationTimeoutRef.current)
       }
     }
-  }, [defaultEventDuration, siteSettings, serverSyncDisabled])
+  }, [defaultEventDuration, siteSettingsState, serverSyncDisabled])
 
   return (
     <div className="flex h-full flex-col">
@@ -156,12 +165,12 @@ const SettingsContent = () => {
                 writeServerSyncDisabledToStorage(nextValue)
                 const patch = {
                   custom: {
-                    ...(siteSettings?.custom ?? {}),
+                    ...(siteSettingsState?.custom ?? {}),
                     disableServerSync: nextValue,
                   },
                 }
                 if (nextValue) {
-                  setSiteSettings(mergeSiteSettingsPatch(siteSettings, patch))
+                  setSiteSettings(mergeSiteSettingsPatch(siteSettingsState, patch))
                   return
                 }
                 await saveSiteSettingsPatch(patch, true)
@@ -215,7 +224,7 @@ const SettingsContent = () => {
         <ComboBox
           label="Часовой пояс"
           items={TIME_ZONE_OPTIONS}
-          value={siteSettings?.timeZone ?? 'Asia/Krasnoyarsk'}
+          value={siteSettingsState?.timeZone ?? 'Asia/Krasnoyarsk'}
           onChange={(value) => saveSiteSettingsPatch({ timeZone: value })}
           fullWidth
           noMargin
@@ -243,7 +252,7 @@ const SettingsContent = () => {
               onClick={() =>
                 saveSiteSettingsPatch({
                   custom: {
-                    ...(siteSettings?.custom ?? {}),
+                    ...(siteSettingsState?.custom ?? {}),
                     releaseOnboardingCompleted: false,
                     releaseOnboardingShowToken: Date.now(),
                   },

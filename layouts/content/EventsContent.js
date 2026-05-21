@@ -646,6 +646,10 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
 
   useEffect(() => {
     const urlTargetId = searchParams?.get('openEvent')
+    const urlTab = searchParams?.get('openTab') || null
+    const urlAction = searchParams?.get('openAction') || null
+    const urlDate = searchParams?.get('openDate') || null
+
     if (!urlTargetId && !pendingOpenId && typeof window !== 'undefined') {
       const storedId = window.sessionStorage.getItem('openEvent')
       if (storedId) {
@@ -696,7 +700,13 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         expectedPage !==
           (filter === 'upcoming' ? 'eventsUpcoming' : 'eventsPast')
       ) {
-        router.replace(`/cabinet/${expectedPage}?openEvent=${targetId}`)
+        // Store deep link params for cross-page navigation
+        const params = new URLSearchParams()
+        params.set('openEvent', targetId)
+        if (urlTab) params.set('openTab', urlTab)
+        if (urlAction) params.set('openAction', urlAction)
+        if (urlDate) params.set('openDate', urlDate)
+        router.replace(`/cabinet/${expectedPage}?${params.toString()}`)
         return
       }
 
@@ -751,7 +761,11 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
 
       setTimeout(() => {
         if (!isActive) return
-        modalsFunc.event?.view(targetId)
+        const viewOptions = {}
+        if (urlTab) viewOptions.tab = urlTab
+        if (urlAction) viewOptions.action = urlAction
+        if (urlDate) viewOptions.date = urlDate
+        modalsFunc.event?.view(targetId, Object.keys(viewOptions).length > 0 ? viewOptions : undefined)
         openHandledRef.current = true
         if (pendingOpenId) setPendingOpenId(null)
         if (pathname) router.replace(pathname, { scroll: false })

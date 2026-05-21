@@ -9,4 +9,12 @@ export const queryKeys = {
   transactions: (params = {}) => ['transactions', params],
   transactionsAll: ['transactions', {}],
   statistics: (params = {}) => ['statistics', params],
+  services: (params = {}) => ['services', params],
+  service: (serviceId) => ['service', serviceId],
+  users: (params = {}) => ['users', params],
+  user: (userId) => ['user', userId],
+  tariffs: (params = {}) => ['tariffs', params],
+  tariff: (tariffId) => ['tariff', tariffId],
+  siteSettings: ['siteSettings'],
+  loggedUser: ['loggedUser'],
 }

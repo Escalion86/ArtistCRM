@@ -1,8 +1,41 @@
 import Link from 'next/link'
 
+const siteUrl = (process.env.DOMAIN || 'https://artistcrm.ru').replace(/\/$/, '')
+const pageUrl = `${siteUrl}/terms`
+const ogImage = `${siteUrl}/og-image.jpg`
+
 export const metadata = {
   title: 'Пользовательское соглашение — ArtistCRM',
   description: 'Пользовательское соглашение сервиса ArtistCRM.',
+  alternates: {
+    canonical: pageUrl,
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'ru_RU',
+    url: pageUrl,
+    siteName: 'ArtistCRM',
+    title: 'Пользовательское соглашение — ArtistCRM',
+    description: 'Пользовательское соглашение сервиса ArtistCRM.',
+    images: [
+      {
+        url: ogImage,
+        width: 1200,
+        height: 630,
+        alt: 'ArtistCRM — Пользовательское соглашение',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Пользовательское соглашение — ArtistCRM',
+    description: 'Пользовательское соглашение сервиса ArtistCRM.',
+    images: [ogImage],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 const EffectiveDate = '20.01.2026'
@@ -108,7 +141,7 @@ export default function TermsPage() {
             6.1. Обработка персональных данных осуществляется в соответствии с
             Политикой конфиденциальности, опубликованной на{' '}
             <Link href="/privacy" className="text-general">
-              https://artistcrm.ru/privacy
+              https://artistcrm.com/privacy
             </Link>
             .
           </p>
@@ -154,7 +187,7 @@ export default function TermsPage() {
             10.1. Исполнитель вправе изменять Соглашение. Актуальная версия
             публикуется на сайте{' '}
             <Link href="/" className="text-general">
-              https://artistcrm.ru
+              https://artistcrm.com
             </Link>
             .
           </p>

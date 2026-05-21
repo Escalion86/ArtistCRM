@@ -43,6 +43,7 @@
     "docx": "^9.6.1",
     "docxtemplater": "^3.68.7",
     "eslint-config-next": "^16.2.6",
+    "expo-server-sdk": "^6.1.0",
     "framer-motion": "^12.38.0",
     "googleapis": "^171.4.0",
     "isomorphic-dompurify": "^2.36.0",
@@ -62,6 +63,7 @@
     "react-markdown": "^10.1.0",
     "react-medium-image-zoom": "^5.4.5",
     "react-window": "^2.2.7",
+    "sharp": "^0.34.5",
     "undici": "^7.25.0",
     "web-push": "^3.6.7"
   },
