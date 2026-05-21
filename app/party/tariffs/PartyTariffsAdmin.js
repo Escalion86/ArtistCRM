@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { apiJson } from '@helpers/apiClient'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -172,12 +173,12 @@ export default function PartyTariffsAdmin() {
           <div className="flex items-center gap-4">
             <span className="text-lg font-semibold text-sky-700">PartyCRM</span>
             <nav className="flex items-center gap-3 text-sm">
-              <a
+              <Link
                 href="/company"
                 className="text-gray-500 hover:text-sky-700 transition-colors"
               >
                 ╨Ъ╨░╨▒╨╕╨╜╨╡╤В
-              </a>
+              </Link>
               <span className="text-gray-300">/</span>
               <a
                 href="/party/settings"
