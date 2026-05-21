@@ -22,6 +22,9 @@ Initial beta build for Android (Internal Testing) — ArtistCRM mobile app (Expo
 - Push notifications require a physical device (won't work on emulators)
 - API server must be accessible from the device (configure EXPO_PUBLIC_API_BASE_URL)
 - Some features require the web CRM to create data first (events, tasks)
+- Deep links from notifications not yet implemented (M1-T5)
+- Home screen widgets not yet implemented (M1-T6)
+- Call intents not yet implemented (M1-T7)
 
 ## Testing Instructions
 

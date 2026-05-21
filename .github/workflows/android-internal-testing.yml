@@ -38,10 +38,20 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      - name: Verify app configuration
+        run: |
+          echo "=== app.json ==="
+          cat app.json | jq '.expo.name'
+          cat app.json | jq '.expo.android.package'
+          cat app.json | jq '.expo.version'
+          echo "=== eas.json ==="
+          cat eas.json | jq '.build.internal'
+
       - name: Build Android AAB
         run: eas build --platform android --profile internal --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
 
       - name: Upload to Google Play Internal Testing
         if: success()

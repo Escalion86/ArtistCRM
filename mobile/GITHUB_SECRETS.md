@@ -27,6 +27,18 @@
 10. Name: `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
 11. Value: paste the entire JSON key
 
+### 3. EXPO_PUBLIC_API_BASE_URL
+
+The mobile app needs to know the API endpoint at build time.
+
+1. Determine your production API URL (e.g., `https://artistcrm.com/api`)
+2. Go to GitHub repo → Settings → Secrets and variables → Actions
+3. Click "New repository secret"
+4. Name: `EXPO_PUBLIC_API_BASE_URL`
+5. Value: your API base URL (e.g., `https://artistcrm.com/api`)
+
+**Important**: This URL must be accessible from the mobile device. Ensure your API server is deployed and the domain resolves correctly.
+
 ## After Secrets Are Set
 
 Push to main branch to trigger the build:
@@ -41,6 +53,20 @@ Or manually dispatch from GitHub Actions tab.
 
 ## EAS Project
 
-- Project ID: (to be configured after `eas project:init`)
+- Project ID: 7676a13a-3d4a-4da0-ad23-5b4df7b3bb38
 - Build profile: `internal` (AAB for Play Store)
 - Submit profile: `internal` (Internal Testing track)
+
+## Google Play Console Setup (First Time)
+
+Before the first upload, you must:
+
+1. Create the app in Google Play Console with package `ru.escalion.artistcrm`
+2. Complete the store listing (name, description, screenshots, icon)
+3. Complete the content rating questionnaire
+4. Fill out the Data Safety section
+5. Add a privacy policy URL
+6. Create the Internal Testing track
+7. Add internal testers (their email addresses)
+
+**Note**: The first AAB upload may need to be done manually via Play Console. After that, automated uploads via the workflow will work.
