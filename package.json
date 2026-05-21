@@ -45,6 +45,7 @@
     "eslint-config-next": "^16.2.6",
     "expo-server-sdk": "^6.1.0",
     "framer-motion": "^12.38.0",
+    "gcp-metadata": "^7.0.1",
     "googleapis": "^171.4.0",
     "isomorphic-dompurify": "^2.36.0",
     "jotai": "^2.20.0",
