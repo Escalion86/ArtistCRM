@@ -39,13 +39,36 @@ The mobile app needs to know the API endpoint at build time.
 
 **Important**: This URL must be accessible from the mobile device. Ensure your API server is deployed and the domain resolves correctly.
 
+### 4. Apple App Store Connect API Key (for TestFlight)
+
+Required for iOS TestFlight uploads.
+
+1. Go to https://appstoreconnect.apple.com/access/users
+2. Click "Keys" tab
+3. Click "Generate API Key"
+4. Name: `GitHub Actions EAS Submit`
+5. Access: `App Manager`
+6. Download the `.p8` key file (you can only download once!)
+7. Note the Key ID and Issuer ID
+
+Add these secrets to GitHub:
+
+| Secret Name | Value |
+|---|---|
+| `APPLE_API_KEY` | Contents of the `.p8` file (the entire text including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`) |
+| `APPLE_API_KEY_ID` | The Key ID (e.g., `ABCD123456`) |
+| `APPLE_API_ISSUER_ID` | The Issuer ID (e.g., `12345678-1234-1234-1234-123456789012`) |
+| `APPLE_ID` | Your Apple Developer account email (e.g., `escalion86@gmail.com`) |
+| `APPLE_ASC_APP_ID` | The App Store Connect App ID (numeric, found in App Store Connect → App Information) |
+| `APPLE_TEAM_ID` | Your Apple Developer Team ID (10 characters, found in developer.apple.com → Membership) |
+
 ## After Secrets Are Set
 
 Push to main branch to trigger the build:
 
 ```bash
 git add .
-git commit -m "trigger: Android Internal Testing build"
+git commit -m "trigger: iOS TestFlight + Android Internal Testing build"
 git push origin main
 ```
 
@@ -54,8 +77,22 @@ Or manually dispatch from GitHub Actions tab.
 ## EAS Project
 
 - Project ID: 7676a13a-3d4a-4da0-ad23-5b4df7b3bb38
-- Build profile: `internal` (AAB for Play Store)
-- Submit profile: `internal` (Internal Testing track)
+- Build profile: `internal` (IPA for iOS, AAB for Play Store)
+- Submit profile: `internal` (TestFlight for iOS, Internal Testing for Android)
+
+## App Store Connect Setup (First Time)
+
+Before the first TestFlight upload, you must:
+
+1. Create the app in App Store Connect with bundle ID `ru.escalion.artistcrm`
+2. Complete the app information (name, description, screenshots, icon)
+3. Complete the age rating questionnaire
+4. Fill out the Privacy section
+5. Add a privacy policy URL
+6. Create the TestFlight group for external testers
+7. Add external testers (their email addresses)
+
+**Note**: The first IPA upload may require manual processing in App Store Connect. After that, automated uploads via the workflow will work.
 
 ## Google Play Console Setup (First Time)
 

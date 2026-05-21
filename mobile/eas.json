@@ -26,6 +26,9 @@
       "distribution": "store",
       "android": {
         "buildType": "app-bundle"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
       }
     }
   },
@@ -34,13 +37,15 @@
       "android": {
         "serviceAccountKeyPath": "./google-play-service-account.json",
         "track": "internal"
-      }
+      },
+      "ios": {}
     },
     "internal": {
       "android": {
         "serviceAccountKeyPath": "./google-play-service-account.json",
         "track": "internal"
-      }
+      },
+      "ios": {}
     }
   }
 }
