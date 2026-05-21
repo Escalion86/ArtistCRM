@@ -141,7 +141,7 @@ export default function TermsPage() {
             6.1. Обработка персональных данных осуществляется в соответствии с
             Политикой конфиденциальности, опубликованной на{' '}
             <Link href="/privacy" className="text-general">
-              https://artistcrm.ru/privacy
+              https://artistcrm.com/privacy
             </Link>
             .
           </p>
@@ -187,7 +187,7 @@ export default function TermsPage() {
             10.1. Исполнитель вправе изменять Соглашение. Актуальная версия
             публикуется на сайте{' '}
             <Link href="/" className="text-general">
-              https://artistcrm.ru
+              https://artistcrm.com
             </Link>
             .
           </p>

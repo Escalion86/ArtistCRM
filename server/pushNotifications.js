@@ -1,12 +1,13 @@
 import webpush from 'web-push'
 import PushSubscriptions from '@models/PushSubscriptions'
+import ExpoPushTokens from '@models/ExpoPushTokens'
 
 let isConfigured = false
 
 const getVapidConfig = () => {
   const publicKey = process.env.VAPID_PUBLIC_KEY || ''
   const privateKey = process.env.VAPID_PRIVATE_KEY || ''
-  const subject = process.env.VAPID_SUBJECT || 'mailto:support@artistcrm.ru'
+  const subject = process.env.VAPID_SUBJECT || 'mailto:support@artistcrm.com'
   return {
     publicKey: String(publicKey).trim(),
     privateKey: String(privateKey).trim(),
@@ -147,10 +148,122 @@ const getPushPublicKey = () => {
   return publicKey
 }
 
+// ── Expo Push (мобильное приложение) ──────────────────────────────
+
+const EXPO_PUSH_API_URL = 'https://exp.host/--/api/v2/push/send'
+
+export type ExpoPushPayload = {
+  title: string
+  body: string
+  data?: Record<string, unknown>
+  sound?: string
+  badge?: number
+  ttl?: number
+  channelId?: string
+  priority?: 'default' | 'normal' | 'high'
+  icon?: string
+  tag?: string
+}
+
+const sendExpoPushToTenant = async ({
+  tenantId,
+  payload,
+}: {
+  tenantId: string
+  payload: ExpoPushPayload
+}) => {
+  if (!tenantId || !payload || typeof payload !== 'object') {
+    return { ok: false, sent: 0, failed: 0, deactivated: 0 }
+  }
+
+  const docs = await ExpoPushTokens.find({
+    tenantId,
+    isActive: true,
+  })
+    .select('token platform')
+    .lean()
+
+  if (!Array.isArray(docs) || docs.length === 0) {
+    return { ok: true, sent: 0, failed: 0, deactivated: 0 }
+  }
+
+  let sent = 0
+  let failed = 0
+  let deactivated = 0
+
+  // Отправляем пакетами по 100 (лимит Expo API)
+  const batchSize = 100
+  for (let i = 0; i < docs.length; i += batchSize) {
+    const batch = docs.slice(i, i + batchSize)
+    const messages = batch.map((doc) => ({
+      to: doc.token,
+      sound: payload.sound || 'default',
+      title: payload.title,
+      body: payload.body,
+      data: payload.data || {},
+      badge: payload.badge,
+      ttl: payload.ttl,
+      channelId: payload.channelId || 'default',
+      priority: payload.priority || 'high',
+      _displayInForeground: true,
+    }))
+
+    try {
+      const res = await fetch(EXPO_PUSH_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Accept-Encoding': 'gzip, deflate',
+        },
+        body: JSON.stringify(messages),
+      })
+
+      if (!res.ok) {
+        failed += batch.length
+        continue
+      }
+
+      const result = await res.json()
+      const tickets = result?.data || []
+
+      for (let j = 0; j < tickets.length; j++) {
+        const ticket = tickets[j]
+        const status = ticket?.status
+
+        if (status === 'ok') {
+          sent += 1
+          await ExpoPushTokens.updateOne(
+            { tenantId, token: batch[j].token },
+            { $set: { lastSentAt: new Date(), isActive: true } }
+          )
+        } else {
+          failed += 1
+          const errorType = ticket?.details?.error
+          // DeviceNotRegistered — деактивируем токен
+          if (errorType === 'DeviceNotRegistered') {
+            await ExpoPushTokens.updateOne(
+              { tenantId, token: batch[j].token },
+              { $set: { isActive: false } }
+            )
+            deactivated += 1
+          }
+        }
+      }
+    } catch (error) {
+      failed += batch.length
+      console.error('[expoPush] Batch send error:', error)
+    }
+  }
+
+  return { ok: true, sent, failed, deactivated }
+}
+
 export {
   parseSubscription,
   savePushSubscription,
   deactivatePushSubscription,
   sendPushToTenant,
   getPushPublicKey,
+  sendExpoPushToTenant,
 }

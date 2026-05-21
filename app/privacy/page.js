@@ -190,7 +190,7 @@ export default function PrivacyPage() {
             9.1. Оператор вправе обновлять Политику. Актуальная версия
             публикуется на сайте{' '}
             <Link href="/" className="text-general">
-              https://artistcrm.ru
+              https://artistcrm.com
             </Link>
             .
           </p>

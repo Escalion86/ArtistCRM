@@ -9,7 +9,7 @@ import ThemeToggleButton from '@components/ThemeToggleButton'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCloudArrowUp } from '@fortawesome/free-solid-svg-icons/faCloudArrowUp'
 
-const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
+const rawDomain = process.env.DOMAIN || 'https://artistcrm.com'
 const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
 const normalizedSiteUrl = siteUrl.replace(/\/$/, '')
 const homeUrl = `${normalizedSiteUrl}/`
@@ -522,7 +522,7 @@ export default async function HomePage() {
       </section>
 
       <section className="relative max-w-6xl px-6 pb-20 mx-auto">
-        <div className="p-10 border shadow-lg home-panel landing-reveal rounded-3xl border-general/20 bg-gradient-to-br from-general/5 via-white to-white text-center">
+        <div className="p-12 border shadow-lg home-panel landing-reveal rounded-3xl border-general/20 bg-gradient-to-br from-general/5 via-white to-white text-center">
           <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
             Начните сейчас
           </p>
@@ -530,15 +530,15 @@ export default async function HomePage() {
             Попробуйте ArtistCRM бесплатно
           </h2>
           <p className="max-w-lg mx-auto mt-4 text-sm text-gray-600">
-            Никаких обязательств. Полный доступ ко всем функциям на 14 дней.
-            Бесплатный тариф — без привязки банковской карты.
+            Без обязательств. До 5 мероприятий в месяц — бесплатно. Начните за 2
+            минуты, без банковской карты.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mt-8">
             <Link
               href="/login"
               className="cursor-pointer ui-btn ui-btn-primary"
             >
-              Начать бесплатно
+              Попробовать бесплатно
             </Link>
             <Link
               href="#pricing"
