@@ -45,6 +45,19 @@ const normalizePhone = (phone) => {
   return String(phone).replace(/[^\d]/g, '')
 }
 
+const normalizeAddress = (value) => ({
+  town: typeof value?.town === 'string' ? value.town.trim() : '',
+  street: typeof value?.street === 'string' ? value.street.trim() : '',
+  house: typeof value?.house === 'string' ? value.house.trim() : '',
+  room: typeof value?.room === 'string' ? value.room.trim() : '',
+  comment: typeof value?.comment === 'string' ? value.comment.trim() : '',
+})
+
+const formatAddressLine = (address) =>
+  [address.town, address.street, address.house ? `д. ${address.house}` : '', address.room]
+    .filter(Boolean)
+    .join(', ') + (address.comment ? ` (${address.comment})` : '')
+
 const normalizeAssignedStaff = (items) => {
   if (!Array.isArray(items)) return []
   const seen = new Set()
@@ -153,6 +166,9 @@ export const normalizeOrderPayload = (body) => {
       : null
   const clientId = isValidObjectId(body.clientId) ? String(body.clientId) : null
 
+  const clientAddress = normalizeAddress(body.clientAddress)
+  const customAddressFallback = formatAddressLine(clientAddress)
+
   return {
     title: typeof body.title === 'string' ? body.title.trim() : '',
     status: ['draft', 'active', 'canceled', 'closed'].includes(body.status)
@@ -172,7 +188,10 @@ export const normalizeOrderPayload = (body) => {
     placeType,
     locationId,
     customAddress:
-      typeof body.customAddress === 'string' ? body.customAddress.trim() : '',
+      typeof body.customAddress === 'string' && body.customAddress.trim()
+        ? body.customAddress.trim()
+        : customAddressFallback,
+    clientAddress,
     servicesIds: normalizeServicesIds(body.servicesIds),
     serviceTitle:
       typeof body.serviceTitle === 'string' ? body.serviceTitle.trim() : '',
@@ -323,11 +342,11 @@ export async function POST(req) {
   const body = await parseJsonBody(req)
   const payload = normalizeOrderPayload(body)
 
-  if (!payload.title && !payload.client.name && !payload.serviceTitle) {
+  if (!payload.client.name && !payload.serviceTitle) {
     return partyError(
       400,
-      'partycrm_order_title_required',
-      'Укажите название, клиента или услугу заказа',
+      'partycrm_order_client_or_service_required',
+      'Укажите клиента или услугу заказа',
       'validation'
     )
   }

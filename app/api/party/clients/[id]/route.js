@@ -12,15 +12,62 @@ const normalizePhone = (phone) => {
   return String(phone).replace(/[^\d]/g, '')
 }
 
+const normalizeString = (value) =>
+  typeof value === 'string' ? value.trim() : ''
+
+const normalizeSignificantDates = (items) => {
+  if (!Array.isArray(items)) return undefined
+  return items
+    .map((item) => ({
+      title: normalizeString(item?.title),
+      date: item?.date ? new Date(item.date) : null,
+      comment: normalizeString(item?.comment),
+    }))
+    .filter(
+      (item) =>
+        item.title || item.comment || (item.date && !Number.isNaN(item.date.getTime()))
+    )
+}
+
 const pickClientPatch = (body) => {
   const patch = {}
 
-  if (typeof body.firstName === 'string') patch.firstName = body.firstName.trim()
-  if (typeof body.secondName === 'string') patch.secondName = body.secondName.trim()
-  if (typeof body.thirdName === 'string') patch.thirdName = body.thirdName.trim()
+  if (typeof body.firstName === 'string') patch.firstName = normalizeString(body.firstName)
+  if (typeof body.secondName === 'string') patch.secondName = normalizeString(body.secondName)
+  if (typeof body.thirdName === 'string') patch.thirdName = normalizeString(body.thirdName)
   if (body.phone !== undefined) patch.phone = normalizePhone(body.phone)
+  if (body.whatsapp !== undefined) patch.whatsapp = normalizePhone(body.whatsapp)
+  if (body.viber !== undefined) patch.viber = normalizePhone(body.viber)
+  if (typeof body.telegram === 'string') patch.telegram = normalizeString(body.telegram)
+  if (typeof body.instagram === 'string') patch.instagram = normalizeString(body.instagram)
+  if (typeof body.vk === 'string') patch.vk = normalizeString(body.vk)
+  if (typeof body.preferredContactChannel === 'string') {
+    patch.preferredContactChannel = ['phone', 'telegram', 'whatsapp', 'max', 'vk', 'other', ''].includes(
+      body.preferredContactChannel
+    )
+      ? body.preferredContactChannel
+      : ''
+  }
+  if (typeof body.preferredContactChannelOther === 'string') {
+    patch.preferredContactChannelOther = normalizeString(body.preferredContactChannelOther)
+  }
   if (typeof body.email === 'string') patch.email = body.email.trim().toLowerCase()
-  if (typeof body.comment === 'string') patch.comment = body.comment.trim()
+  if (typeof body.town === 'string') patch.town = normalizeString(body.town)
+  if (typeof body.legalName === 'string') patch.legalName = normalizeString(body.legalName)
+  if (typeof body.inn === 'string') patch.inn = normalizeString(body.inn)
+  if (typeof body.kpp === 'string') patch.kpp = normalizeString(body.kpp)
+  if (typeof body.ogrn === 'string') patch.ogrn = normalizeString(body.ogrn)
+  if (typeof body.bankName === 'string') patch.bankName = normalizeString(body.bankName)
+  if (typeof body.bik === 'string') patch.bik = normalizeString(body.bik)
+  if (typeof body.checkingAccount === 'string') patch.checkingAccount = normalizeString(body.checkingAccount)
+  if (typeof body.correspondentAccount === 'string') {
+    patch.correspondentAccount = normalizeString(body.correspondentAccount)
+  }
+  if (typeof body.legalAddress === 'string') patch.legalAddress = normalizeString(body.legalAddress)
+  if (typeof body.comment === 'string') patch.comment = normalizeString(body.comment)
+  if (body.significantDates !== undefined) {
+    patch.significantDates = normalizeSignificantDates(body.significantDates) ?? []
+  }
   if (body.status === 'active' || body.status === 'archived') {
     patch.status = body.status
   }

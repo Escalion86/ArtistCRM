@@ -6,8 +6,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import getPersonFullName from '@helpers/getPersonFullName'
 import PhoneInput from '@components/PhoneInput'
 import Input from '@components/Input'
+import Select from '@components/Select'
 import Textarea from '@components/Textarea'
 import Modal from '@components/Modal'
+import PartyAddressBlock from '@components/party/inputs/PartyAddressBlock'
 
 export function ClientSelectModal({
   open,
@@ -108,6 +110,15 @@ export function ClientFormModal({
   onSubmit,
   saving,
 }) {
+  const preferredChannelOptions = [
+    { value: '', label: 'Не выбран' },
+    { value: 'phone', label: 'Телефон' },
+    { value: 'telegram', label: 'Telegram' },
+    { value: 'whatsapp', label: 'WhatsApp' },
+    { value: 'vk', label: 'VK' },
+    { value: 'other', label: 'Другое' },
+  ]
+
   const handleChange = (field) => (value) => {
     setClientDraft((prev) => ({ ...prev, [field]: value }))
   }
@@ -179,6 +190,60 @@ export function ClientFormModal({
           }
           tone="party"
         />
+        <PhoneInput
+          label="WhatsApp"
+          value={clientDraft.whatsapp}
+          onChange={(value) =>
+            setClientDraft((prev) => ({ ...prev, whatsapp: value }))
+          }
+          tone="party"
+        />
+        <PhoneInput
+          label="Viber"
+          value={clientDraft.viber}
+          onChange={(value) =>
+            setClientDraft((prev) => ({ ...prev, viber: value }))
+          }
+          tone="party"
+        />
+        <Input
+          label="Telegram"
+          value={clientDraft.telegram}
+          onChange={handleChange('telegram')}
+          fullWidth
+          tone="party"
+        />
+        <Input
+          label="Instagram"
+          value={clientDraft.instagram}
+          onChange={handleChange('instagram')}
+          fullWidth
+          tone="party"
+        />
+        <Input
+          label="VK"
+          value={clientDraft.vk}
+          onChange={handleChange('vk')}
+          fullWidth
+          tone="party"
+        />
+        <Select
+          label="Предпочтительный канал связи"
+          value={clientDraft.preferredContactChannel || ''}
+          onChange={handleChange('preferredContactChannel')}
+          options={preferredChannelOptions}
+          fullWidth
+          tone="party"
+        />
+        {clientDraft.preferredContactChannel === 'other' && (
+          <Input
+            label="Свой канал связи"
+            value={clientDraft.preferredContactChannelOther || ''}
+            onChange={handleChange('preferredContactChannelOther')}
+            fullWidth
+            tone="party"
+          />
+        )}
         <Input
           label="Email"
           value={clientDraft.email}
@@ -186,6 +251,87 @@ export function ClientFormModal({
           fullWidth
           tone="party"
         />
+        <PartyAddressBlock
+          value={{
+            town: clientDraft.town || '',
+            street: clientDraft.legalAddress || '',
+          }}
+          onChange={(field, nextValue) => {
+            if (field === 'town') handleChange('town')(nextValue)
+            if (field === 'street') handleChange('legalAddress')(nextValue)
+          }}
+          title="Адрес"
+          tone="party"
+          styleVariant="plain"
+          labels={{ street: 'Юридический адрес' }}
+          visibleFields={{
+            town: true,
+            street: true,
+            house: false,
+            room: false,
+            comment: false,
+          }}
+        />
+        <Input
+          label="Юр. название"
+          value={clientDraft.legalName || ''}
+          onChange={handleChange('legalName')}
+          fullWidth
+          tone="party"
+        />
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+          <Input
+            label="ИНН"
+            value={clientDraft.inn || ''}
+            onChange={handleChange('inn')}
+            fullWidth
+            tone="party"
+          />
+          <Input
+            label="КПП"
+            value={clientDraft.kpp || ''}
+            onChange={handleChange('kpp')}
+            fullWidth
+            tone="party"
+          />
+          <Input
+            label="ОГРН"
+            value={clientDraft.ogrn || ''}
+            onChange={handleChange('ogrn')}
+            fullWidth
+            tone="party"
+          />
+        </div>
+        <Input
+          label="Банк"
+          value={clientDraft.bankName || ''}
+          onChange={handleChange('bankName')}
+          fullWidth
+          tone="party"
+        />
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+          <Input
+            label="БИК"
+            value={clientDraft.bik || ''}
+            onChange={handleChange('bik')}
+            fullWidth
+            tone="party"
+          />
+          <Input
+            label="Р/с"
+            value={clientDraft.checkingAccount || ''}
+            onChange={handleChange('checkingAccount')}
+            fullWidth
+            tone="party"
+          />
+          <Input
+            label="К/с"
+            value={clientDraft.correspondentAccount || ''}
+            onChange={handleChange('correspondentAccount')}
+            fullWidth
+            tone="party"
+          />
+        </div>
         <Textarea
           label="Комментарий"
           value={clientDraft.comment}

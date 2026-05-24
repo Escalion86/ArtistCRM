@@ -2,7 +2,7 @@
 
 import Modal from '@components/Modal'
 import Input from '@components/Input'
-import Textarea from '@components/Textarea'
+import PartyAddressBlock from '@components/party/inputs/PartyAddressBlock'
 
 export default function LocationModal({
   open,
@@ -66,50 +66,16 @@ export default function LocationModal({
           fullWidth
           tone="party"
         />
-        <div>
-          <p className="mb-1 text-sm font-semibold text-sky-700">Адрес</p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              label="Город"
-              value={locationDraft.address?.town || ''}
-              onChange={handleChange('address.town')}
-              fullWidth
-              tone="party"
-            />
-            <Input
-              label="Улица"
-              value={locationDraft.address?.street || ''}
-              onChange={handleChange('address.street')}
-              fullWidth
-              tone="party"
-            />
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              label="Дом"
-              value={locationDraft.address?.house || ''}
-              onChange={handleChange('address.house')}
-              fullWidth
-              tone="party"
-            />
-            <Input
-              label="Зал/комната"
-              value={locationDraft.address?.room || ''}
-              onChange={handleChange('address.room')}
-              fullWidth
-              tone="party"
-            />
-          </div>
-          <Textarea
-            label="Комментарий"
-            value={locationDraft.address?.comment || ''}
-            onChange={handleChange('address.comment')}
-            fullWidth
-            tone="party"
-            rows={2}
-            placeholder="Например: вход со двора, домофон 12, парковка у шлагбаума"
-          />
-        </div>
+        <PartyAddressBlock
+          value={locationDraft.address || {}}
+          onChange={(field, nextValue) =>
+            handleChange(`address.${field}`)(nextValue)
+          }
+          title="Адрес"
+          tone="party"
+          styleVariant="plain"
+          commentPlaceholder="Например: вход со двора, домофон 12, парковка у шлагбаума"
+        />
       </div>
     </Modal>
   )

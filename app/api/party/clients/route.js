@@ -11,17 +11,50 @@ const normalizePhone = (phone) => {
   return String(phone).replace(/[^\d]/g, '')
 }
 
+const normalizeString = (value) =>
+  typeof value === 'string' ? value.trim() : ''
+
 const normalizeClientPayload = (body) => ({
-  firstName:
-    typeof body.firstName === 'string' ? body.firstName.trim() : '',
-  secondName:
-    typeof body.secondName === 'string' ? body.secondName.trim() : '',
-  thirdName:
-    typeof body.thirdName === 'string' ? body.thirdName.trim() : '',
+  firstName: normalizeString(body.firstName),
+  secondName: normalizeString(body.secondName),
+  thirdName: normalizeString(body.thirdName),
   phone: normalizePhone(body.phone),
+  whatsapp: normalizePhone(body.whatsapp),
+  viber: normalizePhone(body.viber),
+  telegram: normalizeString(body.telegram),
+  instagram: normalizeString(body.instagram),
+  vk: normalizeString(body.vk),
+  preferredContactChannel: ['phone', 'telegram', 'whatsapp', 'max', 'vk', 'other', ''].includes(
+    body.preferredContactChannel
+  )
+    ? body.preferredContactChannel
+    : '',
+  preferredContactChannelOther: normalizeString(body.preferredContactChannelOther),
   email:
     typeof body.email === 'string' ? body.email.trim().toLowerCase() : '',
-  comment: typeof body.comment === 'string' ? body.comment.trim() : '',
+  town: normalizeString(body.town),
+  legalName: normalizeString(body.legalName),
+  inn: normalizeString(body.inn),
+  kpp: normalizeString(body.kpp),
+  ogrn: normalizeString(body.ogrn),
+  bankName: normalizeString(body.bankName),
+  bik: normalizeString(body.bik),
+  checkingAccount: normalizeString(body.checkingAccount),
+  correspondentAccount: normalizeString(body.correspondentAccount),
+  legalAddress: normalizeString(body.legalAddress),
+  comment: normalizeString(body.comment),
+  significantDates: Array.isArray(body.significantDates)
+    ? body.significantDates
+        .map((item) => ({
+          title: normalizeString(item?.title),
+          date: item?.date ? new Date(item.date) : null,
+          comment: normalizeString(item?.comment),
+        }))
+        .filter(
+          (item) =>
+            item.title || item.comment || (item.date && !Number.isNaN(item.date.getTime()))
+        )
+    : [],
   status: body.status === 'archived' ? 'archived' : 'active',
 })
 

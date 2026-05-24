@@ -24,6 +24,7 @@ const ComboBox = ({
   smallMargin,
   error,
   required,
+  tone = 'default',
 }) => {
   const preparedItems = useMemo(
     () =>
@@ -56,6 +57,7 @@ const ComboBox = ({
       error={error}
       required={required}
       value={value}
+      tone={tone}
     >
       <NativeSelect
         wrapperClassName="flex flex-1"

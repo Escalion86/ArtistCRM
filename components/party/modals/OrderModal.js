@@ -15,6 +15,7 @@ import Select from '@components/Select'
 import DateTimePicker from '@components/DateTimePicker'
 import Textarea from '@components/Textarea'
 import ServiceMultiSelect from '@components/ServiceMultiSelect'
+import PartyAddressPoolPicker from '@components/party/inputs/PartyAddressPoolPicker'
 import partyServicesAtom from '@state/atoms/partyServicesAtom'
 import {
   EMPTY_PARTY_ADDITIONAL_EVENT,
@@ -42,12 +43,14 @@ export default function OrderModal({
   clients,
   clientsById,
   services,
+  companySettings,
   activeCompanyId,
   saving,
   conflictInfo,
   onClose,
   onSubmit,
   onCheckConflicts,
+  onCompanySettingsChange,
   onServiceCreated,
   isEdit,
 }) {
@@ -278,14 +281,6 @@ export default function OrderModal({
             Сначала укажите, для кого заказ и что именно нужно провести.
           </p>
           <div className="flex flex-col gap-2">
-            <Input
-              label="Название"
-              value={orderDraft.title}
-              onChange={(val) => handleChange('title', val)}
-              placeholder="День рождения"
-              fullWidth
-              tone="party"
-            />
             <div>
               <ClientPicker
                 label="Клиент"
@@ -384,12 +379,24 @@ export default function OrderModal({
                 tone="party"
               />
             ) : (
-              <Input
-                label="Адрес клиента"
-                value={orderDraft.customAddress}
-                onChange={(val) => handleChange('customAddress', val)}
-                fullWidth
-                tone="party"
+              <PartyAddressPoolPicker
+                value={orderDraft.clientAddress || {}}
+                onChange={(nextAddress) => {
+                  handleChange('clientAddress', nextAddress)
+                  const parts = [
+                    nextAddress.town,
+                    nextAddress.street,
+                    nextAddress.house ? `д. ${nextAddress.house}` : '',
+                    nextAddress.room,
+                  ].filter(Boolean)
+                  const line =
+                    parts.join(', ') +
+                    (nextAddress.comment ? ` (${nextAddress.comment})` : '')
+                  handleChange('customAddress', line)
+                }}
+                companySettings={companySettings}
+                activeCompanyId={activeCompanyId}
+                onCompanySettingsChange={onCompanySettingsChange}
               />
             )}
 

@@ -82,11 +82,11 @@ export async function PATCH(req, { params }) {
   const body = await parseJsonBody(req)
   const payload = normalizeOrderPayload(body)
 
-  if (!payload.title && !payload.client.name && !payload.serviceTitle) {
+  if (!payload.client.name && !payload.serviceTitle) {
     return partyError(
       400,
-      'partycrm_order_title_required',
-      'Укажите название, клиента или услугу заказа',
+      'partycrm_order_client_or_service_required',
+      'Укажите клиента или услугу заказа',
       'validation'
     )
   }

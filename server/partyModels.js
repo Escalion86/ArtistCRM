@@ -87,6 +87,9 @@ export const getPartyClientModel = () =>
     configureSchema: (schema) => {
       schema.index({ tenantId: 1, status: 1, firstName: 1, secondName: 1 })
       schema.index({ tenantId: 1, phone: 1 })
+      schema.index({ tenantId: 1, whatsapp: 1 })
+      schema.index({ tenantId: 1, telegram: 1 })
+      schema.index({ tenantId: 1, vk: 1 })
       schema.index({ tenantId: 1, email: 1 })
     },
   })

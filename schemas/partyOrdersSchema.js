@@ -151,6 +151,13 @@ const partyOrdersSchema = {
     default: '',
     maxlength: 500,
   },
+  clientAddress: {
+    town: { type: String, trim: true, default: '', maxlength: 120 },
+    street: { type: String, trim: true, default: '', maxlength: 180 },
+    house: { type: String, trim: true, default: '', maxlength: 60 },
+    room: { type: String, trim: true, default: '', maxlength: 120 },
+    comment: { type: String, trim: true, default: '', maxlength: 500 },
+  },
   servicesIds: {
     type: [Schema.Types.ObjectId],
     default: [],

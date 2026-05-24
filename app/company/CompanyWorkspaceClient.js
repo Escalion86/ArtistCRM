@@ -70,6 +70,13 @@ const normalizeOrderDraft = (order) => ({
   additionalEvents: Array.isArray(order.additionalEvents)
     ? order.additionalEvents
     : [],
+  clientAddress: {
+    town: order.clientAddress?.town ?? '',
+    street: order.clientAddress?.street ?? '',
+    house: order.clientAddress?.house ?? '',
+    room: order.clientAddress?.room ?? '',
+    comment: order.clientAddress?.comment ?? '',
+  },
 })
 
 const getAssignedStaffIds = (order) =>
@@ -169,6 +176,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
   const [staff, setStaff] = useState([])
   const [services, setServices] = useState([])
   const [orders, setOrders] = useState([])
+  const [companySettings, setCompanySettings] = useState({})
   const [orderDraft, setOrderDraft] = useState(EMPTY_ORDER)
   const [clientDraft, setClientDraft] = useState(EMPTY_PARTY_CLIENT)
   const [staffDraft, setStaffDraft] = useState(EMPTY_STAFF)
@@ -209,6 +217,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
         setStaff([])
         setServices([])
         setOrders([])
+        setCompanySettings({})
         setActiveCompanyId('')
         setAccessStatus('not_configured')
         return
@@ -249,6 +258,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
         staffResponse,
         servicesResponse,
         ordersResponse,
+        companySettingsResponse,
       ] = await Promise.all([
         apiJson(
           '/api/party/locations',
@@ -274,6 +284,10 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
           '/api/party/orders',
           buildCompanyRequestOptions(selectedCompanyId, { cache: 'no-store' })
         ),
+        apiJson(
+          '/api/party/company-settings',
+          buildCompanyRequestOptions(selectedCompanyId, { cache: 'no-store' })
+        ),
       ])
       setLocations(locationsResponse.data ?? [])
       setArchivedLocations(archivedLocationsResponse.data ?? [])
@@ -281,6 +295,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
       setStaff(staffResponse.data ?? [])
       setServices(servicesResponse.data ?? [])
       setOrders(ordersResponse.data ?? [])
+      setCompanySettings(companySettingsResponse.data ?? {})
     } catch (loadError) {
       if (loadError.status === 401) {
         setContext(null)
@@ -1012,6 +1027,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
           clients={clients}
           clientsById={clientsById}
           services={services}
+          companySettings={companySettings}
           activeCompanyId={activeCompanyId}
           canManage={canManage}
           saving={saving}
@@ -1019,6 +1035,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
           onClose={() => setActiveModal('')}
           onSubmit={addOrder}
           onCheckConflicts={checkOrderConflicts}
+          onCompanySettingsChange={setCompanySettings}
           onServiceCreated={(newService) =>
             setServices((prev) => [...prev, newService])
           }
@@ -1036,6 +1053,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
           clients={clients}
           clientsById={clientsById}
           services={services}
+          companySettings={companySettings}
           activeCompanyId={activeCompanyId}
           canManage={canManage}
           saving={saving}
@@ -1046,6 +1064,7 @@ export default function CompanyWorkspaceClient({ section = 'overview' }) {
           }}
           onSubmit={editOrder}
           onCheckConflicts={checkOrderConflicts}
+          onCompanySettingsChange={setCompanySettings}
           onServiceCreated={(newService) =>
             setServices((prev) => [...prev, newService])
           }
