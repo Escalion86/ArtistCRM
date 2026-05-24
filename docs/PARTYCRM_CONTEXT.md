@@ -90,7 +90,7 @@ Product/domain context:
 - `server/productDbConnect.js`
 - `server/partyModels.js`
 - `server/partyApi.js`
-- `server/getPartyTenantContext.js` — legacy fallback, пока не удалять.
+- `server/getPartyTenantContext.js` — legacy helper; company API больше не должны зависеть от него.
 - `server/getPartyMembershipContext.js` — новый multi-company слой.
 
 Schemas:
@@ -150,8 +150,8 @@ x-partycrm-company-id: <PartyCompany _id>
 
 Если header не передан:
 
-- пока используется старый fallback `getPartyTenantContext()`;
-- fallback нужен для совместимости, но целевое состояние — явный active company context.
+- company API возвращают `400 partycrm_company_id_required`;
+- неявный выбор "первой компании" больше не допускается.
 
 `/company` уже:
 
@@ -191,13 +191,12 @@ P0 core:
 
 Ближайшая архитектурная линия:
 
-1. Завершить `PC-MC1`: постепенно заменить legacy `getPartyTenantContext()` на membership context.
-2. Продолжить contractor/linking track:
+1. Продолжить contractor/linking track:
    - поиск похожего User по телефону;
    - ручной запрос на привязку;
    - подтверждение привязки в `/performer`.
-3. Подготовить основу будущего каталога исполнителей: специализация, описание, история выполненных заказов, статус доступности.
-4. Обновить документацию локального запуска и деплоя под multi-company контекст.
+2. Подготовить основу будущего каталога исполнителей: специализация, описание, история выполненных заказов, статус доступности.
+3. Обновить документацию локального запуска и деплоя под multi-company контекст там, где еще остались старые примеры без `x-partycrm-company-id`.
 
 ## Важные ограничения
 
@@ -205,7 +204,7 @@ P0 core:
 - Не использовать ArtistCRM `/login` и `/api/auth/*` для PartyCRM.
 - Не добавлять company-функции в solo ArtistCRM UI.
 - Не делать автоматическую привязку подрядчика к аккаунту по телефону.
-- Не удалять legacy fallback, пока все PartyCRM API не переведены на membership context.
+- Не возвращать silent fallback на "первую компанию" в company API.
 - При закрытии roadmap-пункта обновлять `docs/PARTYCRM_ROADMAP.md`, `docs/ROADMAP.md` и bump версии в `package.json` / `package-lock.json`.
 - После `next build` убирать generated PWA artifacts из `public`, если они попали в diff.
 

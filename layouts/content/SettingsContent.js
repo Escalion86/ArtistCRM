@@ -234,7 +234,7 @@ const SettingsContent = () => {
           type="number"
           min={15}
           max={1440}
-          step={15}
+          step={5}
           value={defaultEventDuration}
           onChange={setDefaultEventDuration}
           noMargin

@@ -72,7 +72,7 @@ const AddressPicker = ({
         onScroll={handleAddressScroll}
         style={{ overscrollBehaviorX: 'none' }}
       >
-        <FormWrapper className="flex flex-wrap mt-3 mb-1 gap-x-2 gap-y-3">
+        <FormWrapper className="mt-3 mb-1 flex flex-wrap gap-x-2 gap-y-3">
           <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1">
             <ComboBox
               label="Город"
@@ -94,7 +94,7 @@ const AddressPicker = ({
             )}
           </div>
         </FormWrapper>
-        <FormWrapper className="grid grid-cols-2 mt-1 mb-1 gap-x-2 gap-y-3">
+        <FormWrapper className="mt-1 mb-1 grid grid-cols-2 gap-x-2 gap-y-3">
           <Input
             label="Улица"
             type="text"
@@ -116,7 +116,7 @@ const AddressPicker = ({
             fullWidth
           />
         </FormWrapper>
-        <FormWrapper className="grid grid-cols-3 mt-1 mb-1 gap-x-2 gap-y-3">
+        <FormWrapper className="mt-1 mb-1 grid grid-cols-3 gap-x-2 gap-y-3">
           <Input
             label="Подъезд"
             type="text"
@@ -157,7 +157,7 @@ const AddressPicker = ({
           error={errors?.address?.comment}
           fullWidth
         />
-        <FormWrapper className="grid grid-cols-2 mt-1 mb-1 gap-x-2 gap-y-3">
+        <FormWrapper className="mt-1 mb-1 grid grid-cols-2 gap-x-2 gap-y-3">
           <Input
             label="Широта"
             type="text"
@@ -186,7 +186,7 @@ const AddressPicker = ({
               onChange({ ...address, link2GisShow: !address.link2GisShow })
             }
             label="Показывать ссылку 2ГИС"
-            src="/img/navigators/2gis.png"
+            src="/img/navigators/2gis.webp"
             big
             alt="2gis"
           /> */}

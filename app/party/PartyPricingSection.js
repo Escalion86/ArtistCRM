@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 const formatPrice = (price) => {
-  if (!price || Number(price) === 0) return '╨С╨╡╤Б╨┐╨╗╨░╤В╨╜╨╛'
-  return `${Number(price).toLocaleString('ru-RU')} тВ╜/╨╝╨╡╤Б`
+  if (!price || Number(price) === 0) return 'Бесплатно'
+  return `${Number(price).toLocaleString('ru-RU')} ₽/мес`
 }
 
 export default function PartyPricingSection() {
@@ -21,7 +21,7 @@ export default function PartyPricingSection() {
           setTariffs(res.data.filter((t) => !t.hidden))
         }
       } catch (err) {
-        console.error('╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ ╤В╨░╤А╨╕╤Д╨╛╨▓', err)
+        console.error('Ошибка загрузки тарифов', err)
       }
       setLoading(false)
     }
@@ -33,20 +33,21 @@ export default function PartyPricingSection() {
       <div className="flex flex-col items-start gap-6 landing-reveal sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sky-600 text-sm font-semibold tracking-[0.3em] uppercase">
-            ╨в╨░╤А╨╕╤Д╤Л
+            Тарифы
           </p>
           <h2 className="mt-4 text-3xl font-semibold text-black font-futuraPT">
-            ╨Т╤Л╨▒╨╡╤А╨╕╤В╨╡ ╤Д╨╛╤А╨╝╨░╤В ╤А╨░╨▒╨╛╤В╤Л
+            Выберите формат работы
           </h2>
           <p className="mt-3 text-sm text-gray-600">
-            ╨Я╨╛╨┤╨▒╨╡╤А╨╕╤В╨╡ ╨▓╨░╤А╨╕╨░╨╜╤В ╨┐╨╛╨┤ ╨╝╨░╤Б╤И╤В╨░╨▒ ╨▓╨░╤И╨╡╨│╨╛ ╨░╨│╨╡╨╜╤В╤Б╤В╨▓╨░. ╨Я╤А╨╕ ╨╛╨┐╨╗╨░╤В╨╡ ╨╖╨░ ╨│╨╛╨┤ тАФ ╤Б╨║╨╕╨┤╨║╨░ 25%.
+            Подберите вариант под масштаб вашего агентства. При оплате за
+            год - скидка 25%.
           </p>
         </div>
         <Link
           href="/party/login?callbackUrl=/company"
           className="cursor-pointer ui-btn ui-btn-primary"
         >
-          ╨Я╨╛╨┐╤А╨╛╨▒╨╛╨▓╨░╤В╤М ╨▒╨╡╤Б╨┐╨╗╨░╤В╨╜╨╛
+          Попробовать бесплатно
         </Link>
       </div>
 
@@ -91,7 +92,7 @@ export default function PartyPricingSection() {
                   </h3>
                   {isPopular && (
                     <span className="px-3 py-1 text-xs font-semibold text-white rounded-full bg-sky-600">
-                      ╨Я╨╛╨┐╤Г╨╗╤П╤А╨╜╤Л╨╣
+                      Популярный
                     </span>
                   )}
                 </div>
@@ -110,7 +111,7 @@ export default function PartyPricingSection() {
                       {Math.round(
                         Number(tariff.price) * 12 * 0.75
                       ).toLocaleString('ru-RU')}{' '}
-                      тВ╜/╨│╨╛╨┤
+                      ₽/год
                     </span>
                   )}
                 </div>
@@ -131,7 +132,7 @@ export default function PartyPricingSection() {
           })
         ) : (
           <div className="col-span-full p-8 text-center text-gray-400 bg-white border border-gray-200/70 rounded-3xl">
-            ╨в╨░╤А╨╕╤Д╤Л ╤Б╨║╨╛╤А╨╛ ╨┐╨╛╤П╨▓╤П╤В╤Б╤П
+            Тарифы скоро появятся
           </div>
         )}
       </div>

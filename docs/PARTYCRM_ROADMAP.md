@@ -170,7 +170,7 @@ PartyStaff
 
 ### P0: Multi-company Memberships
 
-- [-] PC-MC1 Перепроектировать `getPartyTenantContext()` в `getPartyMembershipContext()`: возвращать не одну компанию, а список доступных membership'ов текущего User.
+- [x] PC-MC1 Перепроектировать `getPartyTenantContext()` в `getPartyMembershipContext()`: возвращать не одну компанию, а список доступных membership'ов текущего User.
 - [x] PC-MC2 Добавить endpoint `GET /api/party/memberships`: список компаний, ролей, staffId, признаков owner/admin/performer и активных статусов.
 - [x] PC-MC3 Добавить endpoint `POST /api/party/companies`: создание дополнительной компании для уже авторизованного пользователя без повторного bootstrap-сценария.
 - [x] PC-MC4 Добавить активный company context для company API: принимать `companyId`/`tenantId` явно и проверять, что текущий User имеет доступ к этой компании.
@@ -405,3 +405,4 @@ PartyStaff
 - 2026-05-15: завершен PC-OF6 — заказы PartyCRM получили доп. события в форме, бейджи просрочено/сегодня/завтра, модалку `Ближайшие события`, кнопку `Закрыть прошедшие` и разделение меню на предстоящие и прошедшие заказы.
 - 2026-05-15: завершены PC-CW3, PC-RP1 и PC-RP3 — company API чтения операционных данных закрыты для `owner/admin`, исполнительские действия остаются в `/api/party/performer/*`, роли v1 описаны в `docs/PARTYCRM_ROLES.md`.
 - 2026-05-16: завершены PC-CT6..PC-CT9 — в списке сотрудников появился индикатор похожего PartyCRM-аккаунта, менеджер может отправить ручной запрос на привязку подрядчика, исполнитель подтверждает или отклоняет запрос в `/performer`, а после подтверждения назначения по карточке появляются в кабинете исполнителя.
+- 2026-05-23: завершен PC-MC1 — `server/partyApi.js` больше не использует silent fallback на `getPartyTenantContext()`, company API требуют явный `x-partycrm-company-id`, а `/api/party/me` и модалка заказа переведены на membership-first flow.

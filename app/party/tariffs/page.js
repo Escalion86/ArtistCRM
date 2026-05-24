@@ -1,7 +1,7 @@
 ﻿import PartyTariffsAdmin from './PartyTariffsAdmin'
 
 export const metadata = {
-  title: 'PartyCRM тАФ ╤Г╨┐╤А╨░╨▓╨╗╨╡╨╜╨╕╨╡ ╤В╨░╤А╨╕╤Д╨░╨╝╨╕',
+  title: 'PartyCRM - управление тарифами',
   applicationName: 'PartyCRM',
   robots: {
     index: false,

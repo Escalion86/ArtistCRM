@@ -135,14 +135,26 @@ https://partycrm.ru/api/party/health
 5. PartyCRM текущий доступ:
 
 ```txt
-https://partycrm.ru/api/party/me
+https://partycrm.ru/api/party/memberships
 ```
 
 Ожидаемо:
 
 - `401`, если не авторизован;
-- `403 partycrm_access_not_configured`, если пользователь есть, но PartyCRM tenant еще не создан;
-- `200`, если пользователь привязан к PartyCRM staff.
+- `200`, если пользователь авторизован; в payload есть список membership'ов и `tenantId` компаний.
+
+Для проверки выбранной компании и company API теперь обязательно передавать header:
+
+```txt
+x-partycrm-company-id: <tenantId из /api/party/memberships>
+```
+
+Тогда `GET /api/party/me` ожидаемо возвращает:
+
+- `400 partycrm_company_id_required`, если header не передан;
+- `403 partycrm_company_access_denied`, если передана чужая компания;
+- `403 partycrm_access_not_configured`, если membership есть, но staff/company недоступны;
+- `200`, если активная компания выбрана корректно.
 
 ## Создание первой компании
 

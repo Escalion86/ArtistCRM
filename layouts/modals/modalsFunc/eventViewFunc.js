@@ -234,7 +234,7 @@ const eventViewFunc = (eventId) => {
 
     if (!event || !eventId)
       return (
-        <div className="flex justify-center w-full text-lg">
+        <div className="flex w-full justify-center text-lg">
           ОШИБКА! Мероприятие не найдено!
         </div>
       )
@@ -242,9 +242,9 @@ const eventViewFunc = (eventId) => {
     return (
       <div className="flex flex-col gap-y-3">
         <ImageGallery images={event?.images} />
-        <div className="flex flex-col flex-1">
-          <div className="flex flex-col flex-1 w-full max-w-full px-2 py-2 gap-y-3">
-            <div className="flex items-center w-full gap-x-1">
+        <div className="flex flex-1 flex-col">
+          <div className="flex w-full max-w-full flex-1 flex-col gap-y-3 px-2 py-2">
+            <div className="flex w-full items-center gap-x-1">
               {tagItems.length > 0 && (
                 <div className={cn('flex flex-wrap gap-2', 'flex-1')}>
                   {tagItems.map((tag) => (
@@ -253,7 +253,7 @@ const eventViewFunc = (eventId) => {
                 </div>
               )}
               {!setTopLeftComponent && (
-                <div className="flex justify-end flex-1">
+                <div className="flex flex-1 justify-end">
                   <CardButtonsComponent
                     event={event}
                     calendarLink={calendarLink}
@@ -264,7 +264,7 @@ const eventViewFunc = (eventId) => {
             <SectionBlock>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex-1">
-                  <div className="text-lg font-bold text-left text-gray-900 break-words tablet:text-2xl">
+                  <div className="tablet:text-2xl text-left text-lg font-bold break-words text-gray-900">
                     {formatAddress(displayAddress, 'Мероприятие')}
                   </div>
                   <div className="mt-1 text-xs text-gray-500">
@@ -280,20 +280,20 @@ const eventViewFunc = (eventId) => {
                   {statusMeta.label}
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-2 mt-3 text-sm tablet:grid-cols-3">
-                <div className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50">
+              <div className="tablet:grid-cols-3 mt-3 grid grid-cols-1 gap-2 text-sm">
+                <div className="event-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2">
                   <div className="text-[11px] text-gray-500">Начало</div>
                   <div className="font-semibold text-gray-900">
                     {formatDateTime(event?.eventDate)}
                   </div>
                 </div>
-                <div className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50">
+                <div className="event-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2">
                   <div className="text-[11px] text-gray-500">Завершение</div>
                   <div className="font-semibold text-gray-900">
                     {formatDateTime(event?.dateEnd)}
                   </div>
                 </div>
-                <div className="p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50">
+                <div className="event-view-kpi rounded-lg border border-gray-200 bg-gray-50 p-2">
                   <div className="text-[11px] text-gray-500">Длительность</div>
                   <div className="font-semibold text-gray-900">
                     {formatMinutes(duration ?? 60)}
@@ -305,7 +305,7 @@ const eventViewFunc = (eventId) => {
             {event?.description ? (
               <SectionBlock title="Описание">
                 <div
-                  className="w-full max-w-full overflow-hidden list-disc textarea ql"
+                  className="textarea ql w-full max-w-full list-disc overflow-hidden"
                   dangerouslySetInnerHTML={{
                     __html: sanitizeHtml(event?.description),
                   }}
@@ -330,7 +330,7 @@ const eventViewFunc = (eventId) => {
                 {mainClient ? (
                   <div
                     {...getClientCardProps(mainClient)}
-                    className="p-2 border border-gray-200 rounded-lg cursor-pointer event-view-kpi bg-gray-50 transition hover:border-general hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-general/30"
+                    className="event-view-kpi hover:border-general focus:ring-general/30 cursor-pointer rounded-lg border border-gray-200 bg-gray-50 p-2 transition hover:bg-white hover:shadow-sm focus:ring-2 focus:outline-none"
                   >
                     <div className="text-sm font-semibold text-gray-800">
                       Клиент:{' '}
@@ -365,9 +365,9 @@ const eventViewFunc = (eventId) => {
                           key={`${contact.label}-${index}`}
                           {...getClientCardProps(contact.client)}
                           className={cn(
-                            'p-2 border border-gray-200 rounded-lg event-view-kpi bg-gray-50 transition focus:outline-none focus:ring-2 focus:ring-general/30',
+                            'event-view-kpi focus:ring-general/30 rounded-lg border border-gray-200 bg-gray-50 p-2 transition focus:ring-2 focus:outline-none',
                             contact.client
-                              ? 'cursor-pointer hover:border-general hover:bg-white hover:shadow-sm'
+                              ? 'hover:border-general cursor-pointer hover:bg-white hover:shadow-sm'
                               : ''
                           )}
                         >
@@ -382,7 +382,10 @@ const eventViewFunc = (eventId) => {
                           {contact.client &&
                             formatClientContactLines(contact.client).map(
                               (line) => (
-                                <div key={line} className="text-xs text-gray-600">
+                                <div
+                                  key={line}
+                                  className="text-xs text-gray-600"
+                                >
                                   {line}
                                 </div>
                               )
@@ -393,7 +396,10 @@ const eventViewFunc = (eventId) => {
                               onClick={(event) => event.stopPropagation()}
                               onKeyDown={(event) => event.stopPropagation()}
                             >
-                              <ContactsIconsButtons user={contact.client} showChat />
+                              <ContactsIconsButtons
+                                user={contact.client}
+                                showChat
+                              />
                             </div>
                           )}
                         </div>
@@ -406,126 +412,130 @@ const eventViewFunc = (eventId) => {
 
             {additionalEvents.length > 0 && (
               <SectionBlock title="Доп. события">
-                <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2 laptop:grid-cols-3">
+                <div className="tablet:grid-cols-2 laptop:grid-cols-3 grid grid-cols-1 gap-2">
                   {additionalEvents.map((item, index) => {
                     const isOverdue = isAdditionalEventOverdue(item)
                     return (
-                    <div
-                      key={`additional-event-view-${index}`}
-                      className={`w-full cursor-pointer rounded-lg border p-2 transition hover:shadow-sm ${
-                        item?.done
-                          ? 'event-view-additional-done border-emerald-200 bg-emerald-50'
-                          : isOverdue
-                            ? 'border-red-300 bg-red-50'
-                            : 'event-view-kpi border-gray-200 bg-gray-50'
-                      }`}
-                      onClick={() =>
-                        modalsFunc.add({
-                          title: item?.title || `Событие #${index + 1}`,
-                          confirmButtonName: item?.done
-                            ? 'Возобновить'
-                            : 'Выполнено',
-                          declineButtonName: 'Закрыть',
-                          showDecline: true,
-                          onConfirm: () => toggleAdditionalEventDone(index),
-                          Children: ({ closeModal, setTopLeftComponent }) => {
-                            useEffect(() => {
-                              if (!setTopLeftComponent) return
-                              setTopLeftComponent(() => (
-                                <CardButtons
-                                  item={{
-                                    _id: `${
-                                      event?._id || 'event'
-                                    }-additional-${index}`,
-                                    status: 'active',
-                                  }}
-                                  typeOfItem="event"
-                                  minimalActions
-                                  alwaysCompact
-                                  dropDownPlacement="left"
-                                  showCloneButton={false}
-                                  showHistoryButton={false}
-                                  showStatusButton={false}
-                                  onEdit={() => {
-                                    closeModal?.()
-                                    modalsFunc.event.edit(event?._id)
-                                  }}
-                                  onDelete={() =>
-                                    modalsFunc.confirm({
-                                      title: 'Удаление доп. события',
-                                      text: 'Удалить это доп. событие?',
-                                      onConfirm: async () => {
-                                        await deleteAdditionalEvent(index)
-                                        closeModal?.()
-                                      },
-                                    })
-                                  }
-                                />
-                              ))
-                            }, [closeModal, setTopLeftComponent])
-
-                            return (
-                              <div className="flex flex-col gap-3 text-sm text-gray-800">
-                                <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
-                                  <div className="text-xs tracking-wide text-gray-500 uppercase">
-                                    Статус
-                                  </div>
-                                  <div
-                                    className={`mt-1 text-sm font-semibold ${
-                                      item?.done
-                                        ? 'text-emerald-700'
-                                        : 'text-blue-700'
-                                    }`}
-                                  >
-                                    {item?.done ? 'Выполнено' : 'Активно'}
-                                  </div>
-                                </div>
-                                <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
-                                  <div className="text-xs tracking-wide text-gray-500 uppercase">
-                                    Дата и время
-                                  </div>
-                                  <div className="mt-1 font-semibold text-gray-900">
-                                    {formatDateTime(item?.date)}
-                                  </div>
-                                </div>
-                                {item?.description ? (
-                                  <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
-                                    <div className="text-xs tracking-wide text-gray-500 uppercase">
-                                      Описание
-                                    </div>
-                                    <div className="mt-1 text-gray-700 whitespace-pre-wrap">
-                                      {item.description}
-                                    </div>
-                                  </div>
-                                ) : null}
-                              </div>
-                            )
-                          },
-                        })
-                      }
-                    >
                       <div
-                        className={`truncate text-sm font-semibold ${
-                          item?.done ? 'text-emerald-700' : isOverdue ? 'text-red-700' : 'text-gray-900'
+                        key={`additional-event-view-${index}`}
+                        className={`w-full cursor-pointer rounded-lg border p-2 transition hover:shadow-sm ${
+                          item?.done
+                            ? 'event-view-additional-done border-emerald-200 bg-emerald-50'
+                            : isOverdue
+                              ? 'border-red-300 bg-red-50'
+                              : 'event-view-kpi border-gray-200 bg-gray-50'
                         }`}
+                        onClick={() =>
+                          modalsFunc.add({
+                            title: item?.title || `Событие #${index + 1}`,
+                            confirmButtonName: item?.done
+                              ? 'Возобновить'
+                              : 'Выполнено',
+                            declineButtonName: 'Закрыть',
+                            showDecline: true,
+                            onConfirm: () => toggleAdditionalEventDone(index),
+                            Children: ({ closeModal, setTopLeftComponent }) => {
+                              useEffect(() => {
+                                if (!setTopLeftComponent) return
+                                setTopLeftComponent(() => (
+                                  <CardButtons
+                                    item={{
+                                      _id: `${
+                                        event?._id || 'event'
+                                      }-additional-${index}`,
+                                      status: 'active',
+                                    }}
+                                    typeOfItem="event"
+                                    minimalActions
+                                    alwaysCompact
+                                    dropDownPlacement="left"
+                                    showCloneButton={false}
+                                    showHistoryButton={false}
+                                    showStatusButton={false}
+                                    onEdit={() => {
+                                      closeModal?.()
+                                      modalsFunc.event.edit(event?._id)
+                                    }}
+                                    onDelete={() =>
+                                      modalsFunc.confirm({
+                                        title: 'Удаление доп. события',
+                                        text: 'Удалить это доп. событие?',
+                                        onConfirm: async () => {
+                                          await deleteAdditionalEvent(index)
+                                          closeModal?.()
+                                        },
+                                      })
+                                    }
+                                  />
+                                ))
+                              }, [closeModal, setTopLeftComponent])
+
+                              return (
+                                <div className="flex flex-col gap-3 text-sm text-gray-800">
+                                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                    <div className="text-xs tracking-wide text-gray-500 uppercase">
+                                      Статус
+                                    </div>
+                                    <div
+                                      className={`mt-1 text-sm font-semibold ${
+                                        item?.done
+                                          ? 'text-emerald-700'
+                                          : 'text-blue-700'
+                                      }`}
+                                    >
+                                      {item?.done ? 'Выполнено' : 'Активно'}
+                                    </div>
+                                  </div>
+                                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                    <div className="text-xs tracking-wide text-gray-500 uppercase">
+                                      Дата и время
+                                    </div>
+                                    <div className="mt-1 font-semibold text-gray-900">
+                                      {formatDateTime(item?.date)}
+                                    </div>
+                                  </div>
+                                  {item?.description ? (
+                                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                      <div className="text-xs tracking-wide text-gray-500 uppercase">
+                                        Описание
+                                      </div>
+                                      <div className="mt-1 whitespace-pre-wrap text-gray-700">
+                                        {item.description}
+                                      </div>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              )
+                            },
+                          })
+                        }
                       >
-                        {item?.done ? '✓ ' : isOverdue ? '⚠ ' : ''}
-                        {item?.title || `Событие #${index + 1}`}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {formatDateTime(item?.date)}
-                        {isOverdue && !item?.done && (
-                          <span className="ml-1.5 inline-flex rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
-                            Просрочено
-                          </span>
-                        )}
-                      </div>
-                      {item?.description ? (
-                        <div className="text-xs text-gray-700">
-                          {item.description}
+                        <div
+                          className={`truncate text-sm font-semibold ${
+                            item?.done
+                              ? 'text-emerald-700'
+                              : isOverdue
+                                ? 'text-red-700'
+                                : 'text-gray-900'
+                          }`}
+                        >
+                          {item?.done ? '✓ ' : isOverdue ? '⚠ ' : ''}
+                          {item?.title || `Событие #${index + 1}`}
                         </div>
-                      ) : null}
-                    </div>
+                        <div className="text-xs text-gray-600">
+                          {formatDateTime(item?.date)}
+                          {isOverdue && !item?.done && (
+                            <span className="ml-1.5 inline-flex rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+                              Просрочено
+                            </span>
+                          )}
+                        </div>
+                        {item?.description ? (
+                          <div className="text-xs text-gray-700">
+                            {item.description}
+                          </div>
+                        ) : null}
+                      </div>
                     )
                   })}
                 </div>
@@ -541,8 +551,8 @@ const eventViewFunc = (eventId) => {
                     }%20${event.address.house.replaceAll('/', '%2F')}`}
                   >
                     <Image
-                      className="object-contain w-6 h-6 min-h-6 min-w-6"
-                      src="/img/navigators/2gis.png"
+                      className="h-6 min-h-6 w-6 min-w-6 object-contain"
+                      src="/img/navigators/2gis.webp"
                       alt="2gis"
                       width={24}
                       height={24}
@@ -557,9 +567,9 @@ const eventViewFunc = (eventId) => {
                     }%20${event.address.house.replaceAll('/', '%2F')}`}
                   >
                     <Image
-                      className="object-contain w-6 h-6 min-h-6 min-w-6"
-                      src="/img/navigators/yandex.png"
-                      alt="2gis"
+                      className="h-6 min-h-6 w-6 min-w-6 object-contain"
+                      src="/img/navigators/yandex.webp"
+                      alt="yandex"
                       width={24}
                       height={24}
                     />

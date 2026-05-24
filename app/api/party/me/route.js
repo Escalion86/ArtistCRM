@@ -1,38 +1,14 @@
 import { NextResponse } from 'next/server'
-import getPartyTenantContext from '@server/getPartyTenantContext'
+import { getPartyRequestContext } from '@server/partyApi'
 
-export async function GET() {
+export async function GET(req) {
   try {
-    const { sessionUser, staff, company, tenantId, role } =
-      await getPartyTenantContext()
-
-    if (!sessionUser?._id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'unauthorized',
-            type: 'auth',
-            message: 'Не авторизован',
-          },
-        },
-        { status: 401 }
-      )
+    const { context, error } = await getPartyRequestContext({ req })
+    if (error) {
+      return error
     }
 
-    if (!tenantId || !staff) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'partycrm_access_not_configured',
-            type: 'permission',
-            message: 'Для пользователя не настроен доступ к PartyCRM',
-          },
-        },
-        { status: 403 }
-      )
-    }
+    const { staff, company, tenantId, role } = context
 
     return NextResponse.json({
       success: true,

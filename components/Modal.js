@@ -69,7 +69,7 @@ const Modal = ({
     lg: 'max-w-lg',
     xl: 'max-w-xl',
     '2xl': 'max-w-2xl',
-    full: 'max-w-full',
+    full: 'max-w-full md:max-w-[95vw] lg:max-w-[75vw]',
   }
 
   const dialog = (

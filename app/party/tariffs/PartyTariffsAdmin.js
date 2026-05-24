@@ -25,7 +25,7 @@ export default function PartyTariffsAdmin() {
   const [saving, setSaving] = useState(false)
   const [featureInput, setFeatureInput] = useState('')
 
-  // ╨Я╤А╨╛╨▓╨╡╤А╨║╨░ ╨░╨▓╤В╨╛╤А╨╕╨╖╨░╤Ж╨╕╨╕ ╨╕ ╨╖╨░╨│╤А╤Г╨╖╨║╨░ ╤В╨░╤А╨╕╤Д╨╛╨▓
+  // Проверка авторизации и загрузка тарифов
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -37,7 +37,7 @@ export default function PartyTariffsAdmin() {
       }
       const role = meRes.data.user.role
       if (role !== 'admin' && role !== 'support') {
-        setError('╨Ф╨╛╤Б╤В╤Г╨┐ ╤В╨╛╨╗╤М╨║╨╛ ╨┤╨╗╤П ╨░╨┤╨╝╨╕╨╜╨╕╤Б╤В╤А╨░╤В╨╛╤А╨╛╨▓')
+        setError('Доступ только для администраторов')
         setLoading(false)
         return
       }
@@ -47,10 +47,10 @@ export default function PartyTariffsAdmin() {
       if (tariffsRes?.success) {
         setTariffs(tariffsRes.data || [])
       } else {
-        setError('╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ ╤В╨░╤А╨╕╤Д╨╛╨▓')
+        setError('Ошибка загрузки тарифов')
       }
     } catch (err) {
-      setError('╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ ╨┤╨░╨╜╨╜╤Л╤Е')
+      setError('Ошибка загрузки данных')
     }
     setLoading(false)
   }, [router])
@@ -59,10 +59,10 @@ export default function PartyTariffsAdmin() {
     load()
   }, [load])
 
-  // ╨б╨╛╨╖╨┤╨░╨╜╨╕╨╡ / ╨╛╨▒╨╜╨╛╨▓╨╗╨╡╨╜╨╕╨╡
+  // Создание / обновление
   const handleSave = async () => {
     if (!form.title.trim()) {
-      setError('╨Э╨░╨╖╨▓╨░╨╜╨╕╨╡ ╤В╨░╤А╨╕╤Д╨░ ╨╛╨▒╤П╨╖╨░╤В╨╡╨╗╤М╨╜╨╛')
+      setError('Название тарифа обязательно')
       return
     }
     setSaving(true)
@@ -79,13 +79,13 @@ export default function PartyTariffsAdmin() {
           method: 'PATCH',
           body,
         })
-        if (!res?.success) throw new Error(res?.error || '╨Ю╤И╨╕╨▒╨║╨░ ╨╛╨▒╨╜╨╛╨▓╨╗╨╡╨╜╨╕╤П')
+        if (!res?.success) throw new Error(res?.error || 'Ошибка обновления')
       } else {
         const res = await apiJson('/api/party/tariffs', {
           method: 'POST',
           body,
         })
-        if (!res?.success) throw new Error(res?.error || '╨Ю╤И╨╕╨▒╨║╨░ ╤Б╨╛╨╖╨┤╨░╨╜╨╕╤П')
+        if (!res?.success) throw new Error(res?.error || 'Ошибка создания')
       }
 
       setForm({ ...emptyForm })
@@ -98,7 +98,7 @@ export default function PartyTariffsAdmin() {
     setSaving(false)
   }
 
-  // ╨а╨╡╨┤╨░╨║╤В╨╕╤А╨╛╨▓╨░╨╜╨╕╨╡
+  // Редактирование
   const handleEdit = (tariff) => {
     setForm({
       title: tariff.title || '',
@@ -112,21 +112,21 @@ export default function PartyTariffsAdmin() {
     setError('')
   }
 
-  // ╨г╨┤╨░╨╗╨╡╨╜╨╕╨╡
+  // Удаление
   const handleDelete = async (id, title) => {
-    if (!window.confirm(`╨г╨┤╨░╨╗╨╕╤В╤М ╤В╨░╤А╨╕╤Д "${title}"?`)) return
+    if (!window.confirm(`Удалить тариф "${title}"?`)) return
     try {
       const res = await apiJson(`/api/party/tariffs/${id}`, {
         method: 'DELETE',
       })
-      if (!res?.success) throw new Error(res?.error || '╨Ю╤И╨╕╨▒╨║╨░ ╤Г╨┤╨░╨╗╨╡╨╜╨╕╤П')
+      if (!res?.success) throw new Error(res?.error || 'Ошибка удаления')
       await load()
     } catch (err) {
       setError(err.message)
     }
   }
 
-  // ╨Ю╤В╨╝╨╡╨╜╨░ ╤А╨╡╨┤╨░╨║╤В╨╕╤А╨╛╨▓╨░╨╜╨╕╤П
+  // Отмена редактирования
   const handleCancel = () => {
     setForm({ ...emptyForm })
     setEditingId(null)
@@ -134,7 +134,7 @@ export default function PartyTariffsAdmin() {
     setError('')
   }
 
-  // ╨Ф╨╛╨▒╨░╨▓╨╗╨╡╨╜╨╕╨╡ ╤Д╨╕╤З╨╕
+  // Добавление фичи
   const addFeature = () => {
     const val = featureInput.trim()
     if (!val) return
@@ -152,7 +152,7 @@ export default function PartyTariffsAdmin() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#eaf6ff]">
-        <p className="text-gray-500 text-sm">╨Ч╨░╨│╤А╤Г╨╖╨║╨░...</p>
+        <p className="text-gray-500 text-sm">Загрузка...</p>
       </div>
     )
   }
@@ -177,17 +177,17 @@ export default function PartyTariffsAdmin() {
                 href="/company"
                 className="text-gray-500 hover:text-sky-700 transition-colors"
               >
-                ╨Ъ╨░╨▒╨╕╨╜╨╡╤В
+                Кабинет
               </Link>
               <span className="text-gray-300">/</span>
               <a
                 href="/party/settings"
                 className="text-gray-500 hover:text-sky-700 transition-colors"
               >
-                ╨Э╨░╤Б╤В╤А╨╛╨╣╨║╨╕
+                Настройки
               </a>
               <span className="text-gray-300">/</span>
-              <span className="text-sky-700 font-semibold">╨в╨░╤А╨╕╤Д╤Л</span>
+              <span className="text-sky-700 font-semibold">Тарифы</span>
             </nav>
           </div>
         </div>
@@ -195,10 +195,10 @@ export default function PartyTariffsAdmin() {
 
       <div className="max-w-6xl px-5 py-8 mx-auto">
         <h1 className="text-2xl font-semibold font-futuraPT text-black">
-          ╨г╨┐╤А╨░╨▓╨╗╨╡╨╜╨╕╨╡ ╤В╨░╤А╨╕╤Д╨░╨╝╨╕
+          Управление тарифами
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          ╨б╨╛╨╖╨┤╨░╨╜╨╕╨╡ ╨╕ ╤А╨╡╨┤╨░╨║╤В╨╕╤А╨╛╨▓╨░╨╜╨╕╨╡ ╤В╨░╤А╨╕╤Д╨╜╤Л╤Е ╨┐╨╗╨░╨╜╨╛╨▓ PartyCRM
+          Создание и редактирование тарифных планов PartyCRM
         </p>
 
         {error && (
@@ -207,15 +207,15 @@ export default function PartyTariffsAdmin() {
           </div>
         )}
 
-        {/* ╨д╨╛╤А╨╝╨░ ╤Б╨╛╨╖╨┤╨░╨╜╨╕╤П/╤А╨╡╨┤╨░╨║╤В╨╕╤А╨╛╨▓╨░╨╜╨╕╤П */}
+        {/* Форма создания/редактирования */}
         <div className="mt-6 p-6 bg-white border border-gray-200/70 rounded-2xl shadow-sm">
           <h2 className="text-lg font-semibold text-black font-futuraPT">
-            {editingId ? '╨а╨╡╨┤╨░╨║╤В╨╕╤А╨╛╨▓╨░╤В╤М ╤В╨░╤А╨╕╤Д' : '╨Э╨╛╨▓╤Л╨╣ ╤В╨░╤А╨╕╤Д'}
+            {editingId ? 'Редактировать тариф' : 'Новый тариф'}
           </h2>
           <div className="grid gap-4 mt-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ╨Э╨░╨╖╨▓╨░╨╜╨╕╨╡
+                Название
               </label>
               <input
                 type="text"
@@ -224,12 +224,12 @@ export default function PartyTariffsAdmin() {
                   setForm((f) => ({ ...f, title: e.target.value }))
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent"
-                placeholder="╨Э╨░╨┐╤А╨╕╨╝╨╡╤А: ╨С╨░╨╖╨╛╨▓╤Л╨╣"
+                placeholder="Например: Базовый"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ╨Я╨╛╨┤╨╖╨░╨│╨╛╨╗╨╛╨▓╨╛╨║
+                Подзаголовок
               </label>
               <input
                 type="text"
@@ -238,27 +238,28 @@ export default function PartyTariffsAdmin() {
                   setForm((f) => ({ ...f, subtitle: e.target.value }))
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent"
-                placeholder="╨Ф╨╗╤П ╨╜╨╡╨▒╨╛╨╗╤М╤И╨╕╤Е ╨░╨│╨╡╨╜╤В╤Б╤В╨▓"
+                placeholder="Для небольших агентств"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ╨ж╨╡╨╜╨░ (тВ╜/╨╝╨╡╤Б)
+                Цена (₽/мес)
               </label>
               <input
                 type="number"
+                step={1000}
                 value={form.price}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, price: e.target.value }))
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent"
-                placeholder="0 тАФ ╨▒╨╡╤Б╨┐╨╗╨░╤В╨╜╤Л╨╣"
+                placeholder="0 - бесплатный"
                 min={0}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ╨б╨║╤А╤Л╤В╤Л╨╣
+                Скрытый
               </label>
               <label className="flex items-center gap-2 mt-2 cursor-pointer">
                 <input
@@ -270,13 +271,13 @@ export default function PartyTariffsAdmin() {
                   className="rounded border-gray-300 text-sky-600 focus:ring-sky-400"
                 />
                 <span className="text-sm text-gray-600">
-                  ╨Э╨╡ ╨┐╨╛╨║╨░╨╖╤Л╨▓╨░╤В╤М ╨╜╨░ ╨╗╨╡╨╜╨┤╨╕╨╜╨│╨╡ ╨╕ ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╤П╨╝
+                  Не показывать на лендинге и пользователям
                 </span>
               </label>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ╨Ю╨┐╨╕╤Б╨░╨╜╨╕╨╡
+                Описание
               </label>
               <textarea
                 value={form.description}
@@ -285,12 +286,12 @@ export default function PartyTariffsAdmin() {
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent"
                 rows={2}
-                placeholder="╨Ъ╤А╨░╤В╨║╨╛╨╡ ╨╛╨┐╨╕╤Б╨░╨╜╨╕╨╡ ╤В╨░╤А╨╕╤Д╨░"
+                placeholder="Краткое описание тарифа"
               />
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ╨Т╨╛╨╖╨╝╨╛╨╢╨╜╨╛╤Б╤В╨╕ (features)
+                Возможности (features)
               </label>
               <div className="flex gap-2 mb-2">
                 <input
@@ -304,13 +305,13 @@ export default function PartyTariffsAdmin() {
                     }
                   }}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent"
-                  placeholder="╨Т╨▓╨╡╨┤╨╕╤В╨╡ ╨▓╨╛╨╖╨╝╨╛╨╢╨╜╨╛╤Б╤В╤М ╨╕ ╨╜╨░╨╢╨╝╨╕╤В╨╡ Enter"
+                  placeholder="Введите возможность и нажмите Enter"
                 />
                 <button
                   onClick={addFeature}
                   className="px-4 py-2 text-sm font-semibold text-white bg-sky-500 rounded-lg hover:bg-sky-600 transition-colors"
                 >
-                  ╨Ф╨╛╨▒╨░╨▓╨╕╤В╤М
+                  Добавить
                 </button>
               </div>
               {form.features && form.features.length > 0 && (
@@ -325,7 +326,7 @@ export default function PartyTariffsAdmin() {
                         onClick={() => removeFeature(index)}
                         className="ml-1 text-sky-400 hover:text-red-500 transition-colors"
                       >
-                        ├Ч
+                        x
                       </button>
                     </span>
                   ))}
@@ -340,27 +341,27 @@ export default function PartyTariffsAdmin() {
               className="px-6 py-2 text-sm font-semibold text-white bg-sky-500 rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50"
             >
               {saving
-                ? '╨б╨╛╤Е╤А╨░╨╜╨╡╨╜╨╕╨╡...'
+                ? 'Сохранение...'
                 : editingId
-                  ? '╨б╨╛╤Е╤А╨░╨╜╨╕╤В╤М ╨╕╨╖╨╝╨╡╨╜╨╡╨╜╨╕╤П'
-                  : '╨б╨╛╨╖╨┤╨░╤В╤М ╤В╨░╤А╨╕╤Д'}
+                  ? 'Сохранить изменения'
+                  : 'Создать тариф'}
             </button>
             {editingId && (
               <button
                 onClick={handleCancel}
                 className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                ╨Ю╤В╨╝╨╡╨╜╨╕╤В╤М
+                Отменить
               </button>
             )}
           </div>
         </div>
 
-        {/* ╨б╨┐╨╕╤Б╨╛╨║ ╤В╨░╤А╨╕╤Д╨╛╨▓ */}
+        {/* Список тарифов */}
         <div className="mt-6 space-y-3">
           {tariffs.length === 0 ? (
             <div className="p-8 text-center text-gray-400 bg-white border border-gray-200/70 rounded-2xl">
-              ╨в╨░╤А╨╕╤Д╤Л ╨╜╨╡ ╨╜╨░╨╣╨┤╨╡╨╜╤Л. ╨б╨╛╨╖╨┤╨░╨╣╤В╨╡ ╨┐╨╡╤А╨▓╤Л╨╣ ╤В╨░╤А╨╕╤Д.
+              Тарифы не найдены. Создайте первый тариф.
             </div>
           ) : (
             tariffs.map((tariff) => (
@@ -378,7 +379,7 @@ export default function PartyTariffsAdmin() {
                       </h3>
                       {tariff.hidden && (
                         <span className="px-2 py-0.5 text-xs font-semibold text-gray-500 bg-gray-100 rounded-full">
-                          ╤Б╨║╤А╤Л╤В
+                          скрыт
                         </span>
                       )}
                     </div>
@@ -387,8 +388,8 @@ export default function PartyTariffsAdmin() {
                     )}
                     <p className="mt-2 text-xl font-bold text-sky-700">
                       {tariff.price > 0
-                        ? `${Number(tariff.price).toLocaleString('ru-RU')} тВ╜/╨╝╨╡╤Б`
-                        : '╨С╨╡╤Б╨┐╨╗╨░╤В╨╜╨╛'}
+                        ? `${Number(tariff.price).toLocaleString('ru-RU')} ₽/мес`
+                        : 'Бесплатно'}
                     </p>
                     {tariff.description && (
                       <p className="mt-1 text-sm text-gray-600">
@@ -413,13 +414,13 @@ export default function PartyTariffsAdmin() {
                       onClick={() => handleEdit(tariff)}
                       className="px-3 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 rounded-lg hover:bg-sky-100 transition-colors"
                     >
-                      ╨а╨╡╨┤╨░╨║╤В╨╕╤А╨╛╨▓╨░╤В╤М
+                      Редактировать
                     </button>
                     <button
                       onClick={() => handleDelete(tariff._id, tariff.title)}
                       className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
                     >
-                      ╨г╨┤╨░╨╗╨╕╤В╤М
+                      Удалить
                     </button>
                   </div>
                 </div>

@@ -122,7 +122,7 @@ const serviceFunc = (serviceId, clone = false, onSuccess) => {
               setDuration(value)
             }}
             min={0}
-            step={1}
+            step={5}
           />
         </FormWrapper>
         <ErrorsList errors={errors} />

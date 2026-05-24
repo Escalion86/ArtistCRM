@@ -37,7 +37,7 @@ const PriceInput = ({
       required={required}
     >
       <Input
-        step="100"
+        step="1000"
         noBorder
         inputClassName="w-16"
         type="number"

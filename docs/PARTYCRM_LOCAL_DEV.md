@@ -94,7 +94,14 @@ curl -X POST http://localhost:3000/api/party/bootstrap \
 Проверить текущий PartyCRM-доступ:
 
 ```txt
-http://localhost:3000/api/party/me
+http://localhost:3000/api/party/memberships
+```
+
+`/api/party/memberships` возвращает список доступных компаний и их `tenantId`.
+Для запросов company API и `GET /api/party/me` активную компанию теперь нужно передавать явно через header:
+
+```txt
+x-partycrm-company-id: <tenantId из /api/party/memberships>
 ```
 
 ## Первые защищенные API
@@ -144,7 +151,7 @@ Endpoint возвращает только заказы, назначенные 
 
 - `owner` и `admin` могут управлять точками и сотрудниками.
 - `performer` не может управлять точками и сотрудниками.
-- Все запросы фильтруются по `tenantId` текущей PartyCRM-компании.
+- Все company API требуют `x-partycrm-company-id` и фильтруются по `tenantId` выбранной PartyCRM-компании.
 - `DELETE` архивирует запись через `status: archived`.
 - Последнего `owner` нельзя удалить или понизить.
 - Заказ может быть без исполнителей, с точкой компании или с выездным адресом.

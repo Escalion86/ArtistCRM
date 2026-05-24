@@ -37,7 +37,7 @@ const Input = forwardRef(
       min,
       max,
       required,
-      step = 1,
+      step,
       defaultValue,
       floatingLabel = true,
       showErrorText = false,
@@ -84,6 +84,18 @@ const Input = forwardRef(
       return digits[0] === '7' ? digits.slice(1, 11) : digits.slice(0, 10)
     })()
     const placeholderValue = floatingLabel ? ' ' : label
+    const resolvedStep =
+      step ??
+      (type === 'number'
+        ? postfix === '₽' ||
+          label?.includes('₽') ||
+          label?.toLowerCase?.().includes('цена') ||
+          label?.toLowerCase?.().includes('стоим')
+          ? 1000
+          : label?.toLowerCase?.().includes('мин')
+            ? 5
+            : 1
+        : 1)
 
     // Определяем цвета для стрелочек в зависимости от темы
     const arrowTextColor = isParty ? 'text-blue-500' : 'text-general'
@@ -132,8 +144,11 @@ const Input = forwardRef(
             )}
             onClick={() => {
               if (typeof min !== 'number')
-                onChange(Number(value) - Number(step))
-              else onChange(Math.max(Number(value) - Number(step), min))
+                onChange(Number(value) - Number(resolvedStep))
+              else
+                onChange(
+                  Math.max(Number(value) - Number(resolvedStep), min)
+                )
             }}
           >
             <FontAwesomeIcon icon={faArrowDown} className="w-4 h-4 min-h-4" />
@@ -191,7 +206,7 @@ const Input = forwardRef(
         ) : (
           <input
             type={type}
-            step={step}
+            step={resolvedStep}
             className={cn(
               'peer h-7 flex-1 bg-transparent px-1 text-black placeholder-transparent focus:outline-none',
               type === 'number' ? 'hide-number-spin max-w-22 text-center' : '',
@@ -288,8 +303,11 @@ const Input = forwardRef(
             )}
             onClick={() => {
               if (typeof max !== 'number')
-                onChange(Number(value) + Number(step))
-              else onChange(Math.min(Number(value) + Number(step), max))
+                onChange(Number(value) + Number(resolvedStep))
+              else
+                onChange(
+                  Math.min(Number(value) + Number(resolvedStep), max)
+                )
             }}
           >
             <FontAwesomeIcon icon={faArrowUp} className="w-4 h-4 min-h-4" />

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { useSetAtom } from 'jotai'
+import { apiJson } from '@helpers/apiClient'
 import {
   ClientSelectModal,
   ClientFormModal,
@@ -159,14 +160,13 @@ export default function OrderModal({
   const handleClientCreate = useCallback(async () => {
     setClientSaving(true)
     try {
-      const response = await fetch('/api/party/clients', {
+      const response = await apiJson('/api/party/clients', {
         method: 'POST',
         headers: requestHeaders,
         body: JSON.stringify(clientDraft),
       })
-      const data = await response.json()
-      if (data.data) {
-        setOrderDraft((prev) => ({ ...prev, clientId: data.data._id }))
+      if (response.data) {
+        setOrderDraft((prev) => ({ ...prev, clientId: response.data._id }))
       }
     } finally {
       setClientSaving(false)
@@ -178,7 +178,7 @@ export default function OrderModal({
     if (!orderDraft.clientId) return
     setClientSaving(true)
     try {
-      await fetch(`/api/party/clients/${orderDraft.clientId}`, {
+      await apiJson(`/api/party/clients/${orderDraft.clientId}`, {
         method: 'PATCH',
         headers: requestHeaders,
         body: JSON.stringify(clientDraft),
@@ -192,20 +192,19 @@ export default function OrderModal({
   const handleServiceCreate = useCallback(async () => {
     setServiceSaving(true)
     try {
-      const response = await fetch('/api/party/services', {
+      const response = await apiJson('/api/party/services', {
         method: 'POST',
         headers: requestHeaders,
         body: JSON.stringify(serviceDraft),
       })
-      const data = await response.json()
-      if (data.data) {
-        setPartyServices((prev) => [...prev, data.data])
+      if (response.data) {
+        setPartyServices((prev) => [...prev, response.data])
         setOrderDraft((prev) => ({
           ...prev,
-          servicesIds: [...(prev.servicesIds || []), data.data._id],
+          servicesIds: [...(prev.servicesIds || []), response.data._id],
         }))
         if (onServiceCreated) {
-          onServiceCreated(data.data)
+          onServiceCreated(response.data)
         }
       }
     } finally {

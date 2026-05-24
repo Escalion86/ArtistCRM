@@ -1,7 +1,6 @@
 import mongoose from 'mongoose'
 import { NextResponse } from 'next/server'
 import getPartyMembershipContext from './getPartyMembershipContext'
-import getPartyTenantContext from './getPartyTenantContext'
 
 export const PARTY_MANAGEMENT_ROLES = Object.freeze(['owner', 'admin'])
 
@@ -25,13 +24,32 @@ export const isValidObjectId = (value) =>
 const getRequestedCompanyId = (req) =>
   String(req?.headers?.get('x-partycrm-company-id') || '').trim()
 
-const getContextByRequestedCompany = async (req) => {
+const buildMembershipContextShell = (membershipContext) => ({
+  ...membershipContext,
+  staff: null,
+  company: null,
+  tenantId: null,
+  role: null,
+  activeMembership: null,
+})
+
+const getContextByRequestedCompany = async (req, membershipContext) => {
   const requestedCompanyId = getRequestedCompanyId(req)
-  if (!requestedCompanyId) return null
+  if (!requestedCompanyId) {
+    return {
+      context: buildMembershipContextShell(membershipContext),
+      error: partyError(
+        400,
+        'partycrm_company_id_required',
+        'Не выбрана активная компания',
+        'validation'
+      ),
+    }
+  }
 
   if (!isValidObjectId(requestedCompanyId)) {
     return {
-      context: null,
+      context: buildMembershipContextShell(membershipContext),
       error: partyError(
         400,
         'partycrm_invalid_company_id',
@@ -41,7 +59,6 @@ const getContextByRequestedCompany = async (req) => {
     }
   }
 
-  const membershipContext = await getPartyMembershipContext()
   const membership = membershipContext.memberships.find(
     (item) => String(item.tenantId) === requestedCompanyId
   )
@@ -81,17 +98,22 @@ export const getPartyRequestContext = async ({
   req = null,
   managementOnly = false,
 } = {}) => {
-  const requestedContext = await getContextByRequestedCompany(req)
-  if (requestedContext?.error) return requestedContext
+  const membershipContext = await getPartyMembershipContext()
 
-  const context = requestedContext?.context || (await getPartyTenantContext())
-
-  if (!context.sessionUser?._id) {
+  if (!membershipContext.sessionUser?._id) {
     return {
-      context,
+      context: buildMembershipContextShell(membershipContext),
       error: partyError(401, 'unauthorized', 'Не авторизован', 'auth'),
     }
   }
+
+  const requestedContext = await getContextByRequestedCompany(
+    req,
+    membershipContext
+  )
+  if (requestedContext?.error) return requestedContext
+
+  const context = requestedContext.context
 
   if (!context.tenantId || !context.staff) {
     return {

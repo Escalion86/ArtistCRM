@@ -28,7 +28,10 @@ import CardOverlay from '@components/CardOverlay'
 import CardActions from '@components/CardActions'
 import CardWrapper from '@components/CardWrapper'
 import StatusChip from '@components/StatusChip'
-import { getSoonNoDepositEvents, getEventOverdueAdditionalCount } from '@helpers/additionalEvents'
+import {
+  getSoonNoDepositEvents,
+  getEventOverdueAdditionalCount,
+} from '@helpers/additionalEvents'
 import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getPersonFullName from '@helpers/getPersonFullName'
 import {
@@ -408,7 +411,7 @@ const EventCard = ({
               aria-label="Клиент не указан"
             />
           )}
-          <div className="card-title mr-8 flex-1 truncate text-base tablet:text-lg">
+          <div className="card-title tablet:text-lg mr-8 flex-1 truncate text-base">
             {[eventTitle, servicesTitle].join(' • ')}
           </div>
           <CardActions className="z-10 -mt-2 -mr-2">
@@ -473,7 +476,7 @@ const EventCard = ({
                   className="flex h-7 w-7 items-center justify-center transition-transform hover:scale-110"
                 >
                   <Image
-                    src="/img/navigators/2gis.png"
+                    src="/img/navigators/2gis.webp"
                     alt="2gis"
                     width={16}
                     height={16}
@@ -519,7 +522,9 @@ const EventCard = ({
               )}
               <div className="flex min-h-6 min-w-[112px] items-end justify-end gap-3 whitespace-nowrap">
                 {paid > 0 && contractSum > 0 && paid >= contractSum ? (
-                  <span className="text-green-700">{paid.toLocaleString()}</span>
+                  <span className="text-green-700">
+                    {paid.toLocaleString()}
+                  </span>
                 ) : (
                   <span>
                     {paid > 0 || contractSum > 0 ? (

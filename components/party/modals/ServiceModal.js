@@ -79,6 +79,7 @@ export function ServiceCreateModal({
           type="number"
           value={serviceDraft.duration || ''}
           onChange={handleChange('duration')}
+          step={5}
           fullWidth
           tone="party"
         />
@@ -87,6 +88,7 @@ export function ServiceCreateModal({
           type="number"
           value={serviceDraft.price || ''}
           onChange={handleChange('price')}
+          step={1000}
           fullWidth
           tone="party"
         />
