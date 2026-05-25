@@ -84,6 +84,9 @@ export const metadata = {
     index: true,
     follow: true,
   },
+  other: {
+    "google-site-verification": "U2T-pi-_H9TW4SgMktbTv-cf6FNQPbx2DwRCs8WOZWk",
+  },
 }
 
 export const viewport = {
