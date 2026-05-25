@@ -8,8 +8,8 @@ import {
   View,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
-import { getAuthToken } from '../../src/shared/auth/tokenStore'
-import { env } from '../../src/shared/config/env'
+import { getAuthToken } from '../../../src/shared/auth/tokenStore'
+import { env } from '../../../src/shared/config/env'
 
 interface Client {
   _id: string
