@@ -30,10 +30,15 @@ npm run dev
 
 ## Переменные окружения
 
-Создайте `.env.local` на основе предоставленного примера (или запросите у команды). Основные переменные:
+Используйте `.env.example` для локальной разработки и `.env.deploy.example` как production-шаблон.
+
+Минимум для запуска:
+- `DOMAIN`
 - `MONGODB_URI`, `MONGODB_DBNAME`
 - `NEXTAUTH_SECRET`
-- `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`
+
+Подробная раскладка по обязательным и опциональным переменным:
+- `docs/ENV_VARIABLES.md`
 
 ## Биллинг (YooKassa и Tochka)
 
