@@ -47,6 +47,7 @@ import { getContractTemplateVariablesMap } from '@helpers/generateContractTempla
 import { getActTemplateVariablesMap } from '@helpers/generateActTemplate'
 import exportDocxFromTemplate from '@helpers/exportDocxFromTemplate'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { getEventCloseSuggestionState } from '@helpers/eventCloseSuggestion'
 import {
   useDeleteTransactionMutation,
   useTransactionsQuery,
@@ -519,21 +520,22 @@ const eventFunc = (
         ),
       [incomeTransactions]
     )
-    const hasTaxes = useMemo(
-      () => eventTransactions.some((item) => item.category === 'taxes'),
-      [eventTransactions]
+    const closeState = useMemo(
+      () =>
+        getEventCloseSuggestionState(
+          {
+            status,
+            contractSum,
+            isByContract,
+            eventDate,
+            dateEnd,
+          },
+          eventTransactions
+        ),
+      [contractSum, dateEnd, eventDate, eventTransactions, isByContract, status]
     )
-    const canClose = contractSum <= incomeTotal && (!isByContract || hasTaxes)
-    const eventEndDateForStatus = useMemo(
-      () => dateEnd || eventDate || null,
-      [dateEnd, eventDate]
-    )
-    const isEventFinished = useMemo(() => {
-      if (!eventEndDateForStatus) return false
-      const endDate = new Date(eventEndDateForStatus)
-      if (Number.isNaN(endDate.getTime())) return false
-      return endDate.getTime() < Date.now()
-    }, [eventEndDateForStatus])
+    const canClose = closeState.canClose
+    const isEventFinished = closeState.isEventFinished
     const canSetClosedStatus = !isDraft && isEventFinished && canClose
     const isClosed = status === 'closed'
     const formLockedClassName = isClosed ? 'pointer-events-none opacity-65' : ''
@@ -578,6 +580,32 @@ const eventFunc = (
       )
       return Number.isFinite(minutes) && minutes > 0 ? minutes : 60
     }, [siteSettings?.custom?.defaultEventDurationMinutes])
+
+    const getTransactionsForEvent = useCallback(
+      (targetEventId) =>
+        (transactions ?? []).filter(
+          (transaction) => String(transaction?.eventId) === String(targetEventId)
+        ),
+      [transactions]
+    )
+
+    const shouldSuggestClosingAfterSave = useCallback(
+      (savedEvent) => {
+        if (!savedEvent?._id) return false
+        const savedEventTransactions = getTransactionsForEvent(savedEvent._id)
+        return getEventCloseSuggestionState(
+          {
+            status: savedEvent?.status,
+            contractSum: savedEvent?.contractSum,
+            isByContract: savedEvent?.isByContract,
+            eventDate: savedEvent?.eventDate,
+            dateEnd: savedEvent?.dateEnd,
+          },
+          savedEventTransactions
+        ).shouldSuggestClosing
+      },
+      [getTransactionsForEvent]
+    )
 
     const addMinutesToDate = (value, minutes) => {
       if (!value) return null
@@ -758,6 +786,79 @@ const eventFunc = (
           await options.onSaved(savedEvent)
         }
 
+        const isDraftFollowUpPromptNeeded =
+          isCreatingDraftRequest && !hasAdditionalEvents && savedEvent?._id
+
+        if (isDraftFollowUpPromptNeeded) {
+          const suggestedDate = getSuggestedDecisionAdditionalEventDate(
+            savedEvent?.eventDate ?? payload?.eventDate
+          )
+          const suggestedLabel = new Date(suggestedDate).toLocaleString(
+            'ru-RU',
+            {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }
+          )
+          openAdditionalEventModal(null, {
+            title: 'Добавить доп. событие',
+            introText: `Рекомендуется добавить напоминание "Что решили клиенты" на ${suggestedLabel}. Вы можете изменить детали ниже.`,
+            sourceItem: {
+              title: 'Что решили клиенты',
+              description: '',
+              date: suggestedDate,
+              done: false,
+              googleCalendarEventId: '',
+            },
+            confirmButtonName: 'Добавить',
+            declineButtonName: 'Позже',
+            onConfirm: async (nextItem) => {
+              const currentEvent = (events ?? []).find(
+                (item) => String(item?._id) === String(savedEvent._id)
+              )
+              const currentAdditionalEvents = Array.isArray(
+                currentEvent?.additionalEvents
+              )
+                ? currentEvent.additionalEvents
+                : Array.isArray(savedEvent?.additionalEvents)
+                  ? savedEvent.additionalEvents
+                  : []
+
+              await setEvent(
+                {
+                  _id: savedEvent._id,
+                  additionalEvents: [...currentAdditionalEvents, nextItem],
+                },
+                false,
+                true
+              )
+            },
+          })
+          closeModalRef.current()
+          return
+        }
+
+        if (shouldSuggestClosingAfterSave(savedEvent)) {
+          modalsFunc.add({
+            title: 'Закрыть мероприятие?',
+            text: 'Мероприятие полностью оплачено и завершено. Возможно, стоит закрыть мероприятие?',
+            confirmButtonName: 'Закрыть мероприятие',
+            declineButtonName: 'Оставить открытым',
+            showDecline: true,
+            onConfirm: async () => {
+              await setEvent({ _id: savedEvent._id, status: 'closed' }, false)
+              closeModalRef.current()
+            },
+            onDecline: () => {
+              closeModalRef.current()
+            },
+          })
+          return
+        }
+
         if (
           !isCreatingDraftRequest ||
           hasAdditionalEvents ||
@@ -766,52 +867,6 @@ const eventFunc = (
           closeModalRef.current()
           return
         }
-
-        const suggestedDate = getSuggestedDecisionAdditionalEventDate(
-          savedEvent?.eventDate ?? payload?.eventDate
-        )
-        const suggestedLabel = new Date(suggestedDate).toLocaleString('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-        openAdditionalEventModal(null, {
-          title: 'Добавить доп. событие',
-          introText: `Рекомендуется добавить напоминание "Что решили клиенты" на ${suggestedLabel}. Вы можете изменить детали ниже.`,
-          sourceItem: {
-            title: 'Что решили клиенты',
-            description: '',
-            date: suggestedDate,
-            done: false,
-            googleCalendarEventId: '',
-          },
-          confirmButtonName: 'Добавить',
-          declineButtonName: 'Позже',
-          onConfirm: async (nextItem) => {
-            const currentEvent = (events ?? []).find(
-              (item) => String(item?._id) === String(savedEvent._id)
-            )
-            const currentAdditionalEvents = Array.isArray(
-              currentEvent?.additionalEvents
-            )
-              ? currentEvent.additionalEvents
-              : Array.isArray(savedEvent?.additionalEvents)
-                ? savedEvent.additionalEvents
-                : []
-
-            await setEvent(
-              {
-                _id: savedEvent._id,
-                additionalEvents: [...currentAdditionalEvents, nextItem],
-              },
-              false,
-              true
-            )
-          },
-        })
-        closeModalRef.current()
       }
 
       if (!hasError) {
