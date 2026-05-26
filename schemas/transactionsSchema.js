@@ -39,7 +39,7 @@ const transactionsSchema = {
   },
   paymentMethod: {
     type: String,
-    enum: ['transfer', 'account', 'cash', 'barter'],
+    enum: ['transfer', 'account', 'cash', 'barter', 'obligation'],
     default: 'transfer',
   },
 }

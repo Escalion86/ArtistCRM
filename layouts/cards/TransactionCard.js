@@ -11,6 +11,10 @@ import { TRANSACTION_CATEGORIES } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
 import getPersonFullName from '@helpers/getPersonFullName'
+import {
+  getTransactionDateLabel,
+  OBLIGATION_PAYMENT_METHOD,
+} from '@helpers/transactionObligation'
 import { useAtomValue } from 'jotai'
 import CardWrapper from '@components/CardWrapper'
 
@@ -65,6 +69,9 @@ const TransactionCard = ({
   const categoryLabel =
     TRANSACTION_CATEGORIES.find((item) => item.value === transaction.category)
       ?.name ?? null
+  const isObligation =
+    transaction.paymentMethod === OBLIGATION_PAYMENT_METHOD
+  const dateLabel = getTransactionDateLabel(transaction.paymentMethod)
 
   return (
     <CardWrapper
@@ -91,14 +98,26 @@ const TransactionCard = ({
 
       <div className="flex h-full w-full flex-col pl-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="card-title text-sm">
-            {formatTransactionDate(transaction.date)}
-          </div>
-          {categoryLabel && (
-            <div className="card-muted text-xs font-medium">
-              {categoryLabel}
+          <div className="flex flex-col gap-0.5">
+            <div className="card-muted text-[11px] font-medium">
+              {dateLabel}
             </div>
-          )}
+            <div className="card-title text-sm">
+              {formatTransactionDate(transaction.date)}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {isObligation && (
+              <div className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                Обязательство
+              </div>
+            )}
+            {categoryLabel && (
+              <div className="card-muted text-xs font-medium">
+                {categoryLabel}
+              </div>
+            )}
+          </div>
         </div>
         <div className="card-meta tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] grid text-sm">
           <div className="truncate">

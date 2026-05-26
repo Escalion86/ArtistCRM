@@ -4,6 +4,7 @@ import Events from '@models/Events'
 import Clients from '@models/Clients'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import { OBLIGATION_PAYMENT_METHOD } from '@helpers/transactionObligation'
 
 const CATEGORY_ALIASES = {
   advance: 'deposit',
@@ -90,7 +91,7 @@ export const POST = async (req) => {
 
   const paymentMethod =
     body.paymentMethod &&
-    ['transfer', 'account', 'cash', 'barter'].includes(body.paymentMethod)
+    ['transfer', 'account', 'cash', 'barter', OBLIGATION_PAYMENT_METHOD].includes(body.paymentMethod)
       ? body.paymentMethod
       : 'transfer'
 

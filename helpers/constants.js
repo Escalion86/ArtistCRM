@@ -553,6 +553,7 @@ export const TRANSACTION_PAYMENT_METHODS = Object.freeze([
   { value: 'account', name: 'Расчетный счет' },
   { value: 'cash', name: 'Наличка' },
   { value: 'barter', name: 'Бартер' },
+  { value: 'obligation', name: 'Обязательство' },
 ])
 export const DEFAULT_ADDITIONAL_BLOCK = Object.freeze({
   title: '',

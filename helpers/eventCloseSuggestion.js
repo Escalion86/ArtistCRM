@@ -1,3 +1,5 @@
+import { hasObligationPaymentMethod } from './transactionObligation.js'
+
 const CLOSED_BLOCKED_STATUSES = new Set(['draft', 'canceled', 'closed'])
 
 const normalizeTransactions = (transactions) =>
@@ -28,18 +30,21 @@ export const getEventCloseSuggestionState = (
 ) => {
   const incomeTotal = getIncomeTotal(transactions)
   const hasTaxes = hasTaxesTransaction(transactions)
+  const hasObligations = hasObligationPaymentMethod(transactions)
   const isEventFinished = isFinishedByDate(event, now)
   const contractSum = Number(event?.contractSum ?? 0)
   const canClose =
-    contractSum <= incomeTotal && (!event?.isByContract || hasTaxes)
+    contractSum <= incomeTotal &&
+    (!event?.isByContract || hasTaxes) &&
+    !hasObligations
   const blockedStatus = CLOSED_BLOCKED_STATUSES.has(String(event?.status ?? ''))
 
   return {
     incomeTotal,
     hasTaxes,
+    hasObligations,
     canClose,
     isEventFinished,
     shouldSuggestClosing: !blockedStatus && isEventFinished && canClose,
   }
 }
-

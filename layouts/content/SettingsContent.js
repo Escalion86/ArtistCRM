@@ -140,8 +140,8 @@ const SettingsContent = () => {
   }, [defaultEventDuration, siteSettingsState, serverSyncDisabled])
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 overflow-y-auto">
         <IconCheckBox
           label="Темная тема"
           checked={darkTheme}
@@ -170,7 +170,9 @@ const SettingsContent = () => {
                   },
                 }
                 if (nextValue) {
-                  setSiteSettings(mergeSiteSettingsPatch(siteSettingsState, patch))
+                  setSiteSettings(
+                    mergeSiteSettingsPatch(siteSettingsState, patch)
+                  )
                   return
                 }
                 await saveSiteSettingsPatch(patch, true)
@@ -240,6 +242,7 @@ const SettingsContent = () => {
           noMargin
           fullWidth
           showArrows
+          className="max-w-80"
         />
         <LabeledContainer label="Мастер запуска" noMargin>
           <div className="flex items-center justify-between w-full gap-3">

@@ -48,12 +48,18 @@ import { getActTemplateVariablesMap } from '@helpers/generateActTemplate'
 import exportDocxFromTemplate from '@helpers/exportDocxFromTemplate'
 import getPersonFullName from '@helpers/getPersonFullName'
 import { getEventCloseSuggestionState } from '@helpers/eventCloseSuggestion'
+import { getEventTransactionAction } from '@helpers/eventTransactionAction'
 import {
   useDeleteTransactionMutation,
   useTransactionsQuery,
 } from '@helpers/useTransactionsQuery'
 import { useClientsQuery } from '@helpers/useClientsQuery'
 import { useEventQuery, useEventsQuery } from '@helpers/useEventsQuery'
+import {
+  getCloseBlockedByObligationsMessage,
+  getTransactionDateLabel,
+  OBLIGATION_PAYMENT_METHOD,
+} from '@helpers/transactionObligation'
 
 const normalizeAddressValue = (rawAddress) => {
   const normalized = { ...DEFAULT_ADDRESS }
@@ -207,6 +213,7 @@ const eventFunc = (
       ? 'active'
       : (event?.status ?? initialStatus ?? DEFAULT_EVENT.status)
     const [status, setStatus] = useState(initialStatusValue)
+    const [persistedEventId, setPersistedEventId] = useState(event?._id ?? null)
     const isDraft = status === 'draft'
 
     const [clientId, setClientId] = useState(
@@ -482,7 +489,13 @@ const eventFunc = (
       setAddress(initialEventValues.address)
     }, [initialEventValues.address])
 
-    const sourceEventId = clone ? null : event?._id
+    useEffect(() => {
+      if (clone) return
+      if (!event?._id) return
+      setPersistedEventId(event._id)
+    }, [event?._id])
+
+    const sourceEventId = clone ? null : (persistedEventId ?? event?._id ?? null)
 
     const eventTransactions = useMemo(
       () =>
@@ -541,6 +554,8 @@ const eventFunc = (
     const formLockedClassName = isClosed ? 'pointer-events-none opacity-65' : ''
     const closeStatusDisabledReason = !isEventFinished
       ? 'Закрыть можно только после завершения мероприятия'
+      : closeState.hasObligations
+        ? getCloseBlockedByObligationsMessage()
       : !canClose
         ? 'Закрыть можно только после всех поступлений и обязательных налогов'
         : ''
@@ -580,6 +595,11 @@ const eventFunc = (
       )
       return Number.isFinite(minutes) && minutes > 0 ? minutes : 60
     }, [siteSettings?.custom?.defaultEventDurationMinutes])
+    const tariffAccess = useMemo(
+      () => getUserTariffAccess(loggedUser, tariffs),
+      [loggedUser, tariffs]
+    )
+    const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
 
     const getTransactionsForEvent = useCallback(
       (targetEventId) =>
@@ -607,185 +627,145 @@ const eventFunc = (
       [getTransactionsForEvent]
     )
 
-    const addMinutesToDate = (value, minutes) => {
-      if (!value) return null
-      const date = new Date(value)
-      if (Number.isNaN(date.getTime())) return null
-      date.setMinutes(date.getMinutes() + minutes)
-      return date.toISOString()
-    }
+    const buildEventSaveContext = useCallback(() => {
+      const normalizedContractSum =
+        typeof contractSum === 'number' && !Number.isNaN(contractSum)
+          ? contractSum
+          : 0
+      const normalizedInvoiceLinks = normalizeLinksList(invoiceLinks)
+      const normalizedReceiptLinks = normalizeLinksList(receiptLinks)
+      const normalizedActLinks = normalizeLinksList(actLinks)
+      const normalizedContractLinks = normalizeLinksList(contractLinks)
+      const normalizedOtherContacts = normalizeOtherContacts(otherContacts)
+        .map((item) => ({
+          clientId: item.clientId ?? null,
+          comment: item.comment?.trim() ?? '',
+        }))
+        .filter((item) => item.clientId)
+      const normalizedAdditionalEvents = normalizeAdditionalEvents(
+        additionalEvents
+      )
+        .map((item) => ({
+          title: item.title?.trim() ?? '',
+          description: item.description?.trim() ?? '',
+          date: item.date ?? null,
+          done: Boolean(item.done),
+          doneAt: item.done ? (item.doneAt ?? new Date().toISOString()) : null,
+          googleCalendarEventId: item.googleCalendarEventId?.trim() ?? '',
+        }))
+        .filter((item) => item.title || item.description || item.date)
 
-    const shiftEndByStartChange = (
-      prevStartValue,
-      nextStartValue,
-      endValue
-    ) => {
-      if (!prevStartValue || !nextStartValue || !endValue) return null
-      const prevStart = new Date(prevStartValue)
-      const nextStart = new Date(nextStartValue)
-      const prevEnd = new Date(endValue)
-      if (
-        Number.isNaN(prevStart.getTime()) ||
-        Number.isNaN(nextStart.getTime()) ||
-        Number.isNaN(prevEnd.getTime())
-      ) {
-        return null
+      const payload = {
+        _id: sourceEventId ?? null,
+        clientId,
+        status,
+        requestCreatedAt: requestCreatedAt ?? new Date().toISOString(),
+        additionalEvents: normalizedAdditionalEvents,
+        isTransferred,
+        colleagueId: isTransferred ? colleagueId : null,
+        eventDate,
+        dateEnd,
+        address: normalizeAddressValue(address),
+        contractSum: normalizedContractSum,
+        waitDeposit: hasDepositTransaction ? false : Boolean(waitDeposit),
+        depositDueAt:
+          hasDepositTransaction || !waitDeposit ? null : depositDueAt,
+        depositExpectedAmount:
+          hasDepositTransaction || !waitDeposit
+            ? null
+            : (depositExpectedAmount ?? null),
+        isByContract,
+        description: description?.trim() ?? '',
+        eventType: eventType?.trim() ?? '',
+        financeComment: financeComment?.trim() ?? '',
+        calendarImportChecked,
+        servicesIds,
+        otherContacts: normalizedOtherContacts,
       }
 
-      const durationMs = prevEnd.getTime() - prevStart.getTime()
-      if (durationMs <= 0) {
-        return new Date(
-          nextStart.getTime() + defaultDurationMinutes * 60 * 1000
-        ).toISOString()
+      if (canUseDocuments) {
+        payload.invoiceLinks = normalizedInvoiceLinks
+        payload.receiptLinks = normalizedReceiptLinks
+        payload.actLinks = normalizedActLinks
+        payload.contractLinks = normalizedContractLinks
       }
 
-      return new Date(nextStart.getTime() + durationMs).toISOString()
-    }
+      return {
+        payload,
+        isCreatingDraftRequest:
+          !payload?._id && !clone && payload.status === 'draft',
+        hasAdditionalEvents: (payload?.additionalEvents?.length ?? 0) > 0,
+      }
+    }, [
+      additionalEvents,
+      address,
+      calendarImportChecked,
+      canUseDocuments,
+      clientId,
+      colleagueId,
+      contractLinks,
+      contractSum,
+      dateEnd,
+      depositDueAt,
+      depositExpectedAmount,
+      description,
+      eventDate,
+      eventType,
+      financeComment,
+      hasDepositTransaction,
+      invoiceLinks,
+      isByContract,
+      isTransferred,
+      otherContacts,
+      receiptLinks,
+      requestCreatedAt,
+      servicesIds,
+      sourceEventId,
+      status,
+      waitDeposit,
+      actLinks,
+    ])
+
+    const currentSavePayloadKey = useMemo(
+      () => JSON.stringify(buildEventSaveContext().payload),
+      [buildEventSaveContext]
+    )
+    const [lastSavedPayloadKey, setLastSavedPayloadKey] = useState(null)
 
     useEffect(() => {
-      if (dateEndTouched) return
-      if (!eventDate) return
-      if (!dateEnd) {
-        setDateEnd(addMinutesToDate(eventDate, defaultDurationMinutes))
-      }
-    }, [dateEnd, dateEndTouched, defaultDurationMinutes, eventDate])
+      if (lastSavedPayloadKey !== null) return
+      if (!sourceEventId) return
+      setLastSavedPayloadKey(currentSavePayloadKey)
+    }, [currentSavePayloadKey, lastSavedPayloadKey, sourceEventId])
 
-    const buildRange = useCallback(
-      (startValue, endValue) => {
-        if (!startValue) return null
-        const start = new Date(startValue)
-        if (Number.isNaN(start.getTime())) return null
-        let end = endValue ? new Date(endValue) : null
-        if (!end || Number.isNaN(end.getTime()) || end <= start) {
-          end = new Date(start.getTime() + defaultDurationMinutes * 60 * 1000)
-        }
-        return { start, end }
-      },
-      [defaultDurationMinutes]
-    )
-
-    const getConflictsCount = useCallback(() => {
-      const targetRange = buildRange(eventDate, dateEnd)
-      if (!targetRange) return 0
-      let count = 0
-
-      ;(events ?? []).forEach((item) => {
-        if (!item) return
-        if (eventId && String(item._id) === String(eventId)) return
-        if (item.status === 'canceled') return
-        const range = buildRange(item.eventDate, item.dateEnd)
-        if (!range) return
-        const overlaps =
-          targetRange.start < range.end && range.start < targetRange.end
-        if (overlaps) count += 1
-      })
-
-      return count
-    }, [buildRange, dateEnd, eventDate, events])
-    const tariffAccess = useMemo(
-      () => getUserTariffAccess(loggedUser, tariffs),
-      [loggedUser, tariffs]
-    )
-    const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
-
-    const onClickConfirm = () => {
-      clearErrorsRef.current()
-      let hasError = false
-
-      if (!clientId) {
-        addErrorRef.current({ clientId: 'Выберите клиента' })
-        hasError = true
+    const saveEvent = useCallback(async () => {
+      const { payload, isCreatingDraftRequest, hasAdditionalEvents } =
+        buildEventSaveContext()
+      const savedEvent = await setEvent(payload, clone)
+      const nextEventId = savedEvent?._id ?? payload?._id ?? null
+      if (nextEventId) {
+        setPersistedEventId(nextEventId)
       }
-      if (!eventDate) {
-        addErrorRef.current({ eventDate: 'Укажите дату мероприятия' })
-        hasError = true
-      }
-      if (!servicesIds || servicesIds.length === 0) {
-        addErrorRef.current({ servicesIds: 'Выберите услугу' })
-        hasError = true
-      }
-      if (!eventType?.trim()) {
-        addErrorRef.current({ eventType: 'Укажите, что за событие' })
-        hasError = true
-      }
-      if (isTransferred && !colleagueId) {
-        addErrorRef.current({ colleagueId: 'Выберите коллегу' })
-        hasError = true
-      }
-      if (dateRangeError) {
-        hasError = true
+      setLastSavedPayloadKey(JSON.stringify(payload))
+      if (typeof options?.onSaved === 'function') {
+        await options.onSaved(savedEvent)
       }
 
-      const proceedSave = async () => {
-        const normalizedContractSum =
-          typeof contractSum === 'number' && !Number.isNaN(contractSum)
-            ? contractSum
-            : 0
-        const normalizedInvoiceLinks = normalizeLinksList(invoiceLinks)
-        const normalizedReceiptLinks = normalizeLinksList(receiptLinks)
-        const normalizedActLinks = normalizeLinksList(actLinks)
-        const normalizedContractLinks = normalizeLinksList(contractLinks)
-        const normalizedOtherContacts = normalizeOtherContacts(otherContacts)
-          .map((item) => ({
-            clientId: item.clientId ?? null,
-            comment: item.comment?.trim() ?? '',
-          }))
-          .filter((item) => item.clientId)
-        const normalizedAdditionalEvents = normalizeAdditionalEvents(
-          additionalEvents
-        )
-          .map((item) => ({
-            title: item.title?.trim() ?? '',
-            description: item.description?.trim() ?? '',
-            date: item.date ?? null,
-            done: Boolean(item.done),
-            doneAt: item.done
-              ? (item.doneAt ?? new Date().toISOString())
-              : null,
-            googleCalendarEventId: item.googleCalendarEventId?.trim() ?? '',
-          }))
-          .filter((item) => item.title || item.description || item.date)
-        const payload = {
-          _id: event?._id,
-          clientId,
-          status,
-          requestCreatedAt: requestCreatedAt ?? new Date().toISOString(),
-          additionalEvents: normalizedAdditionalEvents,
-          isTransferred,
-          colleagueId: isTransferred ? colleagueId : null,
-          eventDate,
-          dateEnd,
-          address: normalizeAddressValue(address),
-          contractSum: normalizedContractSum,
-          waitDeposit: hasDepositTransaction ? false : Boolean(waitDeposit),
-          depositDueAt:
-            hasDepositTransaction || !waitDeposit ? null : depositDueAt,
-          depositExpectedAmount:
-            hasDepositTransaction || !waitDeposit
-              ? null
-              : (depositExpectedAmount ?? null),
-          isByContract,
-          description: description?.trim() ?? '',
-          eventType: eventType?.trim() ?? '',
-          financeComment: financeComment?.trim() ?? '',
-          calendarImportChecked,
-          servicesIds,
-          otherContacts: normalizedOtherContacts,
-        }
-        if (canUseDocuments) {
-          payload.invoiceLinks = normalizedInvoiceLinks
-          payload.receiptLinks = normalizedReceiptLinks
-          payload.actLinks = normalizedActLinks
-          payload.contractLinks = normalizedContractLinks
-        }
-        const isCreatingDraftRequest =
-          !payload?._id && !clone && payload.status === 'draft'
-        const hasAdditionalEvents = (payload?.additionalEvents?.length ?? 0) > 0
-        const savedEvent = await setEvent(payload, clone)
-        if (typeof options?.onSaved === 'function') {
-          await options.onSaved(savedEvent)
-        }
+      return {
+        savedEvent,
+        payload,
+        isCreatingDraftRequest,
+        hasAdditionalEvents,
+      }
+    }, [buildEventSaveContext, setEvent])
 
+    const handleSaveSuccess = useCallback(
+      async ({
+        savedEvent,
+        payload,
+        isCreatingDraftRequest,
+        hasAdditionalEvents,
+      }) => {
         const isDraftFollowUpPromptNeeded =
           isCreatingDraftRequest && !hasAdditionalEvents && savedEvent?._id
 
@@ -865,11 +845,138 @@ const eventFunc = (
           !savedEvent?._id
         ) {
           closeModalRef.current()
-          return
         }
+      },
+      [
+        events,
+        modalsFunc,
+        openAdditionalEventModal,
+        setEvent,
+        shouldSuggestClosingAfterSave,
+      ]
+    )
+
+    const validateEventForm = useCallback(() => {
+      clearErrorsRef.current()
+      let hasError = false
+
+      if (!clientId) {
+        addErrorRef.current({ clientId: 'Выберите клиента' })
+        hasError = true
+      }
+      if (!eventDate) {
+        addErrorRef.current({ eventDate: 'Укажите дату мероприятия' })
+        hasError = true
+      }
+      if (!servicesIds || servicesIds.length === 0) {
+        addErrorRef.current({ servicesIds: 'Выберите услугу' })
+        hasError = true
+      }
+      if (!eventType?.trim()) {
+        addErrorRef.current({ eventType: 'Укажите, что за событие' })
+        hasError = true
+      }
+      if (isTransferred && !colleagueId) {
+        addErrorRef.current({ colleagueId: 'Выберите коллегу' })
+        hasError = true
+      }
+      if (dateRangeError) {
+        hasError = true
       }
 
-      if (!hasError) {
+      return !hasError
+    }, [
+      clientId,
+      colleagueId,
+      dateRangeError,
+      eventDate,
+      eventType,
+      isTransferred,
+      servicesIds,
+    ])
+
+    const addMinutesToDate = (value, minutes) => {
+      if (!value) return null
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) return null
+      date.setMinutes(date.getMinutes() + minutes)
+      return date.toISOString()
+    }
+
+    const shiftEndByStartChange = (
+      prevStartValue,
+      nextStartValue,
+      endValue
+    ) => {
+      if (!prevStartValue || !nextStartValue || !endValue) return null
+      const prevStart = new Date(prevStartValue)
+      const nextStart = new Date(nextStartValue)
+      const prevEnd = new Date(endValue)
+      if (
+        Number.isNaN(prevStart.getTime()) ||
+        Number.isNaN(nextStart.getTime()) ||
+        Number.isNaN(prevEnd.getTime())
+      ) {
+        return null
+      }
+
+      const durationMs = prevEnd.getTime() - prevStart.getTime()
+      if (durationMs <= 0) {
+        return new Date(
+          nextStart.getTime() + defaultDurationMinutes * 60 * 1000
+        ).toISOString()
+      }
+
+      return new Date(nextStart.getTime() + durationMs).toISOString()
+    }
+
+    useEffect(() => {
+      if (dateEndTouched) return
+      if (!eventDate) return
+      if (!dateEnd) {
+        setDateEnd(addMinutesToDate(eventDate, defaultDurationMinutes))
+      }
+    }, [dateEnd, dateEndTouched, defaultDurationMinutes, eventDate])
+
+    const buildRange = useCallback(
+      (startValue, endValue) => {
+        if (!startValue) return null
+        const start = new Date(startValue)
+        if (Number.isNaN(start.getTime())) return null
+        let end = endValue ? new Date(endValue) : null
+        if (!end || Number.isNaN(end.getTime()) || end <= start) {
+          end = new Date(start.getTime() + defaultDurationMinutes * 60 * 1000)
+        }
+        return { start, end }
+      },
+      [defaultDurationMinutes]
+    )
+
+    const getConflictsCount = useCallback(() => {
+      const targetRange = buildRange(eventDate, dateEnd)
+      if (!targetRange) return 0
+      let count = 0
+
+      ;(events ?? []).forEach((item) => {
+        if (!item) return
+        if (eventId && String(item._id) === String(eventId)) return
+        if (item.status === 'canceled') return
+        const range = buildRange(item.eventDate, item.dateEnd)
+        if (!range) return
+        const overlaps =
+          targetRange.start < range.end && range.start < targetRange.end
+        if (overlaps) count += 1
+      })
+
+      return count
+    }, [buildRange, dateEnd, eventDate, events])
+    const onClickConfirm = () => {
+      const proceedSave = async () => {
+        const saveResult = await saveEvent()
+        await handleSaveSuccess(saveResult)
+      }
+
+      if (validateEventForm()) {
         const conflictsCount = getConflictsCount()
         if (conflictsCount > 0) {
           modalsFunc.add({
@@ -1279,43 +1386,46 @@ const eventFunc = (
       setAdditionalEvents((prev) => prev.filter((_, idx) => idx !== index))
     }
 
-    function openAdditionalEventModal(index = null, options = {}) {
-      const sourceItem = options?.sourceItem
-        ? { ...options.sourceItem }
-        : index !== null
-          ? additionalEvents[index]
-          : {
-              title: '',
-              description: '',
-              date: new Date().toISOString(),
-              done: false,
-              googleCalendarEventId: '',
+    const openAdditionalEventModal = useCallback(
+      (index = null, options = {}) => {
+        const sourceItem = options?.sourceItem
+          ? { ...options.sourceItem }
+          : index !== null
+            ? additionalEvents[index]
+            : {
+                title: '',
+                description: '',
+                date: new Date().toISOString(),
+                done: false,
+                googleCalendarEventId: '',
+              }
+        openEventAdditionalEventEditorModal({
+          modalsFunc,
+          index,
+          sourceItem,
+          title: options?.title,
+          confirmButtonName: options?.confirmButtonName ?? 'Сохранить',
+          declineButtonName: options?.declineButtonName ?? 'Отмена',
+          introText: options?.introText,
+          onConfirm: async (nextItem) => {
+            if (typeof options?.onConfirm === 'function') {
+              await options.onConfirm(nextItem)
+              return
             }
-      openEventAdditionalEventEditorModal({
-        modalsFunc,
-        index,
-        sourceItem,
-        title: options?.title,
-        confirmButtonName: options?.confirmButtonName ?? 'Сохранить',
-        declineButtonName: options?.declineButtonName ?? 'Отмена',
-        introText: options?.introText,
-        onConfirm: async (nextItem) => {
-          if (typeof options?.onConfirm === 'function') {
-            await options.onConfirm(nextItem)
-            return
-          }
-          if (index !== null) {
-            setAdditionalEvents((prev) =>
-              prev.map((item, idx) =>
-                idx === index ? { ...item, ...nextItem } : item
+            if (index !== null) {
+              setAdditionalEvents((prev) =>
+                prev.map((item, idx) =>
+                  idx === index ? { ...item, ...nextItem } : item
+                )
               )
-            )
-            return
-          }
-          setAdditionalEvents((prev) => [...prev, nextItem])
-        },
-      })
-    }
+              return
+            }
+            setAdditionalEvents((prev) => [...prev, nextItem])
+          },
+        })
+      },
+      [additionalEvents, modalsFunc]
+    )
 
     const handleAdditionalEventAdd = () => {
       openAdditionalEventModal(null)
@@ -1339,25 +1449,61 @@ const eventFunc = (
       )
     }
 
-    const openTransactionModal = (transactionId) => {
-      if (clone) {
-        setFinanceError('В копии транзакции недоступны до сохранения')
+    const openTransactionModal = async (transactionId) => {
+      const requiresAutosaveForTransactions =
+        !sourceEventId || lastSavedPayloadKey !== currentSavePayloadKey
+      const transactionAction = getEventTransactionAction({
+        clone,
+        status,
+        sourceEventId,
+        isFormChanged: requiresAutosaveForTransactions,
+      })
+
+      if (transactionAction.type === 'blocked') {
+        setFinanceError(transactionAction.error)
         return
       }
-      if (isDraft) {
-        setFinanceError('Транзакции недоступны для заявки')
-        return
+
+      try {
+        setFinanceError('')
+
+        let targetEventId = transactionAction.eventId ?? sourceEventId
+        let targetContractSum = contractSum
+
+        if (transactionAction.type === 'autosave') {
+          if (!validateEventForm()) {
+            setFinanceError(
+              'Заполните обязательные поля мероприятия перед добавлением транзакции'
+            )
+            return
+          }
+          setFinanceLoading(true)
+          const { savedEvent } = await saveEvent()
+          targetEventId = savedEvent?._id ?? targetEventId
+          targetContractSum = savedEvent?.contractSum ?? targetContractSum
+        }
+
+        if (!targetEventId) {
+          setFinanceError('Сначала сохраните мероприятие')
+          return
+        }
+
+        if (transactionId)
+          modalsFunc.transaction?.edit(targetEventId, transactionId, {
+            contractSum: targetContractSum,
+          })
+        else
+          modalsFunc.transaction?.add(targetEventId, {
+            contractSum: targetContractSum,
+          })
+      } catch (error) {
+        setFinanceError(
+          error?.message ||
+            'Не удалось сохранить мероприятие перед добавлением транзакции'
+        )
+      } finally {
+        setFinanceLoading(false)
       }
-      if (!sourceEventId) {
-        setFinanceError('Сначала сохраните мероприятие')
-        return
-      }
-      setFinanceError('')
-      if (transactionId)
-        modalsFunc.transaction?.edit(sourceEventId, transactionId, {
-          contractSum,
-        })
-      else modalsFunc.transaction?.add(sourceEventId, { contractSum })
     }
 
     const openContractTemplateModal = () => {
@@ -2114,6 +2260,11 @@ const eventFunc = (
 
             {!isDraft && (
               <>
+                {closeState.hasObligations ? (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    {getCloseBlockedByObligationsMessage()}
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-base font-semibold text-gray-900">
                     Транзакции
@@ -2174,7 +2325,17 @@ const eventFunc = (
                                   }
                                 </span>
                               )}
+                              {transaction.paymentMethod ===
+                              OBLIGATION_PAYMENT_METHOD ? (
+                                <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                                  Обязательство
+                                </span>
+                              ) : null}
                               <span className="text-gray-600">
+                                {getTransactionDateLabel(
+                                  transaction.paymentMethod
+                                )}
+                                {': '}
                                 {transaction.date
                                   ? new Date(transaction.date).toLocaleString(
                                       'ru-RU',
@@ -2251,7 +2412,17 @@ const eventFunc = (
                                   }
                                 </span>
                               )}
+                              {transaction.paymentMethod ===
+                              OBLIGATION_PAYMENT_METHOD ? (
+                                <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                                  Обязательство
+                                </span>
+                              ) : null}
                               <span className="text-gray-600">
+                                {getTransactionDateLabel(
+                                  transaction.paymentMethod
+                                )}
+                                {': '}
                                 {transaction.date
                                   ? new Date(transaction.date).toLocaleString(
                                       'ru-RU',

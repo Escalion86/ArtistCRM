@@ -9,10 +9,12 @@ import { modalsFuncAtom } from '@state/atoms'
 // import expectedIncomeOfEventSelector from '@state/selectors/expectedIncomeOfEventSelector'
 // import totalIncomeOfEventSelector from '@state/selectors/totalIncomeOfEventSelector'
 import { postData } from '@helpers/CRUD'
+import { getEventCloseSuggestionState } from '@helpers/eventCloseSuggestion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import { useEventQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
+import { getCloseBlockedByObligationsMessage } from '@helpers/transactionObligation'
 
 const normalizeCancelReasons = (list = []) =>
   Array.from(
@@ -52,28 +54,34 @@ const eventStatusEditFunc = (eventId) => {
     const [cancelReason, setCancelReason] = useState(
       event?.cancelReason ?? ''
     )
-    const incomeTotal = useMemo(
+    const eventTransactions = useMemo(
       () =>
-        (transactions ?? [])
-          .filter(
-            (transaction) =>
-              transaction.eventId === eventId && transaction.type === 'income'
-          )
-          .reduce((total, item) => total + (item.amount ?? 0), 0),
+        (transactions ?? []).filter((transaction) => transaction.eventId === eventId),
       [eventId, transactions]
     )
-    const contractSum = event?.contractSum ?? 0
-    const hasTaxes = useMemo(
+    const closeState = useMemo(
       () =>
-        (transactions ?? []).some(
-          (transaction) =>
-            transaction.eventId === eventId &&
-            transaction.category === 'taxes'
+        getEventCloseSuggestionState(
+          {
+            status,
+            contractSum: event?.contractSum ?? 0,
+            isByContract: event?.isByContract,
+            eventDate: event?.eventDate,
+            dateEnd: event?.dateEnd,
+          },
+          eventTransactions
         ),
-      [eventId, transactions]
+      [
+        event?.contractSum,
+        event?.dateEnd,
+        event?.eventDate,
+        event?.isByContract,
+        eventTransactions,
+        status,
+      ]
     )
-    const canClose =
-      incomeTotal >= contractSum && (!event?.isByContract || hasTaxes)
+    const canClose = closeState.canClose
+    const hasTaxes = closeState.hasTaxes
     const pendingAdditionalEvents = useMemo(
       () =>
         (Array.isArray(event?.additionalEvents) ? event.additionalEvents : [])
@@ -247,7 +255,9 @@ const eventStatusEditFunc = (eventId) => {
         )}
         {isClosing && !canClose && (
           <div className="text-xs text-gray-500">
-            {event?.isByContract && !hasTaxes
+            {closeState.hasObligations
+              ? getCloseBlockedByObligationsMessage()
+              : event?.isByContract && !hasTaxes
               ? 'Закрытие недоступно: добавьте транзакцию Налоги.'
               : 'Закрытие недоступно, пока сумма поступлений меньше договорной.'}
           </div>

@@ -18,10 +18,15 @@ import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
+import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { useClientsQuery } from '@helpers/useClientsQuery'
 import { useEventQuery } from '@helpers/useEventsQuery'
+import {
+  getCloseBlockedByObligationsMessage,
+  hasObligationPaymentMethod,
+} from '@helpers/transactionObligation'
 
 const EVENT_STATUS_META = Object.freeze({
   draft: {
@@ -94,6 +99,7 @@ const eventViewFunc = (eventId) => {
   }) => {
     const { data: event } = useEventQuery(eventId)
     const services = useAtomValue(servicesAtom)
+    const transactions = useAtomValue(transactionsAtom)
     const { data: clients = [] } = useClientsQuery()
     const siteSettings = useAtomValue(siteSettingsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -150,6 +156,17 @@ const eventViewFunc = (eventId) => {
           color: map.get(value.toLowerCase()) || '#f3f4f6',
         }))
     }, [event?.tags, siteSettings?.eventsTags])
+    const eventTransactions = useMemo(
+      () =>
+        (transactions ?? []).filter(
+          (transaction) => transaction.eventId === event?._id
+        ),
+      [event?._id, transactions]
+    )
+    const hasObligations = useMemo(
+      () => hasObligationPaymentMethod(eventTransactions),
+      [eventTransactions]
+    )
 
     const displayAddress = useMemo(() => {
       const address = event?.address
@@ -310,6 +327,14 @@ const eventViewFunc = (eventId) => {
                     __html: sanitizeHtml(event?.description),
                   }}
                 />
+              </SectionBlock>
+            ) : null}
+
+            {hasObligations ? (
+              <SectionBlock title="Предупреждение">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  {getCloseBlockedByObligationsMessage()}
+                </div>
               </SectionBlock>
             ) : null}
 

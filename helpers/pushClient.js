@@ -9,6 +9,8 @@ const isPushSupported = () =>
 const isProductionSW =
   typeof process !== 'undefined' && process.env.NODE_ENV === 'production'
 
+const SERVICE_WORKER_READY_TIMEOUT_MS = 3000
+
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/')
@@ -40,12 +42,31 @@ const getSubscriptionApplicationServerKey = (subscription) => {
   return null
 }
 
+const waitForServiceWorkerReady = async (timeoutMs = SERVICE_WORKER_READY_TIMEOUT_MS) => {
+  if (!navigator?.serviceWorker?.ready) return null
+
+  let timeoutId = null
+
+  try {
+    return await Promise.race([
+      navigator.serviceWorker.ready.catch(() => null),
+      new Promise((resolve) => {
+        timeoutId = window.setTimeout(() => resolve(null), timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timeoutId !== null) window.clearTimeout(timeoutId)
+  }
+}
+
 const getPushRegistration = async () => {
   if (!isPushSupported()) return null
   if (!isProductionSW) return null
 
   const existing = await navigator.serviceWorker.getRegistration('/')
-  if (existing?.active) return existing
+  if (existing?.pushManager) {
+    return existing
+  }
 
   if (!existing) {
     await navigator.serviceWorker
@@ -53,9 +74,7 @@ const getPushRegistration = async () => {
       .catch(() => null)
   }
 
-  const readyRegistration = await navigator.serviceWorker.ready.catch(
-    () => null
-  )
+  const readyRegistration = await waitForServiceWorkerReady()
   if (readyRegistration?.active) return readyRegistration
   return existing || readyRegistration
 }

@@ -21,6 +21,10 @@ import {
   normalizeWaitDeposit,
   parseDateValue,
 } from '@server/eventApiNormalization'
+import {
+  getCloseBlockedByObligationsMessage,
+  OBLIGATION_PAYMENT_METHOD,
+} from '@helpers/transactionObligation'
 
 const EVENT_STATUSES = new Set(['draft', 'canceled', 'active', 'closed'])
 
@@ -157,6 +161,22 @@ export const PUT = async (req, { params }) => {
       },
       { status: 400 }
     )
+  }
+  if (nextStatus === 'closed') {
+    const obligationsCount = await Transactions.countDocuments({
+      tenantId,
+      eventId: id,
+      paymentMethod: OBLIGATION_PAYMENT_METHOD,
+    })
+    if (obligationsCount > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: getCloseBlockedByObligationsMessage(),
+        },
+        { status: 409 }
+      )
+    }
   }
 
   if (body.eventDate !== undefined || body.dateEnd !== undefined) {

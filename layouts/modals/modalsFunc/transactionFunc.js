@@ -11,6 +11,11 @@ import {
   TRANSACTION_PAYMENT_METHODS,
   TRANSACTION_TYPES,
 } from '@helpers/constants'
+import {
+  getTransactionDateHint,
+  getTransactionDateLabel,
+  OBLIGATION_PAYMENT_METHOD,
+} from '@helpers/transactionObligation'
 import { modalsFuncAtom } from '@state/atoms'
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useAtomValue } from 'jotai'
@@ -127,6 +132,12 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
     }, [selectedEvent?.contractSum, contractSum])
 
     const isTaxCategory = category === 'taxes'
+    const isObligation = paymentMethod === OBLIGATION_PAYMENT_METHOD
+    const wasObligation = initialPaymentMethod === OBLIGATION_PAYMENT_METHOD
+    const requiresActualDateConfirmation =
+      Boolean(transactionId) && wasObligation && !isObligation
+    const dateLabel = getTransactionDateLabel(paymentMethod)
+    const dateHint = getTransactionDateHint(paymentMethod)
 
     const openEventSelectModal = useCallback(() => {
       modalsFunc.selectEvents(
@@ -222,6 +233,12 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
         setError('Укажите мероприятие и клиента')
         return
       }
+      if (requiresActualDateConfirmation && date === initialDate) {
+        setError(
+          'После смены обязательства на обычный метод оплаты укажите фактическую дату совершения транзакции'
+        )
+        return
+      }
       setError('')
       setLoading(true)
 
@@ -284,6 +301,8 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       selectedClientId,
       selectedEvent?.contractSum,
       isReadOnly,
+      requiresActualDateConfirmation,
+      initialDate,
       transactionId,
       contractSum,
       createTransactionMutation,
@@ -435,9 +454,16 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
         <DateTimePicker
           value={date}
           onChange={(value) => setDate(value ?? new Date().toISOString())}
-          label="Дата"
+          label={dateLabel}
           disabled={loading || isReadOnly}
         />
+        {dateHint ? <Note noMargin>{dateHint}</Note> : null}
+        {requiresActualDateConfirmation ? (
+          <Note noMargin>
+            После смены метода оплаты укажите фактическую дату совершения
+            транзакции.
+          </Note>
+        ) : null}
         <Input
           label="Комментарий"
           value={comment}

@@ -4,6 +4,7 @@ import Events from '@models/Events'
 import Clients from '@models/Clients'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import { OBLIGATION_PAYMENT_METHOD } from '@helpers/transactionObligation'
 
 const TRANSACTION_TYPES = new Set(['income', 'expense'])
 const TRANSACTION_PAYMENT_METHODS = new Set([
@@ -11,6 +12,7 @@ const TRANSACTION_PAYMENT_METHODS = new Set([
   'account',
   'cash',
   'barter',
+  OBLIGATION_PAYMENT_METHOD,
 ])
 const CATEGORY_ALIASES = {
   advance: 'deposit',

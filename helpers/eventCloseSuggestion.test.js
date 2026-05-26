@@ -106,3 +106,24 @@ test('does not allow closing by contract event without taxes transaction', () =>
   assert.equal(result.canClose, false)
   assert.equal(result.shouldSuggestClosing, false)
 })
+
+test('does not allow closing when event has obligation transactions', () => {
+  const result = getEventCloseSuggestionState(
+    {
+      status: 'active',
+      contractSum: 10000,
+      isByContract: false,
+      eventDate: '2026-05-20T18:00:00.000Z',
+      dateEnd: '2026-05-20T20:00:00.000Z',
+    },
+    [
+      { type: 'income', amount: 10000, category: 'final_payment' },
+      { type: 'expense', amount: 1000, paymentMethod: 'obligation' },
+    ],
+    finishedNow
+  )
+
+  assert.equal(result.hasObligations, true)
+  assert.equal(result.canClose, false)
+  assert.equal(result.shouldSuggestClosing, false)
+})

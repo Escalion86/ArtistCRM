@@ -41,6 +41,7 @@ import {
 import { useClientsQuery } from '@helpers/useClientsQuery'
 import { useEventQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
+import { getEventCloseSuggestionState } from '@helpers/eventCloseSuggestion'
 
 const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
 
@@ -117,7 +118,16 @@ const EventCard = ({
     return titles.length > 0 ? titles.join(', ') : 'Услуга не указана'
   }, [event?.servicesIds, services])
 
-  const { contractSum, paid, leftToPay, status, expense, net, canClose } =
+  const {
+    contractSum,
+    paid,
+    leftToPay,
+    status,
+    expense,
+    net,
+    canClose,
+    hasObligations,
+  } =
     useMemo(() => {
       if (!event)
         return {
@@ -128,6 +138,7 @@ const EventCard = ({
           net: 0,
           status: null,
           canClose: false,
+          hasObligations: false,
         }
 
       const eventTransactions = transactions
@@ -149,11 +160,16 @@ const EventCard = ({
       const statusValue =
         EVENT_STATUSES_SIMPLE.find((item) => item.value === event.status) ??
         EVENT_STATUSES.find((item) => item.value === event.status)
-      const hasTaxes = eventTransactions.some(
-        (transaction) => transaction.category === 'taxes'
+      const closeState = getEventCloseSuggestionState(
+        {
+          status: event.status,
+          contractSum: contractSumValue,
+          isByContract: event?.isByContract,
+          eventDate: event?.eventDate,
+          dateEnd: event?.dateEnd,
+        },
+        eventTransactions
       )
-      const canCloseValue =
-        contractSumValue <= paidValue && (!event?.isByContract || hasTaxes)
 
       return {
         contractSum: contractSumValue,
@@ -162,7 +178,8 @@ const EventCard = ({
         expense: totals.expense,
         net: totals.income - totals.expense,
         status: statusValue,
-        canClose: canCloseValue,
+        canClose: closeState.canClose,
+        hasObligations: closeState.hasObligations,
       }
     }, [event, transactions])
 
@@ -402,6 +419,11 @@ const EventCard = ({
           {overdueAdditionalCount > 0 && (
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">
               {overdueAdditionalCount}
+            </span>
+          )}
+          {hasObligations && (
+            <span className="flex h-5 items-center justify-center rounded-full bg-amber-100 px-2 text-[11px] font-semibold text-amber-800">
+              Обязательство
             </span>
           )}
           {!client && (
