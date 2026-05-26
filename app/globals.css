@@ -144,6 +144,16 @@ body.theme-dark .bg-gray-100 {
   background-color: #17130f;
 }
 
+body.theme-dark .push-settings-surface {
+  background-color: rgba(24, 20, 16, 0.78);
+  border-color: rgba(201, 168, 106, 0.28);
+}
+
+body.theme-dark .push-settings-log-item {
+  background-color: rgba(33, 28, 23, 0.88);
+  border-color: rgba(201, 168, 106, 0.18);
+}
+
 body .border-input {
   border-color: lab(85.1236 -0.612259 -3.7138);
 }

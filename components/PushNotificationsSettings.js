@@ -331,7 +331,7 @@ const PushNotificationsSettings = () => {
           {pushBusy && pushAction === 'test' ? 'Отправка...' : 'Тест push'}
         </button>
       </div>
-      <div className="rounded border border-gray-200 bg-white/70 p-3">
+      <div className="push-settings-surface rounded border border-gray-200 bg-white/70 p-3">
         <label className="flex flex-col gap-2 text-sm text-gray-700 tablet:max-w-xs">
           <span className="font-semibold text-gray-800">
             Время ежедневных напоминаний
@@ -349,7 +349,7 @@ const PushNotificationsSettings = () => {
           10:00 в часовом поясе из настроек профиля.
         </div>
       </div>
-      <div className="mt-2 rounded border border-gray-200 bg-white/70 p-3 text-xs">
+      <div className="push-settings-surface mt-2 rounded border border-gray-200 bg-white/70 p-3 text-xs">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="font-semibold text-gray-800">Последние события push</div>
           <button
@@ -374,7 +374,7 @@ const PushNotificationsSettings = () => {
               return (
                 <div
                   key={log._id}
-                  className="rounded border border-gray-100 bg-gray-50 px-2 py-1.5"
+                  className="push-settings-log-item rounded border border-gray-100 bg-gray-50 px-2 py-1.5"
                 >
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="font-semibold text-gray-800">
