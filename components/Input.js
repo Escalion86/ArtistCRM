@@ -18,6 +18,16 @@ const toPhoneValue = (digits) => {
   return Number(`7${digits.slice(0, 10)}`)
 }
 
+const normalizePhoneDigits = (value) => {
+  const digits = String(value || '').replace(/[^\d]/g, '')
+  if (!digits) return ''
+
+  if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8')))
+    return digits.slice(1)
+
+  return digits.slice(0, 10)
+}
+
 const Input = forwardRef(
   (
     {
@@ -79,9 +89,7 @@ const Input = forwardRef(
     const phoneDisplayValue = (() => {
       if (!isPhone) return value
       if (value === null || value === undefined) return ''
-      const digits = String(value).replace(/[^\d]/g, '')
-      if (!digits || digits === '7') return ''
-      return digits[0] === '7' ? digits.slice(1, 11) : digits.slice(0, 10)
+      return normalizePhoneDigits(value)
     })()
     const placeholderValue = floatingLabel ? ' ' : label
     const resolvedStep =
@@ -157,7 +165,6 @@ const Input = forwardRef(
 
         {isPhone ? (
           <MaskedInput
-            type="tel"
             className={cn(
               'peer h-7 flex-1 bg-transparent px-1 text-black placeholder-transparent focus:outline-none',
               disabled ? 'text-disabled cursor-not-allowed' : '',
@@ -180,23 +187,13 @@ const Input = forwardRef(
               onChange(toPhoneValue(digits.slice(0, -1)))
             }}
             onChange={(e) => {
-              const raw = e.target.value.replace(/[^\d]/g, '')
-              if (!raw) {
+              const digits = normalizePhoneDigits(e.target.value)
+
+              if (!digits) {
                 onChange(null)
                 return
               }
-              if (raw.length === 1 && (raw === '7' || raw === '8')) {
-                onChange(null)
-                return
-              }
-              let digits = raw
-              if (
-                digits.length === 11 &&
-                (digits.startsWith('7') || digits.startsWith('8'))
-              ) {
-                digits = digits.slice(1)
-              }
-              if (digits.length > 10) digits = digits.slice(-10)
+
               onChange(toPhoneValue(digits))
             }}
             placeholder={placeholderValue}

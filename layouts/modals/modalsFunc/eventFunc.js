@@ -759,6 +759,47 @@ const eventFunc = (
       }
     }, [buildEventSaveContext, setEvent])
 
+    const openAdditionalEventModal = useCallback(
+      (index = null, options = {}) => {
+        const sourceItem = options?.sourceItem
+          ? { ...options.sourceItem }
+          : index !== null
+            ? additionalEvents[index]
+            : {
+                title: '',
+                description: '',
+                date: new Date().toISOString(),
+                done: false,
+                googleCalendarEventId: '',
+              }
+        openEventAdditionalEventEditorModal({
+          modalsFunc,
+          index,
+          sourceItem,
+          title: options?.title,
+          confirmButtonName: options?.confirmButtonName ?? 'Сохранить',
+          declineButtonName: options?.declineButtonName ?? 'Отмена',
+          introText: options?.introText,
+          onConfirm: async (nextItem) => {
+            if (typeof options?.onConfirm === 'function') {
+              await options.onConfirm(nextItem)
+              return
+            }
+            if (index !== null) {
+              setAdditionalEvents((prev) =>
+                prev.map((item, idx) =>
+                  idx === index ? { ...item, ...nextItem } : item
+                )
+              )
+              return
+            }
+            setAdditionalEvents((prev) => [...prev, nextItem])
+          },
+        })
+      },
+      [additionalEvents, modalsFunc]
+    )
+
     const handleSaveSuccess = useCallback(
       async ({
         savedEvent,
@@ -1385,47 +1426,6 @@ const eventFunc = (
     const handleAdditionalEventRemove = (index) => {
       setAdditionalEvents((prev) => prev.filter((_, idx) => idx !== index))
     }
-
-    const openAdditionalEventModal = useCallback(
-      (index = null, options = {}) => {
-        const sourceItem = options?.sourceItem
-          ? { ...options.sourceItem }
-          : index !== null
-            ? additionalEvents[index]
-            : {
-                title: '',
-                description: '',
-                date: new Date().toISOString(),
-                done: false,
-                googleCalendarEventId: '',
-              }
-        openEventAdditionalEventEditorModal({
-          modalsFunc,
-          index,
-          sourceItem,
-          title: options?.title,
-          confirmButtonName: options?.confirmButtonName ?? 'Сохранить',
-          declineButtonName: options?.declineButtonName ?? 'Отмена',
-          introText: options?.introText,
-          onConfirm: async (nextItem) => {
-            if (typeof options?.onConfirm === 'function') {
-              await options.onConfirm(nextItem)
-              return
-            }
-            if (index !== null) {
-              setAdditionalEvents((prev) =>
-                prev.map((item, idx) =>
-                  idx === index ? { ...item, ...nextItem } : item
-                )
-              )
-              return
-            }
-            setAdditionalEvents((prev) => [...prev, nextItem])
-          },
-        })
-      },
-      [additionalEvents, modalsFunc]
-    )
 
     const handleAdditionalEventAdd = () => {
       openAdditionalEventModal(null)

@@ -1,5 +1,5 @@
 import cn from 'classnames'
-import { MaskedInput } from '@thaborach/react-text-mask'
+import { useLayoutEffect, useRef } from 'react'
 import InputWrapper from './InputWrapper'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCopy } from '@fortawesome/free-solid-svg-icons/faCopy'
@@ -11,23 +11,65 @@ const toPhoneValue = (digits) => {
   return Number(`7${digits.slice(0, 10)}`)
 }
 
-const phoneMask = [
-  '(',
-  /[1-9]/,
-  /\d/,
-  /\d/,
-  ')',
-  ' ',
-  /\d/,
-  /\d/,
-  /\d/,
-  '-',
-  /\d/,
-  /\d/,
-  '-',
-  /\d/,
-  /\d/,
-]
+const normalizePhoneDigits = (value) => {
+  const rawDigits = String(value || '').replace(/[^\d]/g, '')
+  if (!rawDigits) return ''
+
+  let digits = rawDigits
+  if (digits.startsWith('8')) digits = `7${digits.slice(1)}`
+  else if (!digits.startsWith('7')) digits = `7${digits}`
+
+  return digits.slice(0, 11)
+}
+
+const formatPhoneDigits = (value) => {
+  const digits = normalizePhoneDigits(value)
+  if (!digits || digits === '7') return ''
+
+  const local = digits.slice(1)
+  let formatted = `(${local.slice(0, 3)}`
+
+  if (local.length >= 3) formatted += ')'
+  if (local.length > 3) formatted += ` ${local.slice(3, 6)}`
+  if (local.length > 6) formatted += `-${local.slice(6, 8)}`
+  if (local.length > 8) formatted += `-${local.slice(8, 10)}`
+
+  return formatted
+}
+
+const removeDigitAtIndex = (digits, indexToRemove) => {
+  if (!digits) return ''
+  const local = digits.startsWith('7') ? digits.slice(1) : digits
+  if (indexToRemove < 0 || indexToRemove >= local.length) return digits
+  const nextLocal = `${local.slice(0, indexToRemove)}${local.slice(indexToRemove + 1)}`
+  return nextLocal ? `7${nextLocal}` : ''
+}
+
+const removeDigitsInRange = (digits, startIndex, endIndex) => {
+  if (!digits) return ''
+  const local = digits.startsWith('7') ? digits.slice(1) : digits
+  const safeStart = Math.max(0, startIndex)
+  const safeEnd = Math.min(local.length, endIndex)
+  if (safeStart >= safeEnd) return digits
+  const nextLocal = `${local.slice(0, safeStart)}${local.slice(safeEnd)}`
+  return nextLocal ? `7${nextLocal}` : ''
+}
+
+const countDigitsBeforeCaret = (value, caretPosition) =>
+  value.slice(0, caretPosition).replace(/[^\d]/g, '').length
+
+const getCaretPositionFromDigitIndex = (value, digitIndex) => {
+  if (digitIndex <= 0) return 0
+
+  let digitsPassed = 0
+  for (let i = 0; i < value.length; i += 1) {
+    if (!/\d/.test(value[i])) continue
+    digitsPassed += 1
+    if (digitsPassed >= digitIndex) return i + 1
+  }
+
+  return value.length
+}
 
 const PhoneInput = ({
   value,
@@ -44,12 +86,20 @@ const PhoneInput = ({
   tone = 'default',
 }) => {
   const isParty = tone === 'party'
-  const phoneDisplayValue = (() => {
-    if (value === null || value === undefined) return ''
-    const digits = String(value).replace(/[^\d]/g, '')
-    if (!digits || digits === '7') return ''
-    return digits[0] === '7' ? digits.slice(1, 11) : digits.slice(0, 10)
-  })()
+  const phoneDisplayValue = formatPhoneDigits(value)
+  const hasPhoneValue = Boolean(phoneDisplayValue)
+  const normalizedDigits = normalizePhoneDigits(value)
+  const inputRef = useRef(null)
+  const nextCaretPositionRef = useRef(null)
+
+  useLayoutEffect(() => {
+    if (nextCaretPositionRef.current === null || !inputRef.current) return
+    inputRef.current.setSelectionRange(
+      nextCaretPositionRef.current,
+      nextCaretPositionRef.current
+    )
+    nextCaretPositionRef.current = null
+  }, [phoneDisplayValue])
 
   return (
     <InputWrapper
@@ -71,9 +121,14 @@ const PhoneInput = ({
             : 'text-white'
       }
     >
-      <div className="flex items-center w-full gap-2">
-        <div className={cn('text-gray-500', isParty && 'text-sky-700')}>+7</div>
-        <MaskedInput
+      <div className={cn('flex items-center w-full', hasPhoneValue ? 'gap-2' : 'gap-0')}>
+        {hasPhoneValue && (
+          <div className={cn('text-gray-500', isParty && 'text-sky-700')}>+7</div>
+        )}
+        <input
+          ref={inputRef}
+          type="tel"
+          inputMode="numeric"
           disabled={disabled}
           placeholder=" "
           className={cn(
@@ -89,25 +144,80 @@ const PhoneInput = ({
                 ? 'text-sky-900'
                 : 'text-input'
           )}
-          guide={false}
-          mask={phoneMask}
           value={phoneDisplayValue}
           onKeyDown={(e) => {
-            if (e.key !== 'Backspace') return
             const target = e.currentTarget
-            const cursorAtEnd =
-              target.selectionStart === target.selectionEnd &&
-              target.selectionStart === target.value.length
-            if (!cursorAtEnd || /\d$/.test(target.value)) return
+            const selectionStart = target.selectionStart ?? 0
+            const selectionEnd = target.selectionEnd ?? 0
+            const digitsBeforeSelection = countDigitsBeforeCaret(
+              target.value,
+              selectionStart
+            )
+            const digitsInsideSelection = countDigitsBeforeCaret(
+              target.value,
+              selectionEnd
+            ) - digitsBeforeSelection
 
-            const digits = target.value.replace(/[^\d]/g, '')
-            if (!digits) return
+            if (selectionStart !== selectionEnd) {
+              if (digitsInsideSelection === 0) return
+              if (e.key !== 'Backspace' && e.key !== 'Delete') return
+
+              e.preventDefault()
+              const nextDigits = removeDigitsInRange(
+                normalizedDigits,
+                digitsBeforeSelection,
+                digitsBeforeSelection + digitsInsideSelection
+              )
+              const nextDisplayValue = formatPhoneDigits(nextDigits)
+              nextCaretPositionRef.current = getCaretPositionFromDigitIndex(
+                nextDisplayValue,
+                digitsBeforeSelection
+              )
+              onChange(nextDigits ? toPhoneValue(nextDigits.slice(1)) : null)
+              return
+            }
+
+            if (e.key !== 'Backspace' && e.key !== 'Delete') return
+
+            if (e.key === 'Backspace') {
+              if (digitsBeforeSelection === 0) return
+
+              const nextDigits = removeDigitAtIndex(
+                normalizedDigits,
+                digitsBeforeSelection - 1
+              )
+
+              e.preventDefault()
+              const nextDisplayValue = formatPhoneDigits(nextDigits)
+              nextCaretPositionRef.current = getCaretPositionFromDigitIndex(
+                nextDisplayValue,
+                digitsBeforeSelection - 1
+              )
+              onChange(nextDigits ? toPhoneValue(nextDigits.slice(1)) : null)
+              return
+            }
+
+            const localDigitsLength = normalizedDigits
+              ? normalizedDigits.slice(1).length
+              : 0
+            if (digitsBeforeSelection >= localDigitsLength) return
+
+            const nextDigits = removeDigitAtIndex(
+              normalizedDigits,
+              digitsBeforeSelection
+            )
+
             e.preventDefault()
-            onChange(toPhoneValue(digits.slice(0, -1)))
+            const nextDisplayValue = formatPhoneDigits(nextDigits)
+            nextCaretPositionRef.current = getCaretPositionFromDigitIndex(
+              nextDisplayValue,
+              digitsBeforeSelection
+            )
+            onChange(nextDigits ? toPhoneValue(nextDigits.slice(1)) : null)
           }}
           onChange={(e) => {
-            const digits = e.target.value.replace(/[^\d]/g, '')
-            onChange(toPhoneValue(digits))
+            const digits = normalizePhoneDigits(e.target.value)
+            onChange(digits ? toPhoneValue(digits.slice(1)) : null)
           }}
         />
         {copyPasteButtons && !disabled && (

@@ -17,7 +17,7 @@ import {
   OBLIGATION_PAYMENT_METHOD,
 } from '@helpers/transactionObligation'
 import { modalsFuncAtom } from '@state/atoms'
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useAtomValue } from 'jotai'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
@@ -310,9 +310,20 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       closeModal,
     ])
 
+    const handleSaveRef = useRef(handleSave)
+    handleSaveRef.current = handleSave
+
     useEffect(() => {
-      setOnConfirmFunc(isReadOnly ? undefined : handleSave)
+      setOnConfirmFunc(
+        isReadOnly ? undefined : () => handleSaveRef.current?.()
+      )
+    }, [isReadOnly, setOnConfirmFunc])
+
+    useEffect(() => {
       setOnShowOnCloseConfirmDialog(!isReadOnly && isFormChanged)
+    }, [isFormChanged, isReadOnly, setOnShowOnCloseConfirmDialog])
+
+    useEffect(() => {
       setDisableConfirm(
         loading ||
           isReadOnly ||
@@ -324,12 +335,10 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       selectedEventId,
       selectedClientId,
       transactionId,
-      handleSave,
       isFormChanged,
       loading,
+      isReadOnly,
       setDisableConfirm,
-      setOnConfirmFunc,
-      setOnShowOnCloseConfirmDialog,
     ])
 
     return (

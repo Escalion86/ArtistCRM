@@ -5,13 +5,15 @@ import Image from 'next/image'
 import { signIn } from 'next-auth/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Input from '@components/Input'
+import PhoneInput from '@components/PhoneInput'
 import { reachGoal, reachGoalOnce } from '@helpers/metrikaGoals'
 
 const normalizePhone = (value) => {
   if (!value) return ''
   const digits = String(value).replace(/[^\d]/g, '')
   if (digits.length === 10) return `7${digits}`
-  if (digits.length === 11 && digits.startsWith('8')) return `7${digits.slice(1)}`
+  if (digits.length === 11 && digits.startsWith('8'))
+    return `7${digits.slice(1)}`
   return digits
 }
 
@@ -68,8 +70,7 @@ const getVkAuthErrorMessage = (json) => {
     return 'Авторизация VK ID временно недоступна'
   if (code === 'VK_EXCHANGE_FAILED')
     return 'Не удалось подтвердить вход через VK ID'
-  if (code === 'VK_USERINFO_FAILED')
-    return 'Не удалось получить профиль VK ID'
+  if (code === 'VK_USERINFO_FAILED') return 'Не удалось получить профиль VK ID'
   if (code === 'VK_USER_CREATE_FAILED')
     return 'Не удалось создать аккаунт через VK ID'
   if (code === 'VK_USER_DUPLICATE_CONFLICT')
@@ -171,7 +172,10 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
   const resetPhoneDigits = String(normalizePhone(resetPhone)).length
   const registerPhoneDigits = String(normalizePhone(registerPhone)).length
 
-  const resetPhoneNormalized = useMemo(() => normalizePhone(resetPhone), [resetPhone])
+  const resetPhoneNormalized = useMemo(
+    () => normalizePhone(resetPhone),
+    [resetPhone]
+  )
   const registerPhoneNormalized = useMemo(
     () => normalizePhone(registerPhone),
     [registerPhone]
@@ -464,7 +468,10 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
 
   useEffect(() => {
     if (!registerVerify.smsAvailableAt || registerVerify.smsReady) return
-    const delayMs = Math.max(0, Number(registerVerify.smsAvailableAt) - Date.now())
+    const delayMs = Math.max(
+      0,
+      Number(registerVerify.smsAvailableAt) - Date.now()
+    )
     const timer = setTimeout(() => {
       setRegisterVerify((prev) => ({ ...prev, smsReady: true }))
     }, delayMs)
@@ -582,9 +589,7 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
               <button
                 type="button"
                 className="ui-btn ui-btn-secondary w-full cursor-pointer rounded-md"
-                onClick={() =>
-                  sendSmsFallback({ flow, phone, setVerifyState })
-                }
+                onClick={() => sendSmsFallback({ flow, phone, setVerifyState })}
                 disabled={verifyState.loadingSmsSend}
               >
                 {verifyState.loadingSmsSend
@@ -613,7 +618,8 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
 
           {verifyState.debugCode && (
             <div className="text-[11px] text-gray-500">
-              Тестовый код (dev): <span className="font-semibold">{verifyState.debugCode}</span>
+              Тестовый код (dev):{' '}
+              <span className="font-semibold">{verifyState.debugCode}</span>
             </div>
           )}
 
@@ -636,7 +642,9 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
       )}
 
       {verifyState.verified && (
-        <div className="mt-2 font-medium text-green-700">Телефон подтвержден</div>
+        <div className="mt-2 font-medium text-green-700">
+          Телефон подтвержден
+        </div>
       )}
     </div>
   )
@@ -729,7 +737,10 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
               let accessToken = ''
               let idToken = ''
               if (!codeVerifier && VKID?.Auth?.exchangeCode) {
-                const exchangeData = await VKID.Auth.exchangeCode(code, deviceId)
+                const exchangeData = await VKID.Auth.exchangeCode(
+                  code,
+                  deviceId
+                )
                 accessToken =
                   exchangeData?.access_token || exchangeData?.accessToken || ''
                 idToken = exchangeData?.id_token || exchangeData?.idToken || ''
@@ -814,7 +825,14 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
     return () => {
       isMounted = false
     }
-  }, [callbackUrl, canUseVkOneTap, mode, vkAuthEnabled, vkConfig, vkRenderNonce])
+  }, [
+    callbackUrl,
+    canUseVkOneTap,
+    mode,
+    vkAuthEnabled,
+    vkConfig,
+    vkRenderNonce,
+  ])
 
   const VkAuthBlock = ({ label }) =>
     vkAuthEnabled ? (
@@ -834,17 +852,17 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
       <div className="pointer-events-none absolute top-12 -left-28 h-64 w-64 rounded-full bg-[#ebd3a5]/30 blur-3xl" />
       <div className="pointer-events-none absolute -right-28 bottom-12 h-64 w-64 rounded-full bg-[#c9a86a]/30 blur-3xl" />
 
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl ring-1 ring-general/30">
+      <div className="ring-general/30 relative z-10 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl ring-1">
         <div className="mb-6">
-          <div className="text-xs tracking-[0.2em] text-general uppercase">
+          <div className="text-general text-xs tracking-[0.2em] uppercase">
             ArtistCRM
           </div>
           <h1 className="mt-2 text-2xl font-semibold text-gray-900">
             {mode === 'login'
               ? 'Вход в кабинет'
               : mode === 'reset'
-              ? 'Восстановление пароля'
-              : 'Регистрация'}
+                ? 'Восстановление пароля'
+                : 'Регистрация'}
           </h1>
           <p className="mt-2 text-sm text-gray-500">
             {mode === 'login'
@@ -852,10 +870,10 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
                 ? 'Войдите через VK ID или используйте телефон и пароль.'
                 : 'Введите телефон и пароль, чтобы продолжить работу.'
               : mode === 'reset'
-              ? 'Подтвердите номер и задайте новый пароль.'
-              : vkAuthEnabled
-                ? 'Зарегистрируйтесь через VK ID или подтвердите телефон вручную.'
-                : 'Подтвердите номер телефона и создайте аккаунт.'}
+                ? 'Подтвердите номер и задайте новый пароль.'
+                : vkAuthEnabled
+                  ? 'Зарегистрируйтесь через VK ID или подтвердите телефон вручную.'
+                  : 'Подтвердите номер телефона и создайте аккаунт.'}
           </p>
         </div>
 
@@ -884,19 +902,20 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
               </div>
             ) : null}
 
-            <Input
+            <PhoneInput
               label="Телефон"
               value={loginPhone}
               onChange={(nextValue) => {
                 setLoginPhone(nextValue)
                 setLoginPhoneHint(false)
               }}
-              type="phone"
               className="w-full"
               noMargin
             />
             {loginPhoneHint && loginPhoneDigits !== 11 && (
-              <div className="text-xs text-danger">Введите 11 цифр телефона.</div>
+              <div className="text-danger text-xs">
+                Введите 11 цифр телефона.
+              </div>
             )}
 
             <Input
@@ -910,7 +929,7 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
             />
 
             <button
-              className="mt-2 w-full cursor-pointer rounded-lg border border-[#6f582f] bg-general px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-[#6f582f] hover:shadow-lg disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-300 disabled:shadow-none"
+              className="bg-general mt-2 w-full cursor-pointer rounded-lg border border-[#6f582f] px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-[#6f582f] hover:shadow-lg disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-300 disabled:shadow-none"
               type="submit"
               disabled={!loginPhone || !loginPassword || isSubmitting}
             >
@@ -919,7 +938,7 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
           </form>
         ) : mode === 'reset' ? (
           <form onSubmit={submitReset} className="flex flex-col gap-4">
-            <Input
+            <PhoneInput
               label="Телефон"
               value={resetPhone}
               onChange={(nextValue) => {
@@ -927,12 +946,13 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
                 setResetPhoneHint(false)
                 setResetVerify(createVerifyState())
               }}
-              type="phone"
               className="w-full"
               noMargin
             />
             {resetPhoneHint && resetPhoneDigits !== 11 && (
-              <div className="text-xs text-danger">Введите 11 цифр телефона.</div>
+              <div className="text-danger text-xs">
+                Введите 11 цифр телефона.
+              </div>
             )}
 
             <VerificationBlock
@@ -970,8 +990,8 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
                     ? 'Запрос...'
                     : 'Подтвердить номер'
                   : isResetLoading
-                  ? 'Сохранение...'
-                  : 'Сбросить пароль'}
+                    ? 'Сохранение...'
+                    : 'Сбросить пароль'}
               </button>
             )}
           </form>
@@ -987,7 +1007,7 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
               </div>
             ) : null}
 
-            <Input
+            <PhoneInput
               label="Телефон"
               value={registerPhone}
               onChange={(nextValue) => {
@@ -995,12 +1015,13 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
                 setRegisterPhoneHint(false)
                 setRegisterVerify(createVerifyState())
               }}
-              type="phone"
               className="w-full"
               noMargin
             />
             {registerPhoneHint && registerPhoneDigits !== 11 && (
-              <div className="text-xs text-danger">Введите 11 цифр телефона.</div>
+              <div className="text-danger text-xs">
+                Введите 11 цифр телефона.
+              </div>
             )}
 
             <VerificationBlock
@@ -1101,8 +1122,8 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
                     ? 'Запрос...'
                     : 'Подтвердить номер'
                   : isRegisterLoading
-                  ? 'Создание...'
-                : 'Создать аккаунт'}
+                    ? 'Создание...'
+                    : 'Создать аккаунт'}
               </button>
             )}
           </form>
@@ -1112,14 +1133,14 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
           <div className="mt-6 flex flex-col gap-2">
             <button
               type="button"
-              className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              className="text-general w-full cursor-pointer text-center text-sm font-medium transition hover:text-[#6f582f]"
               onClick={() => setMode('reset')}
             >
               Забыли пароль?
             </button>
             <button
               type="button"
-              className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              className="text-general w-full cursor-pointer text-center text-sm font-medium transition hover:text-[#6f582f]"
               onClick={() => {
                 reachGoal('registration_start')
                 setMode('register')
@@ -1129,7 +1150,7 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
             </button>
             <Link
               href="/"
-              className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              className="text-general w-full cursor-pointer text-center text-sm font-medium transition hover:text-[#6f582f]"
             >
               На главную
             </Link>
@@ -1138,14 +1159,14 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
           <div className="mt-6 flex flex-col gap-2">
             <button
               type="button"
-              className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              className="text-general w-full cursor-pointer text-center text-sm font-medium transition hover:text-[#6f582f]"
               onClick={() => setMode('login')}
             >
               Вернуться ко входу
             </button>
             <Link
               href="/"
-              className="w-full cursor-pointer text-center text-sm font-medium text-general transition hover:text-[#6f582f]"
+              className="text-general w-full cursor-pointer text-center text-sm font-medium transition hover:text-[#6f582f]"
             >
               На главную
             </Link>
