@@ -26,6 +26,7 @@ import DropDown from './DropDown'
 import useCopyToClipboard from '@helpers/useCopyToClipboard'
 import { useEffect } from 'react'
 import { getAdditionalEventsSummary } from '@helpers/additionalEvents'
+import { shouldShowAdditionalEventsAction } from '@helpers/eventCardActions'
 
 const MENU_ITEM_TONE = {
   red: {
@@ -174,6 +175,10 @@ const CardButtons = ({
 
   const upDownSee =
     (!forForm && typeOfItem === 'service') || typeOfItem === 'product' || false
+  const showAdditionalEventsAction = shouldShowAdditionalEventsAction({
+    typeOfItem,
+    status: item?.status,
+  })
   // (typeOfItem === 'event' && loggedUserActiveRole.events.edit) ||
   // (typeOfItem === 'user' && loggedUserActiveRole.users.edit) ||
   // (typeOfItem === 'service' && loggedUserActiveRole.services.edit) ||
@@ -191,7 +196,7 @@ const CardButtons = ({
           cloneBtn:
             showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
           openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
-          additionalEvents: typeOfItem === 'event',
+          additionalEvents: showAdditionalEventsAction,
           historyBtn: showHistoryButton && typeOfItem === 'event',
           statusBtn: canEditStatus,
           deleteBtn:
@@ -203,7 +208,7 @@ const CardButtons = ({
           cloneBtn:
             showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
           openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
-          additionalEvents: typeOfItem === 'event',
+          additionalEvents: showAdditionalEventsAction,
           historyBtn: showHistoryButton && typeOfItem === 'event',
           statusBtn: canEditStatus,
           deleteBtn:
@@ -222,7 +227,7 @@ const CardButtons = ({
         setPasswordBtn: typeOfItem === 'user' && canManageUsers,
         addToCalendar: typeOfItem === 'event',
         openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
-        additionalEvents: typeOfItem === 'event',
+        additionalEvents: showAdditionalEventsAction,
         historyBtn: showHistoryButton && typeOfItem === 'event',
         upBtn: onUpClick && upDownSee,
         downBtn: onDownClick && upDownSee,

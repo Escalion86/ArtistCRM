@@ -21,13 +21,13 @@ import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { useRouter } from 'next/navigation'
 import formatAddress from '@helpers/formatAddress'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { getDefaultStatisticsYear } from '@helpers/getDefaultStatisticsYear'
+import { buildStatisticsChartData } from '@helpers/buildStatisticsChartData'
+import { getStatisticsMonthDetails } from '@helpers/getStatisticsMonthDetails'
 import { useStatisticsQuery } from '@helpers/useStatisticsQuery'
+import TransactionCard from '@layouts/cards/TransactionCard'
 
-const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
 const ALL_TOWNS_OPTION = 'Все города'
-
-const getMonthKey = (date, year) =>
-  `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`
 
 const isValidDate = (value) => {
   if (!value) return false
@@ -158,7 +158,8 @@ const StatisticsContent = () => {
 
   useEffect(() => {
     if (selectedYear !== null) return
-    if (availableYears.length > 0) setSelectedYear(availableYears[0])
+    const defaultYear = getDefaultStatisticsYear(availableYears)
+    if (defaultYear !== null) setSelectedYear(defaultYear)
   }, [availableYears, selectedYear])
 
   const townsOptions = useMemo(() => {
@@ -286,100 +287,13 @@ const StatisticsContent = () => {
   }, [filteredEvents, filteredTransactions])
 
   const stats = useMemo(() => {
-    if (!selectedYear) return []
-    const byMonth = new Map()
-    const now = new Date()
-    const currentYear = now.getFullYear()
-    const currentMonth = now.getMonth()
-    const isFutureMonth = (monthIndex) =>
-      selectedYear > currentYear ||
-      (selectedYear === currentYear && monthIndex > currentMonth)
-    const isOpenCurrentMonth = (monthIndex) =>
-      selectedYear === currentYear && monthIndex === currentMonth
-    const isUnfinishedMonth = (monthIndex) =>
-      isFutureMonth(monthIndex) || isOpenCurrentMonth(monthIndex)
-
-    filteredEvents.forEach((event) => {
-      if (!event?.eventDate || !isValidDate(event.eventDate)) return
-      const date = new Date(event.eventDate)
-
-      const key = getMonthKey(date, selectedYear)
-      const label = buildMonthLabel(date)
-      if (!byMonth.has(key)) {
-        byMonth.set(key, {
-          month: label,
-          income: 0,
-          expense: 0,
-          profit: 0,
-          isFuture: isFutureMonth(date.getMonth()),
-          isOpenMonth: isOpenCurrentMonth(date.getMonth()),
-          isUnfinished: isUnfinishedMonth(date.getMonth()),
-          plannedIncome: 0,
-          paymentLeft: 0,
-        })
-      }
-      const bucket = byMonth.get(key)
-      if (bucket.isFuture) {
-        const finance = eventFinanceMap.get(event?._id) || {
-          income: 0,
-          expense: 0,
-        }
-        const paid = Math.max(finance.income, 0)
-        const contractSum = Number(event?.contractSum ?? 0)
-        bucket.plannedIncome += finance.income - finance.expense
-        bucket.paymentLeft += Math.max(contractSum - paid, 0)
-      }
-      if (!bucket.isFuture && getEventComputedStatus(event) === 'finished') {
-        const finance = eventFinanceMap.get(event?._id) || {
-          income: 0,
-          expense: 0,
-        }
-        const paid = Math.max(finance.income, 0)
-        const paymentLeft = Math.max(Number(event?.contractSum ?? 0) - paid, 0)
-        bucket.paymentLeft += paymentLeft
-      }
+    return buildStatisticsChartData({
+      selectedYear,
+      filteredEvents,
+      filteredTransactions,
+      eventsMap,
+      eventFinanceMap,
     })
-
-    filteredTransactions.forEach((transaction) => {
-      if (!transaction?.eventId) return
-      const event = eventsMap.get(transaction.eventId)
-      if (!event?.eventDate || !isValidDate(event.eventDate)) return
-      const date = new Date(event.eventDate)
-      const key = getMonthKey(date, selectedYear)
-      const label = buildMonthLabel(date)
-      if (!byMonth.has(key)) {
-        byMonth.set(key, {
-          month: label,
-          income: 0,
-          expense: 0,
-          profit: 0,
-          isFuture: isFutureMonth(date.getMonth()),
-          isOpenMonth: isOpenCurrentMonth(date.getMonth()),
-          isUnfinished: isUnfinishedMonth(date.getMonth()),
-          plannedIncome: 0,
-          paymentLeft: 0,
-        })
-      }
-      const bucket = byMonth.get(key)
-      if (bucket.isFuture) return
-      const amount = Number(transaction.amount ?? 0)
-      if (transaction.type === 'income') bucket.income += amount
-      if (transaction.type === 'expense') bucket.expense += amount
-      bucket.profit = bucket.income - bucket.expense
-    })
-
-    return Array.from(byMonth.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([, value]) => {
-        if (value.isFuture) {
-          const planned = Number(value.plannedIncome ?? 0)
-          return {
-            ...value,
-            profit: planned,
-          }
-        }
-        return value
-      })
   }, [
     eventFinanceMap,
     eventsMap,
@@ -674,6 +588,107 @@ const StatisticsContent = () => {
     })
   }
 
+  const openMonthDetailsModal = (monthStat) => {
+    const monthKey = monthStat?.data?.monthKey ?? monthStat?.monthKey
+    if (!monthKey) return
+
+    const details = getStatisticsMonthDetails({
+      monthKey,
+      filteredEvents,
+      filteredTransactions,
+      eventFinanceMap,
+    })
+
+    const [year, month] = monthKey.split('-')
+    const monthTitle = `${monthStat?.data?.month ?? monthStat?.month ?? 'Месяц'} ${year}`
+
+    const MonthDetailsModal = () => (
+      <div className="space-y-4 pb-2">
+        <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-5">
+          <SurfaceCard className="rounded" paddingClassName="p-3">
+            <div className="text-xs text-gray-500">Выручка</div>
+            <div className="text-base font-semibold text-green-700">
+              {formatCurrency(details.summary.totalIncome)}
+            </div>
+          </SurfaceCard>
+          <SurfaceCard className="rounded" paddingClassName="p-3">
+            <div className="text-xs text-gray-500">Расход</div>
+            <div className="text-base font-semibold text-red-700">
+              {formatCurrency(details.summary.totalExpense)}
+            </div>
+          </SurfaceCard>
+          <SurfaceCard className="rounded" paddingClassName="p-3">
+            <div className="text-xs text-gray-500">Прибыль</div>
+            <div className="text-base font-semibold text-blue-700">
+              {formatCurrency(details.summary.profit)}
+            </div>
+          </SurfaceCard>
+          <SurfaceCard className="rounded" paddingClassName="p-3">
+            <div className="text-xs text-gray-500">Недооплачено</div>
+            <div className="text-base font-semibold text-amber-700">
+              {formatCurrency(details.summary.paymentLeft)}
+            </div>
+          </SurfaceCard>
+          <SurfaceCard className="rounded" paddingClassName="p-3">
+            <div className="text-xs text-gray-500">Мероприятий</div>
+            <div className="text-base font-semibold text-gray-800">
+              {details.events.length}
+            </div>
+          </SurfaceCard>
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-gray-700">
+            Мероприятия месяца
+          </div>
+          {details.events.length === 0 ? (
+            <div className="text-sm text-gray-500">Нет мероприятий за этот месяц</div>
+          ) : (
+            <div className="space-y-2">
+              {details.events.map((event) => (
+                <EventCard
+                  key={event._id}
+                  eventId={event._id}
+                  event={event}
+                  transactions={details.transactions}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-gray-700">
+            Транзакции месяца
+          </div>
+          {details.transactions.length === 0 ? (
+            <div className="text-sm text-gray-500">Нет транзакций за этот месяц</div>
+          ) : (
+            <div className="space-y-2">
+              {details.transactions.map((transaction) => (
+                <TransactionCard
+                  key={transaction._id}
+                  transaction={transaction}
+                  client={clientsMap.get(transaction.clientId) || null}
+                  event={eventsMap.get(transaction.eventId) || null}
+                  onEdit={() => {}}
+                  onDelete={() => {}}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+
+    modalsFunc.custom?.({
+      title: `Статистика за ${monthTitle}`,
+      Children: MonthDetailsModal,
+      declineButtonShow: false,
+      closeButtonName: 'Закрыть',
+    })
+  }
+
   const renderMetricTitle = (label, count, onCountClick) => (
     <div className="flex items-center gap-1.5 text-xs text-gray-500">
       <span>{label}</span>
@@ -934,6 +949,7 @@ const StatisticsContent = () => {
                     }}
                     enableLabel={false}
                     groupMode="stacked"
+                    onClick={openMonthDetailsModal}
                     valueFormat={(value) => value.toLocaleString('ru-RU')}
                     tooltip={({ id, value, indexValue }) => (
                       <div className="statistics-tooltip rounded border border-gray-200 px-2 py-1 text-xs text-gray-700 shadow">

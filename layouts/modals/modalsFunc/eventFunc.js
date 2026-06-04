@@ -48,6 +48,7 @@ import { getActTemplateVariablesMap } from '@helpers/generateActTemplate'
 import exportDocxFromTemplate from '@helpers/exportDocxFromTemplate'
 import getPersonFullName from '@helpers/getPersonFullName'
 import { getEventCloseSuggestionState } from '@helpers/eventCloseSuggestion'
+import { shouldShowEventConflictWarning } from '@helpers/eventConflictWarning'
 import { getEventTransactionAction } from '@helpers/eventTransactionAction'
 import {
   useDeleteTransactionMutation,
@@ -1019,7 +1020,16 @@ const eventFunc = (
 
       if (validateEventForm()) {
         const conflictsCount = getConflictsCount()
-        if (conflictsCount > 0) {
+        const shouldShowConflictWarning = shouldShowEventConflictWarning({
+          eventId,
+          initialEventDate: initialEventValues.eventDate,
+          initialDateEnd: initialEventValues.dateEnd,
+          eventDate,
+          dateEnd,
+          conflictsCount,
+        })
+
+        if (shouldShowConflictWarning) {
           modalsFunc.add({
             title: 'Пересечение по времени',
             text: `Внимание! Есть мероприятия в выбранном периоде (${conflictsCount}). Все равно сохранить?`,
