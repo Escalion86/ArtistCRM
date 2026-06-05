@@ -7,6 +7,7 @@ import { postData } from '@helpers/CRUD'
 import useSnackbar from '@helpers/useSnackbar'
 import {
   getPushRegistration,
+  getPushRegistrationWithDetails,
   isPushSupported,
   syncPushSubscription,
 } from '@helpers/pushClient'
@@ -37,6 +38,7 @@ const PushNotificationsSettings = () => {
   const [pushAvailable, setPushAvailable] = useState(false)
   const [pushLogs, setPushLogs] = useState([])
   const [pushLogsLoading, setPushLogsLoading] = useState(false)
+  const [pushDiagnosticMessage, setPushDiagnosticMessage] = useState('')
   const customSettings = siteSettings?.custom ?? {}
   const isPushEnabled =
     getCustomValue(customSettings, 'publicLeadPushEnabled') === true
@@ -82,10 +84,13 @@ const PushNotificationsSettings = () => {
     setPushPermission(available ? Notification.permission : 'unsupported')
     if (!available) {
       setPushSubscribed(false)
+      setPushDiagnosticMessage('')
       return
     }
 
-    const registration = await getPushRegistration()
+    const registrationResult = await getPushRegistrationWithDetails()
+    const registration = registrationResult?.registration || null
+    setPushDiagnosticMessage(registrationResult?.ok ? '' : registrationResult?.message || '')
     if (!registration?.pushManager) {
       setPushSubscribed(false)
       return
@@ -149,9 +154,12 @@ const PushNotificationsSettings = () => {
         return
       }
 
-      const registration = await getPushRegistration()
+      const registrationResult = await getPushRegistrationWithDetails()
+      const registration = registrationResult?.registration || null
       if (!registration?.pushManager) {
-        snackbar.error('Service Worker не готов для push')
+        snackbar.error(
+          registrationResult?.message || 'Service Worker не готов для push'
+        )
         return
       }
 
@@ -288,6 +296,9 @@ const PushNotificationsSettings = () => {
         Разрешение: {pushPermission} | Подписка:{' '}
         {pushSubscribed ? 'активна' : 'нет'}
       </div>
+      {pushDiagnosticMessage ? (
+        <div className="text-xs text-amber-700">{pushDiagnosticMessage}</div>
+      ) : null}
       <div className="flex items-center">
         <span
           className={`inline-flex min-w-[110px] items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold ${

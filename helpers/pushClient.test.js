@@ -87,3 +87,133 @@ test('getPushRegistration prefers ready registration when it becomes active', as
 
   assert.equal(result, readyRegistration)
 })
+
+test('getPushRegistration waits for a newly registered service worker to activate', async () => {
+  process.env.NODE_ENV = 'production'
+
+  const listeners = new Map()
+  const installingWorker = {
+    state: 'installing',
+    addEventListener: (event, handler) => {
+      listeners.set(event, handler)
+    },
+    removeEventListener: (event) => {
+      listeners.delete(event)
+    },
+  }
+  const registeredWorker = {
+    pushManager: {
+      getSubscription: async () => null,
+    },
+    installing: installingWorker,
+    waiting: null,
+    active: null,
+  }
+
+  const originalSetTimeout = setTimeout
+  const originalClearTimeout = clearTimeout
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: function Notification() {},
+    setTimeout: (handler, timeout, ...args) =>
+      originalSetTimeout(handler, timeout === 3000 ? 5 : timeout, ...args),
+    clearTimeout: originalClearTimeout,
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      getRegistration: async () => null,
+      register: async () => registeredWorker,
+      ready: new Promise((resolve) => {
+        originalSetTimeout(() => {
+          registeredWorker.active = { state: 'activated' }
+          installingWorker.state = 'activated'
+          const stateChange = listeners.get('statechange')
+          if (stateChange) stateChange()
+          resolve(registeredWorker)
+        }, 15)
+      }),
+    },
+  })
+
+  const { getPushRegistration } = await import(`./pushClient.js?test=${Date.now()}`)
+  const result = await getPushRegistration()
+
+  assert.equal(result, registeredWorker)
+})
+
+test('getPushRegistrationWithDetails returns registration failure reason', async () => {
+  process.env.NODE_ENV = 'production'
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: function Notification() {},
+    setTimeout,
+    clearTimeout,
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      getRegistration: async () => null,
+      register: async () => {
+        throw new Error('script evaluation failed')
+      },
+      ready: Promise.resolve(null),
+    },
+  })
+
+  const { getPushRegistrationWithDetails } = await import(
+    `./pushClient.js?test=${Date.now()}`
+  )
+  const result = await getPushRegistrationWithDetails()
+
+  assert.equal(result.ok, false)
+  assert.equal(result.reason, 'registration_failed')
+  assert.match(result.message, /script evaluation failed/i)
+})
+
+test('getPushRegistrationWithDetails returns activation timeout reason', async () => {
+  process.env.NODE_ENV = 'production'
+
+  const registeredWorker = {
+    pushManager: {
+      getSubscription: async () => null,
+    },
+    installing: {
+      state: 'installing',
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    },
+    waiting: null,
+    active: null,
+  }
+
+  const originalSetTimeout = setTimeout
+  const originalClearTimeout = clearTimeout
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: function Notification() {},
+    setTimeout: (handler, timeout, ...args) =>
+      originalSetTimeout(handler, timeout === 15000 ? 5 : timeout, ...args),
+    clearTimeout: originalClearTimeout,
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      getRegistration: async () => null,
+      register: async () => registeredWorker,
+      ready: new Promise(() => {}),
+    },
+  })
+
+  const { getPushRegistrationWithDetails } = await import(
+    `./pushClient.js?test=${Date.now()}`
+  )
+  const result = await getPushRegistrationWithDetails()
+
+  assert.equal(result.ok, false)
+  assert.equal(result.reason, 'activation_timeout')
+  assert.match(result.message, /не активировался/i)
+})

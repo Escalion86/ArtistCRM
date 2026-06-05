@@ -10,6 +10,20 @@ const isProductionSW =
   typeof process !== 'undefined' && process.env.NODE_ENV === 'production'
 
 const SERVICE_WORKER_READY_TIMEOUT_MS = 3000
+const SERVICE_WORKER_ACTIVATION_TIMEOUT_MS = 15000
+
+const PUSH_DIAGNOSTIC_MESSAGES = {
+  unsupported: 'Браузер или режим приложения не поддерживает push-уведомления',
+  disabled_outside_production:
+    'Push-регистрация отключена вне production-сборки',
+  registration_failed:
+    'Не удалось зарегистрировать Service Worker для push',
+  activation_timeout:
+    'Service Worker зарегистрирован, но не активировался вовремя',
+  push_manager_unavailable:
+    'Service Worker активен, но PushManager недоступен',
+  registration_not_ready: 'Service Worker еще не готов для push',
+}
 
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -59,24 +73,135 @@ const waitForServiceWorkerReady = async (timeoutMs = SERVICE_WORKER_READY_TIMEOU
   }
 }
 
-const getPushRegistration = async () => {
-  if (!isPushSupported()) return null
-  if (!isProductionSW) return null
+const getRegistrationWorker = (registration) =>
+  registration?.active || registration?.waiting || registration?.installing || null
+
+const waitForRegistrationActivation = async (
+  registration,
+  timeoutMs = SERVICE_WORKER_ACTIVATION_TIMEOUT_MS
+) => {
+  if (!registration) return null
+  if (registration?.active) return registration
+
+  const worker = getRegistrationWorker(registration)
+  if (!worker?.addEventListener) return registration
+
+  let timeoutId = null
+
+  return await new Promise((resolve) => {
+    const finish = (value) => {
+      if (timeoutId !== null) window.clearTimeout(timeoutId)
+      worker.removeEventListener?.('statechange', handleStateChange)
+      resolve(value)
+    }
+
+    const handleStateChange = () => {
+      if (registration?.active || worker.state === 'activated') {
+        finish(registration)
+      }
+    }
+
+    worker.addEventListener('statechange', handleStateChange)
+    timeoutId = window.setTimeout(() => finish(registration), timeoutMs)
+    handleStateChange()
+  })
+}
+
+const getPushRegistrationWithDetails = async () => {
+  if (!isPushSupported()) {
+    return {
+      ok: false,
+      registration: null,
+      reason: 'unsupported',
+      message: PUSH_DIAGNOSTIC_MESSAGES.unsupported,
+    }
+  }
+  if (!isProductionSW) {
+    return {
+      ok: false,
+      registration: null,
+      reason: 'disabled_outside_production',
+      message: PUSH_DIAGNOSTIC_MESSAGES.disabled_outside_production,
+    }
+  }
 
   const existing = await navigator.serviceWorker.getRegistration('/')
   if (existing?.pushManager) {
-    return existing
+    return {
+      ok: true,
+      registration: existing,
+      reason: '',
+      message: '',
+    }
   }
 
+  let registered = null
+  let registerError = null
   if (!existing) {
-    await navigator.serviceWorker
+    registered = await navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
-      .catch(() => null)
+      .catch((error) => {
+        registerError = error
+        return null
+      })
   }
 
   const readyRegistration = await waitForServiceWorkerReady()
-  if (readyRegistration?.active) return readyRegistration
-  return existing || readyRegistration
+  if (readyRegistration?.active) {
+    return {
+      ok: true,
+      registration: readyRegistration,
+      reason: '',
+      message: '',
+    }
+  }
+
+  const pendingRegistration = existing || registered || readyRegistration
+  const activatedRegistration =
+    await waitForRegistrationActivation(pendingRegistration)
+  if (activatedRegistration?.active && activatedRegistration?.pushManager) {
+    return {
+      ok: true,
+      registration: activatedRegistration,
+      reason: '',
+      message: '',
+    }
+  }
+  if (pendingRegistration?.pushManager) {
+    return {
+      ok: false,
+      registration: pendingRegistration,
+      reason: 'activation_timeout',
+      message: PUSH_DIAGNOSTIC_MESSAGES.activation_timeout,
+    }
+  }
+  if (registerError) {
+    return {
+      ok: false,
+      registration: null,
+      reason: 'registration_failed',
+      message: `${PUSH_DIAGNOSTIC_MESSAGES.registration_failed}: ${registerError.message || 'unknown error'}`,
+    }
+  }
+  if (pendingRegistration) {
+    return {
+      ok: false,
+      registration: pendingRegistration,
+      reason: 'push_manager_unavailable',
+      message: PUSH_DIAGNOSTIC_MESSAGES.push_manager_unavailable,
+    }
+  }
+  return {
+    ok: false,
+    registration: null,
+    reason: 'registration_not_ready',
+    message: PUSH_DIAGNOSTIC_MESSAGES.registration_not_ready,
+  }
+}
+
+const getPushRegistration = async () => {
+  const result = await getPushRegistrationWithDetails()
+  return result?.registration || null
 }
 
 const fetchPushPublicKey = async () => {
@@ -154,6 +279,7 @@ const syncPushSubscription = async ({
 export {
   fetchPushPublicKey,
   getPushRegistration,
+  getPushRegistrationWithDetails,
   isPushSupported,
   syncPushSubscription,
   urlBase64ToUint8Array,
