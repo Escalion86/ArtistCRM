@@ -10,7 +10,7 @@ const isProductionSW =
   typeof process !== 'undefined' && process.env.NODE_ENV === 'production'
 
 const SERVICE_WORKER_READY_TIMEOUT_MS = 3000
-const SERVICE_WORKER_ACTIVATION_TIMEOUT_MS = 15000
+const SERVICE_WORKER_ACTIVATION_TIMEOUT_MS = 60000
 
 const PUSH_DIAGNOSTIC_MESSAGES = {
   unsupported: 'Браузер или режим приложения не поддерживает push-уведомления',
@@ -19,7 +19,7 @@ const PUSH_DIAGNOSTIC_MESSAGES = {
   registration_failed:
     'Не удалось зарегистрировать Service Worker для push',
   activation_timeout:
-    'Service Worker зарегистрирован, но не активировался вовремя',
+    'Service Worker зарегистрирован, но не активировался вовремя. На первом запуске PWA это может занять до минуты',
   push_manager_unavailable:
     'Service Worker активен, но PushManager недоступен',
   registration_not_ready: 'Service Worker еще не готов для push',

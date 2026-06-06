@@ -299,6 +299,12 @@ const PushNotificationsSettings = () => {
       {pushDiagnosticMessage ? (
         <div className="text-xs text-amber-700">{pushDiagnosticMessage}</div>
       ) : null}
+      {pushDiagnosticMessage?.includes('до минуты') ? (
+        <div className="text-xs text-gray-500">
+          Если это первая установка PWA на устройстве, подождите 30-60 секунд и
+          попробуйте включить push снова.
+        </div>
+      ) : null}
       <div className="flex items-center">
         <span
           className={`inline-flex min-w-[110px] items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold ${

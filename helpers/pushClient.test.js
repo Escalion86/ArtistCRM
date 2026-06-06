@@ -196,7 +196,7 @@ test('getPushRegistrationWithDetails returns activation timeout reason', async (
     PushManager: function PushManager() {},
     Notification: function Notification() {},
     setTimeout: (handler, timeout, ...args) =>
-      originalSetTimeout(handler, timeout === 15000 ? 5 : timeout, ...args),
+      originalSetTimeout(handler, timeout === 60000 ? 5 : timeout, ...args),
     clearTimeout: originalClearTimeout,
   })
 
@@ -248,7 +248,7 @@ test('syncPushSubscription returns activation timeout without subscribe call', a
       permission: 'granted',
     },
     setTimeout: (handler, timeout, ...args) =>
-      originalSetTimeout(handler, timeout === 15000 ? 5 : timeout, ...args),
+      originalSetTimeout(handler, timeout === 60000 ? 5 : timeout, ...args),
     clearTimeout: originalClearTimeout,
   })
   setGlobalValue('Notification', {
@@ -271,4 +271,68 @@ test('syncPushSubscription returns activation timeout without subscribe call', a
   assert.equal(result.ok, false)
   assert.equal(result.reason, 'activation_timeout')
   assert.equal(subscribeCalled, false)
+})
+
+test('getPushRegistrationWithDetails keeps waiting when activation is slower than old timeout', async () => {
+  process.env.NODE_ENV = 'production'
+
+  const listeners = new Map()
+  const installingWorker = {
+    state: 'installing',
+    addEventListener: (event, handler) => {
+      listeners.set(event, handler)
+    },
+    removeEventListener: (event) => {
+      listeners.delete(event)
+    },
+  }
+  const registeredWorker = {
+    pushManager: {
+      getSubscription: async () => null,
+    },
+    installing: installingWorker,
+    waiting: null,
+    active: null,
+  }
+
+  const originalSetTimeout = setTimeout
+  const originalClearTimeout = clearTimeout
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: function Notification() {},
+    setTimeout: (handler, timeout, ...args) => {
+      if (timeout === 3000) {
+        return originalSetTimeout(handler, 5, ...args)
+      }
+      if (timeout === 60000) {
+        return originalSetTimeout(handler, 10, ...args)
+      }
+      return originalSetTimeout(handler, timeout, ...args)
+    },
+    clearTimeout: originalClearTimeout,
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      getRegistration: async () => null,
+      register: async () => registeredWorker,
+      ready: new Promise(() => {}),
+    },
+  })
+
+  originalSetTimeout(() => {
+    registeredWorker.active = { state: 'activated' }
+    installingWorker.state = 'activated'
+    const stateChange = listeners.get('statechange')
+    if (stateChange) stateChange()
+  }, 20)
+
+  const { getPushRegistrationWithDetails } = await import(
+    `./pushClient.js?test=${Date.now()}`
+  )
+  const result = await getPushRegistrationWithDetails()
+
+  assert.equal(result.ok, true)
+  assert.equal(result.registration, registeredWorker)
 })
