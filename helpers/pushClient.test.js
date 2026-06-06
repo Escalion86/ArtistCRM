@@ -217,3 +217,58 @@ test('getPushRegistrationWithDetails returns activation timeout reason', async (
   assert.equal(result.reason, 'activation_timeout')
   assert.match(result.message, /не активировался/i)
 })
+
+test('syncPushSubscription returns activation timeout without subscribe call', async () => {
+  process.env.NODE_ENV = 'production'
+
+  let subscribeCalled = false
+  const registeredWorker = {
+    pushManager: {
+      getSubscription: async () => null,
+      subscribe: async () => {
+        subscribeCalled = true
+        return { toJSON: () => ({}) }
+      },
+    },
+    installing: {
+      state: 'installing',
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    },
+    waiting: null,
+    active: null,
+  }
+
+  const originalSetTimeout = setTimeout
+  const originalClearTimeout = clearTimeout
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: {
+      permission: 'granted',
+    },
+    setTimeout: (handler, timeout, ...args) =>
+      originalSetTimeout(handler, timeout === 15000 ? 5 : timeout, ...args),
+    clearTimeout: originalClearTimeout,
+  })
+  setGlobalValue('Notification', {
+    permission: 'granted',
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      getRegistration: async () => null,
+      register: async () => registeredWorker,
+      ready: new Promise(() => {}),
+    },
+  })
+
+  const { syncPushSubscription } = await import(`./pushClient.js?test=${Date.now()}`)
+  const result = await syncPushSubscription({
+    ensureLocalSubscription: true,
+  })
+
+  assert.equal(result.ok, false)
+  assert.equal(result.reason, 'activation_timeout')
+  assert.equal(subscribeCalled, false)
+})

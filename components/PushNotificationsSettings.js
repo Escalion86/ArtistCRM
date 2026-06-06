@@ -156,7 +156,7 @@ const PushNotificationsSettings = () => {
 
       const registrationResult = await getPushRegistrationWithDetails()
       const registration = registrationResult?.registration || null
-      if (!registration?.pushManager) {
+      if (!registrationResult?.ok || !registration?.pushManager) {
         snackbar.error(
           registrationResult?.message || 'Service Worker не готов для push'
         )

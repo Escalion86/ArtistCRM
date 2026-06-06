@@ -237,9 +237,26 @@ const syncPushSubscription = async ({
     return { ok: false, reason: 'permission_not_granted' }
   }
 
-  const currentRegistration = registration || (await getPushRegistration())
+  let registrationDetails = null
+  const currentRegistration =
+    registration ||
+    ((registrationDetails = await getPushRegistrationWithDetails()),
+    registrationDetails?.registration || null)
   if (!currentRegistration?.pushManager) {
-    return { ok: false, reason: 'registration_not_ready' }
+    return {
+      ok: false,
+      reason: registrationDetails?.reason || 'registration_not_ready',
+      message:
+        registrationDetails?.message ||
+        PUSH_DIAGNOSTIC_MESSAGES.registration_not_ready,
+    }
+  }
+  if (!currentRegistration?.active) {
+    return {
+      ok: false,
+      reason: 'activation_timeout',
+      message: PUSH_DIAGNOSTIC_MESSAGES.activation_timeout,
+    }
   }
 
   let currentSubscription =
