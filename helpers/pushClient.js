@@ -121,6 +121,11 @@ const resolveExistingRegistration = async () => {
         : registrations
 
   return candidates.sort((left, right) => {
+    const leftIsActive = Boolean(left?.active)
+    const rightIsActive = Boolean(right?.active)
+    if (leftIsActive !== rightIsActive) {
+      return rightIsActive ? 1 : -1
+    }
     const leftScopeLength = String(left?.scope || '').length
     const rightScopeLength = String(right?.scope || '').length
     return rightScopeLength - leftScopeLength
