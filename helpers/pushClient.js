@@ -182,7 +182,7 @@ const getPushRegistrationWithDetails = async () => {
   }
 
   const existing = await resolveExistingRegistration()
-  if (existing?.pushManager) {
+  if (existing?.active && existing?.pushManager) {
     return {
       ok: true,
       registration: existing,

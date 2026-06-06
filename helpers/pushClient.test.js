@@ -26,6 +26,7 @@ test('getPushRegistration returns existing registration when serviceWorker.ready
   process.env.NODE_ENV = 'production'
 
   const existingRegistration = {
+    active: { state: 'activated' },
     pushManager: {
       getSubscription: async () => null,
     },
@@ -494,4 +495,55 @@ test('getPushRegistrationWithDetails prefers active registration over waiting on
 
   assert.equal(result.ok, true)
   assert.equal(result.registration, activeRegistration)
+})
+
+test('getPushRegistrationWithDetails does not treat waiting registration as ready', async () => {
+  process.env.NODE_ENV = 'production'
+
+  const waitingRegistration = {
+    scope: 'https://artistcrm.ru/',
+    active: null,
+    installing: null,
+    waiting: { state: 'installed', scriptURL: 'https://artistcrm.ru/sw.js' },
+    pushManager: {
+      getSubscription: async () => null,
+    },
+  }
+
+  const originalSetTimeout = setTimeout
+  const originalClearTimeout = clearTimeout
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: function Notification() {},
+    location: {
+      href: 'https://artistcrm.ru/cabinet/notifications',
+      origin: 'https://artistcrm.ru',
+    },
+    setTimeout: (handler, timeout, ...args) =>
+      originalSetTimeout(handler, timeout === 60000 ? 5 : timeout, ...args),
+    clearTimeout: originalClearTimeout,
+  })
+  setGlobalValue('location', {
+    href: 'https://artistcrm.ru/cabinet/notifications',
+    origin: 'https://artistcrm.ru',
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      getRegistration: async () => waitingRegistration,
+      getRegistrations: async () => [waitingRegistration],
+      register: async () => waitingRegistration,
+      ready: new Promise(() => {}),
+    },
+  })
+
+  const { getPushRegistrationWithDetails } = await import(
+    `./pushClient.js?test=${Date.now()}`
+  )
+  const result = await getPushRegistrationWithDetails()
+
+  assert.equal(result.ok, false)
+  assert.equal(result.reason, 'activation_timeout')
+  assert.equal(result.registration, waitingRegistration)
 })
