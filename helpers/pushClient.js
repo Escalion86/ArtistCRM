@@ -25,6 +25,12 @@ const PUSH_DIAGNOSTIC_MESSAGES = {
   registration_not_ready: 'Service Worker еще не готов для push',
 }
 
+const getWindowLocation = () => {
+  if (typeof window !== 'undefined' && window.location) return window.location
+  if (typeof location !== 'undefined') return location
+  return null
+}
+
 const urlBase64ToUint8Array = (base64String) => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/')
@@ -76,6 +82,51 @@ const waitForServiceWorkerReady = async (timeoutMs = SERVICE_WORKER_READY_TIMEOU
 const getRegistrationWorker = (registration) =>
   registration?.active || registration?.waiting || registration?.installing || null
 
+const resolveExistingRegistration = async () => {
+  const serviceWorker = navigator?.serviceWorker
+  if (!serviceWorker) return null
+
+  const directScopeRegistration = await serviceWorker
+    .getRegistration?.('/')
+    .catch(() => null)
+  if (directScopeRegistration) return directScopeRegistration
+
+  const currentPageRegistration = await serviceWorker.getRegistration?.().catch(() => null)
+  if (currentPageRegistration) return currentPageRegistration
+
+  const registrations = await serviceWorker.getRegistrations?.().catch(() => [])
+  if (!Array.isArray(registrations) || registrations.length === 0) return null
+
+  const pageLocation = getWindowLocation()
+  const currentHref = String(pageLocation?.href || '')
+  const currentOrigin = String(pageLocation?.origin || '')
+
+  const sameOriginRegistrations = registrations.filter((registration) => {
+    const scope = String(registration?.scope || '')
+    return currentOrigin ? scope.startsWith(currentOrigin) : true
+  })
+  const scopedRegistrations = (sameOriginRegistrations.length > 0
+    ? sameOriginRegistrations
+    : registrations
+  ).filter((registration) => {
+    const scope = String(registration?.scope || '')
+    return currentHref ? currentHref.startsWith(scope) : true
+  })
+
+  const candidates =
+    scopedRegistrations.length > 0
+      ? scopedRegistrations
+      : sameOriginRegistrations.length > 0
+        ? sameOriginRegistrations
+        : registrations
+
+  return candidates.sort((left, right) => {
+    const leftScopeLength = String(left?.scope || '').length
+    const rightScopeLength = String(right?.scope || '').length
+    return rightScopeLength - leftScopeLength
+  })[0]
+}
+
 const waitForRegistrationActivation = async (
   registration,
   timeoutMs = SERVICE_WORKER_ACTIVATION_TIMEOUT_MS
@@ -125,7 +176,7 @@ const getPushRegistrationWithDetails = async () => {
     }
   }
 
-  const existing = await navigator.serviceWorker.getRegistration('/')
+  const existing = await resolveExistingRegistration()
   if (existing?.pushManager) {
     return {
       ok: true,

@@ -336,3 +336,50 @@ test('getPushRegistrationWithDetails keeps waiting when activation is slower tha
   assert.equal(result.ok, true)
   assert.equal(result.registration, registeredWorker)
 })
+
+test('getPushRegistrationWithDetails falls back to existing registration from getRegistrations', async () => {
+  process.env.NODE_ENV = 'production'
+
+  const activeRegistration = {
+    scope: 'https://artistcrm.ru/',
+    active: { state: 'activated', scriptURL: 'https://artistcrm.ru/sw.js' },
+    installing: null,
+    waiting: null,
+    pushManager: {
+      getSubscription: async () => null,
+    },
+  }
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: function Notification() {},
+    location: {
+      href: 'https://artistcrm.ru/cabinet/notifications',
+      origin: 'https://artistcrm.ru',
+    },
+    setTimeout,
+    clearTimeout,
+  })
+
+  setGlobalValue('location', {
+    href: 'https://artistcrm.ru/cabinet/notifications',
+    origin: 'https://artistcrm.ru',
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      getRegistration: async (scope) => (scope ? null : activeRegistration),
+      getRegistrations: async () => [activeRegistration],
+      register: async () => null,
+      ready: new Promise(() => {}),
+    },
+  })
+
+  const { getPushRegistrationWithDetails } = await import(
+    `./pushClient.js?test=${Date.now()}`
+  )
+  const result = await getPushRegistrationWithDetails()
+
+  assert.equal(result.ok, true)
+  assert.equal(result.registration, activeRegistration)
+})
