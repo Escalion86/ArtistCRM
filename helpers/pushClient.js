@@ -344,11 +344,55 @@ const syncPushSubscription = async ({
   return { ok: true, subscription: currentSubscription }
 }
 
+const showLocalTestNotification = async () => {
+  if (!isPushSupported()) {
+    return {
+      ok: false,
+      reason: 'unsupported',
+      message: PUSH_DIAGNOSTIC_MESSAGES.unsupported,
+    }
+  }
+  if (Notification.permission !== 'granted') {
+    return {
+      ok: false,
+      reason: 'permission_not_granted',
+      message: 'Разрешение на уведомления не выдано',
+    }
+  }
+
+  const registrationResult = await getPushRegistrationWithDetails()
+  const registration = registrationResult?.registration || null
+
+  if (!registrationResult?.ok || !registration?.showNotification) {
+    return {
+      ok: false,
+      reason: registrationResult?.reason || 'registration_not_ready',
+      message:
+        registrationResult?.message ||
+        PUSH_DIAGNOSTIC_MESSAGES.registration_not_ready,
+    }
+  }
+
+  await registration.showNotification('Локальный тест push', {
+    body: 'Проверка уведомления напрямую на устройстве',
+    icon: '/icons/AppImages/android/android-launchericon-192-192.png',
+    badge: '/icons/notification-badge.svg',
+    tag: `push-local-test-${Date.now()}`,
+    data: {
+      url: '/cabinet/eventsUpcoming',
+      type: 'push_local_test',
+    },
+  })
+
+  return { ok: true }
+}
+
 export {
   fetchPushPublicKey,
   getPushRegistration,
   getPushRegistrationWithDetails,
   isPushSupported,
+  showLocalTestNotification,
   syncPushSubscription,
   urlBase64ToUint8Array,
 }

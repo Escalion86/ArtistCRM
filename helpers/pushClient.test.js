@@ -383,3 +383,60 @@ test('getPushRegistrationWithDetails falls back to existing registration from ge
   assert.equal(result.ok, true)
   assert.equal(result.registration, activeRegistration)
 })
+
+test('showLocalTestNotification displays notification via active service worker', async () => {
+  process.env.NODE_ENV = 'production'
+
+  let shown = null
+  const activeRegistration = {
+    scope: 'https://artistcrm.ru/',
+    active: { state: 'activated', scriptURL: 'https://artistcrm.ru/sw.js' },
+    installing: null,
+    waiting: null,
+    pushManager: {
+      getSubscription: async () => null,
+    },
+    showNotification: async (title, options) => {
+      shown = { title, options }
+    },
+  }
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: {
+      permission: 'granted',
+    },
+    location: {
+      href: 'https://artistcrm.ru/cabinet/notifications',
+      origin: 'https://artistcrm.ru',
+    },
+    setTimeout,
+    clearTimeout,
+  })
+  setGlobalValue('Notification', {
+    permission: 'granted',
+  })
+  setGlobalValue('location', {
+    href: 'https://artistcrm.ru/cabinet/notifications',
+    origin: 'https://artistcrm.ru',
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      getRegistration: async () => activeRegistration,
+      getRegistrations: async () => [activeRegistration],
+      register: async () => activeRegistration,
+      ready: Promise.resolve(activeRegistration),
+    },
+  })
+
+  const { showLocalTestNotification } = await import(
+    `./pushClient.js?test=${Date.now()}`
+  )
+  const result = await showLocalTestNotification()
+
+  assert.equal(result.ok, true)
+  assert.equal(shown?.title, 'Локальный тест push')
+  assert.equal(shown?.options?.body, 'Проверка уведомления напрямую на устройстве')
+  assert.equal(shown?.options?.data?.type, 'push_local_test')
+})

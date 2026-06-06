@@ -9,6 +9,7 @@ import {
   getPushRegistration,
   getPushRegistrationWithDetails,
   isPushSupported,
+  showLocalTestNotification,
   syncPushSubscription,
 } from '@helpers/pushClient'
 
@@ -225,8 +226,22 @@ const PushNotificationsSettings = () => {
     setPushBusy(true)
     setPushAction('test')
     try {
+      let syncResult = null
       if (Notification.permission === 'granted') {
-        await syncPushSubscription({ ensureLocalSubscription: true })
+        syncResult = await syncPushSubscription({
+          ensureLocalSubscription: true,
+          forceNewSubscription: true,
+        })
+      }
+
+      if (
+        Notification.permission === 'granted' &&
+        (!syncResult?.ok || !syncResult?.subscription)
+      ) {
+        snackbar.error(
+          syncResult?.message || 'Не удалось обновить локальную push-подписку'
+        )
+        return
       }
 
       let response = await fetch('/api/push/test', { method: 'POST' })
@@ -264,10 +279,33 @@ const PushNotificationsSettings = () => {
         refreshPushLogs()
         return
       }
-      snackbar.success(`Тест отправлен: ${sent}`)
+      snackbar.success(
+        `Тест отправлен в push-сервис: ${sent}. Если уведомления нет, проблема уже после отправки.`
+      )
       refreshPushLogs()
     } catch (error) {
       snackbar.error('Не удалось отправить тест push')
+    } finally {
+      setPushBusy(false)
+      setPushAction('')
+      refreshPushState()
+    }
+  }
+
+  const sendLocalTestPush = async () => {
+    setPushBusy(true)
+    setPushAction('local-test')
+    try {
+      const result = await showLocalTestNotification()
+      if (!result?.ok) {
+        snackbar.error(
+          result?.message || 'Не удалось показать локальное уведомление'
+        )
+        return
+      }
+      snackbar.success('Локальное уведомление показано через Service Worker')
+    } catch (error) {
+      snackbar.error('Не удалось показать локальное уведомление')
     } finally {
       setPushBusy(false)
       setPushAction('')
@@ -346,6 +384,16 @@ const PushNotificationsSettings = () => {
           disabled={pushBusy || !pushAvailable}
         >
           {pushBusy && pushAction === 'test' ? 'Отправка...' : 'Тест push'}
+        </button>
+        <button
+          type="button"
+          className="action-icon-button flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold tablet:w-auto"
+          onClick={sendLocalTestPush}
+          disabled={pushBusy || !pushAvailable}
+        >
+          {pushBusy && pushAction === 'local-test'
+            ? 'Показываем...'
+            : 'Локальный тест'}
         </button>
       </div>
       <div className="push-settings-surface rounded border border-gray-200 bg-white/70 p-3">
