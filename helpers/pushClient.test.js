@@ -497,14 +497,36 @@ test('getPushRegistrationWithDetails prefers active registration over waiting on
   assert.equal(result.registration, activeRegistration)
 })
 
-test('getPushRegistrationWithDetails does not treat waiting registration as ready', async () => {
+test('getPushRegistrationWithDetails asks waiting registration to activate', async () => {
   process.env.NODE_ENV = 'production'
 
+  const listeners = new Map()
   const waitingRegistration = {
     scope: 'https://artistcrm.ru/',
     active: null,
     installing: null,
-    waiting: { state: 'installed', scriptURL: 'https://artistcrm.ru/sw.js' },
+    waiting: {
+      state: 'installed',
+      scriptURL: 'https://artistcrm.ru/sw.js',
+      addEventListener: (event, handler) => {
+        listeners.set(event, handler)
+      },
+      removeEventListener: (event) => {
+        listeners.delete(event)
+      },
+      postMessage: (message) => {
+        if (message?.type !== 'SKIP_WAITING') return
+        setTimeout(() => {
+          waitingRegistration.active = {
+            state: 'activated',
+            scriptURL: 'https://artistcrm.ru/sw.js',
+          }
+          waitingRegistration.waiting.state = 'activated'
+          const stateChange = listeners.get('statechange')
+          if (stateChange) stateChange()
+        }, 1)
+      },
+    },
     pushManager: {
       getSubscription: async () => null,
     },
@@ -543,7 +565,6 @@ test('getPushRegistrationWithDetails does not treat waiting registration as read
   )
   const result = await getPushRegistrationWithDetails()
 
-  assert.equal(result.ok, false)
-  assert.equal(result.reason, 'activation_timeout')
+  assert.equal(result.ok, true)
   assert.equal(result.registration, waitingRegistration)
 })

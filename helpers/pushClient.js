@@ -82,6 +82,11 @@ const waitForServiceWorkerReady = async (timeoutMs = SERVICE_WORKER_READY_TIMEOU
 const getRegistrationWorker = (registration) =>
   registration?.active || registration?.waiting || registration?.installing || null
 
+const requestServiceWorkerActivation = (worker) => {
+  if (!worker || worker.state === 'activated') return
+  worker.postMessage?.({ type: 'SKIP_WAITING' })
+}
+
 const resolveExistingRegistration = async () => {
   const serviceWorker = navigator?.serviceWorker
   if (!serviceWorker) return null
@@ -141,6 +146,7 @@ const waitForRegistrationActivation = async (
 
   const worker = getRegistrationWorker(registration)
   if (!worker?.addEventListener) return registration
+  requestServiceWorkerActivation(worker)
 
   let timeoutId = null
 
@@ -188,6 +194,17 @@ const getPushRegistrationWithDetails = async () => {
       registration: existing,
       reason: '',
       message: '',
+    }
+  }
+  if (existing?.pushManager) {
+    const activatedExisting = await waitForRegistrationActivation(existing)
+    if (activatedExisting?.active && activatedExisting?.pushManager) {
+      return {
+        ok: true,
+        registration: activatedExisting,
+        reason: '',
+        message: '',
+      }
     }
   }
 
