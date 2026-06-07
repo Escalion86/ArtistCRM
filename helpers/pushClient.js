@@ -85,6 +85,8 @@ const waitForServiceWorkerReady = async (timeoutMs = SERVICE_WORKER_READY_TIMEOU
 const getRegistrationWorker = (registration) =>
   registration?.active || registration?.waiting || registration?.installing || null
 
+const hasRegistrationWorker = (registration) => Boolean(getRegistrationWorker(registration))
+
 const requestServiceWorkerActivation = (worker) => {
   if (!worker || worker.state === 'activated') return
   worker.postMessage?.({ type: 'SKIP_WAITING' })
@@ -265,7 +267,7 @@ const getPushRegistrationWithDetails = async () => {
     }
   }
 
-  const existing = await resolveExistingRegistration()
+  let existing = await resolveExistingRegistration()
   if (existing?.active && existing?.pushManager) {
     return {
       ok: true,
@@ -284,6 +286,11 @@ const getPushRegistrationWithDetails = async () => {
         message: '',
       }
     }
+  }
+  if (existing?.pushManager && !hasRegistrationWorker(existing)) {
+    logServiceWorkerDiagnostic('empty_registration', existing)
+    await existing.unregister?.().catch(() => null)
+    existing = null
   }
 
   let registered = null

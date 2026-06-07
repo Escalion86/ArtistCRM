@@ -282,6 +282,73 @@ test('getPushRegistrationWithDetails includes service worker states in activatio
   assert.match(result.message, /controller=нет/i)
 })
 
+test('getPushRegistrationWithDetails replaces empty stale registration before waiting for activation', async () => {
+  process.env.NODE_ENV = 'production'
+
+  let unregisterCalled = false
+  let registerCalled = false
+  const staleRegistration = {
+    scope: 'https://artistcrm.ru/',
+    active: null,
+    waiting: null,
+    installing: null,
+    pushManager: {
+      getSubscription: async () => null,
+    },
+    unregister: async () => {
+      unregisterCalled = true
+      return true
+    },
+  }
+  const activeRegistration = {
+    scope: 'https://artistcrm.ru/',
+    active: { state: 'activated', scriptURL: 'https://artistcrm.ru/sw.js' },
+    waiting: null,
+    installing: null,
+    pushManager: {
+      getSubscription: async () => null,
+    },
+  }
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: function Notification() {},
+    location: {
+      href: 'https://artistcrm.ru/cabinet/notifications',
+      origin: 'https://artistcrm.ru',
+    },
+    setTimeout,
+    clearTimeout,
+  })
+  setGlobalValue('location', {
+    href: 'https://artistcrm.ru/cabinet/notifications',
+    origin: 'https://artistcrm.ru',
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      controller: null,
+      getRegistration: async () => staleRegistration,
+      getRegistrations: async () => [staleRegistration],
+      register: async () => {
+        registerCalled = true
+        return activeRegistration
+      },
+      ready: Promise.resolve(activeRegistration),
+    },
+  })
+
+  const { getPushRegistrationWithDetails } = await import(
+    `./pushClient.js?test=${Date.now()}`
+  )
+  const result = await getPushRegistrationWithDetails()
+
+  assert.equal(result.ok, true)
+  assert.equal(result.registration, activeRegistration)
+  assert.equal(unregisterCalled, true)
+  assert.equal(registerCalled, true)
+})
+
 test('syncPushSubscription returns activation timeout without subscribe call', async () => {
   process.env.NODE_ENV = 'production'
 
