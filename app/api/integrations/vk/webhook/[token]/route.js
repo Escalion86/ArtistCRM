@@ -6,6 +6,7 @@ import {
   normalizeVkSettings,
   updateVkCustom,
 } from '@server/vkGroup'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const parseWebhookBody = async (req) => {
   const contentType = req.headers.get('content-type') || ''
@@ -31,6 +32,15 @@ export const POST = async (req, { params }) => {
   const routeParams = await params
   const token = String(routeParams?.token || '').trim()
   if (!token) return jsonError('Token required', 400, 'missing_token')
+
+  const limit = await checkRateLimit({
+    req,
+    scope: 'vk_group_webhook',
+    limit: 300,
+    windowMs: 10 * 60 * 1000,
+    keyParts: [token],
+  })
+  if (!limit.ok) return rateLimitResponse(NextResponse, limit)
 
   const body = await parseWebhookBody(req)
   await dbConnect()

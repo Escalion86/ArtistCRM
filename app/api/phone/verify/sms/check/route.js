@@ -8,6 +8,7 @@ import {
   validateFlow,
   verifyConfig,
 } from '@server/phoneVerification'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const isExpired = (expiresAt) =>
   !expiresAt || new Date(expiresAt).getTime() <= Date.now()
@@ -38,6 +39,15 @@ export const POST = async (req) => {
       { status: 400 }
     )
   }
+
+  const limit = await checkRateLimit({
+    req,
+    scope: 'phone_verify_sms_check',
+    limit: 20,
+    windowMs: 10 * 60 * 1000,
+    keyParts: [requestedFlow || '', phone],
+  })
+  if (!limit.ok) return rateLimitResponse(NextResponse, limit)
 
   await dbConnect()
 

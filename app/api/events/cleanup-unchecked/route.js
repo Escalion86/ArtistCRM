@@ -4,11 +4,27 @@ import Transactions from '@models/Transactions'
 import Clients from '@models/Clients'
 import SiteSettings from '@models/SiteSettings'
 import dbConnect from '@server/dbConnect'
+import getTenantContext from '@server/getTenantContext'
 
 export const POST = async () => {
+  const { tenantId, user } = await getTenantContext()
+  if (!tenantId || !user?._id) {
+    return NextResponse.json(
+      { success: false, error: 'Не авторизован' },
+      { status: 401 }
+    )
+  }
+  if (!['dev', 'admin'].includes(user?.role)) {
+    return NextResponse.json(
+      { success: false, error: 'Недостаточно прав' },
+      { status: 403 }
+    )
+  }
+
   await dbConnect()
 
   const filter = {
+    tenantId,
     importedFromCalendar: true,
     calendarImportChecked: { $ne: true },
   }
@@ -24,22 +40,37 @@ export const POST = async () => {
   let transactionsResult = null
   if (eventIds.length) {
     transactionsResult = await Transactions.deleteMany({
+      tenantId,
       eventId: { $in: eventIds },
     })
   }
 
   let clientsResult = null
   if (clientIds.length) {
+    const clientIdsWithoutOtherEvents = (
+      await Promise.all(
+        clientIds.map(async (clientId) => {
+          const otherEvents = await Events.countDocuments({
+            tenantId,
+            clientId,
+            _id: { $nin: eventIds },
+          })
+          return otherEvents > 0 ? null : clientId
+        })
+      )
+    ).filter(Boolean)
+
     clientsResult = await Clients.deleteMany({
-      _id: { $in: clientIds },
+      tenantId,
+      _id: { $in: clientIdsWithoutOtherEvents },
     })
   }
 
   const result = await Events.deleteMany(filter)
 
-  const settings = await SiteSettings.findOne()
+  const settings = await SiteSettings.findOne({ tenantId })
   if (settings) {
-    const remainingEvents = await Events.find({})
+    const remainingEvents = await Events.find({ tenantId })
       .select('address.town')
       .lean()
     const townsSet = new Set(

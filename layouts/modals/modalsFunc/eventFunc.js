@@ -47,6 +47,11 @@ import { getContractTemplateVariablesMap } from '@helpers/generateContractTempla
 import { getActTemplateVariablesMap } from '@helpers/generateActTemplate'
 import exportDocxFromTemplate from '@helpers/exportDocxFromTemplate'
 import getPersonFullName from '@helpers/getPersonFullName'
+import {
+  buildContractClientCandidates,
+  getContractClientCandidateLabel,
+  hasContractClientRequisites,
+} from '@helpers/contractClientCandidates'
 import { getEventCloseSuggestionState } from '@helpers/eventCloseSuggestion'
 import { shouldShowEventConflictWarning } from '@helpers/eventConflictWarning'
 import { getEventTransactionAction } from '@helpers/eventTransactionAction'
@@ -1122,22 +1127,7 @@ const eventFunc = (
       if (artistStatus === 'self_employed') return true
       return Boolean(String(custom?.contractArtistOgrnip ?? '').trim())
     }
-    const hasRequiredClientRequisites = (client) => {
-      if (!client) return false
-      const hasName = Boolean(
-        String(client?.legalName ?? '').trim() ||
-        getPersonFullName(client, { fallback: '' }).trim()
-      )
-      return Boolean(
-        hasName &&
-        String(client?.inn ?? '').trim() &&
-        String(client?.bankName ?? '').trim() &&
-        String(client?.bik ?? '').trim() &&
-        String(client?.checkingAccount ?? '').trim() &&
-        String(client?.correspondentAccount ?? '').trim() &&
-        String(client?.legalAddress ?? '').trim()
-      )
-    }
+    const hasRequiredClientRequisites = hasContractClientRequisites
     const buildContractTemplateVariables = useCallback(
       (
         documentNumber,
@@ -1559,12 +1549,34 @@ const eventFunc = (
           String(nextDefaultNumber)
         )
         const [contractDate, setContractDate] = useState(defaultContractDate)
-        const liveSelectedClient = useMemo(
+        const [contractClientId, setContractClientId] = useState('')
+        const contractClientCandidates = useMemo(
           () =>
-            (liveClients ?? []).find(
-              (item) => String(item?._id) === String(clientId)
-            ) ?? null,
+            buildContractClientCandidates({
+              clients: liveClients,
+              eventClientId: clientId,
+              otherContacts,
+            }),
           [liveClients]
+        )
+        const activeContractCandidate = useMemo(
+          () =>
+            contractClientCandidates.find(
+              (item) =>
+                String(item?.client?._id) === String(contractClientId)
+            ) ??
+            contractClientCandidates[0] ??
+            null,
+          [contractClientCandidates, contractClientId]
+        )
+        const liveContractClient = activeContractCandidate?.client ?? null
+        const contractClientOptions = useMemo(
+          () =>
+            contractClientCandidates.map((candidate) => ({
+              name: getContractClientCandidateLabel(candidate),
+              value: String(candidate.client._id),
+            })),
+          [contractClientCandidates]
         )
 
         useEffect(() => {
@@ -1577,28 +1589,53 @@ const eventFunc = (
           settingsRef.current = liveSiteSettings
         }, [liveSiteSettings])
         useEffect(() => {
-          clientRef.current = liveSelectedClient
-        }, [liveSelectedClient])
+          clientRef.current = liveContractClient
+        }, [liveContractClient])
+        useEffect(() => {
+          if (!activeContractCandidate?.client?._id) {
+            setContractClientId('')
+            return
+          }
+          const activeClientId = String(activeContractCandidate.client._id)
+          setContractClientId((prev) =>
+            prev === activeClientId ? prev : activeClientId
+          )
+        }, [activeContractCandidate])
         const hasArtistRequisites =
           hasRequiredArtistRequisites(liveSiteSettings)
         const hasClientRequisites =
-          hasRequiredClientRequisites(liveSelectedClient)
+          hasRequiredClientRequisites(liveContractClient)
 
         return (
           <div className="flex flex-col gap-2">
             <RequisitesWarning
               missingArtistRequisites={!hasArtistRequisites}
               missingClientRequisites={!hasClientRequisites}
-              canEditClient={Boolean(liveSelectedClient?._id)}
+              canEditClient={Boolean(liveContractClient?._id)}
               onEditArtistRequisites={() =>
                 modalsFunc.settings?.artistRequisitesEditor?.()
               }
               onEditClient={() =>
-                liveSelectedClient?._id
-                  ? modalsFunc.client?.edit(liveSelectedClient._id)
+                liveContractClient?._id
+                  ? modalsFunc.client?.edit(liveContractClient._id)
                   : null
               }
             />
+            {contractClientCandidates.length > 0 ? (
+              <ComboBox
+                label="Реквизиты заказчика"
+                value={String(liveContractClient?._id ?? '')}
+                onChange={(value) => setContractClientId(value || '')}
+                items={contractClientOptions}
+                fullWidth
+                noMargin
+              />
+            ) : (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                В мероприятии нет клиентов с заполненными реквизитами для
+                договора.
+              </div>
+            )}
             <div className="flex items-end justify-between gap-2">
               <div className="mt-1.5 flex items-end gap-2">
                 <Input

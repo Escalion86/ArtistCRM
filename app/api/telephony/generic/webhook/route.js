@@ -4,6 +4,7 @@ import Calls from '@models/Calls'
 import dbConnect from '@server/dbConnect'
 import { normalizeCallInput } from '@server/calls'
 import { isTelephonyTenantAllowed } from '@server/telephonyAccess'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const getHeader = (req, name) => req.headers.get(name) || ''
 
@@ -25,6 +26,14 @@ export const POST = async (req) => {
       { status: 403 }
     )
   }
+
+  const limit = await checkRateLimit({
+    req,
+    scope: 'generic_telephony_webhook',
+    limit: 300,
+    windowMs: 10 * 60 * 1000,
+  })
+  if (!limit.ok) return rateLimitResponse(NextResponse, limit)
 
   const body = await req.json()
   const tenantId = String(body?.tenantId || '').trim()

@@ -62,6 +62,25 @@ const processSucceededYookassaPayment = async ({ payment, providerPayment }) => 
     return { ok: false, error: 'user_not_found' }
   }
 
+  const lockedPayment = await Payments.findOneAndUpdate(
+    { _id: payment._id, status: 'pending' },
+    {
+      $set: {
+        status: 'succeeded',
+        rawProviderStatus: providerPayment?.status || '',
+      },
+    },
+    { new: true }
+  )
+  if (!lockedPayment) {
+    const freshPayment = await Payments.findById(payment._id).lean()
+    if (freshPayment?.status === 'succeeded') {
+      return { ok: true, alreadyProcessed: true }
+    }
+    return { ok: false, error: 'payment_not_pending', status: freshPayment?.status || '' }
+  }
+  payment = lockedPayment
+
   const methodInfo = getPaymentMethodInfo(providerPayment)
   const bonusAmount =
     payment.purpose === 'balance' && methodInfo.type === 'sbp'
@@ -72,7 +91,6 @@ const processSucceededYookassaPayment = async ({ payment, providerPayment }) => 
     Number(user.balance ?? 0) + Number(payment.amount ?? 0) + bonusAmount
   await user.save()
 
-  payment.status = 'succeeded'
   payment.rawProviderStatus = providerPayment?.status || ''
   payment.paymentMethodType = methodInfo.type
   payment.paymentMethodTitle = methodInfo.title

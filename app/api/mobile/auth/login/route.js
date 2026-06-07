@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import dbConnect from '@server/dbConnect'
 import Users from '@models/Users'
 import getAuthSecret from '@server/getAuthSecret'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -41,6 +42,15 @@ export const POST = async (req) => {
         { status: 400 }
       )
     }
+
+    const limit = await checkRateLimit({
+      req,
+      scope: 'mobile_auth_login',
+      limit: 10,
+      windowMs: 10 * 60 * 1000,
+      keyParts: [phone],
+    })
+    if (!limit.ok) return rateLimitResponse(NextResponse, limit)
 
     await dbConnect()
 

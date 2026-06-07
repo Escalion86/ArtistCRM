@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import mongoose from 'mongoose'
 import AvitoConversations from '@models/AvitoConversations'
+import Clients from '@models/Clients'
+import Events from '@models/Events'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 
@@ -22,12 +24,34 @@ export const PATCH = async (req, { params }) => {
   if (!isObjectId(id)) return jsonError('Некорректный ID переписки', 400, 'bad_id')
 
   const body = await req.json().catch(() => ({}))
+  await dbConnect()
+
   const update = {}
   if (body.clientId !== undefined) {
-    update.clientId = isObjectId(body.clientId) ? body.clientId : null
+    if (!body.clientId) {
+      update.clientId = null
+    } else if (isObjectId(body.clientId)) {
+      const client = await Clients.findOne({ _id: body.clientId, tenantId })
+        .select('_id')
+        .lean()
+      if (!client) return jsonError('Клиент не найден', 404, 'client_not_found')
+      update.clientId = body.clientId
+    } else {
+      return jsonError('Некорректный ID клиента', 400, 'bad_client_id')
+    }
   }
   if (body.eventId !== undefined) {
-    update.eventId = isObjectId(body.eventId) ? body.eventId : null
+    if (!body.eventId) {
+      update.eventId = null
+    } else if (isObjectId(body.eventId)) {
+      const event = await Events.findOne({ _id: body.eventId, tenantId })
+        .select('_id')
+        .lean()
+      if (!event) return jsonError('Мероприятие не найдено', 404, 'event_not_found')
+      update.eventId = body.eventId
+    } else {
+      return jsonError('Некорректный ID мероприятия', 400, 'bad_event_id')
+    }
   }
   if (body.status !== undefined) {
     const status = String(body.status || '').trim()
@@ -35,7 +59,6 @@ export const PATCH = async (req, { params }) => {
   }
   if (body.markRead === true) update.unreadCount = 0
 
-  await dbConnect()
   const conversation = await AvitoConversations.findOneAndUpdate(
     { _id: id, tenantId },
     { $set: update },

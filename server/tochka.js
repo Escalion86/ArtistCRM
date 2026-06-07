@@ -1,5 +1,7 @@
 const TOCHKA_API_URL = 'https://enter.tochka.com/uapi'
 
+// Public RSA JWK used to verify Tochka webhook JWT signatures.
+// It contains only public key fields and can be rotated via TOCHKA_WEBHOOK_PUBLIC_JWK.
 const TOCHKA_WEBHOOK_JWK = {
   kty: 'RSA',
   e: 'AQAB',

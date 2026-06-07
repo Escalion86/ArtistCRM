@@ -11,6 +11,7 @@ import {
   validateFlow,
   verifyConfig,
 } from '@server/phoneVerification'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const isCooldownActive = (date, cooldownSec) =>
   date && Date.now() - new Date(date).getTime() < cooldownSec * 1000
@@ -33,6 +34,24 @@ export const POST = async (req) => {
       { status: 400 }
     )
   }
+
+  const [ipLimit, phoneLimit] = await Promise.all([
+    checkRateLimit({
+      req,
+      scope: 'phone_verify_start_ip',
+      limit: 30,
+      windowMs: 10 * 60 * 1000,
+    }),
+    checkRateLimit({
+      req,
+      scope: 'phone_verify_start_phone',
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
+      keyParts: [flow, phone],
+    }),
+  ])
+  if (!ipLimit.ok) return rateLimitResponse(NextResponse, ipLimit)
+  if (!phoneLimit.ok) return rateLimitResponse(NextResponse, phoneLimit)
 
   await dbConnect()
 

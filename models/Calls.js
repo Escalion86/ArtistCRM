@@ -14,5 +14,8 @@ CallsSchema.index(
 )
 CallsSchema.index({ tenantId: 1, normalizedPhone: 1, startedAt: -1 })
 CallsSchema.index({ tenantId: 1, status: 1, createdAt: -1 })
+CallsSchema.index({ tenantId: 1, startedAt: -1, createdAt: -1 })
+CallsSchema.index({ tenantId: 1, linkedClientId: 1, startedAt: -1, createdAt: -1 })
+CallsSchema.index({ tenantId: 1, linkedEventId: 1, startedAt: -1, createdAt: -1 })
 
 export default mongoose.models.Calls || mongoose.model('Calls', CallsSchema)

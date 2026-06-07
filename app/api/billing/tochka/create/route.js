@@ -63,11 +63,7 @@ export const POST = async (req) => {
         { status: 404 }
       )
     }
-    const requestedAmount = Number(body?.amount ?? 0)
-    amount =
-      Number.isFinite(requestedAmount) && requestedAmount > 0
-        ? requestedAmount
-        : Number(tariff.price ?? 0)
+    amount = Number(tariff.price ?? 0)
     description = `Оплата тарифа ${tariff.title}`
   }
 

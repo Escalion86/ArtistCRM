@@ -12,6 +12,7 @@ import {
   validateFlow,
   verifyConfig,
 } from '@server/phoneVerification'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const isCooldownActive = (date, cooldownSec) =>
   date && Date.now() - new Date(date).getTime() < cooldownSec * 1000
@@ -34,6 +35,15 @@ export const POST = async (req) => {
       { status: 400 }
     )
   }
+
+  const limit = await checkRateLimit({
+    req,
+    scope: 'phone_verify_sms_send',
+    limit: 5,
+    windowMs: 60 * 60 * 1000,
+    keyParts: [requestedFlow || '', phone],
+  })
+  if (!limit.ok) return rateLimitResponse(NextResponse, limit)
 
   await dbConnect()
 

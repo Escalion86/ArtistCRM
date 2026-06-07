@@ -62,6 +62,22 @@ const normalizeServicesIds = (value) => {
     .slice(0, 20)
 }
 
+const SENSITIVE_RAW_PAYLOAD_KEY = /api[_-]?key|token|secret|password|authorization/i
+
+const sanitizeRawPayload = (value, depth = 0) => {
+  if (depth > 4) return null
+  if (Array.isArray(value)) {
+    return value.slice(0, 50).map((item) => sanitizeRawPayload(item, depth + 1))
+  }
+  if (!value || typeof value !== 'object') return value
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !SENSITIVE_RAW_PAYLOAD_KEY.test(String(key)))
+      .map(([key, item]) => [key, sanitizeRawPayload(item, depth + 1)])
+  )
+}
+
 const getPublicLeadApiKey = (req, body, allowApiKeyAlias = false) =>
   normalizeText(
     req.headers.get('x-public-api-key') ||
@@ -251,7 +267,7 @@ const createPublicLeadDraftEvent = async ({
         sourceLabel,
         apiKeyId: normalizeText(apiKeyData?.id, 80),
         apiKeyName: apiSourceName,
-        raw: rawPayload,
+        raw: sanitizeRawPayload(rawPayload),
       },
     },
   })
@@ -272,6 +288,7 @@ export {
   normalizePublicLeadApiKeys,
   parseDateValue,
   normalizeServicesIds,
+  sanitizeRawPayload,
   readCustomValue,
   getPublicLeadApiKey,
   buildAddress,

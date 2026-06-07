@@ -17,6 +17,7 @@ import {
   logPublicLeadPushSkipped,
   notifyApiLeadCreated,
 } from '@server/publicLeadPush'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -150,6 +151,24 @@ export const POST = async (req) => {
   try {
     const body = await parseRawPayload(req)
     const apiKey = getPublicLeadApiKey(req, body, true)
+
+    const [ipLimit, keyLimit] = await Promise.all([
+      checkRateLimit({
+        req,
+        scope: 'public_lead_tilda_ip',
+        limit: 120,
+        windowMs: 10 * 60 * 1000,
+      }),
+      checkRateLimit({
+        req,
+        scope: 'public_lead_tilda_key',
+        limit: 120,
+        windowMs: 10 * 60 * 1000,
+        keyParts: [apiKey],
+      }),
+    ])
+    if (!ipLimit.ok) return rateLimitResponse(NextResponse, ipLimit)
+    if (!keyLimit.ok) return rateLimitResponse(NextResponse, keyLimit)
 
     await dbConnect()
     const accessData = await resolvePublicLeadTenant(apiKey)

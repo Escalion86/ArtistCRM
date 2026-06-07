@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import mongoose from 'mongoose'
 import AvitoConversations from '@models/AvitoConversations'
 import AvitoMessages from '@models/AvitoMessages'
+import Clients from '@models/Clients'
 import VkConversations from '@models/VkConversations'
 import VkMessages from '@models/VkMessages'
 import dbConnect from '@server/dbConnect'
@@ -64,6 +65,13 @@ const loadCandidates = async ({ tenantId, clientId }) => {
   )
 }
 
+const ensureClientInTenant = async ({ tenantId, clientId }) => {
+  const client = await Clients.findOne({ _id: clientId, tenantId })
+    .select('_id')
+    .lean()
+  return Boolean(client)
+}
+
 export const GET = async (req, { params }) => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
@@ -73,6 +81,9 @@ export const GET = async (req, { params }) => {
   if (!isObjectId(clientId)) return jsonError('Некорректный ID клиента', 400, 'bad_id')
 
   await dbConnect()
+  const clientExists = await ensureClientInTenant({ tenantId, clientId })
+  if (!clientExists) return jsonError('Клиент не найден', 404, 'client_not_found')
+
   const conversations = await loadCandidates({ tenantId, clientId })
 
   return NextResponse.json(
@@ -102,6 +113,8 @@ export const PATCH = async (req, { params }) => {
   }
 
   await dbConnect()
+  const clientExists = await ensureClientInTenant({ tenantId, clientId })
+  if (!clientExists) return jsonError('Клиент не найден', 404, 'client_not_found')
 
   const ConversationModel =
     provider === 'avito' ? AvitoConversations : VkConversations

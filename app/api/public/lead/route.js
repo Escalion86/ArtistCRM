@@ -18,6 +18,7 @@ import {
   logPublicLeadPushSkipped,
   notifyApiLeadCreated,
 } from '@server/publicLeadPush'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -32,6 +33,24 @@ export const POST = async (req) => {
   try {
     const body = await req.json().catch(() => ({}))
     const apiKey = getPublicLeadApiKey(req, body)
+
+    const [ipLimit, keyLimit] = await Promise.all([
+      checkRateLimit({
+        req,
+        scope: 'public_lead_ip',
+        limit: 120,
+        windowMs: 10 * 60 * 1000,
+      }),
+      checkRateLimit({
+        req,
+        scope: 'public_lead_key',
+        limit: 120,
+        windowMs: 10 * 60 * 1000,
+        keyParts: [apiKey],
+      }),
+    ])
+    if (!ipLimit.ok) return rateLimitResponse(NextResponse, ipLimit)
+    if (!keyLimit.ok) return rateLimitResponse(NextResponse, keyLimit)
 
     await dbConnect()
     const accessData = await resolvePublicLeadTenant(apiKey)

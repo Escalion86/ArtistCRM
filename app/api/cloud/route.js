@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server'
+import getTenantContext from '@server/getTenantContext'
 
 export const runtime = 'nodejs'
 
 const CLOUD_API_URL = 'https://cloud.escalion.ru/api'
 
 export const POST = async (req) => {
+  const { user } = await getTenantContext()
+  if (!user?._id) {
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: 'Unauthorized',
+      },
+      { status: 401 }
+    )
+  }
+
   const apiPassword = process.env.ESCALIONCLOUD_PASSWORD
   if (!apiPassword) {
     return NextResponse.json(

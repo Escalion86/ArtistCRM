@@ -12,6 +12,7 @@ import {
   isValidTenantId,
   normalizeNovofonWebhook,
 } from '@server/novofon'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const buildNovofonUpdate = (payload, normalized, tenantId) => {
   const update = {
@@ -89,11 +90,9 @@ const handleNovofonWebhook = async (req) => {
   }
 
   const settings = await getNovofonSettings(tenantId)
-  const fallbackSecret =
-    process.env.NOVOFON_WEBHOOK_SECRET || process.env.TELEPHONY_WEBHOOK_SECRET
-  const expectedSecret = settings?.webhookSecret || fallbackSecret
+  const expectedSecret = settings?.webhookSecret || ''
 
-  if (!settings?.enabled && !fallbackSecret) {
+  if (!settings?.enabled) {
     await logNovofonWebhook({
       tenantId,
       body,
@@ -125,6 +124,15 @@ const handleNovofonWebhook = async (req) => {
       { status: 503 }
     )
   }
+
+  const limit = await checkRateLimit({
+    req,
+    scope: 'novofon_webhook',
+    limit: 300,
+    windowMs: 10 * 60 * 1000,
+    keyParts: [tenantId],
+  })
+  if (!limit.ok) return rateLimitResponse(NextResponse, limit)
 
   if (getNovofonWebhookSecret(req, body, searchParams) !== expectedSecret) {
     await logNovofonWebhook({

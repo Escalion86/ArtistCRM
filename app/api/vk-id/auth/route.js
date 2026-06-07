@@ -4,6 +4,7 @@ import { ensureVkUser } from '@server/ensureVkUser'
 import { exchangeVkCode, fetchVkUserInfo } from '@server/vkIdAuth'
 import { createVkIdAuthToken } from '@server/vkidAuthToken'
 import getAuthSecret from '@server/getAuthSecret'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const buildError = (code, status, message) =>
   NextResponse.json(
@@ -30,6 +31,15 @@ export const POST = async (req) => {
     body?.access_token || body?.accessToken || ''
   ).trim()
   let idToken = String(body?.id_token || body?.idToken || '').trim()
+
+  const limit = await checkRateLimit({
+    req,
+    scope: 'vk_id_auth',
+    limit: 20,
+    windowMs: 10 * 60 * 1000,
+    keyParts: [deviceId || state || ''],
+  })
+  if (!limit.ok) return rateLimitResponse(NextResponse, limit)
 
   if ((!code || !deviceId) && !accessToken) {
     return buildError(

@@ -1,6 +1,8 @@
-# Production ENV Checklist
+# ArtistCRM Production ENV Checklist
 
-Документ фиксирует production-переменные для текущего деплоя ArtistCRM + PartyCRM technical preview.
+Документ фиксирует production-переменные для ArtistCRM.
+
+Правило: в production env ArtistCRM держим только глобальные настройки продукта и инфраструктуры. Novofon, AITunnel и AI-ключи пользователей не должны лежать в `.env`, если пользователь подключает эти сервисы сам в `Настройки -> Интеграции`.
 
 ## Обязательные базовые переменные
 
@@ -16,19 +18,24 @@ NEXTAUTH_URL=https://artistcrm.ru
 NEXTAUTH_URL_INTERNAL=http://127.0.0.1:3006
 ```
 
-`MONGODB_SERVER`, `MONGODB_PORT`, `MONGODB_USER`, `MONGODB_PASSWORD` можно хранить в env для deploy-скриптов, но приложение напрямую читает `MONGODB_URI` и `MONGODB_DBNAME`.
+Рекомендации:
 
-## PartyCRM technical preview
+- `NEXTAUTH_SECRET` должен быть длинным случайным секретом, а не названием проекта.
+- `MONGODB_URI` и OAuth callback URL лучше указывать итоговыми строками без shell-подстановок `${...}`.
+- Для приложения достаточно `MONGODB_URI` и `MONGODB_DBNAME`; `MONGODB_SERVER`, `MONGODB_PORT`, `MONGODB_USER`, `MONGODB_PASSWORD` можно держать только в deploy-скриптах.
+- Использовать отдельного MongoDB-пользователя с `readWrite` только на базе `artistcrm`, а не административного пользователя MongoDB.
+
+## PartyCRM в ArtistCRM env
+
+Если этот же ArtistCRM runtime обслуживает домен `partycrm.ru`, нужны:
 
 ```env
 PARTYCRM_DOMAIN=partycrm.ru
-PARTYCRM_MONGODB_URI=...
-PARTYCRM_MONGODB_DBNAME=partycrm_prod
-PARTYCRM_AUTH_SECRET=...
+PARTYCRM_MONGODB_URI=mongodb://partycrm_app:<password>@127.0.0.1:27017/?authSource=admin
+PARTYCRM_MONGODB_DBNAME=partycrm
 ```
 
-Правило: `PARTYCRM_MONGODB_DBNAME` должен отличаться от `MONGODB_DBNAME`.
-Правило: `PARTYCRM_AUTH_SECRET` должен быть отдельным production-секретом для cookie `partycrm_session`.
+Если PartyCRM запускается отдельным проектом/процессом, эти переменные из ArtistCRM `.env` нужно убрать.
 
 ## Оплаты
 
@@ -84,7 +91,7 @@ PUSH_REMINDERS_CRON_SECRET=...
 
 VAPID_PUBLIC_KEY=...
 VAPID_PRIVATE_KEY=...
-VAPID_SUBJECT=mailto:support@cigam.ru
+VAPID_SUBJECT=mailto:support@artistcrm.ru
 ```
 
 Cron для `/api/push/reminders/additional-events` можно запускать каждые 15
@@ -124,11 +131,10 @@ GOOGLE_OAUTH_REDIRECT_URI=https://artistcrm.ru/api/google-calendar/callback
 GOOGLE_CALENDAR_CREDENTIALS_PATH=...
 ```
 
-## Телефония и SMS
+## Телефонная верификация и SMS
 
 ```env
 TELEFONIP=...
-TELEGRAM_TOKEN=...
 ```
 
 Опционально:
@@ -136,42 +142,44 @@ TELEGRAM_TOKEN=...
 ```env
 TELEFONIP_API_BASE_URL=https://api.telefon-ip.ru
 PHONE_SMS_SEND_WEBHOOK=...
-TELEPHONY_WEBHOOK_SECRET=...
-NOVOFON_WEBHOOK_SECRET=...
 ```
 
-## AI
+`TELEFONIP` используется для подтверждения телефона при регистрации и восстановлении доступа. `PHONE_SMS_SEND_WEBHOOK` нужен только для SMS fallback.
 
-Для анализа звонков:
+## Novofon, AITunnel и AI
+
+Не добавлять в production `.env`, если пользователи подключают сервисы индивидуально:
 
 ```env
-AI_ANALYSIS_PROVIDER=deepseek
-DEEPSEEK_API_KEY=...
-DEEPSEEK_CALL_ANALYSIS_MODEL=deepseek-v4-flash
+NOVOFON_WEBHOOK_SECRET
+AI_ANALYSIS_PROVIDER
+AI_TRANSCRIPTION_PROVIDER
+DEEPSEEK_API_KEY
+DEEPSEEK_CALL_ANALYSIS_MODEL
+AITUNNEL_KEY
+AITUNNEL_CALL_ANALYSIS_MODEL
+AITUNNEL_TRANSCRIPTION_MODEL
+OPENAI_CALL_ANALYSIS_MODEL
+OPENAI_TRANSCRIPTION_MODEL
 ```
 
-Для распознавания записей:
+Код поддерживает эти env как глобальные fallback'и, но для текущей модели ArtistCRM они не нужны: Novofon/AITunnel ключи и модели хранятся в `SiteSettings.custom` конкретного пользователя.
+
+Оставить глобальный OpenAI-совместимый ключ только если используется общая функция голосового создания мероприятия `/api/events/ai-draft`:
 
 ```env
-AI_TRANSCRIPTION_PROVIDER=aitunnel
-AITUNNEL_KEY=...
-AITUNNEL_TRANSCRIPTION_MODEL=whisper-1
-```
-
-Опционально:
-
-```env
-AI_ANALYSIS_API_URL=...
-AI_TRANSCRIPTION_API_URL=...
 OPENAI_API_KEY=...
-OPENAI_CALL_ANALYSIS_MODEL=gpt-4o-mini
-OPENAI_TRANSCRIPTION_MODEL=whisper-1
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
 ```
+
+Если голосовой AI-черновик тоже должен работать только через пользовательский AITunnel/AI-ключ, глобальные `OPENAI_*` не нужны, но endpoint `/api/events/ai-draft` нужно дополнительно адаптировать под пользовательские настройки.
 
 ## Почта и файлы
 
 ```env
 ESCALIONCLOUD_PASSWORD=...
+TELEGRAM_TOKEN=...
 
 SMTP_HOST=smtp.yandex.ru
 SMTP_PORT=465
@@ -181,24 +189,41 @@ SMTP_PASSWORD=...
 MAIL_FROM=ArtistCRM <support@artistcrm.ru>
 ```
 
-## Лишнее или подозрительное
+`ESCALIONCLOUD_PASSWORD` и `TELEGRAM_TOKEN` нужны только если используются соответствующие функции проекта.
 
-Эти переменные сейчас не используются кодом напрямую или выглядят как legacy:
+## Frontend diagnostics
 
 ```env
+NEXT_PUBLIC_ENABLE_SOURCE_MAPS=false
+```
+
+## Лишнее или подозрительное
+
+Эти переменные нужно убрать из ArtistCRM production env:
+
+```env
+LOGIN
+PASSWORD
 SECRET
 NEXTAUTH_SITE
 DEEPSEEK_KEY
+PARTYCRM_AUTH_SECRET
+PARTYCRM_BOOTSTRAP_SECRET
+PARTYCRM_YOOKASSA_WEBHOOK_SECRET
+NODE_TLS_REJECT_UNAUTHORIZED
 ```
 
-Опечатка, которую нужно исправить:
+Если PartyCRM не обслуживается этим же runtime, также убрать:
 
 ```env
-OCHKA_RECEIPT_EMAIL=...
+PARTYCRM_DOMAIN
+PARTYCRM_MONGODB_URI
+PARTYCRM_MONGODB_DBNAME
 ```
 
-Должно быть:
+Проверить кодировку:
 
 ```env
 TOCHKA_RECEIPT_EMAIL=support@artistcrm.ru
+TOCHKA_RECEIPT_ITEM_NAME=Оплата ArtistCRM
 ```

@@ -11,6 +11,7 @@ import {
   safeApiError,
   validateFlow,
 } from '@server/phoneVerification'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const isExpired = (expiresAt) =>
   !expiresAt || new Date(expiresAt).getTime() <= Date.now()
@@ -92,6 +93,15 @@ export const POST = async (req) => {
         { status: 400 }
       )
     }
+
+    const limit = await checkRateLimit({
+      req,
+      scope: 'phone_verify_finalize',
+      limit: 10,
+      windowMs: 10 * 60 * 1000,
+      keyParts: [flow, phone],
+    })
+    if (!limit.ok) return rateLimitResponse(NextResponse, limit)
 
     await dbConnect()
 

@@ -6,6 +6,7 @@ import {
   normalizeAvitoSettings,
   updateAvitoCustom,
 } from '@server/avito'
+import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const parseWebhookBody = async (req) => {
   const contentType = req.headers.get('content-type') || ''
@@ -38,6 +39,15 @@ export const POST = async (req, { params }) => {
       { status: 400 }
     )
   }
+
+  const limit = await checkRateLimit({
+    req,
+    scope: 'avito_webhook',
+    limit: 300,
+    windowMs: 10 * 60 * 1000,
+    keyParts: [token],
+  })
+  if (!limit.ok) return rateLimitResponse(NextResponse, limit)
 
   const body = await parseWebhookBody(req)
   await dbConnect()

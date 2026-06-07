@@ -6,6 +6,7 @@ import AvitoMessages from '@models/AvitoMessages'
 import {
   createPublicLeadDraftEvent,
   normalizePhone,
+  sanitizeRawPayload,
   normalizeText,
   readCustomValue,
   upsertPublicLeadClient,
@@ -492,6 +493,7 @@ const createOrUpdateAvitoLead = async ({ tenantId, siteSettings, body }) => {
   if (!normalized.avitoChatId && !normalized.comment) {
     return { ok: false, status: 400, error: 'empty_avito_message' }
   }
+  const rawPayload = sanitizeRawPayload(body)
 
   const linkedClientId = await findClientForAvitoConversation({
     tenantId,
@@ -510,7 +512,7 @@ const createOrUpdateAvitoLead = async ({ tenantId, siteSettings, body }) => {
     const conversation = await upsertAvitoConversation({
       tenantId,
       normalized,
-      rawPayload: body,
+      rawPayload,
       clientId: existingEvent.clientId ?? linkedClientId,
       eventId: existingEvent._id,
     })
@@ -518,12 +520,12 @@ const createOrUpdateAvitoLead = async ({ tenantId, siteSettings, body }) => {
       tenantId,
       conversation,
       normalized,
-      rawPayload: body,
+      rawPayload,
     })
     const event = await appendMessageToExistingEvent({
       event: existingEvent,
       normalized,
-      rawPayload: body,
+      rawPayload,
     })
     return { ok: true, event, created: false, normalized }
   }
@@ -548,7 +550,7 @@ const createOrUpdateAvitoLead = async ({ tenantId, siteSettings, body }) => {
   const conversation = await upsertAvitoConversation({
     tenantId,
     normalized,
-    rawPayload: body,
+    rawPayload,
     clientId: linkedClientId,
     eventId: event._id,
   })
@@ -556,7 +558,7 @@ const createOrUpdateAvitoLead = async ({ tenantId, siteSettings, body }) => {
     tenantId,
     conversation,
     normalized,
-    rawPayload: body,
+    rawPayload,
   })
   await notifyAvitoLead({ tenantId, event, normalized, siteSettings })
 
