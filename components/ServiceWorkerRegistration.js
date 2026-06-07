@@ -8,7 +8,9 @@ const ServiceWorkerRegistration = () => {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator)) return
 
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => null)
+    navigator.serviceWorker
+      .register('/service-worker.js', { scope: '/' })
+      .catch(() => null)
   }, [])
 
   return null

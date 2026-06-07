@@ -14,6 +14,7 @@ const isProductionSW =
 const SERVICE_WORKER_READY_TIMEOUT_MS = 3000
 const SERVICE_WORKER_ACTIVATION_TIMEOUT_MS = 60000
 const SERVICE_WORKER_ACTIVATION_POLL_INTERVAL_MS = 250
+const SERVICE_WORKER_URL = '/service-worker.js'
 
 const PUSH_DIAGNOSTIC_MESSAGES = {
   unsupported: 'Браузер или режим приложения не поддерживает push-уведомления',
@@ -297,7 +298,7 @@ const getPushRegistrationWithDetails = async () => {
   let registerError = null
   if (!existing) {
     registered = await navigator.serviceWorker
-      .register('/sw.js', { scope: '/' })
+      .register(SERVICE_WORKER_URL, { scope: '/' })
       .catch((error) => {
         registerError = error
         return null
