@@ -568,3 +568,72 @@ test('getPushRegistrationWithDetails asks waiting registration to activate', asy
   assert.equal(result.ok, true)
   assert.equal(result.registration, waitingRegistration)
 })
+
+test('getPushRegistrationWithDetails rechecks registration while waiting for activation', async () => {
+  process.env.NODE_ENV = 'production'
+
+  const pendingRegistration = {
+    scope: 'https://artistcrm.ru/',
+    active: null,
+    installing: {
+      state: 'installing',
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    },
+    waiting: null,
+    pushManager: {
+      getSubscription: async () => null,
+    },
+  }
+  const activeRegistration = {
+    scope: 'https://artistcrm.ru/',
+    active: { state: 'activated', scriptURL: 'https://artistcrm.ru/sw.js' },
+    installing: null,
+    waiting: null,
+    pushManager: {
+      getSubscription: async () => null,
+    },
+  }
+
+  const startedAt = Date.now()
+  const originalSetTimeout = setTimeout
+  const originalClearTimeout = clearTimeout
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: function Notification() {},
+    location: {
+      href: 'https://artistcrm.ru/cabinet/notifications',
+      origin: 'https://artistcrm.ru',
+    },
+    setTimeout: (handler, timeout, ...args) => {
+      if (timeout === 3000) return originalSetTimeout(handler, 5, ...args)
+      if (timeout === 250) return originalSetTimeout(handler, 5, ...args)
+      if (timeout === 60000) return originalSetTimeout(handler, 40, ...args)
+      return originalSetTimeout(handler, timeout, ...args)
+    },
+    clearTimeout: originalClearTimeout,
+  })
+  setGlobalValue('location', {
+    href: 'https://artistcrm.ru/cabinet/notifications',
+    origin: 'https://artistcrm.ru',
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      getRegistration: async () =>
+        Date.now() - startedAt >= 15 ? activeRegistration : pendingRegistration,
+      getRegistrations: async () => [pendingRegistration],
+      register: async () => pendingRegistration,
+      ready: new Promise(() => {}),
+    },
+  })
+
+  const { getPushRegistrationWithDetails } = await import(
+    `./pushClient.js?test=${Date.now()}`
+  )
+  const result = await getPushRegistrationWithDetails()
+
+  assert.equal(result.ok, true)
+  assert.equal(result.registration, activeRegistration)
+})

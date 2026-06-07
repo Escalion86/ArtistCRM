@@ -11,6 +11,7 @@ const isProductionSW =
 
 const SERVICE_WORKER_READY_TIMEOUT_MS = 3000
 const SERVICE_WORKER_ACTIVATION_TIMEOUT_MS = 60000
+const SERVICE_WORKER_ACTIVATION_POLL_INTERVAL_MS = 250
 
 const PUSH_DIAGNOSTIC_MESSAGES = {
   unsupported: 'Браузер или режим приложения не поддерживает push-уведомления',
@@ -87,6 +88,11 @@ const requestServiceWorkerActivation = (worker) => {
   worker.postMessage?.({ type: 'SKIP_WAITING' })
 }
 
+const resolveActivePushRegistration = async () => {
+  const registration = await resolveExistingRegistration()
+  return registration?.active && registration?.pushManager ? registration : null
+}
+
 const resolveExistingRegistration = async () => {
   const serviceWorker = navigator?.serviceWorker
   if (!serviceWorker) return null
@@ -149,12 +155,33 @@ const waitForRegistrationActivation = async (
   requestServiceWorkerActivation(worker)
 
   let timeoutId = null
+  let pollId = null
+  let finished = false
 
   return await new Promise((resolve) => {
     const finish = (value) => {
+      if (finished) return
+      finished = true
       if (timeoutId !== null) window.clearTimeout(timeoutId)
+      if (pollId !== null) window.clearTimeout(pollId)
       worker.removeEventListener?.('statechange', handleStateChange)
       resolve(value)
+    }
+
+    const checkFreshRegistration = async () => {
+      if (finished) return
+      const activeRegistration = await resolveActivePushRegistration().catch(
+        () => null
+      )
+      if (finished) return
+      if (activeRegistration) {
+        finish(activeRegistration)
+        return
+      }
+      pollId = window.setTimeout(
+        checkFreshRegistration,
+        SERVICE_WORKER_ACTIVATION_POLL_INTERVAL_MS
+      )
     }
 
     const handleStateChange = () => {
@@ -164,6 +191,10 @@ const waitForRegistrationActivation = async (
     }
 
     worker.addEventListener('statechange', handleStateChange)
+    pollId = window.setTimeout(
+      checkFreshRegistration,
+      SERVICE_WORKER_ACTIVATION_POLL_INTERVAL_MS
+    )
     timeoutId = window.setTimeout(() => finish(registration), timeoutMs)
     handleStateChange()
   })
