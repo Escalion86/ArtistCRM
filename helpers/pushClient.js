@@ -1,5 +1,7 @@
 'use client'
 
+import { sendClientLog } from './clientLog.js'
+
 const isPushSupported = () =>
   typeof window !== 'undefined' &&
   'serviceWorker' in navigator &&
@@ -86,6 +88,51 @@ const getRegistrationWorker = (registration) =>
 const requestServiceWorkerActivation = (worker) => {
   if (!worker || worker.state === 'activated') return
   worker.postMessage?.({ type: 'SKIP_WAITING' })
+}
+
+const getWorkerDiagnostics = (worker) => ({
+  state: worker?.state || '',
+  scriptURL: worker?.scriptURL || '',
+})
+
+const getRegistrationDiagnostics = (registration) => {
+  const controller = navigator?.serviceWorker?.controller || null
+  return {
+    href: getWindowLocation()?.href || '',
+    scope: registration?.scope || '',
+    active: getWorkerDiagnostics(registration?.active),
+    waiting: getWorkerDiagnostics(registration?.waiting),
+    installing: getWorkerDiagnostics(registration?.installing),
+    controller: getWorkerDiagnostics(controller),
+    hasPushManager: Boolean(registration?.pushManager),
+  }
+}
+
+const formatWorkerState = (worker) => worker?.state || 'нет'
+
+const formatServiceWorkerDiagnosticMessage = (message, registration) => {
+  const diagnostics = getRegistrationDiagnostics(registration)
+  return `${message}. Диагностика: active=${formatWorkerState(
+    diagnostics.active
+  )}; waiting=${formatWorkerState(diagnostics.waiting)}; installing=${formatWorkerState(
+    diagnostics.installing
+  )}; controller=${formatWorkerState(diagnostics.controller)}; pushManager=${
+    diagnostics.hasPushManager ? 'да' : 'нет'
+  }; scope=${diagnostics.scope || 'нет'}`
+}
+
+const logServiceWorkerDiagnostic = (reason, registration, error) => {
+  sendClientLog({
+    type: 'push_service_worker_diagnostic',
+    reason,
+    diagnostics: getRegistrationDiagnostics(registration),
+    error: error
+      ? {
+          name: error?.name,
+          message: error?.message || String(error),
+        }
+      : null,
+  })
 }
 
 const resolveActivePushRegistration = async () => {
@@ -272,14 +319,19 @@ const getPushRegistrationWithDetails = async () => {
     }
   }
   if (pendingRegistration?.pushManager) {
+    logServiceWorkerDiagnostic('activation_timeout', pendingRegistration)
     return {
       ok: false,
       registration: pendingRegistration,
       reason: 'activation_timeout',
-      message: PUSH_DIAGNOSTIC_MESSAGES.activation_timeout,
+      message: formatServiceWorkerDiagnosticMessage(
+        PUSH_DIAGNOSTIC_MESSAGES.activation_timeout,
+        pendingRegistration
+      ),
     }
   }
   if (registerError) {
+    logServiceWorkerDiagnostic('registration_failed', null, registerError)
     return {
       ok: false,
       registration: null,
@@ -288,11 +340,15 @@ const getPushRegistrationWithDetails = async () => {
     }
   }
   if (pendingRegistration) {
+    logServiceWorkerDiagnostic('push_manager_unavailable', pendingRegistration)
     return {
       ok: false,
       registration: pendingRegistration,
       reason: 'push_manager_unavailable',
-      message: PUSH_DIAGNOSTIC_MESSAGES.push_manager_unavailable,
+      message: formatServiceWorkerDiagnosticMessage(
+        PUSH_DIAGNOSTIC_MESSAGES.push_manager_unavailable,
+        pendingRegistration
+      ),
     }
   }
   return {
@@ -356,10 +412,14 @@ const syncPushSubscription = async ({
     }
   }
   if (!currentRegistration?.active) {
+    logServiceWorkerDiagnostic('activation_timeout', currentRegistration)
     return {
       ok: false,
       reason: 'activation_timeout',
-      message: PUSH_DIAGNOSTIC_MESSAGES.activation_timeout,
+      message: formatServiceWorkerDiagnosticMessage(
+        PUSH_DIAGNOSTIC_MESSAGES.activation_timeout,
+        currentRegistration
+      ),
     }
   }
 

@@ -219,6 +219,69 @@ test('getPushRegistrationWithDetails returns activation timeout reason', async (
   assert.match(result.message, /не активировался/i)
 })
 
+test('getPushRegistrationWithDetails includes service worker states in activation timeout message', async () => {
+  process.env.NODE_ENV = 'production'
+
+  const registeredWorker = {
+    scope: 'https://artistcrm.ru/',
+    pushManager: {
+      getSubscription: async () => null,
+    },
+    installing: {
+      state: 'installing',
+      scriptURL: 'https://artistcrm.ru/sw.js',
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    },
+    waiting: null,
+    active: null,
+  }
+
+  const originalSetTimeout = setTimeout
+  const originalClearTimeout = clearTimeout
+
+  setGlobalValue('window', {
+    PushManager: function PushManager() {},
+    Notification: function Notification() {},
+    location: {
+      href: 'https://artistcrm.ru/cabinet/notifications',
+      origin: 'https://artistcrm.ru',
+    },
+    setTimeout: (handler, timeout, ...args) => {
+      if (timeout === 250) return originalSetTimeout(handler, 1, ...args)
+      if (timeout === 60000) return originalSetTimeout(handler, 5, ...args)
+      return originalSetTimeout(handler, timeout, ...args)
+    },
+    clearTimeout: originalClearTimeout,
+  })
+  setGlobalValue('location', {
+    href: 'https://artistcrm.ru/cabinet/notifications',
+    origin: 'https://artistcrm.ru',
+  })
+
+  setGlobalValue('navigator', {
+    serviceWorker: {
+      controller: null,
+      getRegistration: async () => registeredWorker,
+      getRegistrations: async () => [registeredWorker],
+      register: async () => registeredWorker,
+      ready: new Promise(() => {}),
+    },
+  })
+
+  const { getPushRegistrationWithDetails } = await import(
+    `./pushClient.js?test=${Date.now()}`
+  )
+  const result = await getPushRegistrationWithDetails()
+
+  assert.equal(result.ok, false)
+  assert.equal(result.reason, 'activation_timeout')
+  assert.match(result.message, /installing=installing/i)
+  assert.match(result.message, /waiting=нет/i)
+  assert.match(result.message, /active=нет/i)
+  assert.match(result.message, /controller=нет/i)
+})
+
 test('syncPushSubscription returns activation timeout without subscribe call', async () => {
   process.env.NODE_ENV = 'production'
 
