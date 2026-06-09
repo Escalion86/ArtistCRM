@@ -48,3 +48,18 @@ export const getEventCloseSuggestionState = (
     shouldSuggestClosing: !blockedStatus && isEventFinished && canClose,
   }
 }
+
+export const shouldSuggestEventClosingOnDismiss = (
+  event,
+  transactions = [],
+  now = new Date(),
+  options = {}
+) => {
+  if (!event?._id || options?.clone) return false
+
+  return getEventCloseSuggestionState(
+    event,
+    transactions,
+    now
+  ).shouldSuggestClosing
+}

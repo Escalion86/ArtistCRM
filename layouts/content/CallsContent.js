@@ -8,6 +8,7 @@ import {
   faUserPlus,
   faWandMagicSparkles,
   faFileAudio,
+  faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import AppButton from '@components/AppButton'
@@ -32,6 +33,7 @@ import getPersonFullName from '@helpers/getPersonFullName'
 import useSnackbar from '@helpers/useSnackbar'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
+import { getCallActionButtonState } from '@helpers/callActionButtonState.mjs'
 
 const STATUS_LABELS = {
   new: 'Новый',
@@ -84,7 +86,10 @@ const fromDatetimeLocal = (value) => {
 }
 
 const splitClientName = (name) => {
-  const parts = String(name || '').trim().split(/\s+/).filter(Boolean)
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
   return {
     firstName: parts[0] || '',
     secondName: parts.slice(1).join(' '),
@@ -147,7 +152,7 @@ const LinkedClientCard = ({ client, linkedClientId, onOpen }) => {
       <div
         role="button"
         tabIndex={0}
-        className="cursor-pointer rounded-lg border border-gray-200 p-2 transition hover:border-general hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-general/30"
+        className="hover:border-general focus:ring-general/30 cursor-pointer rounded-lg border border-gray-200 p-2 transition hover:shadow-sm focus:ring-2 focus:outline-none"
         onClick={() => onOpen?.(resolvedClient)}
         onKeyDown={(event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return
@@ -190,6 +195,232 @@ const CallClientName = ({ client, linkedClientId }) => {
   return 'не связан'
 }
 
+const CallActionButtonContent = ({ icon, isLoading, children }) => (
+  <>
+    <FontAwesomeIcon
+      icon={isLoading ? faSpinner : icon}
+      className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`}
+    />
+    {children}
+  </>
+)
+
+const CallDetailsModalContent = ({
+  call,
+  client,
+  canUseAi,
+  onOpenEditor,
+  onAnalyze,
+  onProcessRecording,
+  onCreateClient,
+  onOpenEventDraft,
+  onOpenClientView,
+}) => {
+  const [activeAction, setActiveAction] = useState(null)
+  const fields = call?.aiExtractedFields ?? {}
+  const callId = normalizeId(call?._id)
+
+  const runCallAction = async (type, action) => {
+    setActiveAction({ callId, type })
+    try {
+      await action()
+    } finally {
+      setActiveAction((current) =>
+        current?.callId === callId && current?.type === type ? null : current
+      )
+    }
+  }
+
+  const analyzeState = getCallActionButtonState({
+    activeAction,
+    callId,
+    type: 'analyze',
+    idleLabel: 'Разобрать текст',
+    loadingLabel: 'Разбирается...',
+    disabled: !canUseAi || call.status === 'processing',
+  })
+  const processRecordingState = getCallActionButtonState({
+    activeAction,
+    callId,
+    type: 'processRecording',
+    idleLabel: 'Распознать запись',
+    loadingLabel: 'Распознается...',
+    disabled: !canUseAi || call.status === 'processing',
+  })
+  const createClientState = getCallActionButtonState({
+    activeAction,
+    callId,
+    type: 'createClient',
+    idleLabel: 'Создать клиента',
+    loadingLabel: 'Создается...',
+  })
+  const createEventState = getCallActionButtonState({
+    activeAction,
+    callId,
+    type: 'createEvent',
+    idleLabel: 'Создать заявку',
+    loadingLabel: 'Создается...',
+    disabled: !call.transcript && !call.aiSummary,
+  })
+
+  return (
+    <div className="flex flex-col gap-3 text-sm">
+      <div className="tablet:grid-cols-2 grid grid-cols-1 gap-3">
+        <CallInfoRow label="Номер">
+          {call.phone || call.normalizedPhone || 'Без номера'}
+        </CallInfoRow>
+        <CallInfoRow label="Направление">
+          {DIRECTION_LABELS[call.direction] || 'Звонок'}
+        </CallInfoRow>
+        <CallInfoRow label="Время">
+          {formatDateTime(call.startedAt)}
+        </CallInfoRow>
+        <CallInfoRow label="Длительность">
+          {Number(call.durationSec || 0)} сек
+        </CallInfoRow>
+        <CallInfoRow label="Статус">
+          {STATUS_LABELS[call.status] || 'Новый'}
+        </CallInfoRow>
+      </div>
+
+      <LinkedClientCard
+        client={client}
+        linkedClientId={call.linkedClientId}
+        onOpen={onOpenClientView}
+      />
+
+      {call.recordingUrl ? (
+        <AudioPlayer
+          src={call.recordingUrl}
+          title="Запись разговора"
+          subtitle="Novofon"
+        />
+      ) : null}
+
+      {call.aiSummary ? (
+        <div className="card-meta rounded border border-gray-200 p-3 leading-5">
+          <div className="card-muted mb-1 text-xs font-semibold">
+            Кратко по разговору
+          </div>
+          {call.aiSummary}
+        </div>
+      ) : null}
+
+      {(fields.eventDate || fields.budget || fields.nextContactAt) && (
+        <div className="tablet:grid-cols-3 grid grid-cols-1 gap-2">
+          <div className="rounded border border-gray-200 p-2">
+            <div className="card-muted">Дата</div>
+            <div className="card-title">
+              {fields.eventDate ? formatDateTime(fields.eventDate) : '-'}
+            </div>
+          </div>
+          <div className="rounded border border-gray-200 p-2">
+            <div className="card-muted">Бюджет</div>
+            <div className="card-title">
+              {fields.budget ? `${fields.budget} ₽` : '-'}
+            </div>
+          </div>
+          <div className="rounded border border-gray-200 p-2">
+            <div className="card-muted">Контакт</div>
+            <div className="card-title">
+              {fields.nextContactAt
+                ? formatDateTime(fields.nextContactAt)
+                : '-'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {call.transcript ? (
+        <div className="card-meta max-h-56 overflow-y-auto rounded border border-gray-200 p-3 leading-5">
+          <div className="card-muted mb-1 text-xs font-semibold">
+            Текст разговора
+          </div>
+          <div className="whitespace-pre-wrap">{call.transcript}</div>
+        </div>
+      ) : null}
+
+      {call.processingError ? (
+        <div className="text-sm text-red-600">{call.processingError}</div>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2">
+        <AppButton size="sm" variant="secondary" onClick={onOpenEditor}>
+          Редактировать
+        </AppButton>
+        {!call.recordingUrl && call.transcript && !call.aiSummary ? (
+          <AppButton
+            size="sm"
+            variant="secondary"
+            disabled={analyzeState.disabled}
+            aria-busy={analyzeState.isLoading}
+            onClick={() => runCallAction('analyze', onAnalyze)}
+            className="gap-2"
+          >
+            <CallActionButtonContent
+              icon={faWandMagicSparkles}
+              isLoading={analyzeState.isLoading}
+            >
+              {analyzeState.label}
+            </CallActionButtonContent>
+          </AppButton>
+        ) : null}
+        {call.recordingUrl && !call.transcript ? (
+          <AppButton
+            size="sm"
+            variant="secondary"
+            disabled={processRecordingState.disabled}
+            aria-busy={processRecordingState.isLoading}
+            onClick={() =>
+              runCallAction('processRecording', onProcessRecording)
+            }
+            className="gap-2"
+          >
+            <CallActionButtonContent
+              icon={faFileAudio}
+              isLoading={processRecordingState.isLoading}
+            >
+              {processRecordingState.label}
+            </CallActionButtonContent>
+          </AppButton>
+        ) : null}
+        {!call.linkedClientId ? (
+          <AppButton
+            size="sm"
+            variant="secondary"
+            disabled={createClientState.disabled}
+            aria-busy={createClientState.isLoading}
+            onClick={() => runCallAction('createClient', onCreateClient)}
+            className="gap-2"
+          >
+            <CallActionButtonContent
+              icon={faUserPlus}
+              isLoading={createClientState.isLoading}
+            >
+              {createClientState.label}
+            </CallActionButtonContent>
+          </AppButton>
+        ) : null}
+        <AppButton
+          size="sm"
+          disabled={createEventState.disabled}
+          aria-busy={createEventState.isLoading}
+          onClick={() => runCallAction('createEvent', onOpenEventDraft)}
+          className="gap-2"
+        >
+          {createEventState.isLoading ? (
+            <FontAwesomeIcon
+              icon={faSpinner}
+              className="h-3.5 w-3.5 animate-spin"
+            />
+          ) : null}
+          {createEventState.label}
+        </AppButton>
+      </div>
+    </div>
+  )
+}
+
 const CallEditorModal = ({
   closeModal,
   setOnConfirmFunc,
@@ -205,9 +436,7 @@ const CallEditorModal = ({
   const [startedAt, setStartedAt] = useState(
     toDatetimeLocal(initialCall?.startedAt)
   )
-  const [durationSec, setDurationSec] = useState(
-    initialCall?.durationSec ?? 0
-  )
+  const [durationSec, setDurationSec] = useState(initialCall?.durationSec ?? 0)
   const [status, setStatus] = useState(initialCall?.status ?? 'new')
   const [transcript, setTranscript] = useState(initialCall?.transcript ?? '')
   const onSaveRef = useRef(onSave)
@@ -250,7 +479,7 @@ const CallEditorModal = ({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+      <div className="tablet:grid-cols-2 grid grid-cols-1 gap-3">
         <Input
           label="Телефон"
           type="phone"
@@ -272,7 +501,7 @@ const CallEditorModal = ({
           </NativeSelect>
         </label>
       </div>
-      <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+      <div className="tablet:grid-cols-2 grid grid-cols-1 gap-3">
         <label className="flex flex-col gap-1 text-sm text-gray-700">
           Время звонка
           <input
@@ -328,7 +557,11 @@ const CallsContent = () => {
   )
   const canUseTelephony = Boolean(tariffAccess?.allowTelephony)
   const canUseAi = Boolean(tariffAccess?.allowAi)
-  const { data: callsPayload, isLoading, refetch } = useCallsQuery({
+  const {
+    data: callsPayload,
+    isLoading,
+    refetch,
+  } = useCallsQuery({
     status,
     enabled: canUseTelephony,
   })
@@ -423,8 +656,6 @@ const CallsContent = () => {
   }
 
   const openCallDetails = (call, client = null) => {
-    const fields = call?.aiExtractedFields ?? {}
-
     modalsFunc.add({
       title: 'Звонок',
       TopLeftComponent: (
@@ -444,146 +675,24 @@ const CallsContent = () => {
       showDecline: false,
       onConfirm: true,
       Children: () => (
-        <div className="flex flex-col gap-3 text-sm">
-          <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
-            <CallInfoRow label="Номер">
-              {call.phone || call.normalizedPhone || 'Без номера'}
-            </CallInfoRow>
-            <CallInfoRow label="Направление">
-              {DIRECTION_LABELS[call.direction] || 'Звонок'}
-            </CallInfoRow>
-            <CallInfoRow label="Время">
-              {formatDateTime(call.startedAt)}
-            </CallInfoRow>
-            <CallInfoRow label="Длительность">
-              {Number(call.durationSec || 0)} сек
-            </CallInfoRow>
-            <CallInfoRow label="Статус">
-              {STATUS_LABELS[call.status] || 'Новый'}
-            </CallInfoRow>
-          </div>
-
-          <LinkedClientCard
-            client={client}
-            linkedClientId={call.linkedClientId}
-            onOpen={openClientView}
-          />
-
-          {call.recordingUrl ? (
-            <AudioPlayer
-              src={call.recordingUrl}
-              title="Запись разговора"
-              subtitle="Novofon"
-            />
-          ) : null}
-
-          {call.aiSummary ? (
-            <div className="card-meta rounded border border-gray-200 p-3 leading-5">
-              <div className="card-muted mb-1 text-xs font-semibold">
-                Кратко по разговору
-              </div>
-              {call.aiSummary}
-            </div>
-          ) : null}
-
-          {(fields.eventDate || fields.budget || fields.nextContactAt) && (
-            <div className="grid grid-cols-1 gap-2 tablet:grid-cols-3">
-              <div className="rounded border border-gray-200 p-2">
-                <div className="card-muted">Дата</div>
-                <div className="card-title">
-                  {fields.eventDate ? formatDateTime(fields.eventDate) : '-'}
-                </div>
-              </div>
-              <div className="rounded border border-gray-200 p-2">
-                <div className="card-muted">Бюджет</div>
-                <div className="card-title">
-                  {fields.budget ? `${fields.budget} ₽` : '-'}
-                </div>
-              </div>
-              <div className="rounded border border-gray-200 p-2">
-                <div className="card-muted">Контакт</div>
-                <div className="card-title">
-                  {fields.nextContactAt ? formatDateTime(fields.nextContactAt) : '-'}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {call.transcript ? (
-            <div className="card-meta max-h-56 overflow-y-auto rounded border border-gray-200 p-3 leading-5">
-              <div className="card-muted mb-1 text-xs font-semibold">
-                Текст разговора
-              </div>
-              <div className="whitespace-pre-wrap">{call.transcript}</div>
-            </div>
-          ) : null}
-
-          {call.processingError ? (
-            <div className="text-sm text-red-600">{call.processingError}</div>
-          ) : null}
-
-          <div className="flex flex-wrap gap-2">
-            <AppButton
-              size="sm"
-              variant="secondary"
-              onClick={() => openCallEditor(call)}
-            >
-              Редактировать
-            </AppButton>
-            {!call.recordingUrl && call.transcript && !call.aiSummary ? (
-              <AppButton
-                size="sm"
-                variant="secondary"
-                disabled={!canUseAi || call.status === 'processing'}
-                onClick={() => analyzeCall(call)}
-                className="gap-2"
-              >
-                <FontAwesomeIcon
-                  icon={faWandMagicSparkles}
-                  className="h-3.5 w-3.5"
-                />
-                Разобрать текст
-              </AppButton>
-            ) : null}
-            {call.recordingUrl && !call.transcript ? (
-              <AppButton
-                size="sm"
-                variant="secondary"
-                disabled={!canUseAi || call.status === 'processing'}
-                onClick={() => processRecording(call)}
-                className="gap-2"
-              >
-                <FontAwesomeIcon icon={faFileAudio} className="h-3.5 w-3.5" />
-                Распознать запись
-              </AppButton>
-            ) : null}
-            {!call.linkedClientId ? (
-              <AppButton
-                size="sm"
-                variant="secondary"
-                onClick={() => createClientFromCall(call)}
-                className="gap-2"
-              >
-                <FontAwesomeIcon icon={faUserPlus} className="h-3.5 w-3.5" />
-                Создать клиента
-              </AppButton>
-            ) : null}
-            <AppButton
-              size="sm"
-              disabled={!call.transcript && !call.aiSummary}
-              onClick={() => openEventDraft(call)}
-            >
-              Создать заявку
-            </AppButton>
-          </div>
-        </div>
+        <CallDetailsModalContent
+          call={call}
+          client={client}
+          canUseAi={canUseAi}
+          onOpenEditor={() => openCallEditor(call)}
+          onAnalyze={() => analyzeCall(call)}
+          onProcessRecording={() => processRecording(call)}
+          onCreateClient={() => createClientFromCall(call)}
+          onOpenEventDraft={() => openEventDraft(call)}
+          onOpenClientView={openClientView}
+        />
       ),
     })
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 px-3 pb-3 tablet:px-4 tablet:pb-0 desktop:px-6">
-      <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between">
+    <div className="tablet:px-4 tablet:pb-0 desktop:px-6 flex h-full min-h-0 flex-col gap-3 px-3 pb-3">
+      <div className="tablet:flex-row tablet:items-center tablet:justify-between flex flex-col gap-2">
         <div>
           <div className="text-xl font-semibold text-gray-900">Звонки</div>
           <div className="text-sm text-gray-600">
@@ -635,11 +744,11 @@ const CallsContent = () => {
         )}
         {canUseTelephony && !isLoading && calls.length === 0 && (
           <div className="rounded-md border border-dashed border-gray-300 p-5 text-sm text-gray-600">
-            Звонков пока нет. До подключения IP-телефонии можно добавить тестовый
-            звонок вручную и проверить AI-черновик.
+            Звонков пока нет. До подключения IP-телефонии можно добавить
+            тестовый звонок вручную и проверить AI-черновик.
           </div>
         )}
-        <div className="grid grid-cols-1 gap-3 desktop:grid-cols-2">
+        <div className="desktop:grid-cols-2 grid grid-cols-1 gap-3">
           {calls.map((call) => {
             const linkedClientId = normalizeId(call?.linkedClientId)
             const client = linkedClientId
@@ -683,7 +792,7 @@ const CallsContent = () => {
                   </span>
                 </div>
 
-                <div className="card-meta grid grid-cols-1 gap-1 text-sm tablet:grid-cols-2">
+                <div className="card-meta tablet:grid-cols-2 grid grid-cols-1 gap-1 text-sm">
                   <div>
                     <span className="card-muted">Клиент: </span>
                     {client ? (
@@ -712,7 +821,9 @@ const CallsContent = () => {
                 )}
 
                 {call.processingError && (
-                  <div className="text-sm text-red-600">{call.processingError}</div>
+                  <div className="text-sm text-red-600">
+                    {call.processingError}
+                  </div>
                 )}
               </CardWrapper>
             )

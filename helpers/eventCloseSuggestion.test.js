@@ -1,6 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { getEventCloseSuggestionState } from './eventCloseSuggestion.js'
+import {
+  getEventCloseSuggestionState,
+  shouldSuggestEventClosingOnDismiss,
+} from './eventCloseSuggestion.js'
 
 const finishedNow = new Date('2026-05-21T00:00:00.000Z')
 
@@ -126,4 +129,39 @@ test('does not allow closing when event has obligation transactions', () => {
   assert.equal(result.hasObligations, true)
   assert.equal(result.canClose, false)
   assert.equal(result.shouldSuggestClosing, false)
+})
+
+test('suggests closing persisted event when edit modal is dismissed without saving', () => {
+  const result = shouldSuggestEventClosingOnDismiss(
+    {
+      _id: 'event-1',
+      status: 'active',
+      contractSum: 10000,
+      isByContract: false,
+      eventDate: '2026-05-20T18:00:00.000Z',
+      dateEnd: '2026-05-20T20:00:00.000Z',
+    },
+    [{ type: 'income', amount: 10000, category: 'final_payment' }],
+    finishedNow
+  )
+
+  assert.equal(result, true)
+})
+
+test('does not suggest closing dismissed clone modal', () => {
+  const result = shouldSuggestEventClosingOnDismiss(
+    {
+      _id: 'event-1',
+      status: 'active',
+      contractSum: 10000,
+      isByContract: false,
+      eventDate: '2026-05-20T18:00:00.000Z',
+      dateEnd: '2026-05-20T20:00:00.000Z',
+    },
+    [{ type: 'income', amount: 10000, category: 'final_payment' }],
+    finishedNow,
+    { clone: true }
+  )
+
+  assert.equal(result, false)
 })

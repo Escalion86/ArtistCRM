@@ -58,6 +58,7 @@ const Modal = ({
   const [onConfirmFunc, setOnConfirmFunc] = useState(null)
   const [onConfirm2Func, setOnConfirm2Func] = useState(null)
   const [onDeclineFunc, setOnDeclineFunc] = useState(null)
+  const [onCloseButtonFunc, setOnCloseButtonFunc] = useState(null)
   const setModals = useSetAtom(modalsAtom)
   const [close, setClose] = useState(false)
   const [ComponentInFooter, setComponentInFooter] = useState(null)
@@ -95,6 +96,13 @@ const Modal = ({
       setOnDeclineFunc(typeof value === 'function' ? () => value : value)
     },
     [setOnDeclineFunc]
+  )
+
+  const setOnCloseButtonFuncSafe = useCallback(
+    (value) => {
+      setOnCloseButtonFunc(typeof value === 'function' ? () => value : value)
+    },
+    [setOnCloseButtonFunc]
   )
 
   const closeModal = useCallback(() => {
@@ -163,6 +171,11 @@ const Modal = ({
           closeModal()
         }
       : undefined
+
+  const onCloseButtonClick =
+    typeof onCloseButtonFunc === 'function'
+      ? () => onCloseButtonFunc(refreshPage)
+      : closeModal
 
   // const onConfirm2Click = () => {
   //   if (onConfirm2Func) return onConfirm2Func(refreshPage)
@@ -233,7 +246,7 @@ const Modal = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: close ? 0 : 1 }}
       transition={{ duration: 0.1 }}
-      onMouseDown={crossShow ? onDeclineClick || closeModal : undefined}
+      onMouseDown={crossShow ? onDeclineClick || onCloseButtonClick : undefined}
     >
       <motion.div
         className={
@@ -266,7 +279,7 @@ const Modal = ({
                 className="h-8 w-8 transform cursor-pointer text-black duration-200 hover:scale-110"
                 icon={faTimes}
                 // size="1x"
-                onClick={onDeclineClick || closeModal}
+                onClick={onDeclineClick || onCloseButtonClick}
               />
             </div>
           </Tooltip>
@@ -315,6 +328,7 @@ const Modal = ({
               setOnConfirmFunc={setOnConfirmFuncSafe}
               setOnConfirm2Func={setOnConfirm2FuncSafe}
               setOnDeclineFunc={setOnDeclineFuncSafe}
+              setOnCloseButtonFunc={setOnCloseButtonFuncSafe}
               setOnShowOnCloseConfirmDialog={setOnShowOnCloseConfirmDialog}
               setDisableConfirm={setDisableConfirm}
               setDisableDecline={setDisableDecline}
@@ -359,7 +373,7 @@ const Modal = ({
             // showDecline={!onlyCloseButtonShowState && showDecline}
             disableConfirm={disableConfirm}
             disableDecline={disableDecline}
-            closeModal={closeModal}
+            closeModal={onCloseButtonClick}
             bottomLeftButton={bottomLeftButton}
             bottomLeftComponent={bottomLeftComponentState}
             declineButtonBgClassName={declineButtonBgClassName}

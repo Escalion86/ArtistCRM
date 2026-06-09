@@ -52,7 +52,10 @@ import {
   getContractClientCandidateLabel,
   hasContractClientRequisites,
 } from '@helpers/contractClientCandidates'
-import { getEventCloseSuggestionState } from '@helpers/eventCloseSuggestion'
+import {
+  getEventCloseSuggestionState,
+  shouldSuggestEventClosingOnDismiss,
+} from '@helpers/eventCloseSuggestion'
 import { shouldShowEventConflictWarning } from '@helpers/eventConflictWarning'
 import { getEventTransactionAction } from '@helpers/eventTransactionAction'
 import {
@@ -177,6 +180,7 @@ const eventFunc = (
     closeModal,
     setOnConfirmFunc,
     setOnDeclineFunc,
+    setOnCloseButtonFunc,
     setOnShowOnCloseConfirmDialog,
     setDisableConfirm,
     setDisableDecline,
@@ -633,6 +637,29 @@ const eventFunc = (
       [getTransactionsForEvent]
     )
 
+    const getPersistedEventForCloseSuggestion = useCallback(() => {
+      if (!sourceEventId) return null
+      return (
+        (events ?? []).find(
+          (item) => String(item?._id) === String(sourceEventId)
+        ) ??
+        event ??
+        null
+      )
+    }, [event, events, sourceEventId])
+
+    const shouldSuggestClosingOnDismiss = useCallback(() => {
+      const persistedEvent = getPersistedEventForCloseSuggestion()
+      if (!persistedEvent?._id) return false
+
+      return shouldSuggestEventClosingOnDismiss(
+        persistedEvent,
+        getTransactionsForEvent(persistedEvent._id),
+        new Date(),
+        { clone }
+      )
+    }, [getPersistedEventForCloseSuggestion, getTransactionsForEvent])
+
     const buildEventSaveContext = useCallback(() => {
       const normalizedContractSum =
         typeof contractSum === 'number' && !Number.isNaN(contractSum)
@@ -806,6 +833,30 @@ const eventFunc = (
       [additionalEvents, modalsFunc]
     )
 
+    const openCloseSuggestionModal = useCallback(
+      (targetEventId) => {
+        if (!targetEventId) return false
+
+        modalsFunc.add({
+          title: 'Закрыть мероприятие?',
+          text: 'Мероприятие полностью оплачено и завершено. Возможно, стоит закрыть мероприятие?',
+          confirmButtonName: 'Закрыть мероприятие',
+          declineButtonName: 'Оставить открытым',
+          showDecline: true,
+          onConfirm: async () => {
+            await setEvent({ _id: targetEventId, status: 'closed' }, false)
+            closeModalRef.current()
+          },
+          onDecline: () => {
+            closeModalRef.current()
+          },
+        })
+
+        return true
+      },
+      [modalsFunc, setEvent]
+    )
+
     const handleSaveSuccess = useCallback(
       async ({
         savedEvent,
@@ -869,20 +920,7 @@ const eventFunc = (
         }
 
         if (shouldSuggestClosingAfterSave(savedEvent)) {
-          modalsFunc.add({
-            title: 'Закрыть мероприятие?',
-            text: 'Мероприятие полностью оплачено и завершено. Возможно, стоит закрыть мероприятие?',
-            confirmButtonName: 'Закрыть мероприятие',
-            declineButtonName: 'Оставить открытым',
-            showDecline: true,
-            onConfirm: async () => {
-              await setEvent({ _id: savedEvent._id, status: 'closed' }, false)
-              closeModalRef.current()
-            },
-            onDecline: () => {
-              closeModalRef.current()
-            },
-          })
+          openCloseSuggestionModal(savedEvent._id)
           return
         }
 
@@ -896,7 +934,7 @@ const eventFunc = (
       },
       [
         events,
-        modalsFunc,
+        openCloseSuggestionModal,
         openAdditionalEventModal,
         setEvent,
         shouldSuggestClosingAfterSave,
@@ -1052,14 +1090,40 @@ const eventFunc = (
     const onClickConfirmRef = useRef(onClickConfirm)
     onClickConfirmRef.current = onClickConfirm
 
+    const handleDismissRequest = useCallback(() => {
+      if (shouldSuggestClosingOnDismiss()) {
+        const persistedEvent = getPersistedEventForCloseSuggestion()
+        if (openCloseSuggestionModal(persistedEvent?._id)) return
+      }
+
+      closeModalRef.current()
+    }, [
+      getPersistedEventForCloseSuggestion,
+      openCloseSuggestionModal,
+      shouldSuggestClosingOnDismiss,
+    ])
+
+    const handleDismissRequestRef = useRef(handleDismissRequest)
+    handleDismissRequestRef.current = handleDismissRequest
+
     useEffect(() => {
       setOnShowOnCloseConfirmDialog(isFormChanged)
       setDisableConfirm(false)
       setOnConfirmFunc(isFormChanged ? () => onClickConfirmRef.current() : null)
+      setOnDeclineFunc(
+        isFormChanged ? () => handleDismissRequestRef.current() : null
+      )
+      if (setOnCloseButtonFunc) {
+        setOnCloseButtonFunc(
+          isFormChanged ? null : () => handleDismissRequestRef.current()
+        )
+      }
     }, [
       isFormChanged,
       setDisableConfirm,
       setOnConfirmFunc,
+      setOnCloseButtonFunc,
+      setOnDeclineFunc,
       setOnShowOnCloseConfirmDialog,
     ])
 
