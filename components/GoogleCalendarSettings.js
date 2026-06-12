@@ -37,6 +37,7 @@ const DEFAULT_SYNC_SETTINGS = Object.freeze({
   showAdditionalEvents: true,
   showNavigationLinks: true,
   showEventLink: true,
+  showStatusIcons: true,
 })
 
 const TITLE_MODE_OPTIONS = Object.freeze([
@@ -141,6 +142,7 @@ const normalizeSyncSettings = (value) => {
     showAdditionalEvents: boolValue('showAdditionalEvents'),
     showNavigationLinks: boolValue('showNavigationLinks'),
     showEventLink: boolValue('showEventLink'),
+    showStatusIcons: boolValue('showStatusIcons'),
   }
 }
 
@@ -499,7 +501,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
   if (calendarStatus.loading) {
     return (
       <div className="flex items-center gap-2 py-3 text-sm text-gray-600">
-        <FontAwesomeIcon icon={faSpinner} className="h-4 w-4 animate-spin" />
+        <FontAwesomeIcon icon={faSpinner} className="w-4 h-4 animate-spin" />
         <span>Загружаем настройки Google Calendar...</span>
       </div>
     )
@@ -526,11 +528,11 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
         {calendarError ? (
           <div className="mt-2 text-xs text-red-600">{calendarError}</div>
         ) : null}
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mt-3">
           {!calendarStatus.connected ? (
             <button
               type="button"
-              className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
               onClick={handleConnectCalendar}
               disabled={calendarLoading || calendarStatus.loading}
             >
@@ -542,7 +544,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
             <>
               <button
                 type="button"
-                className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
                 onClick={handleLoadCalendars}
                 disabled={calendarLoading}
               >
@@ -550,7 +552,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
               </button>
               <button
                 type="button"
-                className="modal-action-button bg-danger px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-danger disabled:cursor-not-allowed disabled:bg-gray-300"
                 onClick={handleDisconnectCalendar}
                 disabled={calendarLoading}
               >
@@ -560,17 +562,17 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
           )}
         </div>
         {calendarStatus.connected ? (
-          <div className="mt-3 rounded border border-gray-200 bg-white p-3">
+          <div className="p-3 mt-3 bg-white border border-gray-200 rounded">
             <div className="text-sm font-semibold text-gray-800">
               Массовая синхронизация
             </div>
             <div className="mt-1 text-xs text-gray-500">
               Отправляет/Обновляет в Google Calendar все мероприятия.
             </div>
-            <div className="mt-3 flex justify-end">
+            <div className="flex justify-end mt-3">
               <button
                 type="button"
-                className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
                 onClick={handleSyncCheckedEvents}
                 disabled={calendarLoading || calendarStatus.loading}
               >
@@ -585,9 +587,9 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
           </div>
         ) : null}
         {calendarItems.length > 0 ? (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 mt-3">
             <NativeSelect
-              className="h-9 rounded border border-gray-300 px-2 text-sm"
+              className="px-2 text-sm border border-gray-300 rounded h-9"
               value={selectedCalendarId}
               onChange={(event) => setSelectedCalendarId(event.target.value)}
             >
@@ -599,7 +601,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
             </NativeSelect>
             <button
               type="button"
-              className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
               onClick={handleSelectCalendar}
               disabled={!selectedCalendarId || calendarLoading}
             >
@@ -607,15 +609,29 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
             </button>
           </div>
         ) : null}
-        <div className="mt-4 rounded border border-gray-200 bg-white p-3">
+        <div className="p-3 mt-4 bg-white border border-gray-200 rounded">
           <div className="text-sm font-semibold text-gray-800">
             Что отправлять в Google Calendar
           </div>
-          <label className="mt-3 flex flex-col gap-1">
+          <IconCheckBox
+            checked={Boolean(syncSettings.showStatusIcons)}
+            onClick={() =>
+              setSyncSettings((prev) => ({
+                ...prev,
+                showStatusIcons: !prev.showStatusIcons,
+              }))
+            }
+            label="Добавить в начале заголовка иконки статуса оплаты и передачи коллеге"
+            small
+            noMargin
+            disabled={!calendarStatus.connected}
+            wrapperClassName="mt-2"
+          />
+          <label className="flex flex-col gap-1 mt-2">
             <span className="text-sm text-gray-700">Заголовок события</span>
             <NativeSelect
               wrapperClassName="w-full"
-              className="h-9 w-full rounded border border-gray-300 px-2 text-sm"
+              className="w-full px-2 text-sm border border-gray-300 rounded h-9"
               value={syncSettings.titleMode}
               onChange={(event) =>
                 setSyncSettings((prev) => ({
@@ -632,7 +648,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
               ))}
             </NativeSelect>
           </label>
-          <div className="tablet:grid-cols-2 mt-3 grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 gap-2 mt-3 tablet:grid-cols-2">
             {SYNC_FIELD_OPTIONS.map((item) => (
               <IconCheckBox
                 key={item.key}
@@ -650,10 +666,10 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
               />
             ))}
           </div>
-          <div className="mt-3 flex justify-end">
+          <div className="flex justify-end mt-3">
             <button
               type="button"
-              className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
               onClick={handleSaveSyncSettings}
               disabled={
                 calendarLoading ||
@@ -666,7 +682,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
             </button>
           </div>
         </div>
-        <div className="mt-4 rounded border border-gray-200 bg-white p-3">
+        <div className="p-3 mt-4 bg-white border border-gray-200 rounded">
           <div className="text-sm font-semibold text-gray-800">
             Уведомления Google Calendar
           </div>
@@ -686,14 +702,14 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
             />
           </div>
           {!calendarReminders.useDefault && (
-            <div className="mt-2 flex flex-col gap-2">
+            <div className="flex flex-col gap-2 mt-2">
               {calendarReminders.overrides.map((item, index) => (
                 <div
                   key={`calendar-reminder-${index}`}
                   className="flex items-center gap-2"
                 >
                   <NativeSelect
-                    className="h-9 rounded border border-gray-300 px-2 text-sm"
+                    className="px-2 text-sm border border-gray-300 rounded h-9"
                     value={item.method}
                     onChange={(event) => {
                       const method = event.target.value
@@ -712,7 +728,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
                   <input
                     type="number"
                     min={1}
-                    className="hide-number-spin h-9 w-14 rounded border border-gray-300 px-2 text-sm"
+                    className="px-2 text-sm border border-gray-300 rounded hide-number-spin h-9 w-14"
                     value={item.minutes}
                     onChange={(event) => {
                       const minutes = toNormalizedNumber(event.target.value, {
@@ -732,7 +748,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
                     }}
                     disabled={!calendarStatus.connected}
                   />
-                  <span className="text-center text-xs leading-3 text-gray-500">
+                  <span className="text-xs leading-3 text-center text-gray-500">
                     минут до
                   </span>
                   <IconActionButton
@@ -768,10 +784,10 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
               />
             </div>
           )}
-          <div className="mt-3 flex justify-end">
+          <div className="flex justify-end mt-3">
             <button
               type="button"
-              className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
               onClick={handleSaveReminders}
               disabled={
                 calendarLoading ||
@@ -786,7 +802,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
             </button>
           </div>
         </div>
-        <div className="mt-4 rounded border border-gray-200 bg-white p-3">
+        <div className="p-3 mt-4 bg-white border border-gray-200 rounded">
           <div className="text-sm font-semibold text-gray-800">
             Цвета мероприятий по статусам
           </div>
@@ -803,7 +819,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
               disabled={!calendarStatus.connected}
             />
           </div>
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 mt-3">
             {STATUS_COLOR_FIELDS.filter(
               (field) =>
                 !(deleteCanceledFromCalendar && field.key === 'canceled')
@@ -853,10 +869,10 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
               </label>
             ))}
           </div>
-          <div className="mt-3 flex justify-end">
+          <div className="flex justify-end mt-3">
             <button
               type="button"
-              className="modal-action-button bg-general px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="px-4 py-2 text-sm font-semibold text-white modal-action-button bg-general disabled:cursor-not-allowed disabled:bg-gray-300"
               onClick={handleSaveStatusColors}
               disabled={
                 calendarLoading ||
@@ -872,16 +888,16 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       </div>
       {syncProgress.open ? (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/45 px-4">
-          <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-4 shadow-xl">
+          <div className="w-full max-w-sm p-4 bg-white border border-gray-200 rounded-lg shadow-xl">
             <div className="text-sm font-semibold text-gray-900">
               Синхронизация Google Calendar
             </div>
             <div className="mt-1 text-xs text-gray-600">
               Выполнено: {syncProgress.done} / {syncProgress.total}
             </div>
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+            <div className="w-full h-2 mt-3 overflow-hidden bg-gray-200 rounded-full">
               <div
-                className="bg-general h-2 rounded-full transition-all duration-300"
+                className="h-2 transition-all duration-300 rounded-full bg-general"
                 style={{
                   width: `${
                     syncProgress.total > 0
@@ -898,7 +914,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       ) : null}
       {syncSuggestModal.open ? (
         <div className="fixed inset-0 z-[1210] flex items-center justify-center bg-black/45 px-4">
-          <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-4 shadow-xl">
+          <div className="w-full max-w-sm p-4 bg-white border border-gray-200 rounded-lg shadow-xl">
             <div className="text-sm font-semibold text-gray-900">
               Настройки сохранены
             </div>
@@ -909,17 +925,17 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
                   ? 'Синхронизировать мероприятия, чтобы обновить данные в Google Calendar?'
                   : 'Синхронизировать мероприятия, чтобы обновить цвета в Google Calendar?'}
             </div>
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="flex justify-end gap-2 mt-4">
               <button
                 type="button"
-                className="rounded border border-gray-300 px-3 py-2 text-sm font-semibold hover:bg-gray-50"
+                className="px-3 py-2 text-sm font-semibold border border-gray-300 rounded hover:bg-gray-50"
                 onClick={() => setSyncSuggestModal({ open: false, source: '' })}
               >
                 Позже
               </button>
               <button
                 type="button"
-                className="bg-general rounded px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+                className="px-3 py-2 text-sm font-semibold text-white rounded bg-general hover:opacity-90"
                 onClick={async () => {
                   setSyncSuggestModal({ open: false, source: '' })
                   await handleSyncCheckedEvents()

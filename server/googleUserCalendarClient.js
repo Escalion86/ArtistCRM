@@ -22,6 +22,7 @@ const DEFAULT_GOOGLE_CALENDAR_SYNC_SETTINGS = Object.freeze({
   showAdditionalEvents: true,
   showNavigationLinks: true,
   showEventLink: true,
+  showStatusIcons: true,
 })
 
 const GOOGLE_CALENDAR_TITLE_MODES = new Set([
@@ -42,7 +43,8 @@ const getOAuthClient = () => {
 }
 
 const normalizeCalendarReminders = (value) => {
-  if (!value || typeof value !== 'object') return DEFAULT_GOOGLE_CALENDAR_REMINDERS
+  if (!value || typeof value !== 'object')
+    return DEFAULT_GOOGLE_CALENDAR_REMINDERS
   const useDefault = Boolean(value.useDefault)
   const overrides = Array.isArray(value.overrides)
     ? value.overrides
@@ -60,7 +62,8 @@ const normalizeCalendarReminders = (value) => {
         }))
     : []
 
-  if (!useDefault && overrides.length === 0) return DEFAULT_GOOGLE_CALENDAR_REMINDERS
+  if (!useDefault && overrides.length === 0)
+    return DEFAULT_GOOGLE_CALENDAR_REMINDERS
   return {
     useDefault,
     overrides,
@@ -74,10 +77,22 @@ const normalizeCalendarStatusColors = (value) => {
     return /^(?:[1-9]|1[0-1])$/.test(prepared) ? prepared : fallback
   }
   return {
-    draft: normalizeColorId(source.draft, DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.draft),
-    active: normalizeColorId(source.active, DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.active),
-    canceled: normalizeColorId(source.canceled, DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.canceled),
-    closed: normalizeColorId(source.closed, DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.closed),
+    draft: normalizeColorId(
+      source.draft,
+      DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.draft
+    ),
+    active: normalizeColorId(
+      source.active,
+      DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.active
+    ),
+    canceled: normalizeColorId(
+      source.canceled,
+      DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.canceled
+    ),
+    closed: normalizeColorId(
+      source.closed,
+      DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS.closed
+    ),
   }
 }
 
@@ -100,6 +115,7 @@ const normalizeCalendarSyncSettings = (value) => {
     showAdditionalEvents: boolValue('showAdditionalEvents'),
     showNavigationLinks: boolValue('showNavigationLinks'),
     showEventLink: boolValue('showEventLink'),
+    showStatusIcons: boolValue('showStatusIcons'),
   }
 }
 

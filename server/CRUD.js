@@ -183,7 +183,8 @@ const sanitizeToPlainText = (value) =>
     .trim()
 
 const formatAdditionalEventsForMainDescription = (additionalEvents = []) => {
-  if (!Array.isArray(additionalEvents) || additionalEvents.length === 0) return ''
+  if (!Array.isArray(additionalEvents) || additionalEvents.length === 0)
+    return ''
 
   const lines = additionalEvents
     .map((item) => {
@@ -385,13 +386,20 @@ const deleteRelatedEventsFromCalendar = async (eventId, calendarId, user) => {
   return deletedIds.size
 }
 
-const updateEventInCalendar = async (event, req, user, previousEvent = null) => {
+const updateEventInCalendar = async (
+  event,
+  req,
+  user,
+  previousEvent = null
+) => {
   const context = await getCalendarContext(user)
   if (!context) return undefined
   const { calendar, calendarId } = context
   const effectiveCalendarId = event?.googleCalendarCalendarId || calendarId
   const timeZone = await getSiteTimeZone(event?.tenantId)
-  const previousAdditionalEvents = Array.isArray(previousEvent?.additionalEvents)
+  const previousAdditionalEvents = Array.isArray(
+    previousEvent?.additionalEvents
+  )
     ? previousEvent.additionalEvents
     : []
   const settings = normalizeCalendarSettings(user)
@@ -438,9 +446,13 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
   if (event?.clientId) {
     await dbConnect()
     const client = await Clients.findById(event.clientId)
-      .select('firstName secondName phone whatsapp viber telegram instagram vk email')
+      .select(
+        'firstName secondName phone whatsapp viber telegram instagram vk email'
+      )
       .lean()
-    clientName = [client?.firstName, client?.secondName].filter(Boolean).join(' ')
+    clientName = [client?.firstName, client?.secondName]
+      .filter(Boolean)
+      .join(' ')
     if (syncSettings.showClient && clientName) {
       extraDescriptionLines.push(`Клиент: ${clientName}`)
     }
@@ -449,10 +461,16 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       extraDescriptionLines.push(clientContactLines.join('\n'))
     }
   }
-  if (syncSettings.showColleague && event?.isTransferred && event?.colleagueId) {
+  if (
+    syncSettings.showColleague &&
+    event?.isTransferred &&
+    event?.colleagueId
+  ) {
     await dbConnect()
     const colleague = await Clients.findById(event.colleagueId)
-      .select('firstName secondName phone whatsapp viber telegram instagram vk email')
+      .select(
+        'firstName secondName phone whatsapp viber telegram instagram vk email'
+      )
       .lean()
     colleagueName = [colleague?.firstName, colleague?.secondName]
       .filter(Boolean)
@@ -542,8 +560,8 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         const sign = transaction.type === 'expense' ? '-' : '+'
         const amountLabel = Number(transaction.amount ?? 0).toLocaleString()
         const categoryName = transaction.category
-          ? transactionCategoryMap.get(transaction.category) ??
-            transaction.category
+          ? (transactionCategoryMap.get(transaction.category) ??
+            transaction.category)
           : ''
         const categoryLabel = categoryName ? `, ${categoryName}` : ''
         const commentLabel = transaction.comment
@@ -576,9 +594,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       .filter(Boolean)
       .join('\n\n')
   }
-  const aTags = String(event.description ?? '').match(
-    /<a[^>]*>([^<]+)<\/a>/g
-  )
+  const aTags = String(event.description ?? '').match(/<a[^>]*>([^<]+)<\/a>/g)
   // const linksReformated = []
   if (aTags?.length > 0) {
     for (let i = 0; i < aTags.length; i++)
@@ -602,9 +618,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       minute: '2-digit',
       second: '2-digit',
     }).formatToParts(value)
-    const map = Object.fromEntries(
-      parts.map((part) => [part.type, part.value])
-    )
+    const map = Object.fromEntries(parts.map((part) => [part.type, part.value]))
     return `${map.year}-${map.month}-${map.day}T${map.hour}:${map.minute}:${map.second}`
   }
   let startDateTime = formatDateTimeInZone(startDate, timeZone)
@@ -643,6 +657,34 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       .join(', ')
   }
 
+  // Определяем иконки статуса оплаты и передачи для заголовка
+  let statusIconsPrefix = ''
+  if (syncSettings.showStatusIcons && event?._id) {
+    await dbConnect()
+    const statusTransactions = await Transactions.find({ eventId: event._id })
+      .select('amount type category')
+      .lean()
+    let totalIncome = 0
+    let hasDeposit = false
+    for (const t of statusTransactions) {
+      if (t.type === 'income') {
+        totalIncome += Number(t.amount ?? 0)
+        if (['deposit', 'advance'].includes(String(t.category ?? ''))) {
+          hasDeposit = true
+        }
+      }
+    }
+    const contractSumVal = Number(event?.contractSum ?? 0)
+    const isFullyPaid = contractSumVal > 0 && totalIncome >= contractSumVal
+    const icons = []
+    if (hasDeposit) icons.push('☑️')
+    if (isFullyPaid) icons.push('✅')
+    if (Boolean(event?.isTransferred)) icons.push('➡️')
+    if (icons.length > 0) {
+      statusIconsPrefix = icons.join('') + ' '
+    }
+  }
+
   const buildCalendarTitle = () => {
     const eventTitle =
       typeof event?.title === 'string' ? event.title.trim() : ''
@@ -658,9 +700,11 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
     const titleParts = modes[titleMode] ?? modes.eventType_services
     const title = titleParts.filter(Boolean).join(' • ')
     if (title) return title
-    return [eventTypeTitle, servicesTitle, eventTitle, clientName]
-      .filter(Boolean)
-      .join(' • ') || 'Мероприятие'
+    return (
+      [eventTypeTitle, servicesTitle, eventTitle, clientName]
+        .filter(Boolean)
+        .join(' • ') || 'Мероприятие'
+    )
   }
   const calendarTitle = buildCalendarTitle()
 
@@ -688,7 +732,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         ? '[ЗАЯВКА] '
         : ''
   const calendarEvent = {
-    summary: `${statusPrefix}${calendarTitle}`,
+    summary: `${statusIconsPrefix}${statusPrefix}${calendarTitle}`,
     description: [
       sanitizeToPlainText(
         preparedText
@@ -734,18 +778,20 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         minute: '2-digit',
       })
     : 'не указана'
-  const clientBlock = syncSettings.showClient && clientName
-    ? `Клиент: ${clientName}${
-        clientContactLines.length ? `\n${clientContactLines.join('\n')}` : ''
-      }`
-    : ''
-  const colleagueBlock = syncSettings.showColleague && isTransferred
-    ? `Передано: ${colleagueName || 'Контакт не указан'}${
-        colleagueContactLines.length
-          ? `\n${colleagueContactLines.join('\n')}`
-          : ''
-      }`
-    : ''
+  const clientBlock =
+    syncSettings.showClient && clientName
+      ? `Клиент: ${clientName}${
+          clientContactLines.length ? `\n${clientContactLines.join('\n')}` : ''
+        }`
+      : ''
+  const colleagueBlock =
+    syncSettings.showColleague && isTransferred
+      ? `Передано: ${colleagueName || 'Контакт не указан'}${
+          colleagueContactLines.length
+            ? `\n${colleagueContactLines.join('\n')}`
+            : ''
+        }`
+      : ''
   const additionalBaseDescriptionLines = [
     'Доп. событие по мероприятию',
     `Мероприятие: ${calendarTitle}`,
@@ -756,7 +802,7 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
         : event.status === 'canceled'
           ? 'Отменено'
           : event.status === 'closed'
-          ? 'Закрыто'
+            ? 'Закрыто'
             : 'Мероприятие'
     }`,
     clientBlock,
@@ -882,9 +928,8 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       .map((item) => [item.googleCalendarEventId, item])
   )
 
-  const normalizedAdditionalEvents = (Array.isArray(event?.additionalEvents)
-    ? event.additionalEvents
-    : []
+  const normalizedAdditionalEvents = (
+    Array.isArray(event?.additionalEvents) ? event.additionalEvents : []
   )
     .map((item) => toAdditionalEventPayload(item))
     .filter(Boolean)
@@ -895,9 +940,9 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
       .filter(Boolean)
   )
 
-  const removedGoogleIds = Array.from(previousAdditionalByGoogleId.keys()).filter(
-    (googleId) => !currentAdditionalGoogleIds.has(googleId)
-  )
+  const removedGoogleIds = Array.from(
+    previousAdditionalByGoogleId.keys()
+  ).filter((googleId) => !currentAdditionalGoogleIds.has(googleId))
   for (const googleId of removedGoogleIds) {
     try {
       await calendarDelete(googleId)
@@ -992,7 +1037,10 @@ const updateEventInCalendar = async (event, req, user, previousEvent = null) => 
 
     if (item.googleCalendarEventId) {
       try {
-        await calendarUpdate(item.googleCalendarEventId, additionalCalendarEvent)
+        await calendarUpdate(
+          item.googleCalendarEventId,
+          additionalCalendarEvent
+        )
       } catch (error) {
         if (error?.code === 404) {
           const created = await calendarInsert(additionalCalendarEvent)

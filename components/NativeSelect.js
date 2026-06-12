@@ -12,7 +12,7 @@ const NativeSelect = ({
 }) => (
   <div className={cn('relative', wrapperClassName)}>
     <select
-      className={cn('appearance-none', className, 'pr-10')}
+      className={cn('appearance-none', className, 'pr-6')}
       disabled={disabled}
       {...props}
     >
@@ -21,7 +21,7 @@ const NativeSelect = ({
     <FontAwesomeIcon
       icon={faChevronDown}
       className={cn(
-        'pointer-events-none absolute top-1/2 right-2 h-2 w-2 -translate-y-1/2',
+        'pointer-events-none absolute top-1/2 right-0.5 h-2 w-2 -translate-y-1/2',
         disabled ? 'text-gray-400' : 'text-gray-700',
         arrowClassName
       )}

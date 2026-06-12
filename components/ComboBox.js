@@ -60,9 +60,9 @@ const ComboBox = ({
       tone={tone}
     >
       <NativeSelect
-        wrapperClassName="flex flex-1"
+        wrapperClassName="flex flex-1 max-w-full"
         className={cn(
-          'h-7 flex-1 cursor-pointer bg-transparent px-1 outline-none',
+          'h-7 max-w-full flex-1 cursor-pointer bg-transparent px-1 outline-none',
           (
             defaultValue !== undefined && !value
               ? defaultValue === null || defaultValue === ''
@@ -78,7 +78,7 @@ const ComboBox = ({
           onChange(e.target.value === '' ? null : e.target.value)
         }
         defaultValue={defaultItem ? defaultValue : undefined}
-        value={defaultValue ? undefined : value ?? ''}
+        value={defaultValue ? undefined : (value ?? '')}
         style={{
           WebkitAppearance: 'none',
           MozAppearance: 'none',
@@ -88,7 +88,7 @@ const ComboBox = ({
       >
         {placeholder && (
           <option
-            className="text-disabled"
+            className="text-disabled truncate"
             disabled={!activePlaceholder}
             value=""
           >
@@ -97,7 +97,7 @@ const ComboBox = ({
         )}
         {preparedItems.map((item, index) => (
           <option
-            className="cursor-pointer text-black"
+            className="cursor-pointer truncate text-black"
             key={item.value}
             value={item.value}
           >

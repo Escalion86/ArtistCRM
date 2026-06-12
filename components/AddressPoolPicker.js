@@ -47,7 +47,7 @@ const AddressPoolPicker = ({
     () =>
       Array.isArray(controlledPoolAddresses)
         ? controlledPoolAddresses
-        : siteSettings?.addresses ?? [],
+        : (siteSettings?.addresses ?? []),
     [controlledPoolAddresses, siteSettings?.addresses]
   )
 
@@ -110,12 +110,7 @@ const AddressPoolPicker = ({
   }
 
   return (
-    <div
-      className={cn(
-        isParty && 'rounded-xl border border-sky-100 bg-sky-50/40 p-3',
-        outerClassName
-      )}
-    >
+    <div className={cn(outerClassName)}>
       <InputWrapper
         label={label}
         labelClassName={labelClassName}
@@ -141,8 +136,8 @@ const AddressPoolPicker = ({
                   noMargin
                   fullWidth
                   error={errors?.address}
-                  className="flex-1 w-full min-w-0"
-                  selectClassName="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                  className="w-full min-w-0 flex-1"
+                  selectClassName="min-w-0 overflow-hidden text-ellipsis truncate"
                 />
               </div>
               <IconActionButton
@@ -155,11 +150,6 @@ const AddressPoolPicker = ({
                 }
                 size="md"
                 variant="neutral"
-                className={
-                  isParty
-                    ? 'border border-sky-100 bg-white text-sky-700 hover:bg-sky-100'
-                    : ''
-                }
               />
             </div>
 
@@ -183,26 +173,13 @@ const AddressPoolPicker = ({
                       name={saveButtonLabel}
                       onClick={handleSaveToPool}
                       thin
-                      className={
-                        isParty
-                          ? 'border border-sky-200 bg-white text-sky-700 hover:bg-sky-100'
-                          : 'border border-general bg-white text-general hover:bg-green-50'
-                      }
+                      className="border-general text-general border bg-white hover:bg-green-50"
                       classBgColor="bg-white"
-                      classHoverBgColor={
-                        isParty ? 'hover:bg-sky-100' : 'hover:bg-green-50'
-                      }
+                      classHoverBgColor="hover:bg-green-50"
                     />
                   )}
                   {isAddressInPool && (
-                    <span
-                      className={cn(
-                        'text-xs',
-                        isParty ? 'text-sky-700' : 'text-green-600'
-                      )}
-                    >
-                      {savedLabel}
-                    </span>
+                    <span className="text-xs text-green-600">{savedLabel}</span>
                   )}
                 </div>
               </div>
