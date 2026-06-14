@@ -31,11 +31,11 @@
 
 The mobile app needs to know the API endpoint at build time.
 
-1. Determine your production API URL (e.g., `https://artistcrm.com/api`)
+1. Determine your production API URL (e.g., `https://artistcrm.ru/api`)
 2. Go to GitHub repo → Settings → Secrets and variables → Actions
 3. Click "New repository secret"
 4. Name: `EXPO_PUBLIC_API_BASE_URL`
-5. Value: your API base URL (e.g., `https://artistcrm.com/api`)
+5. Value: your API base URL (e.g., `https://artistcrm.ru/api`)
 
 **Important**: This URL must be accessible from the mobile device. Ensure your API server is deployed and the domain resolves correctly.
 
@@ -53,14 +53,14 @@ Required for iOS TestFlight uploads.
 
 Add these secrets to GitHub:
 
-| Secret Name | Value |
-|---|---|
-| `APPLE_API_KEY` | Contents of the `.p8` file (the entire text including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`) |
-| `APPLE_API_KEY_ID` | The Key ID (e.g., `ABCD123456`) |
-| `APPLE_API_ISSUER_ID` | The Issuer ID (e.g., `12345678-1234-1234-1234-123456789012`) |
-| `APPLE_ID` | Your Apple Developer account email (e.g., `escalion86@gmail.com`) |
-| `APPLE_ASC_APP_ID` | The App Store Connect App ID (numeric, found in App Store Connect → App Information) |
-| `APPLE_TEAM_ID` | Your Apple Developer Team ID (10 characters, found in developer.apple.com → Membership) |
+| Secret Name           | Value                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `APPLE_API_KEY`       | Contents of the `.p8` file (the entire text including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`) |
+| `APPLE_API_KEY_ID`    | The Key ID (e.g., `ABCD123456`)                                                                                      |
+| `APPLE_API_ISSUER_ID` | The Issuer ID (e.g., `12345678-1234-1234-1234-123456789012`)                                                         |
+| `APPLE_ID`            | Your Apple Developer account email (e.g., `escalion86@gmail.com`)                                                    |
+| `APPLE_ASC_APP_ID`    | The App Store Connect App ID (numeric, found in App Store Connect → App Information)                                 |
+| `APPLE_TEAM_ID`       | Your Apple Developer Team ID (10 characters, found in developer.apple.com → Membership)                              |
 
 ## After Secrets Are Set
 

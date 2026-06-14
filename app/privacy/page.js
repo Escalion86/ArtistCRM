@@ -1,6 +1,9 @@
 import Link from 'next/link'
 
-const siteUrl = (process.env.DOMAIN || 'https://artistcrm.ru').replace(/\/$/, '')
+const siteUrl = (process.env.DOMAIN || 'https://artistcrm.ru').replace(
+  /\/$/,
+  ''
+)
 const pageUrl = `${siteUrl}/privacy`
 const ogImage = `${siteUrl}/og-image.jpg`
 
@@ -45,10 +48,10 @@ export default function PrivacyPage() {
     <main className="bg-white">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12 text-sm text-gray-700">
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-general">
+          <p className="text-general text-xs font-semibold tracking-[0.2em] uppercase">
             Документы
           </p>
-          <h1 className="text-3xl font-semibold text-black font-futuraPT">
+          <h1 className="font-futuraPT text-3xl font-semibold text-black">
             Политика конфиденциальности
           </h1>
           <p className="text-sm text-gray-500">Действует с: {EffectiveDate}</p>
@@ -92,8 +95,8 @@ export default function PrivacyPage() {
           </p>
           <p>
             2.2. Данные, которые пользователь вносит в CRM: ФИО и телефон
-            клиентов, а также иная информация, которую пользователь решит хранить
-            в Сервисе.
+            клиентов, а также иная информация, которую пользователь решит
+            хранить в Сервисе.
           </p>
           <p>
             2.3. Технические данные: стандартные данные, передаваемые браузером
@@ -190,7 +193,7 @@ export default function PrivacyPage() {
             9.1. Оператор вправе обновлять Политику. Актуальная версия
             публикуется на сайте{' '}
             <Link href="/" className="text-general">
-              https://artistcrm.com
+              https://artistcrm.ru
             </Link>
             .
           </p>
