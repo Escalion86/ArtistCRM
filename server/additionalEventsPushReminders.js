@@ -22,9 +22,7 @@ const getZonedParts = (value, timeZone = DEFAULT_TIME_ZONE) => {
     month: '2-digit',
     day: '2-digit',
   }).formatToParts(date)
-  const map = Object.fromEntries(
-    parts.map((part) => [part.type, part.value])
-  )
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]))
   return {
     year: Number(map.year),
     month: Number(map.month),
@@ -112,9 +110,10 @@ const buildMainEventPayload = ({
   const eventId = String(event?._id || '')
   const title =
     reminderType === 'overdue'
-      ? '╨Я╤А╨╛╤Б╤А╨╛╤З╨╡╨╜╨╛ ╨╝╨╡╤А╨╛╨┐╤А╨╕╤П╤В╨╕╨╡'
-      : '╨Э╨░╨┐╨╛╨╝╨╕╨╜╨░╨╜╨╕╨╡ ╨╛ ╨╝╨╡╤А╨╛╨┐╤А╨╕╤П╤В╨╕╨╕'
-  const eventTitle = String(event?.eventType || '╨Ь╨╡╤А╨╛╨┐╤А╨╕╤П╤В╨╕╨╡').trim() || '╨Ь╨╡╤А╨╛╨┐╤А╨╕╤П╤В╨╕╨╡'
+      ? 'Просрочено мероприятие'
+      : 'Напоминание о мероприятии'
+  const eventTitle =
+    String(event?.eventType || 'Мероприятие').trim() || 'Мероприятие'
   const eventDate = toDate(event?.eventDate)
   const timeLabel = eventDate
     ? eventDate.toLocaleTimeString('ru-RU', {
@@ -132,8 +131,8 @@ const buildMainEventPayload = ({
     : '--.--'
   const body =
     reminderType === 'overdue'
-      ? `${eventTitle} тАв ╨┐╤А╨╛╤Б╤А╨╛╤З╨╡╨╜╨╛`
-      : `${eventTitle} тАв ${dateLabel} ${timeLabel}`
+      ? `${eventTitle} • просрочено`
+      : `${eventTitle} • ${dateLabel} ${timeLabel}`
 
   return {
     title,
@@ -160,11 +159,11 @@ const buildAdditionalEventPayload = ({
   const eventId = String(event?._id || '')
   const title =
     reminderType === 'overdue'
-      ? '╨Я╤А╨╛╤Б╤А╨╛╤З╨╡╨╜╨╛ ╨┤╨╛╨┐. ╤Б╨╛╨▒╤Л╤В╨╕╨╡'
-      : '╨Э╨░╨┐╨╛╨╝╨╕╨╜╨░╨╜╨╕╨╡ ╨┐╨╛ ╨┤╨╛╨┐. ╤Б╨╛╨▒╤Л╤В╨╕╤О'
-  const eventTitle = String(event?.eventType || '╨б╨╛╨▒╤Л╤В╨╕╨╡').trim() || '╨б╨╛╨▒╤Л╤В╨╕╨╡'
+      ? 'Просрочено доп. событие'
+      : 'Напоминание по доп. событию'
+  const eventTitle = String(event?.eventType || 'Событие').trim() || 'Событие'
   const additionalTitle =
-    String(additionalEvent?.title || '╨Ф╨╛╨┐. ╤Б╨╛╨▒╤Л╤В╨╕╨╡').trim() || '╨Ф╨╛╨┐. ╤Б╨╛╨▒╤Л╤В╨╕╨╡'
+    String(additionalEvent?.title || 'Доп. событие').trim() || 'Доп. событие'
   const eventDate = toDate(additionalEvent?.date)
   const timeLabel = eventDate
     ? eventDate.toLocaleTimeString('ru-RU', {
@@ -182,8 +181,8 @@ const buildAdditionalEventPayload = ({
     : '--.--'
   const body =
     reminderType === 'overdue'
-      ? `${additionalTitle} тАв ${eventTitle} тАв ╨┐╤А╨╛╤Б╤А╨╛╤З╨╡╨╜╨╛`
-      : `${additionalTitle} тАв ${eventTitle} тАв ${dateLabel} ${timeLabel}`
+      ? `${additionalTitle} • ${eventTitle} • просрочено`
+      : `${additionalTitle} • ${eventTitle} • ${dateLabel} ${timeLabel}`
 
   return {
     title,
@@ -425,7 +424,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
       payloadType: 'push_reminder',
       sent: stats.sentReminders,
       failed: stats.failed,
-      message: `╨Ш╤В╨╛╨│ ╨╜╨░╨┐╨╛╨╝╨╕╨╜╨░╨╜╨╕╨╣: ╨║╨░╨╜╨┤╨╕╨┤╨░╤В╨╛╨▓ ${stats.dueCandidates}, ╨╛╤В╨┐╤А╨░╨▓╨╗╨╡╨╜╨╛ ${stats.sentReminders}, ╨┤╤Г╨▒╨╗╨╡╨╣ ${stats.skippedByDedup}, ╨╛╤И╨╕╨▒╨╛╨║ ${stats.failed}`,
+      message: `Итого напоминаний: кандидатов ${stats.dueCandidates}, отправлено ${stats.sentReminders}, дублей ${stats.skippedByDedup}, ошибок ${stats.failed}`,
       meta: stats,
     })
   }
