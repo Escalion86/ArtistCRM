@@ -7,9 +7,9 @@ const formatAddress = (address, textIfNoAddress) => {
       address?.town,
       address?.street,
       // [address?.house, address?.flat].filter((data) => data).join(' - '),
-      address?.house ? `д. ${address?.house}` : '',
-      address?.flat ? `кв. ${address?.flat}` : '',
-      address?.entrance ? `${address?.entrance} под.` : '',
+      address?.house ? `д.${address?.house}` : '',
+      address?.flat ? `кв.${address?.flat}` : '',
+      address?.entrance ? `под.${address?.entrance}` : '',
       address?.floor ? `${address?.floor} этаж` : '',
     ]
       .filter((data) => data)
