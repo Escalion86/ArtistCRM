@@ -16,6 +16,12 @@ import {
 const DEFAULT_ADDITIONAL_EVENTS_PUSH_TIME = '10:00'
 const REMINDER_TIME_PATTERN = /^([01]\d|2[0-3]):(00|15|30|45)$/
 
+const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
+  const hours = String(Math.floor(i / 4)).padStart(2, '0')
+  const minutes = String((i % 4) * 15).padStart(2, '0')
+  return `${hours}:${minutes}`
+})
+
 const getCustomValue = (custom, key) => {
   if (!custom) return undefined
   if (typeof custom.get === 'function') return custom.get(key)
@@ -403,15 +409,19 @@ const PushNotificationsSettings = () => {
           <span className="font-semibold text-gray-800">
             Время ежедневных напоминаний
           </span>
-          <input
-            type="time"
-            step="900"
+          <select
             value={additionalEventsPushTime}
             className="h-10 px-3 text-sm bg-white border border-gray-300 rounded cursor-pointer"
             onChange={(event) =>
               saveAdditionalEventsPushTime(event.target.value)
             }
-          />
+          >
+            {TIME_OPTIONS.map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
       <div className="p-3 mt-2 text-xs border border-gray-200 rounded push-settings-surface bg-white/70">
