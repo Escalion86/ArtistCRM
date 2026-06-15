@@ -16,11 +16,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faShare,
   faTriangleExclamation,
-  faCircleCheck,
-  faBan,
+  // faCircleCheck,
+  // faBan,
   faUserSlash,
   faCalendarXmark,
-  faClock,
+  // faClock,
 } from '@fortawesome/free-solid-svg-icons'
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
@@ -43,7 +43,7 @@ import { useEventQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 import { getEventCloseSuggestionState } from '@helpers/eventCloseSuggestion'
 
-const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
+// const CALENDAR_RESPONSE_MARKER = '--- Google Calendar Response ---'
 
 const formatCardDateTime = (value) => {
   if (!value) return null
@@ -127,61 +127,60 @@ const EventCard = ({
     net,
     canClose,
     hasObligations,
-  } =
-    useMemo(() => {
-      if (!event)
-        return {
-          contractSum: 0,
-          paid: 0,
-          leftToPay: 0,
-          expense: 0,
-          net: 0,
-          status: null,
-          canClose: false,
-          hasObligations: false,
-        }
-
-      const eventTransactions = transactions
-        .filter((transaction) => transaction.eventId === event._id)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-      const totals = eventTransactions.reduce(
-        (acc, transaction) => {
-          if (transaction.type === 'income') acc.income += transaction.amount
-          else acc.expense += transaction.amount
-          return acc
-        },
-        { income: 0, expense: 0 }
-      )
-
-      const contractSumValue = Number(event.contractSum ?? 0)
-      const paidValue = totals.income
-      const leftToPayValue = Math.max(contractSumValue - paidValue, 0)
-      const statusValue =
-        EVENT_STATUSES_SIMPLE.find((item) => item.value === event.status) ??
-        EVENT_STATUSES.find((item) => item.value === event.status)
-      const closeState = getEventCloseSuggestionState(
-        {
-          status: event.status,
-          contractSum: contractSumValue,
-          isByContract: event?.isByContract,
-          eventDate: event?.eventDate,
-          dateEnd: event?.dateEnd,
-        },
-        eventTransactions
-      )
-
+  } = useMemo(() => {
+    if (!event)
       return {
-        contractSum: contractSumValue,
-        paid: paidValue,
-        leftToPay: leftToPayValue,
-        expense: totals.expense,
-        net: totals.income - totals.expense,
-        status: statusValue,
-        canClose: closeState.canClose,
-        hasObligations: closeState.hasObligations,
+        contractSum: 0,
+        paid: 0,
+        leftToPay: 0,
+        expense: 0,
+        net: 0,
+        status: null,
+        canClose: false,
+        hasObligations: false,
       }
-    }, [event, transactions])
+
+    const eventTransactions = transactions
+      .filter((transaction) => transaction.eventId === event._id)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    const totals = eventTransactions.reduce(
+      (acc, transaction) => {
+        if (transaction.type === 'income') acc.income += transaction.amount
+        else acc.expense += transaction.amount
+        return acc
+      },
+      { income: 0, expense: 0 }
+    )
+
+    const contractSumValue = Number(event.contractSum ?? 0)
+    const paidValue = totals.income
+    const leftToPayValue = Math.max(contractSumValue - paidValue, 0)
+    const statusValue =
+      EVENT_STATUSES_SIMPLE.find((item) => item.value === event.status) ??
+      EVENT_STATUSES.find((item) => item.value === event.status)
+    const closeState = getEventCloseSuggestionState(
+      {
+        status: event.status,
+        contractSum: contractSumValue,
+        isByContract: event?.isByContract,
+        eventDate: event?.eventDate,
+        dateEnd: event?.dateEnd,
+      },
+      eventTransactions
+    )
+
+    return {
+      contractSum: contractSumValue,
+      paid: paidValue,
+      leftToPay: leftToPayValue,
+      expense: totals.expense,
+      net: totals.income - totals.expense,
+      status: statusValue,
+      canClose: closeState.canClose,
+      hasObligations: closeState.hasObligations,
+    }
+  }, [event, transactions])
 
   const eventStart = event?.eventDate ? new Date(event.eventDate) : null
   const eventEnd = event?.dateEnd ? new Date(event.dateEnd) : eventStart
@@ -200,7 +199,7 @@ const EventCard = ({
   const isCanceled = rawStatus === 'canceled'
   const isClosed = rawStatus === 'closed'
   const isDraft = rawStatus === 'draft'
-  const isActive = rawStatus === 'active'
+  // const isActive = rawStatus === 'active'
   const isFinished =
     !isCanceled && !isClosed && eventEnd && eventEnd.getTime() < now.getTime()
   const statusMarkerClassName = getEventStatusMarkerClassName({
@@ -358,64 +357,64 @@ const EventCard = ({
         className={`absolute top-3 bottom-3 left-0 w-1 rounded-r-full ${statusMarkerClassName}`}
         aria-hidden="true"
       />
-      <div className="flex w-full items-center justify-between gap-x-1">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className="flex items-center justify-between w-full gap-x-1">
+        <div className="flex items-center flex-1 min-w-0 gap-2">
           {event.isTransferred && (
             <FontAwesomeIcon
               icon={faShare}
-              className="h-4 w-4 text-amber-500"
+              className="w-4 h-4 text-amber-500"
               aria-label="Передано коллеге"
             />
           )}
           {needsCheck && (
             <FontAwesomeIcon
               icon={faTriangleExclamation}
-              className="h-4 w-4 text-amber-500"
+              className="w-4 h-4 text-amber-500"
               aria-label="Проверка мероприятия не завершена"
             />
           )}
           {hasCalendarError && (
             <FontAwesomeIcon
               icon={faCalendarXmark}
-              className="h-4 w-4 text-red-500"
+              className="w-4 h-4 text-red-500"
               aria-label="Синхронизация с календарем не выполнена"
             />
           )}
-          {isClosed && (
+          {/* {isClosed && (
             <FontAwesomeIcon
               icon={faCircleCheck}
-              className="h-4 w-4 text-green-600"
+              className="w-4 h-4 text-green-600"
               aria-label="Мероприятие закрыто"
             />
           )}
           {isCanceled && (
             <FontAwesomeIcon
               icon={faBan}
-              className="h-4 w-4 text-red-500"
+              className="w-4 h-4 text-red-500"
               aria-label="Мероприятие отменено"
             />
           )}
           {isFinished && (
             <FontAwesomeIcon
               icon={faCircleCheck}
-              className="h-4 w-4 text-gray-400"
+              className="w-4 h-4 text-gray-400"
               aria-label="Мероприятие завершено"
             />
           )}
           {isDraft && (
             <FontAwesomeIcon
               icon={faClock}
-              className="h-4 w-4 text-gray-500"
+              className="w-4 h-4 text-gray-500"
               aria-label="Заявка"
             />
           )}
           {isActive && (
             <FontAwesomeIcon
               icon={faCircleCheck}
-              className="h-4 w-4 text-blue-500"
+              className="w-4 h-4 text-blue-500"
               aria-label="Мероприятие"
             />
-          )}
+          )} */}
           {overdueAdditionalCount > 0 && (
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold text-white">
               {overdueAdditionalCount}
@@ -429,11 +428,11 @@ const EventCard = ({
           {!client && (
             <FontAwesomeIcon
               icon={faUserSlash}
-              className="h-4 w-4 text-red-500"
+              className="w-4 h-4 text-red-500"
               aria-label="Клиент не указан"
             />
           )}
-          <div className="card-title tablet:text-lg mr-8 flex-1 truncate text-base">
+          <div className="flex-1 mr-8 text-base truncate card-title tablet:text-lg">
             {[eventTitle, servicesTitle].join(' • ')}
           </div>
           <CardActions className="z-10 -mt-2 -mr-2">
@@ -463,7 +462,7 @@ const EventCard = ({
       <div className="flex gap-x-1 py-0.5">
         <div className="card-meta flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm">
           <div className="card-title text-general">{eventDateLabel}</div>
-          <div className="flex h-6 items-center gap-1 overflow-hidden">
+          <div className="flex items-center h-6 gap-1 overflow-hidden">
             {hasSoonNoDepositWarning ? (
               <StatusChip tone="overdue">
                 <span className="truncate">Просрочен задаток</span>
@@ -483,8 +482,8 @@ const EventCard = ({
             ) : null}
           </div>
           <div className="flex h-[25px] flex-nowrap items-center gap-x-3">
-            <span className="phoneH:block hidden font-medium">Место:</span>
-            <span className="flex min-w-0 items-center gap-2 truncate">
+            <span className="hidden font-medium phoneH:block">Место:</span>
+            <span className="flex items-center min-w-0 gap-2 truncate">
               <span className="truncate">
                 {formatAddress(displayAddress, '-')}
               </span>
@@ -495,21 +494,21 @@ const EventCard = ({
                   rel="noreferrer"
                   title="Открыть в 2ГИС"
                   onClick={(event) => event.stopPropagation()}
-                  className="flex h-7 w-7 items-center justify-center transition-transform hover:scale-110"
+                  className="flex items-center justify-center transition-transform h-7 w-7 hover:scale-110"
                 >
                   <Image
                     src="/img/navigators/2gis.webp"
                     alt="2gis"
                     width={16}
                     height={16}
-                    className="h-4 w-4"
+                    className="w-4 h-4"
                   />
                 </a>
               )}
             </span>
           </div>
           <div className="flex min-h-[25px] flex-nowrap items-center gap-x-2">
-            <span className="phoneH:block hidden font-medium">Клиент:</span>
+            <span className="hidden font-medium phoneH:block">Клиент:</span>
             <span className="min-w-0 truncate">
               {client
                 ? getPersonFullName(client, { fallback: client._id })
