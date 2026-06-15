@@ -9,7 +9,7 @@ import {
   getPushRegistration,
   getPushRegistrationWithDetails,
   isPushSupported,
-  showLocalTestNotification,
+  // showLocalTestNotification,
   syncPushSubscription,
 } from '@helpers/pushClient'
 
@@ -294,26 +294,26 @@ const PushNotificationsSettings = () => {
     }
   }
 
-  const sendLocalTestPush = async () => {
-    setPushBusy(true)
-    setPushAction('local-test')
-    try {
-      const result = await showLocalTestNotification()
-      if (!result?.ok) {
-        snackbar.error(
-          result?.message || 'Не удалось показать локальное уведомление'
-        )
-        return
-      }
-      snackbar.success('Локальное уведомление показано через Service Worker')
-    } catch (error) {
-      snackbar.error('Не удалось показать локальное уведомление')
-    } finally {
-      setPushBusy(false)
-      setPushAction('')
-      refreshPushState()
-    }
-  }
+  // const sendLocalTestPush = async () => {
+  //   setPushBusy(true)
+  //   setPushAction('local-test')
+  //   try {
+  //     const result = await showLocalTestNotification()
+  //     if (!result?.ok) {
+  //       snackbar.error(
+  //         result?.message || 'Не удалось показать локальное уведомление'
+  //       )
+  //       return
+  //     }
+  //     snackbar.success('Локальное уведомление показано через Service Worker')
+  //   } catch (error) {
+  //     snackbar.error('Не удалось показать локальное уведомление')
+  //   } finally {
+  //     setPushBusy(false)
+  //     setPushAction('')
+  //     refreshPushState()
+  //   }
+  // }
 
   const saveAdditionalEventsPushTime = async (value) => {
     const nextValue = normalizeReminderTime(value)
@@ -381,25 +381,25 @@ const PushNotificationsSettings = () => {
         </button>
         <button
           type="button"
-          className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+          className="flex items-center justify-center w-full h-10 px-3 text-sm font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning tablet:w-auto"
           onClick={sendTestPush}
           disabled={pushBusy || !pushAvailable}
         >
           {pushBusy && pushAction === 'test' ? 'Отправка...' : 'Тест push'}
         </button>
-        <button
+        {/* <button
           type="button"
-          className="action-icon-button tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+          className="flex items-center justify-center w-full h-10 px-3 text-sm font-semibold rounded cursor-pointer action-icon-button tablet:w-auto"
           onClick={sendLocalTestPush}
           disabled={pushBusy || !pushAvailable}
         >
           {pushBusy && pushAction === 'local-test'
             ? 'Показываем...'
             : 'Локальный тест'}
-        </button>
+        </button> */}
       </div>
-      <div className="push-settings-surface rounded border border-gray-200 bg-white/70 p-3">
-        <label className="tablet:max-w-xs flex flex-col gap-2 text-sm text-gray-700">
+      <div className="p-3 border border-gray-200 rounded push-settings-surface bg-white/70">
+        <label className="flex flex-col gap-2 text-sm text-gray-700 tablet:max-w-xs">
           <span className="font-semibold text-gray-800">
             Время ежедневных напоминаний
           </span>
@@ -407,21 +407,21 @@ const PushNotificationsSettings = () => {
             type="time"
             step="900"
             value={additionalEventsPushTime}
-            className="h-10 cursor-pointer rounded border border-gray-300 bg-white px-3 text-sm"
+            className="h-10 px-3 text-sm bg-white border border-gray-300 rounded cursor-pointer"
             onChange={(event) =>
               saveAdditionalEventsPushTime(event.target.value)
             }
           />
         </label>
       </div>
-      <div className="push-settings-surface mt-2 rounded border border-gray-200 bg-white/70 p-3 text-xs">
-        <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="p-3 mt-2 text-xs border border-gray-200 rounded push-settings-surface bg-white/70">
+        <div className="flex items-center justify-between gap-2 mb-2">
           <div className="font-semibold text-gray-800">
             Последние события push
           </div>
           <button
             type="button"
-            className="text-general cursor-pointer hover:underline"
+            className="cursor-pointer text-general hover:underline"
             onClick={refreshPushLogs}
             disabled={pushLogsLoading}
           >
