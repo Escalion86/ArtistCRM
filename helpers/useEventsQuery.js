@@ -11,16 +11,19 @@ import transactionsAtom from '@state/atoms/transactionsAtom'
 
 const normalizeEventsPayload = (payload, fallbackMeta = {}) => ({
   data: Array.isArray(payload?.data) ? payload.data : [],
-  meta: payload?.meta && typeof payload.meta === 'object'
-    ? payload.meta
-    : fallbackMeta,
+  meta:
+    payload?.meta && typeof payload.meta === 'object'
+      ? payload.meta
+      : fallbackMeta,
 })
 
-const buildEventsUrl = ({ scope, limit, before } = {}) => {
+const buildEventsUrl = ({ scope, limit, before, dateFrom, dateTo } = {}) => {
   const search = new URLSearchParams()
   if (scope) search.set('scope', scope)
   if (limit) search.set('limit', String(limit))
   if (before) search.set('before', before)
+  if (dateFrom) search.set('dateFrom', dateFrom)
+  if (dateTo) search.set('dateTo', dateTo)
   const query = search.toString()
   return query ? `/api/events?${query}` : '/api/events'
 }
@@ -36,7 +39,9 @@ const appendUniqueById = (prevItems = [], nextItems = []) => {
 const replaceEventById = (items = [], event) => {
   if (!event?._id) return Array.isArray(items) ? items : []
   const list = Array.isArray(items) ? items : []
-  const index = list.findIndex((item) => String(item?._id) === String(event._id))
+  const index = list.findIndex(
+    (item) => String(item?._id) === String(event._id)
+  )
   if (index === -1) return [event, ...list]
   return list.map((item, itemIndex) => (itemIndex === index ? event : item))
 }
@@ -73,13 +78,15 @@ export const useEventsQuery = ({
   scope,
   initialData,
   initialMeta,
+  dateFrom,
+  dateTo,
   ...options
 } = {}) =>
   useQuery({
-    queryKey: queryKeys.events({ scope: scope || 'all' }),
+    queryKey: queryKeys.events({ scope: scope || 'all', dateFrom, dateTo }),
     queryFn: async () =>
       normalizeEventsPayload(
-        await apiJson(buildEventsUrl({ scope })),
+        await apiJson(buildEventsUrl({ scope, dateFrom, dateTo })),
         initialMeta
       ),
     initialData: {
@@ -213,8 +220,7 @@ export const useEventActions = () => {
     () => ({
       set: (item, clone) => saveEvent({ item, clone }),
       delete: (eventId) => deleteEvent(eventId),
-      updateStatus: (eventId, status) =>
-        updateEventStatus({ eventId, status }),
+      updateStatus: (eventId, status) => updateEventStatus({ eventId, status }),
     }),
     [deleteEvent, saveEvent, updateEventStatus]
   )

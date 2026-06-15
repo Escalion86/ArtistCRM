@@ -331,8 +331,6 @@ const getEventStatusFlags = (event, now) => {
   }
 }
 
-const MONTH_VIEW_DAY_CELLS = 42
-
 const toMonthStart = (value = new Date()) =>
   new Date(value.getFullYear(), value.getMonth(), 1)
 
@@ -361,6 +359,48 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const { isCompact } = useUiDensity()
   const eventsScope =
     filter === 'upcoming' ? 'upcoming' : filter === 'past' ? 'past' : 'all'
+
+  const [viewMode, setViewMode] = useState('list')
+  const [monthCursor, setMonthCursor] = useState(() => toMonthStart(new Date()))
+  const monthAutoPositionedRef = useRef(false)
+
+  // Сетка дней календаря (включая дни соседних месяцев)
+  const monthGridDays = useMemo(() => {
+    const monthStart = toMonthStart(monthCursor)
+    const year = monthStart.getFullYear()
+    const month = monthStart.getMonth()
+
+    const firstDay = new Date(year, month, 1)
+    const firstDayOfWeek = firstDay.getDay()
+    const gridStart = new Date(year, month, 1 - firstDayOfWeek)
+
+    const lastDay = new Date(year, month + 1, 0)
+    const lastDayOfWeek = lastDay.getDay()
+    const gridEnd = new Date(
+      year,
+      month,
+      lastDay.getDate() + (6 - lastDayOfWeek)
+    )
+
+    const diffMs = gridEnd.getTime() - gridStart.getTime()
+    const totalDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1
+    const weeksCount = Math.ceil(totalDays / 7)
+    const gridSize = weeksCount * 7
+
+    return Array.from({ length: gridSize }, (_, index) => {
+      const day = new Date(
+        gridStart.getFullYear(),
+        gridStart.getMonth(),
+        gridStart.getDate() + index
+      )
+      return {
+        date: day,
+        key: toDateKey(day),
+        inCurrentMonth: day.getMonth() === month,
+      }
+    })
+  }, [monthCursor])
+
   const { data: eventsPayload } = useEventsQuery({
     scope: eventsScope,
     initialMeta: eventsPaging ?? {},
@@ -388,11 +428,8 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const searchParams = useSearchParams()
   const listRef = useListRef()
   const openHandledRef = useRef(false)
-  const monthAutoPositionedRef = useRef(false)
   const [selectedTown, setSelectedTown] = useState('')
   const [pendingOpenId, setPendingOpenId] = useState(null)
-  const [viewMode, setViewMode] = useState('list')
-  const [monthCursor, setMonthCursor] = useState(() => toMonthStart(new Date()))
   const [checkFilter, setCheckFilter] = useState({
     checked: true,
     unchecked: true,
@@ -1050,28 +1087,6 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     [monthCursor]
   )
 
-  const monthGridDays = useMemo(() => {
-    const monthStart = toMonthStart(monthCursor)
-    const shift = monthStart.getDay()
-    const gridStart = new Date(
-      monthStart.getFullYear(),
-      monthStart.getMonth(),
-      1 - shift
-    )
-    return Array.from({ length: MONTH_VIEW_DAY_CELLS }, (_, index) => {
-      const day = new Date(
-        gridStart.getFullYear(),
-        gridStart.getMonth(),
-        gridStart.getDate() + index
-      )
-      return {
-        date: day,
-        key: toDateKey(day),
-        inCurrentMonth: day.getMonth() === monthStart.getMonth(),
-      }
-    })
-  }, [monthCursor])
-
   const monthItemsByDay = useMemo(() => {
     const map = new Map()
     sortedEvents.forEach((event) => {
@@ -1149,6 +1164,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       monthAutoPositionedRef.current = false
       return
     }
+    // Для upcoming не даём уйти раньше текущего месяца
     if (
       filter === 'upcoming' &&
       monthCursor.getTime() < currentMonthStart.getTime()
@@ -1156,21 +1172,30 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       setMonthCursor(currentMonthStart)
       return
     }
-    if (filter === 'upcoming') return
-    if (monthAutoPositionedRef.current) return
-    monthAutoPositionedRef.current = true
+    // Если данные еще не загрузились — ждём (не фиксируем флаг)
     if (sortedEvents.length === 0) return
+    if (monthAutoPositionedRef.current) return
+
+    // Проверяем, есть ли события в текущем видимом месяце
     const hasItemsInCurrentMonth = monthGridDays.some((day) => {
       if (!day.inCurrentMonth) return false
       const items = monthItemsByDay.get(day.key)
       return Array.isArray(items) && items.length > 0
     })
-    if (hasItemsInCurrentMonth) return
+    if (hasItemsInCurrentMonth) {
+      monthAutoPositionedRef.current = true
+      return
+    }
 
+    // В текущем месяце нет событий — переходим на первый месяц, где есть
     const firstDate = sortedEvents[0]?.eventDate
     const parsed = firstDate ? new Date(firstDate) : null
-    if (!parsed || Number.isNaN(parsed.getTime())) return
+    if (!parsed || Number.isNaN(parsed.getTime())) {
+      monthAutoPositionedRef.current = true
+      return
+    }
     setMonthCursor(toMonthStart(parsed))
+    monthAutoPositionedRef.current = true
   }, [
     currentMonthStart,
     filter,
@@ -1179,6 +1204,31 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     monthItemsByDay,
     sortedEvents,
     viewMode,
+  ])
+
+  // Авто-подгрузка прошедших мероприятий при навигации по месяцам в календаре
+  useEffect(() => {
+    if (viewMode !== 'month' || filter !== 'past') return
+    if (!pastHasMore || pastLoadingMore) return
+
+    const hasItemsInCurrentMonth = monthGridDays.some((day) => {
+      if (!day.inCurrentMonth) return false
+      const items = monthItemsByDay.get(day.key)
+      return Array.isArray(items) && items.length > 0
+    })
+
+    if (!hasItemsInCurrentMonth) {
+      handleLoadMorePast()
+    }
+  }, [
+    monthCursor,
+    monthGridDays,
+    monthItemsByDay,
+    pastHasMore,
+    pastLoadingMore,
+    viewMode,
+    filter,
+    handleLoadMorePast,
   ])
 
   const openDayEventsModal = useCallback(
@@ -1236,7 +1286,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 return (
                   <div
                     key={`month-day-additional-${item.eventId}-${item.index}-${idx}`}
-                    className="rounded border border-gray-200 bg-white px-3 py-2"
+                    className="px-3 py-2 bg-white border border-gray-200 rounded"
                   >
                     <div className="text-sm font-semibold text-gray-900">
                       {item.title || 'Доп. событие'}
@@ -1253,7 +1303,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                       <AppButton
                         variant="secondary"
                         size="sm"
-                        className="tablet:w-auto w-full rounded-md"
+                        className="w-full rounded-md tablet:w-auto"
                         onClick={() => modalsFunc.event?.view?.(item.eventId)}
                       >
                         Открыть мероприятие
@@ -1295,7 +1345,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             <AppButton
               variant="secondary"
               size="sm"
-              className="rounded-md px-4"
+              className="px-4 rounded-md"
               disabled={pastLoadingMore}
               onClick={handleLoadMorePast}
             >
@@ -1349,7 +1399,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   )
 
   return (
-    <div className="tablet:gap-4 flex h-full flex-col gap-3">
+    <div className="flex flex-col h-full gap-3 tablet:gap-4">
       {voiceDraftOpen ? (
         <VoiceDraftOverlay
           onClose={() => setVoiceDraftOpen(false)}
@@ -1357,12 +1407,12 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         />
       ) : null}
       <ContentHeader>
-        <div className="tablet:hidden flex w-full flex-col gap-2">
-          <div className="flex w-full items-center gap-2">
+        <div className="flex flex-col w-full gap-2 tablet:hidden">
+          <div className="flex items-center w-full gap-2">
             <AppButton
               variant="secondary"
               size="sm"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md p-0"
+              className="flex items-center justify-center p-0 rounded-md h-9 w-9 shrink-0"
               onClick={() =>
                 setViewMode((prev) => (prev === 'list' ? 'month' : 'list'))
               }
@@ -1379,8 +1429,8 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 <CalendarMonthIcon fontSize="small" />
               )}
             </AppButton>
-            <div className="min-w-0 flex-1">
-              <MutedText className="block truncate text-xs">
+            <div className="flex-1 min-w-0">
+              <MutedText className="block text-xs truncate">
                 {filterName}: {displayedCount}
               </MutedText>
               <div className="truncate text-[11px] leading-tight text-gray-500">
@@ -1390,7 +1440,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             <AppButton
               variant={mobileFiltersOpen ? 'primary' : 'secondary'}
               size="sm"
-              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md p-0"
+              className="relative flex items-center justify-center p-0 rounded-md h-9 w-9 shrink-0"
               onClick={() => setMobileFiltersOpen((prev) => !prev)}
               title="Фильтры"
               aria-label="Фильтры"
@@ -1411,7 +1461,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             />
           </div>
           {mobileFiltersOpen ? (
-            <SectionCard className="border border-gray-200 bg-white/95 p-2 shadow-sm">
+            <SectionCard className="p-2 border border-gray-200 shadow-sm bg-white/95">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-sm font-semibold text-gray-800">
@@ -1420,7 +1470,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   {hasActiveFilters ? (
                     <button
                       type="button"
-                      className="text-general cursor-pointer text-xs font-semibold hover:underline"
+                      className="text-xs font-semibold cursor-pointer text-general hover:underline"
                       onClick={resetFilters}
                     >
                       Сбросить
@@ -1457,9 +1507,9 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             </SectionCard>
           ) : null}
         </div>
-        <div className="tablet:block hidden w-full">
+        <div className="hidden w-full tablet:block">
           <HeaderActions
-            className="tablet:flex-nowrap w-full gap-y-2"
+            className="w-full tablet:flex-nowrap gap-y-2"
             leftClassName="min-w-0"
             bottomClassName="w-full tablet:w-auto"
             rightClassName="ml-auto w-full justify-end tablet:w-auto"
@@ -1480,7 +1530,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             }
             bottom={
               filter !== 'all' ? (
-                <div className="tablet:w-auto tablet:flex-nowrap tablet:justify-start tablet:gap-3 flex w-full flex-wrap items-center justify-center gap-2">
+                <div className="flex flex-wrap items-center justify-center w-full gap-2 tablet:w-auto tablet:flex-nowrap tablet:justify-start tablet:gap-3">
                   {hasUncheckedEvents && (
                     <EventCheckFilterChips
                       value={checkFilter}
@@ -1495,7 +1545,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   {hasActiveFilters ? (
                     <button
                       type="button"
-                      className="text-general cursor-pointer text-xs font-semibold hover:underline"
+                      className="text-xs font-semibold cursor-pointer text-general hover:underline"
                       onClick={resetFilters}
                     >
                       Сбросить
@@ -1532,7 +1582,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   <MutedText>
                     {filterName}: {displayedCount}
                   </MutedText>
-                  <MutedText className="tablet:inline hidden">
+                  <MutedText className="hidden tablet:inline">
                     Всего: {events.length}
                   </MutedText>
                   <AddEventMenu
@@ -1549,19 +1599,19 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         </div>
       </ContentHeader>
       {filter === 'upcoming' || filter === 'past' ? (
-        <SectionCard className="tablet:p-3 border border-gray-200 bg-white/95 p-2 shadow-sm">
+        <SectionCard className="p-2 border border-gray-200 shadow-sm tablet:p-3 bg-white/95">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="tablet:w-auto tablet:flex-1 tablet:justify-end flex w-full items-center justify-start">
-              <div className="phoneH:flex-row tablet:w-auto flex w-full flex-row gap-x-2">
+            <div className="flex items-center justify-start w-full tablet:w-auto tablet:flex-1 tablet:justify-end">
+              <div className="flex flex-row w-full phoneH:flex-row tablet:w-auto gap-x-2">
                 {filter === 'upcoming' ? (
                   <AppButton
                     variant="primary"
                     size="sm"
-                    className="phoneH:w-auto tablet:text-sm min-w-0 flex-1 rounded-md px-3 text-xs font-semibold shadow-md"
+                    className="flex-1 min-w-0 px-3 text-xs font-semibold rounded-md shadow-md phoneH:w-auto tablet:text-sm"
                     onClick={() => modalsFunc.event?.upcomingOverview?.()}
                   >
-                    <span className="inline-flex min-w-0 items-center justify-center gap-2">
-                      <span className="tablet:inline hidden">
+                    <span className="inline-flex items-center justify-center min-w-0 gap-2">
+                      <span className="hidden tablet:inline">
                         Ближайшие события
                       </span>
                       <span className="tablet:hidden">Ближайшие</span>
@@ -1585,15 +1635,15 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   <AppButton
                     variant="secondary"
                     size="sm"
-                    className="phoneH:w-auto tablet:text-sm min-w-0 flex-1 rounded-md px-3 text-xs font-semibold"
+                    className="flex-1 min-w-0 px-3 text-xs font-semibold rounded-md phoneH:w-auto tablet:text-sm"
                     onClick={() =>
                       router.push(
                         '/cabinet/eventsPast?statusFinished=true&statusClosed=false&statusCanceled=false'
                       )
                     }
                   >
-                    <span className="inline-flex min-w-0 items-center justify-center gap-2">
-                      <span className="tablet:inline hidden">
+                    <span className="inline-flex items-center justify-center min-w-0 gap-2">
+                      <span className="hidden tablet:inline">
                         Закрыть прошедшие мероприятия
                       </span>
                       <span className="tablet:hidden">Закрыть прошедшие</span>
@@ -1613,7 +1663,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                             : 'secondary'
                         }
                         size="sm"
-                        className="phoneH:w-auto tablet:flex-none tablet:px-3 tablet:text-sm min-w-0 flex-1 rounded-md px-2 text-xs font-semibold"
+                        className="flex-1 min-w-0 px-2 text-xs font-semibold rounded-md phoneH:w-auto tablet:flex-none tablet:px-3 tablet:text-sm"
                         onClick={() => setPastQuickFilter(item)}
                       >
                         {item.label}
@@ -1625,7 +1675,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
           </div>
         </SectionCard>
       ) : null}
-      <SectionCard className="min-h-0 flex-1 overflow-hidden border-0 bg-transparent shadow-none">
+      <SectionCard className="flex-1 min-h-0 overflow-hidden bg-transparent border-0 shadow-none">
         {viewMode === 'list' ? (
           sortedEvents.length > 0 ? (
             <List
@@ -1644,14 +1694,14 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             <EmptyState text="Для выбранных фильтьров мероприятий пока нет" />
           )
         ) : (
-          <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-            <SectionCard className="border border-gray-200 bg-white/95 p-3 shadow-sm">
+          <div className="flex flex-col h-full min-h-0 gap-3 overflow-hidden">
+            <SectionCard className="p-3 border border-gray-200 shadow-sm bg-white/95">
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center justify-center gap-2">
                   <AppButton
                     variant="secondary"
                     size="sm"
-                    className="flex h-9 w-9 items-center justify-center rounded-md p-0"
+                    className="flex items-center justify-center p-0 rounded-md h-9 w-9"
                     disabled={isUpcomingMinMonth}
                     onClick={() =>
                       setMonthCursor((prev) =>
@@ -1675,7 +1725,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   <AppButton
                     variant="secondary"
                     size="sm"
-                    className="rounded-md px-3"
+                    className="px-3 rounded-md"
                     onClick={() => setMonthCursor(toMonthStart(new Date()))}
                   >
                     Сегодня
@@ -1683,7 +1733,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   <AppButton
                     variant="secondary"
                     size="sm"
-                    className="flex h-9 w-9 items-center justify-center rounded-md p-0"
+                    className="flex items-center justify-center p-0 rounded-md h-9 w-9"
                     onClick={() =>
                       setMonthCursor((prev) =>
                         toMonthStart(
@@ -1697,7 +1747,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                     <ChevronRightIcon fontSize="small" />
                   </AppButton>
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
+                <div className="flex flex-wrap items-center justify-center text-center gap-x-2 gap-y-1">
                   <div className="text-sm font-semibold text-gray-800 capitalize">
                     {monthTitle}
                   </div>
@@ -1708,8 +1758,8 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 </div>
               </div>
             </SectionCard>
-            <div className="event-month-calendar min-h-0 flex-1 overflow-auto rounded-lg border bg-white">
-              <div className="event-month-calendar__weekdays sticky top-0 z-10 grid grid-cols-7 border-b shadow-sm backdrop-blur">
+            <div className="flex-1 min-h-0 overflow-auto bg-white border rounded-lg event-month-calendar">
+              <div className="sticky top-0 z-10 grid grid-cols-7 border-b shadow-sm event-month-calendar__weekdays backdrop-blur">
                 {DAYS_OF_WEEK.map((dayName) => (
                   <div
                     key={dayName}
@@ -1719,7 +1769,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   </div>
                 ))}
               </div>
-              <div className="grid auto-rows-auto grid-cols-7">
+              <div className="grid grid-cols-7 auto-rows-auto">
                 {monthGridDays.map((day) => {
                   const dayItems = monthItemsByDay.get(day.key) || []
                   const hasDayContent = dayItems.length > 0
@@ -1800,19 +1850,6 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 })}
               </div>
             </div>
-            {filter === 'past' && pastHasMore ? (
-              <div className="flex justify-center">
-                <AppButton
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-md px-4"
-                  disabled={pastLoadingMore}
-                  onClick={handleLoadMorePast}
-                >
-                  {pastLoadingMore ? 'Загрузка...' : 'Загрузить еще прошедшие'}
-                </AppButton>
-              </div>
-            ) : null}
           </div>
         )}
       </SectionCard>

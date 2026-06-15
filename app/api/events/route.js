@@ -21,7 +21,6 @@ const getStatusValue = (payload) => {
   return typeof status === 'string' ? status : ''
 }
 
-
 const parsePositiveInt = (value, fallback) => {
   const n = Number(value)
   if (!Number.isFinite(n) || n <= 0) return fallback
@@ -63,6 +62,20 @@ const buildUpcomingCompletionQuery = (nowDate) => ({
     },
   ],
 })
+
+const buildDateRangeQuery = (dateFrom, dateTo) => {
+  const dateFilter = {}
+  if (dateFrom) {
+    const fromDate = new Date(dateFrom)
+    if (!Number.isNaN(fromDate.getTime())) dateFilter.$gte = fromDate
+  }
+  if (dateTo) {
+    const toDate = new Date(dateTo)
+    if (!Number.isNaN(toDate.getTime())) dateFilter.$lt = toDate
+  }
+  if (Object.keys(dateFilter).length === 0) return null
+  return { eventDate: dateFilter }
+}
 
 const getPastAdditionalEventsMatch = (segment, now) => {
   if (!segment) return null
@@ -111,6 +124,9 @@ export const GET = async (req) => {
     const limit = parsePositiveInt(searchParams.get('limit'), 120)
     const countOnly = searchParams.get('countOnly') === '1'
     const clientId = (searchParams.get('clientId') || '').trim()
+    const dateFrom = searchParams.get('dateFrom')
+    const dateTo = searchParams.get('dateTo')
+    const dateRangeQuery = buildDateRangeQuery(dateFrom, dateTo)
 
     if (clientId) {
       const events = await Events.find({ tenantId, clientId })
@@ -160,7 +176,9 @@ export const GET = async (req) => {
         searchParams.get('statusFinished')
       )
       const statusClosed = parseBooleanParam(searchParams.get('statusClosed'))
-      const statusCanceled = parseBooleanParam(searchParams.get('statusCanceled'))
+      const statusCanceled = parseBooleanParam(
+        searchParams.get('statusCanceled')
+      )
 
       if (
         statusFinished !== null ||
@@ -169,7 +187,8 @@ export const GET = async (req) => {
       ) {
         const statusConditions = []
         if (statusClosed === true) statusConditions.push({ status: 'closed' })
-        if (statusCanceled === true) statusConditions.push({ status: 'canceled' })
+        if (statusCanceled === true)
+          statusConditions.push({ status: 'canceled' })
         if (statusFinished === true) {
           statusConditions.push({
             $or: [
@@ -209,6 +228,10 @@ export const GET = async (req) => {
         baseConditions.push({
           additionalEvents: { $elemMatch: additionalEventsMatch },
         })
+      }
+
+      if (dateRangeQuery) {
+        baseConditions.push(dateRangeQuery)
       }
 
       const baseQuery = { $and: baseConditions }
@@ -252,9 +275,10 @@ export const GET = async (req) => {
           data: items,
           meta: {
             hasMore,
-            nextBefore: lastItem?.dateEnd || lastItem?.eventDate
-              ? new Date(lastItem.dateEnd ?? lastItem.eventDate).toISOString()
-              : null,
+            nextBefore:
+              lastItem?.dateEnd || lastItem?.eventDate
+                ? new Date(lastItem.dateEnd ?? lastItem.eventDate).toISOString()
+                : null,
             limit,
             scope: 'past',
             totalCount,
@@ -269,6 +293,9 @@ export const GET = async (req) => {
       const query = {
         tenantId,
         ...buildUpcomingCompletionQuery(now),
+      }
+      if (dateRangeQuery) {
+        Object.assign(query, dateRangeQuery)
       }
       const events = await Events.find(query)
         .sort({ eventDate: -1, createdAt: -1 })
@@ -290,7 +317,11 @@ export const GET = async (req) => {
       )
     }
 
-    const events = await Events.find({ tenantId })
+    const query = { tenantId }
+    if (dateRangeQuery) {
+      Object.assign(query, dateRangeQuery)
+    }
+    const events = await Events.find(query)
       .sort({ eventDate: -1, createdAt: -1 })
       .lean()
     return NextResponse.json({ success: true, data: events }, { status: 200 })
@@ -379,7 +410,9 @@ export const POST = async (req) => {
     depositExpectedAmount: normalizeDepositExpectedAmount(
       body.depositExpectedAmount
     ),
-    calendarSyncError: access?.allowCalendarSync ? '' : 'calendar_sync_unavailable',
+    calendarSyncError: access?.allowCalendarSync
+      ? ''
+      : 'calendar_sync_unavailable',
   })
   await Histories.create({
     schema: Events.collection.collectionName,
@@ -405,17 +438,25 @@ export const POST = async (req) => {
   }
 
   // Send push notifications for new tasks (additionalEvents)
-  if (responseEvent?.additionalEvents && responseEvent.additionalEvents.length > 0) {
+  if (
+    responseEvent?.additionalEvents &&
+    responseEvent.additionalEvents.length > 0
+  ) {
     for (const task of responseEvent.additionalEvents) {
       if (task && !task.done) {
         notifyTaskCreated({
           tenantId,
           event: responseEvent,
           task,
-        }).catch((err) => console.log('Push notification error (task created)', err))
+        }).catch((err) =>
+          console.log('Push notification error (task created)', err)
+        )
       }
     }
   }
 
-  return NextResponse.json({ success: true, data: responseEvent }, { status: 201 })
+  return NextResponse.json(
+    { success: true, data: responseEvent },
+    { status: 201 }
+  )
 }
