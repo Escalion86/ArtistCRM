@@ -42,7 +42,6 @@ const serviceFunc = (serviceId, clone = false, onSuccess) => {
       if (
         !checkErrors({
           title,
-          description,
         })
       ) {
         closeModal()
@@ -138,4 +137,3 @@ const serviceFunc = (serviceId, clone = false, onSuccess) => {
 }
 
 export default serviceFunc
-
