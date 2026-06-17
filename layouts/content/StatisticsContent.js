@@ -72,7 +72,9 @@ const StatisticsContent = () => {
   const transactions = Array.isArray(statisticsData.transactions)
     ? statisticsData.transactions
     : []
-  const events = Array.isArray(statisticsData.events) ? statisticsData.events : []
+  const events = Array.isArray(statisticsData.events)
+    ? statisticsData.events
+    : []
   const clients = Array.isArray(statisticsData.clients)
     ? statisticsData.clients
     : []
@@ -216,21 +218,18 @@ const StatisticsContent = () => {
     [transactions, filteredEventIds]
   )
 
-  const filteredRequests = useMemo(
-    () => {
-      if (!includeRequests) return []
-      return requests.filter((request) => {
-        const dateRaw = request?.eventDate ?? request?.createdAt
-        if (selectedYear && !isValidDate(dateRaw)) return false
-        if (selectedYear && new Date(dateRaw).getFullYear() !== selectedYear)
-          return false
-        if (selectedTown && (request?.address?.town ?? '') !== selectedTown)
-          return false
-        return true
-      })
-    },
-    [includeRequests, requests, selectedYear, selectedTown]
-  )
+  const filteredRequests = useMemo(() => {
+    if (!includeRequests) return []
+    return requests.filter((request) => {
+      const dateRaw = request?.eventDate ?? request?.createdAt
+      if (selectedYear && !isValidDate(dateRaw)) return false
+      if (selectedYear && new Date(dateRaw).getFullYear() !== selectedYear)
+        return false
+      if (selectedTown && (request?.address?.town ?? '') !== selectedTown)
+        return false
+      return true
+    })
+  }, [includeRequests, requests, selectedYear, selectedTown])
 
   const eventFinanceMap = useMemo(() => {
     const map = new Map()
@@ -258,7 +257,10 @@ const StatisticsContent = () => {
             expense: 0,
           }
           const paid = Math.max(finance.income, 0)
-          const paymentLeft = Math.max(Number(event?.contractSum ?? 0) - paid, 0)
+          const paymentLeft = Math.max(
+            Number(event?.contractSum ?? 0) - paid,
+            0
+          )
           return { event, paymentLeft }
         })
         .filter(({ event, paymentLeft }) => event?._id && paymentLeft > 0),
@@ -271,7 +273,10 @@ const StatisticsContent = () => {
       if (tx?.type !== 'income' || !tx?.eventId) return
       const amount = Number(tx.amount ?? 0)
       if (!Number.isFinite(amount) || amount <= 0) return
-      incomeByEvent.set(tx.eventId, (incomeByEvent.get(tx.eventId) || 0) + amount)
+      incomeByEvent.set(
+        tx.eventId,
+        (incomeByEvent.get(tx.eventId) || 0) + amount
+      )
     })
 
     return filteredEvents
@@ -549,7 +554,9 @@ const StatisticsContent = () => {
 
     const suffixYear = selectedYear ? String(selectedYear) : 'all'
     const suffixTown = selectedTown ? selectedTown.replace(/\s+/g, '_') : 'all'
-    const suffixRequests = includeRequests ? 'with-requests' : 'without-requests'
+    const suffixRequests = includeRequests
+      ? 'with-requests'
+      : 'without-requests'
     const fileSuffix = `${suffixYear}-${suffixTown}-${suffixRequests}`
     downloadCsv(`artistcrm-events-${fileSuffix}.csv`, eventsHeaders, eventsRows)
     downloadCsv(
@@ -568,7 +575,7 @@ const StatisticsContent = () => {
     if (!Array.isArray(items) || items.length === 0) return
 
     const EventsDetailsModal = () => (
-      <div className="space-y-2 pb-2">
+      <div className="pb-2 space-y-2">
         {items.map(({ event }) => (
           <EventCard
             key={event._id}
@@ -603,8 +610,8 @@ const StatisticsContent = () => {
     const monthTitle = `${monthStat?.data?.month ?? monthStat?.month ?? 'Месяц'} ${year}`
 
     const MonthDetailsModal = () => (
-      <div className="space-y-4 pb-2">
-        <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-5">
+      <div className="pb-2 space-y-4">
+        <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-3 lg:grid-cols-6">
           <SurfaceCard className="rounded" paddingClassName="p-3">
             <div className="text-xs text-gray-500">Выручка</div>
             <div className="text-base font-semibold text-green-700">
@@ -618,7 +625,7 @@ const StatisticsContent = () => {
             </div>
           </SurfaceCard>
           <SurfaceCard className="rounded" paddingClassName="p-3">
-            <div className="text-xs text-gray-500">Прибыль</div>
+            <div className="text-xs text-gray-500">Текущая прибыль</div>
             <div className="text-base font-semibold text-blue-700">
               {formatCurrency(details.summary.profit)}
             </div>
@@ -627,6 +634,14 @@ const StatisticsContent = () => {
             <div className="text-xs text-gray-500">Недооплачено</div>
             <div className="text-base font-semibold text-amber-700">
               {formatCurrency(details.summary.paymentLeft)}
+            </div>
+          </SurfaceCard>
+          <SurfaceCard className="rounded" paddingClassName="p-3">
+            <div className="text-xs text-gray-500">Ожидаемая прибыль</div>
+            <div className="text-base font-semibold text-violet-700">
+              {formatCurrency(
+                details.summary.profit + details.summary.paymentLeft
+              )}
             </div>
           </SurfaceCard>
           <SurfaceCard className="rounded" paddingClassName="p-3">
@@ -642,7 +657,9 @@ const StatisticsContent = () => {
             Мероприятия месяца
           </div>
           {details.events.length === 0 ? (
-            <div className="text-sm text-gray-500">Нет мероприятий за этот месяц</div>
+            <div className="text-sm text-gray-500">
+              Нет мероприятий за этот месяц
+            </div>
           ) : (
             <div className="space-y-2">
               {details.events.map((event) => (
@@ -662,7 +679,9 @@ const StatisticsContent = () => {
             Транзакции месяца
           </div>
           {details.transactions.length === 0 ? (
-            <div className="text-sm text-gray-500">Нет транзакций за этот месяц</div>
+            <div className="text-sm text-gray-500">
+              Нет транзакций за этот месяц
+            </div>
           ) : (
             <div className="space-y-2">
               {details.transactions.map((transaction) => (
@@ -695,7 +714,7 @@ const StatisticsContent = () => {
       {count > 0 ? (
         <button
           type="button"
-          className="flex h-5 min-w-5 cursor-pointer items-center justify-center rounded-full bg-general px-1.5 text-[11px] font-semibold leading-none text-white transition hover:scale-105"
+          className="bg-general flex h-5 min-w-5 cursor-pointer items-center justify-center rounded-full px-1.5 text-[11px] leading-none font-semibold text-white transition hover:scale-105"
           onClick={(event) => {
             event.stopPropagation()
             onCountClick?.()
@@ -709,11 +728,11 @@ const StatisticsContent = () => {
   )
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex flex-col h-full gap-4">
       {!canShowStatistics ? (
         <>
           <ContentHeader />
-          <SectionCard className="flex min-h-0 flex-1 items-center justify-center px-4">
+          <SectionCard className="flex items-center justify-center flex-1 min-h-0 px-4">
             <EmptyState bordered={false}>
               <div className="flex flex-col items-center gap-4 text-center text-gray-500">
                 <div className="text-lg font-semibold text-gray-700">
@@ -732,7 +751,7 @@ const StatisticsContent = () => {
           <ContentHeader>
             <HeaderActions
               left={
-                <div className="mt-2 flex flex-wrap items-end gap-2">
+                <div className="flex flex-wrap items-end gap-2 mt-2">
                   <div className="w-36">
                     <ComboBox
                       label="Год"
@@ -774,8 +793,8 @@ const StatisticsContent = () => {
             />
           </ContentHeader>
 
-          <SectionCard className="min-h-0 flex-1 overflow-y-auto p-4">
-            <div className="tablet:grid-cols-3 mb-4 grid grid-cols-2 gap-2">
+          <SectionCard className="flex-1 min-h-0 p-4 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-2 mb-4 tablet:grid-cols-3">
               <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="text-xs text-gray-500">Выручка</div>
                 <div className="text-lg font-semibold text-green-700">
@@ -845,18 +864,18 @@ const StatisticsContent = () => {
               ) : null}
             </div>
 
-            <div className="mb-3 flex flex-wrap items-center gap-4 text-sm text-gray-700">
+            <div className="flex flex-wrap items-center gap-4 mb-3 text-sm text-gray-700">
               <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded bg-blue-600" />
-                <span>Прибыль</span>
+                <span className="w-3 h-3 bg-blue-600 rounded" />
+                <span>Текущая прибыль</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded bg-red-600" />
+                <span className="w-3 h-3 bg-red-600 rounded" />
                 <span>Недооплачено</span>
               </div>
               <div className="flex items-center gap-2">
                 <span
-                  className="h-4 w-6 rounded-sm border border-blue-500"
+                  className="w-6 h-4 border border-blue-500 rounded-sm"
                   style={{
                     background:
                       'repeating-linear-gradient(135deg, #2563eb 0, #2563eb 8px, rgba(255,255,255,0.94) 8px, rgba(255,255,255,0.94) 10px)',
@@ -866,7 +885,7 @@ const StatisticsContent = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span
-                  className="h-4 w-6 rounded-sm border border-blue-500"
+                  className="w-6 h-4 border border-blue-500 rounded-sm"
                   style={{
                     background:
                       'repeating-linear-gradient(135deg, #2563eb 0, #2563eb 3px, rgba(255,255,255,0.94) 3px, rgba(255,255,255,0.94) 6px)',
@@ -952,11 +971,11 @@ const StatisticsContent = () => {
                     onClick={openMonthDetailsModal}
                     valueFormat={(value) => value.toLocaleString('ru-RU')}
                     tooltip={({ id, value, indexValue }) => (
-                      <div className="statistics-tooltip rounded border border-gray-200 px-2 py-1 text-xs text-gray-700 shadow">
+                      <div className="px-2 py-1 text-xs text-gray-700 border border-gray-200 rounded shadow statistics-tooltip">
                         <div className="font-semibold">{indexValue}</div>
                         <div>
-                          {id === 'profit' ? 'Прибыль' : 'Недооплачено'}:{' '}
-                          {Number(value).toLocaleString('ru-RU')} ₽
+                          {id === 'profit' ? 'Текущая прибыль' : 'Недооплачено'}
+                          : {Number(value).toLocaleString('ru-RU')} ₽
                         </div>
                       </div>
                     )}
@@ -977,7 +996,7 @@ const StatisticsContent = () => {
               </div>
             )}
 
-            <div className="desktop:grid-cols-2 mt-4 grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-3 mt-4 desktop:grid-cols-2">
               <SurfaceCard className="rounded" paddingClassName="p-3">
                 <div className="mb-2 text-sm font-semibold text-gray-700">
                   Топ расходов по категориям
@@ -1012,7 +1031,7 @@ const StatisticsContent = () => {
                     {topProfitableEvents.map(({ event, profit }) => (
                       <div
                         key={event?._id}
-                        className="border-b border-gray-100 pb-2 last:border-b-0"
+                        className="pb-2 border-b border-gray-100 last:border-b-0"
                       >
                         <div className="font-medium">
                           {resolveEventTitle(event) ||
