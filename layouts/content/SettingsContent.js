@@ -2,13 +2,14 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAtom } from 'jotai'
+import { useAtom, useAtomValue } from 'jotai'
 import Input from '@components/Input'
 import IconCheckBox from '@components/IconCheckBox'
 import ComboBox from '@components/ComboBox'
 import MutedText from '@components/MutedText'
 import LabeledContainer from '@components/LabeledContainer'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
+import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 import { postData } from '@helpers/CRUD'
 import {
   resolveServerSyncDisabled,
@@ -44,6 +45,7 @@ const SettingsContent = () => {
   const [defaultEventDuration, setDefaultEventDuration] = useState(60)
   const [queuedChangesCount, setQueuedChangesCount] = useState(0)
   const durationTimeoutRef = useRef(null)
+  const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
 
   // Keep Jotai atom in sync with React Query for backward compatibility
   useEffect(() => {
@@ -155,74 +157,76 @@ const SettingsContent = () => {
           uncheckedIconColor={checkBoxColors.unchecked}
           noMargin
         />
-        <LabeledContainer label="Конфиденциальность" noMargin>
-          <div className="flex flex-col w-full gap-3">
-            <IconCheckBox
-              label="Отключить синхронизацию с сервером"
-              checked={serverSyncDisabled}
-              onClick={async () => {
-                const nextValue = !serverSyncDisabled
-                writeServerSyncDisabledToStorage(nextValue)
-                const patch = {
-                  custom: {
-                    ...(siteSettingsState?.custom ?? {}),
-                    disableServerSync: nextValue,
-                  },
-                }
-                if (nextValue) {
-                  setSiteSettings(
-                    mergeSiteSettingsPatch(siteSettingsState, patch)
-                  )
-                  return
-                }
-                await saveSiteSettingsPatch(patch, true)
-              }}
-              checkedIconColor={checkBoxColors.checked}
-              uncheckedIconColor={checkBoxColors.unchecked}
-              noMargin
-            />
-            <MutedText className="text-gray-500">
-              {serverSyncDisabled
-                ? 'Серверная синхронизация отключена: изменения сохраняются только локально на этом устройстве.'
-                : 'Серверная синхронизация включена: изменения сохраняются в облаке и доступны на других устройствах.'}
-            </MutedText>
-            {serverSyncDisabled ? (
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <MutedText className="text-gray-500">
-                  Локальная очередь запросов: {queuedChangesCount}
-                </MutedText>
-                <button
-                  type="button"
-                  className="flex items-center justify-center px-3 text-xs font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning h-9"
-                  onClick={() => {
-                    clearServerSyncQueue()
-                  }}
-                >
-                  Очистить очередь
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <MutedText className="text-gray-500">
-                  В очереди к синхронизации: {queuedChangesCount}
-                </MutedText>
-                <button
-                  type="button"
-                  className="flex items-center justify-center px-3 text-xs font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning h-9"
-                  onClick={() => {
-                    if (typeof window === 'undefined') return
-                    window.dispatchEvent(
-                      new CustomEvent(SERVER_SYNC_FLUSH_NOW_EVENT)
+        {loggedUserActiveRole?.dev && (
+          <LabeledContainer label="Конфиденциальность" noMargin>
+            <div className="flex flex-col w-full gap-3">
+              <IconCheckBox
+                label="Отключить синхронизацию с сервером"
+                checked={serverSyncDisabled}
+                onClick={async () => {
+                  const nextValue = !serverSyncDisabled
+                  writeServerSyncDisabledToStorage(nextValue)
+                  const patch = {
+                    custom: {
+                      ...(siteSettingsState?.custom ?? {}),
+                      disableServerSync: nextValue,
+                    },
+                  }
+                  if (nextValue) {
+                    setSiteSettings(
+                      mergeSiteSettingsPatch(siteSettingsState, patch)
                     )
-                  }}
-                  disabled={queuedChangesCount === 0}
-                >
-                  Синхронизировать сейчас
-                </button>
-              </div>
-            )}
-          </div>
-        </LabeledContainer>
+                    return
+                  }
+                  await saveSiteSettingsPatch(patch, true)
+                }}
+                checkedIconColor={checkBoxColors.checked}
+                uncheckedIconColor={checkBoxColors.unchecked}
+                noMargin
+              />
+              <MutedText className="text-gray-500">
+                {serverSyncDisabled
+                  ? 'Серверная синхронизация отключена: изменения сохраняются только локально на этом устройстве.'
+                  : 'Серверная синхронизация включена: изменения сохраняются в облаке и доступны на других устройствах.'}
+              </MutedText>
+              {serverSyncDisabled ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <MutedText className="text-gray-500">
+                    Локальная очередь запросов: {queuedChangesCount}
+                  </MutedText>
+                  <button
+                    type="button"
+                    className="flex items-center justify-center px-3 text-xs font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning h-9"
+                    onClick={() => {
+                      clearServerSyncQueue()
+                    }}
+                  >
+                    Очистить очередь
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <MutedText className="text-gray-500">
+                    В очереди к синхронизации: {queuedChangesCount}
+                  </MutedText>
+                  <button
+                    type="button"
+                    className="flex items-center justify-center px-3 text-xs font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning h-9"
+                    onClick={() => {
+                      if (typeof window === 'undefined') return
+                      window.dispatchEvent(
+                        new CustomEvent(SERVER_SYNC_FLUSH_NOW_EVENT)
+                      )
+                    }}
+                    disabled={queuedChangesCount === 0}
+                  >
+                    Синхронизировать сейчас
+                  </button>
+                </div>
+              )}
+            </div>
+          </LabeledContainer>
+        )}
         <ComboBox
           label="Часовой пояс"
           items={TIME_ZONE_OPTIONS}
