@@ -9,6 +9,7 @@ const VALID_REMINDER_MINUTES = new Set(['00', '15', '30', '45'])
 
 const MAX_SUMMARY_ITEMS = 15
 const SUMMARY_TAG = 'daily_push_reminder_summary'
+const NEXT_24H_HOURS = 24
 
 const toDate = (value) => {
   if (!value) return null
@@ -66,17 +67,11 @@ const getZonedTimeKey = (value, timeZone = DEFAULT_TIME_ZONE) => {
   return `${map.hour}:${map.minute}`
 }
 
-const addDaysToDateKey = (dateKey, days) => {
-  const [year, month, day] = String(dateKey || '')
-    .split('-')
-    .map((value) => Number(value))
-  if (!year || !month || !day) return null
-  const date = new Date(Date.UTC(year, month - 1, day + days))
-  return [
-    String(date.getUTCFullYear()).padStart(4, '0'),
-    String(date.getUTCMonth() + 1).padStart(2, '0'),
-    String(date.getUTCDate()).padStart(2, '0'),
-  ].join('-')
+const isSameZonedDay = (dateA, dateB, timeZone = DEFAULT_TIME_ZONE) => {
+  const keyA = toDateKey(dateA, timeZone)
+  const keyB = toDateKey(dateB, timeZone)
+  if (!keyA || !keyB) return false
+  return keyA === keyB
 }
 
 const canSendForTenant = (siteSettings) => {
@@ -105,8 +100,33 @@ const shouldRunForTenantTime = (siteSettings, nowDate) => {
   return currentTime === normalizeReminderTime(reminderTime)
 }
 
-const formatItemLine = ({ title, date, isOverdue, timeZone }) => {
+const formatEventLine = ({ title, date, timeZone }) => {
   const dateObj = toDate(date)
+  if (!dateObj) return `• ${title}`
+  const timeStr = dateObj.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone,
+  })
+  const dateStr = dateObj.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone,
+  })
+  return `• ${title} — ${dateStr} ${timeStr}`
+}
+
+const formatAdditionalEventLine = ({
+  eventTitle,
+  additionalTitle,
+  date,
+  isOverdue,
+  timeZone,
+}) => {
+  const dateObj = toDate(date)
+  if (isOverdue) {
+    return `• ${additionalTitle} — просрочено`
+  }
   const timeStr = dateObj
     ? dateObj.toLocaleTimeString('ru-RU', {
         hour: '2-digit',
@@ -114,108 +134,84 @@ const formatItemLine = ({ title, date, isOverdue, timeZone }) => {
         timeZone,
       })
     : '--:--'
-  const dateStr = dateObj
-    ? dateObj.toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        timeZone,
-      })
-    : '--.--'
-  if (isOverdue) {
-    return `⚠️ ${title} — просрочено (${dateStr})`
-  }
-  return `• ${title} — ${dateStr} ${timeStr}`
+  return `• ${additionalTitle} — сегодня ${timeStr}`
 }
 
 const buildSummaryPayload = ({
   tenantSettings,
   timeZone = DEFAULT_TIME_ZONE,
-  overdueMainEvents = [],
-  tomorrowMainEvents = [],
+  next24hEvents = [],
+  needsClosingCount = 0,
   overdueAdditionalEvents = [],
-  tomorrowAdditionalEvents = [],
+  todayAdditionalEvents = [],
 }) => {
   const lines = []
-  const allItems = []
+  let totalItems = 0
 
-  for (const item of overdueMainEvents) {
-    allItems.push({
-      type: 'overdue_main',
-      eventId: item.eventId,
-      label: formatItemLine({
-        title: item.title,
-        date: item.date,
-        isOverdue: true,
-        timeZone,
-      }),
-    })
+  // --- Section 1: Events in next 24 hours ---
+  if (next24hEvents.length > 0) {
+    const displayEvents = next24hEvents.slice(0, MAX_SUMMARY_ITEMS)
+    lines.push(`📅 На сегодня: ${next24hEvents.length} мероприятий`)
+    for (const item of displayEvents) {
+      lines.push(
+        formatEventLine({ title: item.title, date: item.date, timeZone })
+      )
+    }
+    if (next24hEvents.length > MAX_SUMMARY_ITEMS) {
+      lines.push(`...и ещё ${next24hEvents.length - MAX_SUMMARY_ITEMS}`)
+    }
+    totalItems += next24hEvents.length
   }
 
-  for (const item of tomorrowMainEvents) {
-    allItems.push({
-      type: 'tomorrow_main',
-      eventId: item.eventId,
-      label: formatItemLine({
-        title: item.title,
-        date: item.date,
-        isOverdue: false,
-        timeZone,
-      }),
-    })
+  // --- Section 2: Events needing closure ---
+  if (needsClosingCount > 0) {
+    if (lines.length > 0) lines.push('')
+    lines.push(`📋 Закрыть: ${needsClosingCount} мероприятий`)
+    totalItems += needsClosingCount
   }
 
-  for (const item of overdueAdditionalEvents) {
-    allItems.push({
-      type: 'overdue_additional',
-      eventId: item.eventId,
-      label: formatItemLine({
-        title: `${item.additionalTitle} • ${item.eventTitle}`,
-        date: item.date,
-        isOverdue: true,
-        timeZone,
-      }),
-    })
+  // --- Section 3: Additional events ---
+  const overdueAddCount = overdueAdditionalEvents.length
+  const todayAddCount = todayAdditionalEvents.length
+  if (overdueAddCount > 0 || todayAddCount > 0) {
+    if (lines.length > 0) lines.push('')
+    const addParts = []
+    if (overdueAddCount > 0) addParts.push(`${overdueAddCount} просрочено`)
+    if (todayAddCount > 0) addParts.push(`${todayAddCount} сегодня`)
+    lines.push(`📌 Доп. события: ${addParts.join(', ')}`)
+
+    // Show overdue first, then today's
+    const allAddItems = [
+      ...overdueAdditionalEvents.map((i) => ({ ...i, isOverdue: true })),
+      ...todayAdditionalEvents.map((i) => ({ ...i, isOverdue: false })),
+    ]
+    const displayAddItems = allAddItems.slice(0, MAX_SUMMARY_ITEMS)
+    for (const item of displayAddItems) {
+      lines.push(
+        formatAdditionalEventLine({
+          eventTitle: item.eventTitle,
+          additionalTitle: item.additionalTitle,
+          date: item.date,
+          isOverdue: item.isOverdue,
+          timeZone,
+        })
+      )
+    }
+    if (allAddItems.length > MAX_SUMMARY_ITEMS) {
+      lines.push(`...и ещё ${allAddItems.length - MAX_SUMMARY_ITEMS}`)
+    }
+    totalItems += allAddItems.length
   }
 
-  for (const item of tomorrowAdditionalEvents) {
-    allItems.push({
-      type: 'tomorrow_additional',
-      eventId: item.eventId,
-      label: formatItemLine({
-        title: `${item.additionalTitle} • ${item.eventTitle}`,
-        date: item.date,
-        isOverdue: false,
-        timeZone,
-      }),
-    })
-  }
+  // If nothing at all found — return null so we skip sending
+  if (totalItems === 0) return null
 
-  const totalCount = allItems.length
-  const hasOverdue =
-    overdueMainEvents.length > 0 || overdueAdditionalEvents.length > 0
-
-  // Build display lines (capped for notification body)
-  const displayItems = allItems.slice(0, MAX_SUMMARY_ITEMS)
-  for (const item of displayItems) {
-    lines.push(item.label)
-  }
-
-  if (totalCount > MAX_SUMMARY_ITEMS) {
-    lines.push(`...и ещё ${totalCount - MAX_SUMMARY_ITEMS}`)
-  }
-
+  const hasOverdue = needsClosingCount > 0 || overdueAddCount > 0
   const title = hasOverdue
-    ? `📋 Сводка: ${totalCount} напоминаний`
-    : `📋 Напоминания: ${totalCount} мероприятий`
+    ? `📋 Сводка: ${totalItems} напоминаний`
+    : `📋 Напоминания: ${totalItems} мероприятий`
 
   const body = lines.join('\n')
-
-  // Determine primary event ID for deep link (first overdue or first tomorrow)
-  const firstOverdue = allItems.find(
-    (i) => i.type === 'overdue_main' || i.type === 'overdue_additional'
-  )
-  const firstItem = firstOverdue || allItems[0]
-  const primaryEventId = firstItem?.eventId || ''
 
   return {
     title,
@@ -226,14 +222,13 @@ const buildSummaryPayload = ({
     renotify: false,
     requireInteraction: hasOverdue,
     data: {
-      url: primaryEventId
-        ? `/cabinet/eventsUpcoming?openEvent=${primaryEventId}`
-        : '/cabinet/eventsUpcoming',
+      url: '/cabinet/eventsUpcoming?openAction=upcomingOverview',
       type: 'push_reminder_summary',
-      totalCount,
-      overdueCount: overdueMainEvents.length + overdueAdditionalEvents.length,
-      tomorrowCount:
-        tomorrowMainEvents.length + tomorrowAdditionalEvents.length,
+      totalCount: totalItems,
+      needsClosingCount,
+      overdueAdditionalCount: overdueAddCount,
+      todayAdditionalCount: todayAddCount,
+      next24hCount: next24hEvents.length,
     },
   }
 }
@@ -241,6 +236,7 @@ const buildSummaryPayload = ({
 const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
   const nowDate = toDate(now) || new Date()
 
+  // Find all tenants with push enabled
   const siteSettings = await SiteSettings.find({
     'custom.publicLeadPushEnabled': true,
   })
@@ -274,6 +270,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
 
   const tenantIds = scheduledTenantSettings.map((item) => String(item.tenantId))
 
+  // Load all non-canceled/non-closed events with date info
   const events = await Events.find({
     tenantId: { $in: tenantIds },
     status: { $nin: ['canceled', 'closed'] },
@@ -282,7 +279,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
       { additionalEvents: { $exists: true, $ne: [] } },
     ],
   })
-    .select('_id tenantId eventType eventDate additionalEvents')
+    .select('_id tenantId eventType eventDate additionalEvents status address')
     .lean()
 
   let dueCandidates = 0
@@ -312,87 +309,56 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
     const key = String(tenantId)
     if (!tenantDueItems.has(key)) {
       tenantDueItems.set(key, {
-        overdueMainEvents: [],
-        tomorrowMainEvents: [],
+        next24hEvents: [],
+        needsClosingCount: 0,
         overdueAdditionalEvents: [],
-        tomorrowAdditionalEvents: [],
+        todayAdditionalEvents: [],
       })
     }
     return tenantDueItems.get(key)
   }
 
+  const nowMs = nowDate.getTime()
+  const next24hMs = nowMs + NEXT_24H_HOURS * 60 * 60 * 1000
+
   for (const event of events) {
     const tenantSettings = settingsByTenant.get(String(event.tenantId))
     if (!tenantSettings) continue
     const timeZone = tenantSettings?.timeZone || DEFAULT_TIME_ZONE
-    const todayKey = toDateKey(nowDate, timeZone)
-    const tomorrowKey = addDaysToDateKey(todayKey, 1)
     const stats = getTenantStats(event.tenantId)
     const dueItems = getTenantDueItems(event.tenantId)
     stats.processedEvents += 1
 
-    // --- Main event date reminder ---
+    const eventTitle =
+      String(event?.eventType || 'Мероприятие').trim() || 'Мероприятие'
+
+    // --- Main event date analysis ---
     if (event.eventDate) {
       const mainDate = toDate(event.eventDate)
       if (mainDate) {
-        let reminderType = ''
-        let dateKey = ''
-        const mainDateKey = toDateKey(mainDate, timeZone)
-        if (mainDate.getTime() < nowDate.getTime()) {
-          reminderType = 'overdue'
-          dateKey = todayKey
-        } else if (mainDateKey && mainDateKey === tomorrowKey) {
-          reminderType = 'tomorrow'
-          dateKey = mainDateKey
-        }
+        const mainMs = mainDate.getTime()
 
-        if (reminderType) {
+        // 1) Events in next 24 hours
+        if (mainMs >= nowMs && mainMs <= next24hMs) {
           dueCandidates += 1
           stats.dueCandidates += 1
+          dueItems.next24hEvents.push({
+            eventId: String(event._id),
+            title: eventTitle,
+            date: mainDate,
+          })
+        }
 
-          const dedupKey = {
-            tenantId: event.tenantId,
-            eventId: event._id,
-            additionalEventIndex: null,
-            reminderType,
-            dateKey,
-          }
-
-          const exists = await PushReminderLogs.findOne(dedupKey).lean()
-          if (exists) {
-            skippedByDedup += 1
-            stats.skippedByDedup += 1
-          } else {
-            // Collect into summary items instead of sending individual push
-            const eventTitle =
-              String(event?.eventType || 'Мероприятие').trim() || 'Мероприятие'
-            if (reminderType === 'overdue') {
-              dueItems.overdueMainEvents.push({
-                eventId: String(event._id),
-                title: eventTitle,
-                date: mainDate,
-              })
-            } else {
-              dueItems.tomorrowMainEvents.push({
-                eventId: String(event._id),
-                title: eventTitle,
-                date: mainDate,
-              })
-            }
-
-            // Mark as processed in log (dedup for future runs)
-            await PushReminderLogs.create({
-              ...dedupKey,
-              sentAt: new Date(),
-            })
-            sentReminders += 1
-            stats.sentReminders += 1
-          }
+        // 2) Events that need closing (past date, still active)
+        if (mainMs < nowMs && event.status === 'active') {
+          dueCandidates += 1
+          stats.dueCandidates += 1
+          dueItems.needsClosingCount += 1
         }
       }
     }
 
-    // --- Additional events reminders ---
+    // --- Additional events analysis ---
     const additionalEvents = Array.isArray(event?.additionalEvents)
       ? event.additionalEvents
       : []
@@ -403,86 +369,87 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
       const date = toDate(item?.date)
       if (!date) continue
 
-      let reminderType = ''
-      let dateKey = ''
-      const itemDateKey = toDateKey(date, timeZone)
-      if (date.getTime() < nowDate.getTime()) {
-        reminderType = 'overdue'
-        dateKey = todayKey
-      } else if (itemDateKey && itemDateKey === tomorrowKey) {
-        reminderType = 'tomorrow'
-        dateKey = itemDateKey
-      } else {
-        continue
-      }
+      const dateMs = date.getTime()
 
-      dueCandidates += 1
-      stats.dueCandidates += 1
-
-      const dedupKey = {
-        tenantId: event.tenantId,
-        eventId: event._id,
-        additionalEventIndex: index,
-        reminderType,
-        dateKey,
-      }
-
-      const exists = await PushReminderLogs.findOne(dedupKey).lean()
-      if (exists) {
-        skippedByDedup += 1
-        stats.skippedByDedup += 1
-        continue
-      }
-
-      // Collect into summary items instead of sending individual push
-      const eventTitle =
-        String(event?.eventType || 'Событие').trim() || 'Событие'
-      const additionalTitle =
-        String(item?.title || 'Доп. событие').trim() || 'Доп. событие'
-
-      if (reminderType === 'overdue') {
+      // Overdue additional events
+      if (dateMs < nowMs) {
+        dueCandidates += 1
+        stats.dueCandidates += 1
         dueItems.overdueAdditionalEvents.push({
           eventId: String(event._id),
           eventTitle,
-          additionalTitle,
+          additionalTitle:
+            String(item?.title || 'Доп. событие').trim() || 'Доп. событие',
           date,
         })
-      } else {
-        dueItems.tomorrowAdditionalEvents.push({
+        continue
+      }
+
+      // Additional events for today (same calendar day)
+      if (isSameZonedDay(date, nowDate, timeZone)) {
+        dueCandidates += 1
+        stats.dueCandidates += 1
+        dueItems.todayAdditionalEvents.push({
           eventId: String(event._id),
           eventTitle,
-          additionalTitle,
+          additionalTitle:
+            String(item?.title || 'Доп. событие').trim() || 'Доп. событие',
           date,
         })
       }
-
-      // Mark as processed in log
-      await PushReminderLogs.create({
-        ...dedupKey,
-        sentAt: new Date(),
-      })
-      sentReminders += 1
-      stats.sentReminders += 1
     }
   }
+
+  // Dedup check: have we already sent a summary today for this tenant?
+  const todayKey = toDateKey(nowDate)
 
   // Send one summary push per tenant
   for (const [tenantId, dueItems] of tenantDueItems) {
     const tenantSettings = settingsByTenant.get(tenantId)
     const timeZone = tenantSettings?.timeZone || DEFAULT_TIME_ZONE
+
     const hasItems =
-      dueItems.overdueMainEvents.length > 0 ||
-      dueItems.tomorrowMainEvents.length > 0 ||
+      dueItems.next24hEvents.length > 0 ||
+      dueItems.needsClosingCount > 0 ||
       dueItems.overdueAdditionalEvents.length > 0 ||
-      dueItems.tomorrowAdditionalEvents.length > 0
+      dueItems.todayAdditionalEvents.length > 0
 
     if (!hasItems) continue
+
+    // Dedup: check if summary already sent today for this tenant
+    const dedupKey = {
+      tenantId,
+      reminderType: 'summary',
+      dateKey: todayKey,
+    }
+
+    const alreadySent = await PushReminderLogs.findOne(dedupKey).lean()
+    if (alreadySent) {
+      skippedByDedup += 1
+      const stats = getTenantStats(tenantId)
+      stats.skippedByDedup += 1
+      continue
+    }
 
     const payload = buildSummaryPayload({
       tenantSettings,
       timeZone,
       ...dueItems,
     })
+
+    if (!payload) {
+      // Nothing to show — skip
+      continue
+    }
+
+    // Mark as sent BEFORE sending to avoid duplicates on retry
+    await PushReminderLogs.create({
+      ...dedupKey,
+      sentAt: new Date(),
+    })
+    sentReminders += 1
+    const stats = getTenantStats(tenantId)
+    stats.sentReminders += 1
 
     const result = await sendPushToTenant({
       tenantId,
@@ -492,7 +459,6 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
 
     if (!result?.ok) {
       failed += 1
-      const stats = getTenantStats(tenantId)
       stats.failed += 1
     }
   }
@@ -506,7 +472,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
       payloadType: 'push_reminder',
       sent: stats.sentReminders,
       failed: stats.failed,
-      message: `Итого напоминаний: кандидатов ${stats.dueCandidates}, собрано в сводку ${stats.sentReminders}, дублей ${stats.skippedByDedup}, ошибок ${stats.failed}`,
+      message: `Итого: кандидатов ${stats.dueCandidates}, собрано в сводку ${stats.sentReminders}, дублей ${stats.skippedByDedup}, ошибок ${stats.failed}`,
       meta: stats,
     })
   }

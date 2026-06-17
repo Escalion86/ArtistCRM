@@ -827,6 +827,22 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     statusFilterKeys,
   ])
 
+  // Handle openAction=upcomingOverview from push notification click
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const action = searchParams?.get('openAction')
+    if (action !== 'upcomingOverview') return
+    if (modals.length > 0) return
+
+    const timer = setTimeout(() => {
+      modalsFunc.event?.upcomingOverview?.()
+      // Clean up URL param without full page reload
+      if (pathname) router.replace(pathname, { scroll: false })
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchParams, modals.length, modalsFunc, pathname, router])
+
   useEffect(() => {
     if (filter !== 'upcoming') return
     if (typeof window === 'undefined') return
