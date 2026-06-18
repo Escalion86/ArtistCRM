@@ -90,8 +90,21 @@ export const useServiceActions = () => {
     },
   })
 
-  return { set: (item, clone) => saveService({ item, clone }), delete: (serviceId) => deleteService(serviceId) }
+  return {
+    set: (item, clone) => saveService({ item, clone }),
+    delete: (serviceId) => deleteService(serviceId),
+  }
 }
+
+// ============ SERVICE GROUPS ============
+
+export const useServiceGroupsQuery = (initialData) =>
+  useQuery({
+    queryKey: queryKeys.serviceGroups(),
+    queryFn: async () =>
+      normalizeListPayload(await apiJson('/api/service-groups')),
+    initialData: Array.isArray(initialData) ? initialData : [],
+  })
 
 // ============ USERS ============
 
@@ -161,7 +174,10 @@ export const useUserActions = () => {
     },
   })
 
-  return { set: (item, clone) => saveUser({ item, clone }), delete: (userId) => deleteUser(userId) }
+  return {
+    set: (item, clone) => saveUser({ item, clone }),
+    delete: (userId) => deleteUser(userId),
+  }
 }
 
 // ============ TARIFFS ============
@@ -232,7 +248,10 @@ export const useTariffActions = () => {
     },
   })
 
-  return { set: (item, clone) => saveTariff({ item, clone }), delete: (tariffId) => deleteTariff(tariffId) }
+  return {
+    set: (item, clone) => saveTariff({ item, clone }),
+    delete: (tariffId) => deleteTariff(tariffId),
+  }
 }
 
 // ============ SITE SETTINGS ============

@@ -6,6 +6,7 @@ import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import transactionsAtom from '@state/atoms/transactionsAtom'
 import servicesAtom from '@state/atoms/servicesAtom'
+import serviceGroupsAtom from '@state/atoms/serviceGroupsAtom'
 import usersAtom from '@state/atoms/usersAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import { useEffect, useRef } from 'react'
@@ -63,14 +64,14 @@ const StateLoader = (props) => {
   const setEventsState = useSetAtom(eventsAtom)
   const setClientsState = useSetAtom(clientsAtom)
   const setTransactionsState = useSetAtom(transactionsAtom)
-  const [siteSettingsState, setSiteSettingsState] =
-    useAtom(siteSettingsAtom)
+  const [siteSettingsState, setSiteSettingsState] = useAtom(siteSettingsAtom)
   const setUsersState = useSetAtom(usersAtom)
   // const setRolesSettingsState = useSetAtom(rolesAtom)
   // const setHistoriesState = useSetAtom(historiesAtom)
   // const setQuestionnairesState = useSetAtom(questionnairesAtom)
   // const setQuestionnairesUsersState = useSetAtom(questionnairesUsersAtom)
   const setServicesState = useSetAtom(servicesAtom)
+  const setServiceGroupsState = useSetAtom(serviceGroupsAtom)
   const setTariffsState = useSetAtom(tariffsAtom)
   // const setServicesUsersState = useSetAtom(servicesUsersAtom)
   // const setServerSettingsState = useSetAtom(serverSettingsAtom)
@@ -153,12 +154,19 @@ const StateLoader = (props) => {
       queryKeys.events({ scope: eventsScope }),
       eventsQueryPayload
     )
-    queryClient.setQueryData(queryKeys.events({ scope: 'all' }), eventsQueryPayload)
+    queryClient.setQueryData(
+      queryKeys.events({ scope: 'all' }),
+      eventsQueryPayload
+    )
     ;(props.events ?? []).forEach((event) => {
-      if (event?._id) queryClient.setQueryData(queryKeys.event(event._id), event)
+      if (event?._id)
+        queryClient.setQueryData(queryKeys.event(event._id), event)
     })
     queryClient.setQueryData(queryKeys.clients(), props.clients ?? [])
-    queryClient.setQueryData(queryKeys.transactionsAll, props.transactions ?? [])
+    queryClient.setQueryData(
+      queryKeys.transactionsAll,
+      props.transactions ?? []
+    )
     queryClient.setQueryData(queryKeys.services(), props.services ?? [])
     queryClient.setQueryData(queryKeys.tariffs(), props.tariffs ?? [])
     queryClient.setQueryData(queryKeys.users(), props.users ?? [])
@@ -196,6 +204,22 @@ const StateLoader = (props) => {
     setSiteSettingsState,
     setTransactionsState,
   ])
+
+  // Load service groups
+  useEffect(() => {
+    const loadGroups = async () => {
+      try {
+        const response = await fetch('/api/service-groups')
+        const result = await response.json()
+        if (result?.success && Array.isArray(result.data)) {
+          setServiceGroupsState(result.data)
+        }
+      } catch {
+        // silently fail
+      }
+    }
+    loadGroups()
+  }, [setServiceGroupsState])
 
   useEffect(() => {
     if (!loggedUser?._id) return
@@ -305,9 +329,10 @@ const StateLoader = (props) => {
 
     const shouldBlock = (input, init) => {
       const disabledFromStorage = readServerSyncDisabledFromStorage()
-      const disabled = typeof disabledFromStorage === 'boolean'
-        ? disabledFromStorage
-        : serverSyncDisabled
+      const disabled =
+        typeof disabledFromStorage === 'boolean'
+          ? disabledFromStorage
+          : serverSyncDisabled
       if (!disabled) return false
 
       const method = getMethod(input, init)
@@ -323,7 +348,8 @@ const StateLoader = (props) => {
 
       const url = new URL(inputUrl, window.location.origin)
       const isSameOriginApi =
-        url.origin === window.location.origin && url.pathname.startsWith('/api/')
+        url.origin === window.location.origin &&
+        url.pathname.startsWith('/api/')
       if (!isSameOriginApi) return false
 
       if (url.pathname.startsWith('/api/auth/')) return false
@@ -399,7 +425,9 @@ const StateLoader = (props) => {
         for (const item of queue) {
           const method = String(item?.method || 'POST').toUpperCase()
           const body =
-            typeof item?.body === 'string' && item.body !== '[form-data]' && item.body !== '[binary]'
+            typeof item?.body === 'string' &&
+            item.body !== '[form-data]' &&
+            item.body !== '[binary]'
               ? item.body
               : undefined
           const headers =

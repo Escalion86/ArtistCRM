@@ -11,6 +11,8 @@ export const queryKeys = {
   statistics: (params = {}) => ['statistics', params],
   services: (params = {}) => ['services', params],
   service: (serviceId) => ['service', serviceId],
+  serviceGroups: (params = {}) => ['serviceGroups', params],
+  serviceGroup: (serviceGroupId) => ['serviceGroup', serviceGroupId],
   users: (params = {}) => ['users', params],
   user: (userId) => ['user', userId],
   tariffs: (params = {}) => ['tariffs', params],

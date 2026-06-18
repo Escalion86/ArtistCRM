@@ -23,6 +23,16 @@ const servicesSchema = {
     type: Number,
     default: 0,
   },
+  price: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  groupId: {
+    type: Schema.Types.ObjectId,
+    ref: 'ServiceGroups',
+    default: null,
+  },
 }
 
 export default servicesSchema

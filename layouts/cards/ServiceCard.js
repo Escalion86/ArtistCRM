@@ -23,6 +23,7 @@ const ServiceCard = ({ service, style }) => {
   const durationLabel = service.duration
     ? formatMinutes(service.duration)
     : 'Не указана'
+  const priceLabel = service.price ? `${service.price} ₽` : null
   const description = service.description || 'Описание отсутствует'
   const previewImage =
     Array.isArray(service.images) && service.images.length > 0
@@ -33,7 +34,7 @@ const ServiceCard = ({ service, style }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && modalsFunc.service?.view(service._id)}
-      className="card-body-pad group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
+      className="flex w-full h-full p-4 text-left cursor-pointer card-body-pad group hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
@@ -46,7 +47,7 @@ const ServiceCard = ({ service, style }) => {
         />
       </CardActions>
 
-      <div className="flex h-full w-full gap-3">
+      <div className="flex w-full h-full gap-3">
         {previewImage && (
           <img
             src={previewImage}
@@ -54,19 +55,24 @@ const ServiceCard = ({ service, style }) => {
             className="h-16 w-16 min-w-[64px] rounded-lg object-cover"
           />
         )}
-        <div className="flex h-full w-full flex-col gap-2">
+        <div className="flex flex-col w-full h-full gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="card-title text-base">
+            <div className="text-base card-title">
               {service.title || 'Без названия'}
             </div>
           </div>
-          <div className="card-meta flex flex-wrap gap-3 text-sm">
+          <div className="flex flex-wrap gap-3 text-sm card-meta">
             <div>
               <span className="font-medium">Продолжительность:</span>{' '}
               {durationLabel}
             </div>
+            {priceLabel && (
+              <div>
+                <span className="font-medium">Цена:</span> {priceLabel}
+              </div>
+            )}
           </div>
-          <TextLinesLimiter className="card-muted text-sm" lines={3}>
+          <TextLinesLimiter className="text-sm card-muted" lines={3}>
             {description}
           </TextLinesLimiter>
         </div>
@@ -91,4 +97,3 @@ ServiceCard.defaultProps = {
 }
 
 export default ServiceCard
-

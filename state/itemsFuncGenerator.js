@@ -15,11 +15,14 @@ import clientEditSelector from './selectors/clientEditSelector'
 import clientDeleteSelector from './selectors/clientDeleteSelector'
 import serviceEditSelector from './selectors/serviceEditSelector'
 import serviceDeleteSelector from './selectors/serviceDeleteSelector'
+import serviceGroupEditSelector from './selectors/serviceGroupEditSelector'
+import serviceGroupDeleteSelector from './selectors/serviceGroupDeleteSelector'
 import tariffEditSelector from './selectors/tariffEditSelector'
 import tariffDeleteSelector from './selectors/tariffDeleteSelector'
 import eventsAtom from './atoms/eventsAtom'
 import clientsAtom from './atoms/clientsAtom'
 import servicesAtom from './atoms/servicesAtom'
+import serviceGroupsAtom from './atoms/serviceGroupsAtom'
 import usersAtom from './atoms/usersAtom'
 import tariffsAtom from './atoms/tariffsAtom'
 // import siteSettingsAtom from './atoms/siteSettingsAtom'
@@ -40,6 +43,15 @@ import tariffsAtom from './atoms/tariffsAtom'
 
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1)
+}
+
+const apiUrlByItemName = {
+  serviceGroup: '/api/service-groups',
+}
+
+const getApiUrl = (itemName, itemId = null) => {
+  const base = apiUrlByItemName[itemName] || `/api/${itemName.toLowerCase()}s`
+  return itemId ? `${base}/${itemId}` : base
 }
 
 const getErrorText = (error) => {
@@ -96,6 +108,20 @@ const messages = {
     delete: {
       success: 'Услуга удалена',
       error: 'Не удалось удалить услугу',
+    },
+  },
+  serviceGroup: {
+    update: {
+      success: 'Группа услуг обновлена',
+      error: 'Не удалось обновить группу услуг',
+    },
+    add: {
+      success: 'Группа услуг создана',
+      error: 'Не удалось создать группу услуг',
+    },
+    delete: {
+      success: 'Группа услуг удалена',
+      error: 'Не удалось удалить группу услуг',
     },
   },
   user: {
@@ -165,6 +191,7 @@ const atomByItemName = {
   event: eventsAtom,
   client: clientsAtom,
   service: servicesAtom,
+  serviceGroup: serviceGroupsAtom,
   user: usersAtom,
   tariff: tariffsAtom,
 }
@@ -207,6 +234,8 @@ const props = {
   // deleteQuestionnaireUsers: setFunc(questionnaireUsersDeleteSelector),
   setService: setFunc(serviceEditSelector),
   deleteService: setFunc(serviceDeleteSelector),
+  setServiceGroup: setFunc(serviceGroupEditSelector),
+  deleteServiceGroup: setFunc(serviceGroupDeleteSelector),
   deleteUser: setFunc(userDeleteSelector),
   deleteTariff: setFunc(tariffDeleteSelector),
   // setServicesUser: setFunc(servicesUsersEditSelector),
@@ -222,6 +251,7 @@ const itemsFuncGenerator = (
     'event',
     'client',
     'service',
+    'serviceGroup',
     'user',
     'tariff',
     // 'eventsUser',
@@ -251,9 +281,12 @@ const itemsFuncGenerator = (
       obj[itemName] = {
         set: async (item, clone, noSnackbar) => {
           if (disableServerSync) {
-            const localId = item?._id && !clone ? item._id : createLocalId(itemName)
+            const localId =
+              item?._id && !clone ? item._id : createLocalId(itemName)
             const prevItem =
-              item?._id && !clone ? getCurrentItemById(itemName, item._id) : null
+              item?._id && !clone
+                ? getCurrentItemById(itemName, item._id)
+                : null
             const localItem = {
               ...(prevItem ?? {}),
               ...item,
@@ -265,9 +298,10 @@ const itemsFuncGenerator = (
             props['set' + capitalizeFirstLetter(itemName)](localItem)
             if (item?._id && !clone) setNotLoadingCard(itemName + item._id)
             if (!noSnackbar) {
-              const message = item?._id && !clone
-                ? `${messages[itemName]?.update?.success || 'Изменение сохранено'} (локально)`
-                : `${messages[itemName]?.add?.success || 'Элемент создан'} (локально)`
+              const message =
+                item?._id && !clone
+                  ? `${messages[itemName]?.update?.success || 'Изменение сохранено'} (локально)`
+                  : `${messages[itemName]?.add?.success || 'Элемент создан'} (локально)`
               snackbar.success(message)
             }
             return localItem
@@ -316,7 +350,7 @@ const itemsFuncGenerator = (
           if (item?._id && !clone) {
             setLoadingCard(itemName + item._id)
             return await putData(
-              `/api/${itemName.toLowerCase()}s/${item._id}`,
+              getApiUrl(itemName, item._id),
               item,
               (data) => {
                 setNotLoadingCard(itemName + item._id)
@@ -346,7 +380,7 @@ const itemsFuncGenerator = (
             const clearedItem = { ...item }
             delete clearedItem._id
             return await postData(
-              `/api/${itemName.toLowerCase()}s`,
+              getApiUrl(itemName),
               clearedItem,
               (data) => {
                 if (!noSnackbar && messages[itemName]?.add?.success)
@@ -380,7 +414,9 @@ const itemsFuncGenerator = (
             props['delete' + capitalizeFirstLetter(itemName)](itemId)
             setNotLoadingCard(itemName + itemId)
             if (messages[itemName]?.delete?.success)
-              snackbar.success(`${messages[itemName].delete.success} (локально)`)
+              snackbar.success(
+                `${messages[itemName].delete.success} (локально)`
+              )
             return true
           }
           const serverActions =
@@ -417,7 +453,7 @@ const itemsFuncGenerator = (
           }
           setLoadingCard(itemName + itemId)
           return await deleteData(
-            `/api/${itemName.toLowerCase()}s/${itemId}`,
+            getApiUrl(itemName, itemId),
             () => {
               if (messages[itemName]?.delete?.success)
                 snackbar.success(messages[itemName].delete.success)
@@ -446,7 +482,6 @@ const itemsFuncGenerator = (
       }
     })
 
-
   obj.event.cancel = async (eventId) => {
     if (disableServerSync) {
       const prevEvent = getCurrentItemById('event', eventId) ?? {}
@@ -471,7 +506,9 @@ const itemsFuncGenerator = (
         setNotLoadingCard('event' + eventId)
         return data
       } catch (error) {
-        snackbar.error(buildErrorToast('Не удалось отменить мероприятие', error))
+        snackbar.error(
+          buildErrorToast('Не удалось отменить мероприятие', error)
+        )
         setErrorCard('event' + eventId)
         const data = { errorPlace: 'EVENT CANCEL ERROR', eventId, error }
         addErrorModal(data)
@@ -488,7 +525,9 @@ const itemsFuncGenerator = (
         props.setEvent(data)
       },
       (error) => {
-        snackbar.error(buildErrorToast('Не удалось отменить мероприятие', error))
+        snackbar.error(
+          buildErrorToast('Не удалось отменить мероприятие', error)
+        )
         setErrorCard('event' + eventId)
         const data = { errorPlace: 'EVENT CANCEL ERROR', eventId, error }
         addErrorModal(data)
