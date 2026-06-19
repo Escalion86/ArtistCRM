@@ -4,6 +4,7 @@ import Events from '@models/Events'
 import Clients from '@models/Clients'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import { normalizeOptionalRelationId } from '@server/transactionsCore'
 import { OBLIGATION_PAYMENT_METHOD } from '@helpers/transactionObligation'
 
 const CATEGORY_ALIASES = {
@@ -56,48 +57,47 @@ export const POST = async (req) => {
   }
   await dbConnect()
 
-  if (!body.eventId)
-    return NextResponse.json(
-      { success: false, error: 'Укажите мероприятие' },
-      { status: 400 }
-    )
+  const eventId = normalizeOptionalRelationId(body.eventId)
+  const bodyClientId = normalizeOptionalRelationId(body.clientId)
+  let event = null
 
-  const event = await Events.findOne({ _id: body.eventId, tenantId }).lean()
-  if (!event)
-    return NextResponse.json(
-      { success: false, error: 'Мероприятие не найдено' },
-      { status: 404 }
-    )
+  if (eventId) {
+    event = await Events.findOne({ _id: eventId, tenantId }).lean()
+    if (!event)
+      return NextResponse.json(
+        { success: false, error: 'Мероприятие не найдено' },
+        { status: 404 }
+      )
+    if (event?.status === 'draft') {
+      return NextResponse.json(
+        { success: false, error: 'Транзакции недоступны для заявки' },
+        { status: 400 }
+      )
+    }
+  }
 
-  const clientId = event?.clientId ?? body.clientId
-  if (!clientId)
-    return NextResponse.json(
-      { success: false, error: 'Для мероприятия не указан клиент' },
-      { status: 400 }
-    )
+  const clientId = event?.clientId ? String(event.clientId) : bodyClientId
 
-  const client = await Clients.findOne({ _id: clientId, tenantId }).lean()
-  if (!client)
-    return NextResponse.json(
-      { success: false, error: 'Клиент мероприятия не найден' },
-      { status: 404 }
-    )
-  if (event?.status === 'draft') {
-    return NextResponse.json(
-      { success: false, error: 'Транзакции недоступны для заявки' },
-      { status: 400 }
-    )
+  if (clientId) {
+    const client = await Clients.findOne({ _id: clientId, tenantId }).lean()
+    if (!client)
+      return NextResponse.json(
+        { success: false, error: 'Клиент не найден' },
+        { status: 404 }
+      )
   }
 
   const paymentMethod =
     body.paymentMethod &&
-    ['transfer', 'account', 'cash', 'barter', OBLIGATION_PAYMENT_METHOD].includes(body.paymentMethod)
+    ['transfer', 'account', 'cash', 'barter', OBLIGATION_PAYMENT_METHOD].includes(
+      body.paymentMethod
+    )
       ? body.paymentMethod
       : 'transfer'
 
   const transaction = await Transactions.create({
     tenantId,
-    eventId: body.eventId,
+    eventId,
     clientId,
     amount: Number(body.amount) || 0,
     type: body.type ?? 'expense',
@@ -107,11 +107,11 @@ export const POST = async (req) => {
     paymentMethod,
   })
 
-  if (body.contractSum !== undefined && body.eventId) {
+  if (body.contractSum !== undefined && eventId) {
     await Events.findOneAndUpdate(
-      { _id: body.eventId, tenantId },
+      { _id: eventId, tenantId },
       {
-      $set: { contractSum: Number(body.contractSum) || 0 },
+        $set: { contractSum: Number(body.contractSum) || 0 },
       }
     )
   }

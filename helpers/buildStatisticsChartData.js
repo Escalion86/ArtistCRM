@@ -11,10 +11,60 @@ const buildMonthLabel = (date) => MONTHS_FULL_1[date.getMonth()]
 const getMonthKey = (date, year) =>
   `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`
 
+const getMonthIndexFromKey = (monthKey) => Number(monthKey.slice(5, 7)) - 1
+
+const createEmptyEventCounts = () => ({
+  finished: 0,
+  planned: 0,
+  draft: 0,
+  canceled: 0,
+})
+
+const getEventCountKey = (event, currentDate) => {
+  if (event?.status === 'draft') return 'draft'
+  if (event?.status === 'canceled') return 'canceled'
+
+  const dateRaw = event?.dateEnd ?? event?.eventDate
+  if (isValidDate(dateRaw) && new Date(dateRaw).getTime() < currentDate.getTime()) {
+    return 'finished'
+  }
+
+  return 'planned'
+}
+
+const ensureMonthBucket = ({
+  byMonth,
+  date,
+  selectedYear,
+  isFutureMonth,
+  isOpenCurrentMonth,
+  isUnfinishedMonth,
+}) => {
+  const key = getMonthKey(date, selectedYear)
+  if (!byMonth.has(key)) {
+    byMonth.set(key, {
+      monthKey: key,
+      month: buildMonthLabel(date),
+      income: 0,
+      expense: 0,
+      profit: 0,
+      isFuture: isFutureMonth(date.getMonth()),
+      isOpenMonth: isOpenCurrentMonth(date.getMonth()),
+      isUnfinished: isUnfinishedMonth(date.getMonth()),
+      plannedIncome: 0,
+      paymentLeft: 0,
+      eventCount: 0,
+      eventCounts: createEmptyEventCounts(),
+    })
+  }
+  return byMonth.get(key)
+}
+
 export const buildStatisticsChartData = ({
   selectedYear,
   filteredEvents = [],
   filteredTransactions = [],
+  countEvents,
   eventsMap = new Map(),
   eventFinanceMap = new Map(),
   currentDate = new Date(),
@@ -32,28 +82,36 @@ export const buildStatisticsChartData = ({
   const isUnfinishedMonth = (monthIndex) =>
     isFutureMonth(monthIndex) || isOpenCurrentMonth(monthIndex)
 
+  const chartCountEvents = Array.isArray(countEvents) ? countEvents : filteredEvents
+
+  chartCountEvents.forEach((event) => {
+    if (!event?.eventDate || !isValidDate(event.eventDate)) return
+    const date = new Date(event.eventDate)
+    if (date.getFullYear() !== selectedYear) return
+    const bucket = ensureMonthBucket({
+      byMonth,
+      date,
+      selectedYear,
+      isFutureMonth,
+      isOpenCurrentMonth,
+      isUnfinishedMonth,
+    })
+    const countKey = getEventCountKey(event, currentDate)
+    bucket.eventCounts[countKey] += 1
+    if (countKey !== 'canceled') bucket.eventCount += 1
+  })
+
   filteredEvents.forEach((event) => {
     if (!event?.eventDate || !isValidDate(event.eventDate)) return
     const date = new Date(event.eventDate)
-    const key = getMonthKey(date, selectedYear)
-    const label = buildMonthLabel(date)
-
-    if (!byMonth.has(key)) {
-      byMonth.set(key, {
-        monthKey: key,
-        month: label,
-        income: 0,
-        expense: 0,
-        profit: 0,
-        isFuture: isFutureMonth(date.getMonth()),
-        isOpenMonth: isOpenCurrentMonth(date.getMonth()),
-        isUnfinished: isUnfinishedMonth(date.getMonth()),
-        plannedIncome: 0,
-        paymentLeft: 0,
-      })
-    }
-
-    const bucket = byMonth.get(key)
+    const bucket = ensureMonthBucket({
+      byMonth,
+      date,
+      selectedYear,
+      isFutureMonth,
+      isOpenCurrentMonth,
+      isUnfinishedMonth,
+    })
     const finance = eventFinanceMap.get(event?._id) || {
       income: 0,
       expense: 0,
@@ -69,29 +127,19 @@ export const buildStatisticsChartData = ({
   })
 
   filteredTransactions.forEach((transaction) => {
-    if (!transaction?.eventId) return
-    const event = eventsMap.get(transaction.eventId)
-    if (!event?.eventDate || !isValidDate(event.eventDate)) return
-    const date = new Date(event.eventDate)
-    const key = getMonthKey(date, selectedYear)
-    const label = buildMonthLabel(date)
-
-    if (!byMonth.has(key)) {
-      byMonth.set(key, {
-        monthKey: key,
-        month: label,
-        income: 0,
-        expense: 0,
-        profit: 0,
-        isFuture: isFutureMonth(date.getMonth()),
-        isOpenMonth: isOpenCurrentMonth(date.getMonth()),
-        isUnfinished: isUnfinishedMonth(date.getMonth()),
-        plannedIncome: 0,
-        paymentLeft: 0,
-      })
-    }
-
-    const bucket = byMonth.get(key)
+    const event = transaction?.eventId ? eventsMap.get(transaction.eventId) : null
+    const dateSource = event?.eventDate ?? transaction?.date
+    if (!isValidDate(dateSource)) return
+    const date = new Date(dateSource)
+    if (date.getFullYear() !== selectedYear) return
+    const bucket = ensureMonthBucket({
+      byMonth,
+      date,
+      selectedYear,
+      isFutureMonth,
+      isOpenCurrentMonth,
+      isUnfinishedMonth,
+    })
     if (bucket.isFuture) return
     const amount = Number(transaction.amount ?? 0)
     if (transaction.type === 'income') bucket.income += amount
@@ -99,7 +147,38 @@ export const buildStatisticsChartData = ({
     bucket.profit = bucket.income - bucket.expense
   })
 
+  const eventMonthIndexes = Array.from(byMonth.values())
+    .filter((value) => Number(value.eventCount ?? 0) > 0)
+    .map((value) => getMonthIndexFromKey(value.monthKey))
+    .filter((monthIndex) => monthIndex >= 0 && monthIndex <= 11)
+
+  const hasEventMonthRange = eventMonthIndexes.length > 0
+  const minEventMonthIndex = hasEventMonthRange
+    ? Math.min(...eventMonthIndexes)
+    : 0
+  const maxEventMonthIndex = hasEventMonthRange
+    ? Math.max(...eventMonthIndexes)
+    : 11
+
+  if (hasEventMonthRange) {
+    for (let monthIndex = minEventMonthIndex; monthIndex <= maxEventMonthIndex; monthIndex += 1) {
+      ensureMonthBucket({
+        byMonth,
+        date: new Date(selectedYear, monthIndex, 1),
+        selectedYear,
+        isFutureMonth,
+        isOpenCurrentMonth,
+        isUnfinishedMonth,
+      })
+    }
+  }
+
   return Array.from(byMonth.entries())
+    .filter(([key]) => {
+      if (!hasEventMonthRange) return true
+      const monthIndex = getMonthIndexFromKey(key)
+      return monthIndex >= minEventMonthIndex && monthIndex <= maxEventMonthIndex
+    })
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, value]) => {
       if (value.isFuture) {

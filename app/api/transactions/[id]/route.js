@@ -4,6 +4,10 @@ import Events from '@models/Events'
 import Clients from '@models/Clients'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import {
+  getOptionalRelationUpdateValue,
+  normalizeOptionalRelationId,
+} from '@server/transactionsCore'
 import { OBLIGATION_PAYMENT_METHOD } from '@helpers/transactionObligation'
 
 const TRANSACTION_TYPES = new Set(['income', 'expense'])
@@ -46,10 +50,12 @@ export const PUT = async (req, { params }) => {
 
   const update = {}
   if (body.amount !== undefined) update.amount = Number(body.amount) || 0
-  if (body.date !== undefined) update.date = body.date ? new Date(body.date) : new Date()
+  if (body.date !== undefined)
+    update.date = body.date ? new Date(body.date) : new Date()
   if (body.comment !== undefined) update.comment = body.comment ?? ''
   if (body.type && TRANSACTION_TYPES.has(body.type)) update.type = body.type
-  if (body.category !== undefined) update.category = normalizeCategory(body.category)
+  if (body.category !== undefined)
+    update.category = normalizeCategory(body.category)
   if (
     body.paymentMethod &&
     TRANSACTION_PAYMENT_METHODS.has(body.paymentMethod)
@@ -57,36 +63,43 @@ export const PUT = async (req, { params }) => {
     update.paymentMethod = body.paymentMethod
   }
 
-  const nextEventId = body.eventId ?? existing.eventId
-  if (!nextEventId)
-    return NextResponse.json(
-      { success: false, error: 'Укажите мероприятие' },
-      { status: 400 }
-    )
-  const event = await Events.findOne({ _id: nextEventId, tenantId }).lean()
-  if (!event)
-    return NextResponse.json(
-      { success: false, error: 'Мероприятие не найдено' },
-      { status: 404 }
-    )
-  if (event?.status === 'draft')
-    return NextResponse.json(
-      { success: false, error: 'Транзакции недоступны для заявки' },
-      { status: 400 }
-    )
+  const nextEventId = getOptionalRelationUpdateValue({
+    body,
+    existing,
+    field: 'eventId',
+  })
+  let event = null
+  if (nextEventId) {
+    event = await Events.findOne({ _id: nextEventId, tenantId }).lean()
+    if (!event)
+      return NextResponse.json(
+        { success: false, error: 'Мероприятие не найдено' },
+        { status: 404 }
+      )
+    if (event?.status === 'draft')
+      return NextResponse.json(
+        { success: false, error: 'Транзакции недоступны для заявки' },
+        { status: 400 }
+      )
+  }
 
-  const nextClientId = event?.clientId ?? body.clientId ?? existing.clientId
-  if (!nextClientId)
-    return NextResponse.json(
-      { success: false, error: 'Для мероприятия не указан клиент' },
-      { status: 400 }
-    )
-  const client = await Clients.findOne({ _id: nextClientId, tenantId }).lean()
-  if (!client)
-    return NextResponse.json(
-      { success: false, error: 'Клиент мероприятия не найден' },
-      { status: 404 }
-    )
+  const fallbackClientId = getOptionalRelationUpdateValue({
+    body,
+    existing,
+    field: 'clientId',
+  })
+  const nextClientId = event?.clientId
+    ? String(event.clientId)
+    : normalizeOptionalRelationId(fallbackClientId)
+
+  if (nextClientId) {
+    const client = await Clients.findOne({ _id: nextClientId, tenantId }).lean()
+    if (!client)
+      return NextResponse.json(
+        { success: false, error: 'Клиент не найден' },
+        { status: 404 }
+      )
+  }
 
   update.eventId = nextEventId
   update.clientId = nextClientId

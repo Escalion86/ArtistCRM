@@ -9,12 +9,12 @@ const transactionsSchema = {
   eventId: {
     type: Schema.Types.ObjectId,
     ref: 'Events',
-    required: true,
+    default: null,
   },
   clientId: {
     type: Schema.Types.ObjectId,
     ref: 'Clients',
-    required: true,
+    default: null,
   },
   amount: {
     type: Number,

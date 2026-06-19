@@ -62,6 +62,109 @@ const getEventComputedStatus = (event) => {
 const formatCurrency = (value) =>
   `${Number(value || 0).toLocaleString('ru-RU')} ₽`
 
+const isPastMonthKey = (monthKey) => {
+  const [year, month] = String(monthKey || '')
+    .split('-')
+    .map(Number)
+  if (!Number.isInteger(year) || !Number.isInteger(month)) return false
+
+  const now = new Date()
+  const currentMonthValue = now.getFullYear() * 12 + now.getMonth()
+  const targetMonthValue = year * 12 + (month - 1)
+
+  return targetMonthValue < currentMonthValue
+}
+
+const MONTH_EVENT_STATUS_ITEMS = [
+  {
+    key: 'draft',
+    shortLabel: 'Заявки',
+    colorClassName: 'bg-amber-500',
+    textClassName: 'text-amber-700',
+  },
+  {
+    key: 'confirmed',
+    shortLabel: 'Подтв.',
+    colorClassName: 'bg-blue-600',
+    textClassName: 'text-blue-700',
+  },
+  {
+    key: 'finished',
+    shortLabel: 'Заверш.',
+    colorClassName: 'bg-green-600',
+    textClassName: 'text-green-700',
+  },
+  {
+    key: 'canceled',
+    shortLabel: 'Отмен.',
+    colorClassName: 'bg-red-600',
+    textClassName: 'text-red-700',
+  },
+]
+
+const getBarRawData = (bar) => bar?.data?.data ?? bar?.data?.data?.data ?? {}
+
+const getBarIndexValue = (bar) =>
+  bar?.indexValue ?? bar?.data?.indexValue ?? getBarRawData(bar)?.month
+
+const renderEventCountLabelsLayer = ({ bars }) => {
+  const barsByMonth = new Map()
+
+  bars.forEach((bar) => {
+    const indexValue = getBarIndexValue(bar)
+    if (!indexValue) return
+    const list = barsByMonth.get(indexValue) || []
+    list.push(bar)
+    barsByMonth.set(indexValue, list)
+  })
+
+  return (
+    <g pointerEvents="none">
+      {Array.from(barsByMonth.entries()).map(([indexValue, monthBars]) => {
+        const rawData = getBarRawData(monthBars[0])
+        const eventCount = Number(rawData?.eventCount ?? 0)
+        if (eventCount <= 0) return null
+
+        const visibleBars = monthBars.filter(
+          (bar) =>
+            Number.isFinite(bar?.x) &&
+            Number.isFinite(bar?.y) &&
+            Number.isFinite(bar?.width) &&
+            Number.isFinite(bar?.height) &&
+            bar.height > 0
+        )
+        if (visibleBars.length === 0) return null
+
+        const x = visibleBars[0].x + visibleBars[0].width / 2
+        const minY = Math.min(...visibleBars.map((bar) => bar.y))
+        const maxY = Math.max(
+          ...visibleBars.map((bar) => bar.y + bar.height)
+        )
+        const y = minY + (maxY - minY) / 2
+
+        return (
+          <text
+            key={indexValue}
+            x={x}
+            y={y}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="#fff"
+            fontSize={12}
+            fontWeight={700}
+            paintOrder="stroke"
+            stroke="#1f2937"
+            strokeLinejoin="round"
+            strokeWidth={3}
+          >
+            {eventCount}
+          </text>
+        )
+      })}
+    </g>
+  )
+}
+
 const StatisticsContent = () => {
   const tariffsRaw = useAtomValue(tariffsAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
@@ -122,8 +225,14 @@ const StatisticsContent = () => {
       if (Number.isNaN(date.getTime())) return
       years.add(date.getFullYear())
     })
+    transactions.forEach((transaction) => {
+      if (transaction?.eventId || !transaction?.date) return
+      const date = new Date(transaction.date)
+      if (Number.isNaN(date.getTime())) return
+      years.add(date.getFullYear())
+    })
     return Array.from(years).sort((a, b) => b - a)
-  }, [events])
+  }, [events, transactions])
 
   const [selectedYear, setSelectedYear] = useState(null)
   const [selectedTown, setSelectedTown] = useState('')
@@ -205,6 +314,25 @@ const StatisticsContent = () => {
     })
   }, [events, includeRequests, selectedTown, selectedYear])
 
+  const chartCountEvents = useMemo(() => {
+    return events.filter((event) => {
+      if (!isValidDate(event?.eventDate)) return false
+      const eventDate = new Date(event.eventDate)
+      if (selectedYear && eventDate.getFullYear() !== selectedYear) return false
+      if (selectedTown && (event?.address?.town ?? '') !== selectedTown)
+        return false
+      const eventStatus = getEventComputedStatus(event)
+      if (
+        eventStatus === 'active' ||
+        eventStatus === 'finished' ||
+        eventStatus === 'closed' ||
+        eventStatus === 'canceled'
+      )
+        return true
+      return includeRequests && eventStatus === 'draft'
+    })
+  }, [events, includeRequests, selectedTown, selectedYear])
+
   const filteredEventIds = useMemo(
     () => new Set(filteredEvents.map((event) => event?._id).filter(Boolean)),
     [filteredEvents]
@@ -212,10 +340,14 @@ const StatisticsContent = () => {
 
   const filteredTransactions = useMemo(
     () =>
-      transactions.filter(
-        (tx) => tx?.eventId && filteredEventIds.has(tx.eventId)
-      ),
-    [transactions, filteredEventIds]
+      transactions.filter((tx) => {
+        if (tx?.eventId) return filteredEventIds.has(tx.eventId)
+        if (selectedTown) return false
+        if (!selectedYear) return true
+        if (!isValidDate(tx?.date)) return false
+        return new Date(tx.date).getFullYear() === selectedYear
+      }),
+    [filteredEventIds, selectedTown, selectedYear, transactions]
   )
 
   const filteredRequests = useMemo(() => {
@@ -295,11 +427,13 @@ const StatisticsContent = () => {
     return buildStatisticsChartData({
       selectedYear,
       filteredEvents,
+      countEvents: chartCountEvents,
       filteredTransactions,
       eventsMap,
       eventFinanceMap,
     })
   }, [
+    chartCountEvents,
     eventFinanceMap,
     eventsMap,
     filteredEvents,
@@ -547,7 +681,7 @@ const StatisticsContent = () => {
         Категория: tx.category ?? '',
         Сумма: Number(tx.amount ?? 0),
         Клиент: resolveClientName(tx.clientId),
-        Мероприятие: resolveEventTitle(event),
+        Мероприятие: event ? resolveEventTitle(event) : 'Без мероприятия',
         Комментарий: tx.comment ?? '',
       }
     })
@@ -606,8 +740,14 @@ const StatisticsContent = () => {
       eventFinanceMap,
     })
 
-    const [year, month] = monthKey.split('-')
+    const [year] = monthKey.split('-')
     const monthTitle = `${monthStat?.data?.month ?? monthStat?.month ?? 'Месяц'} ${year}`
+    const isPastMonth = isPastMonthKey(monthKey)
+    const hasUnderpaidEvents = Boolean(details.summary.hasUnderpaidEvents)
+    const profitCardTitle =
+      isPastMonth || !hasUnderpaidEvents
+        ? 'Фактическая прибыль'
+        : 'Ожидаемая прибыль'
 
     const MonthDetailsModal = () => (
       <div className="pb-2 space-y-4">
@@ -624,31 +764,82 @@ const StatisticsContent = () => {
               {formatCurrency(details.summary.totalExpense)}
             </div>
           </SurfaceCard>
+          {hasUnderpaidEvents ? (
+            <>
+              <SurfaceCard className="rounded" paddingClassName="p-3">
+                <div className="text-xs text-gray-500">Текущая прибыль</div>
+                <div className="text-base font-semibold text-blue-700">
+                  {formatCurrency(details.summary.profit)}
+                </div>
+              </SurfaceCard>
+              <SurfaceCard className="rounded" paddingClassName="p-3">
+                <div className="text-xs text-gray-500">Недооплачено</div>
+                <div className="text-base font-semibold text-amber-700">
+                  {formatCurrency(details.summary.paymentLeft)}
+                </div>
+              </SurfaceCard>
+            </>
+          ) : null}
           <SurfaceCard className="rounded" paddingClassName="p-3">
-            <div className="text-xs text-gray-500">Текущая прибыль</div>
-            <div className="text-base font-semibold text-blue-700">
-              {formatCurrency(details.summary.profit)}
-            </div>
-          </SurfaceCard>
-          <SurfaceCard className="rounded" paddingClassName="p-3">
-            <div className="text-xs text-gray-500">Недооплачено</div>
-            <div className="text-base font-semibold text-amber-700">
-              {formatCurrency(details.summary.paymentLeft)}
-            </div>
-          </SurfaceCard>
-          <SurfaceCard className="rounded" paddingClassName="p-3">
-            <div className="text-xs text-gray-500">Ожидаемая прибыль</div>
+            <div className="text-xs text-gray-500">{profitCardTitle}</div>
             <div className="text-base font-semibold text-violet-700">
               {formatCurrency(
                 details.summary.profit + details.summary.paymentLeft
               )}
             </div>
           </SurfaceCard>
-          <SurfaceCard className="rounded" paddingClassName="p-3">
+          <SurfaceCard className="rounded col-span-2" paddingClassName="p-3">
             <div className="text-xs text-gray-500">Мероприятий</div>
             <div className="text-base font-semibold text-gray-800">
               {details.events.length}
             </div>
+            {details.events.length === 0 ? (
+              <div className="mt-1 text-xs text-gray-500">Нет мероприятий</div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <div
+                  className="flex h-2 overflow-hidden rounded-full bg-gray-100"
+                  aria-hidden="true"
+                >
+                  {MONTH_EVENT_STATUS_ITEMS.map((item) => {
+                    const count = Number(
+                      details.summary.eventStatusCounts?.[item.key] ?? 0
+                    )
+                    if (count <= 0) return null
+                    return (
+                      <div
+                        key={item.key}
+                        className={item.colorClassName}
+                        style={{
+                          width: `${(count / details.events.length) * 100}%`,
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] leading-tight">
+                  {MONTH_EVENT_STATUS_ITEMS.map((item) => {
+                    const count = Number(
+                      details.summary.eventStatusCounts?.[item.key] ?? 0
+                    )
+                    return (
+                      <div
+                        key={item.key}
+                        className="flex min-w-0 items-center gap-1 text-gray-500"
+                      >
+                        <span
+                          className={`h-2 w-2 shrink-0 rounded-full ${item.colorClassName}`}
+                        />
+                        <span className="truncate">{item.shortLabel}</span>
+                        <span className={`font-semibold ${item.textClassName}`}>
+                          {count}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </SurfaceCard>
         </div>
 
@@ -967,18 +1158,71 @@ const StatisticsContent = () => {
                       legendOffset: -55,
                     }}
                     enableLabel={false}
+                    layers={[
+                      'grid',
+                      'axes',
+                      'bars',
+                      renderEventCountLabelsLayer,
+                      'markers',
+                      'legends',
+                      'annotations',
+                    ]}
                     groupMode="stacked"
                     onClick={openMonthDetailsModal}
                     valueFormat={(value) => value.toLocaleString('ru-RU')}
-                    tooltip={({ id, value, indexValue }) => (
-                      <div className="px-2 py-1 text-xs text-gray-700 border border-gray-200 rounded shadow statistics-tooltip">
-                        <div className="font-semibold">{indexValue}</div>
-                        <div>
-                          {id === 'profit' ? 'Текущая прибыль' : 'Недооплачено'}
-                          : {Number(value).toLocaleString('ru-RU')} ₽
+                    tooltip={({ indexValue, data }) => {
+                      const eventCounts = data?.eventCounts || {}
+                      const profit = Number(data?.profit ?? 0)
+                      const paymentLeft = Number(data?.paymentLeft ?? 0)
+                      const totalProfit = profit + paymentLeft
+                      const totalProfitLabel =
+                        data?.isUnfinished && paymentLeft > 0
+                          ? 'Ожидаемая прибыль'
+                          : 'Фактическая прибыль'
+                      return (
+                        <div className="px-2 py-1 text-xs text-gray-700 border border-gray-200 rounded shadow statistics-tooltip">
+                          <div className="font-semibold">{indexValue}</div>
+                          <div>
+                            Текущая прибыль:{' '}
+                            {profit.toLocaleString('ru-RU')} ₽
+                          </div>
+                          <div>
+                            Недооплачено:{' '}
+                            {paymentLeft.toLocaleString('ru-RU')} ₽
+                          </div>
+                          <div>
+                            {totalProfitLabel}:{' '}
+                            {totalProfit.toLocaleString('ru-RU')} ₽
+                          </div>
+                          <div className="mt-1 pt-1 border-t border-gray-100">
+                            <div>
+                              Проведено:{' '}
+                              {Number(
+                                eventCounts.finished ?? 0
+                              ).toLocaleString('ru-RU')}
+                            </div>
+                            <div>
+                              Запланировано:{' '}
+                              {Number(
+                                eventCounts.planned ?? 0
+                              ).toLocaleString('ru-RU')}
+                            </div>
+                            <div>
+                              Заявки:{' '}
+                              {Number(
+                                eventCounts.draft ?? 0
+                              ).toLocaleString('ru-RU')}
+                            </div>
+                            <div>
+                              Отмены:{' '}
+                              {Number(
+                                eventCounts.canceled ?? 0
+                              ).toLocaleString('ru-RU')}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )
+                    }}
                     theme={{
                       text: { fontSize: 12, fill: '#374151' },
                       axis: {

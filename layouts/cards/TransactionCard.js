@@ -45,13 +45,17 @@ const TransactionCard = ({
 }) => {
   const loading = useAtomValue(loadingAtom('transaction' + transaction._id))
   const error = useAtomValue(errorAtom('transaction' + transaction._id))
-  const clientName = client ? getPersonFullName(client, { fallback: '-' }) : '-'
+  const clientName = client
+    ? getPersonFullName(client, { fallback: 'Без клиента' })
+    : 'Без клиента'
 
   const eventTitle =
-    formatAddress(event?.address, '') ||
-    (event?.eventDate
-      ? `Мероприятие ${formatDate(event.eventDate, false, true)}`
-      : 'Мероприятие')
+    event
+      ? formatAddress(event?.address, '') ||
+        (event?.eventDate
+          ? `Мероприятие ${formatDate(event.eventDate, false, true)}`
+          : 'Мероприятие')
+      : 'Без мероприятия'
 
   const eventDateTime = event?.eventDate
     ? `${formatDate(event.eventDate, false, true)} ${new Date(
@@ -62,9 +66,8 @@ const TransactionCard = ({
       })}`
     : null
 
-  const eventTitleWithDate = eventDateTime
-    ? `${eventTitle} - ${eventDateTime}`
-    : eventTitle
+  const eventTitleWithDate =
+    event && eventDateTime ? `${eventTitle} - ${eventDateTime}` : eventTitle
 
   const categoryLabel =
     TRANSACTION_CATEGORIES.find((item) => item.value === transaction.category)

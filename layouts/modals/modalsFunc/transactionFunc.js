@@ -6,6 +6,8 @@ import InputWrapper from '@components/InputWrapper'
 import ClientPicker from '@components/ClientPicker'
 import EventPicker from '@components/EventPicker'
 import Note from '@components/Note'
+import IconActionButton from '@components/IconActionButton'
+import { faTimes } from '@fortawesome/free-solid-svg-icons'
 import {
   TRANSACTION_CATEGORIES,
   TRANSACTION_PAYMENT_METHODS,
@@ -145,7 +147,7 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       modalsFunc.selectEvents(
         [selectedEventId],
         [],
-        (data) => setSelectedEventId(data[0]),
+        (data) => setSelectedEventId(data[0] ?? null),
         [],
         null,
         1,
@@ -231,10 +233,6 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
         setError('Редактирование недоступно для закрытого мероприятия')
         return
       }
-      if (!selectedEventId || !selectedClientId) {
-        setError('Укажите мероприятие и клиента')
-        return
-      }
       if (requiresActualDateConfirmation && date === initialDate) {
         setError(
           'После смены обязательства на обычный метод оплаты укажите фактическую дату совершения транзакции'
@@ -255,8 +253,8 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       const payloadContractSum =
         selectedEvent?.contractSum ?? contractSum ?? undefined
       const payloadRelations = {
-        eventId: selectedEventId,
-        clientId: selectedClientId,
+        eventId: selectedEventId || null,
+        clientId: selectedClientId || null,
       }
 
       if (transactionId) {
@@ -327,8 +325,6 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
       setDisableConfirm(
         loading ||
           isReadOnly ||
-          !selectedEventId ||
-          !selectedClientId ||
           (transactionId ? !isFormChanged : false)
       )
     }, [
@@ -355,11 +351,21 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
               selectedEventId={selectedEventId}
               onSelectClick={openEventSelectModal}
               label="Мероприятие"
-              required
               disabled={isReadOnly}
               showEditButton={!!selectedEventId}
               fullWidth
             />
+            {selectedEventId && !isReadOnly && (
+              <div className="-mt-2 flex justify-end">
+                <IconActionButton
+                  icon={faTimes}
+                  onClick={() => setSelectedEventId(null)}
+                  title="Убрать связь с мероприятием"
+                  variant="neutral"
+                  size="sm"
+                />
+              </div>
+            )}
             <ClientPicker
               selectedClient={selectedClient}
               selectedClientId={selectedClientId}
@@ -370,10 +376,20 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
               }
               onViewClick={() => modalsFunc.client?.view(selectedClientId)}
               label="Клиент"
-              required
               disabled={isReadOnly}
               fullWidth
             />
+            {selectedClientId && !isReadOnly && (
+              <div className="-mt-2 flex justify-end">
+                <IconActionButton
+                  icon={faTimes}
+                  onClick={() => setSelectedClientId(null)}
+                  title="Убрать связь с клиентом"
+                  variant="neutral"
+                  size="sm"
+                />
+              </div>
+            )}
           </>
         )}
         <div className="flex items-end gap-2">

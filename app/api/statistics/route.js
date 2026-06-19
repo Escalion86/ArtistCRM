@@ -94,9 +94,28 @@ export const GET = async (req) => {
         : eventsSource.filter((event) => getEventComputedStatus(event) === status)
 
     const eventIds = events.map((event) => String(event._id)).filter(Boolean)
+    const transactionConditions = []
+    if (eventIds.length > 0) {
+      transactionConditions.push({ eventId: { $in: eventIds } })
+    }
+    if (!town) {
+      const unlinkedQuery = {
+        $or: [{ eventId: null }, { eventId: { $exists: false } }],
+      }
+      if (year) {
+        unlinkedQuery.date = {
+          $gte: new Date(year, 0, 1),
+          $lt: new Date(year + 1, 0, 1),
+        }
+      }
+      transactionConditions.push(unlinkedQuery)
+    }
     const transactions =
-      eventIds.length > 0
-        ? await Transactions.find({ tenantId, eventId: { $in: eventIds } })
+      transactionConditions.length > 0
+        ? await Transactions.find({
+            tenantId,
+            $or: transactionConditions,
+          })
             .sort({ date: -1, createdAt: -1 })
             .lean()
         : []

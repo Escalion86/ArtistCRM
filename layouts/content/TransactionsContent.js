@@ -6,6 +6,7 @@ import ContentHeader from '@components/ContentHeader'
 import AddIconButton from '@components/AddIconButton'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
+import TransactionRelationToggleButtons from '@components/IconToggleButtons/TransactionRelationToggleButtons'
 import TransactionTypeToggleButtons from '@components/IconToggleButtons/TransactionTypeToggleButtons'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
@@ -17,6 +18,7 @@ import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
 import { setAtomValue } from '@state/storeHelpers'
 import useUiDensity from '@helpers/useUiDensity'
+import { filterTransactions } from '@helpers/transactionFilters'
 import {
   useDeleteTransactionMutation,
   useTransactionsQuery,
@@ -38,6 +40,14 @@ const TransactionsContent = () => {
   const [typeFilter, setTypeFilter] = useState({
     income: true,
     expense: true,
+  })
+  const [relationFilter, setRelationFilter] = useState({
+    linked: true,
+    unlinked: true,
+  })
+  const [dateRange, setDateRange] = useState({
+    from: '',
+    to: '',
   })
   const itemHeight = isCompact ? 106 : 120
 
@@ -79,13 +89,14 @@ const TransactionsContent = () => {
   )
 
   const filteredTransactions = useMemo(() => {
-    if (typeFilter.income && typeFilter.expense) return sortedTransactions
-    if (typeFilter.income)
-      return sortedTransactions.filter((item) => item.type === 'income')
-    if (typeFilter.expense)
-      return sortedTransactions.filter((item) => item.type === 'expense')
-    return sortedTransactions
-  }, [sortedTransactions, typeFilter])
+    return filterTransactions({
+      transactions: sortedTransactions,
+      typeFilter,
+      relationFilter,
+      dateFrom: dateRange.from,
+      dateTo: dateRange.to,
+    })
+  }, [dateRange.from, dateRange.to, relationFilter, sortedTransactions, typeFilter])
 
   const handleDelete = useCallback(
     (transactionId) => {
@@ -144,10 +155,44 @@ const TransactionsContent = () => {
       <ContentHeader>
         <HeaderActions
           left={
-            <TransactionTypeToggleButtons
-              value={typeFilter}
-              onChange={setTypeFilter}
-            />
+            <div className="flex flex-wrap items-end gap-2">
+              <TransactionTypeToggleButtons
+                value={typeFilter}
+                onChange={setTypeFilter}
+              />
+              <TransactionRelationToggleButtons
+                value={relationFilter}
+                onChange={setRelationFilter}
+              />
+              <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
+                С
+                <input
+                  type="date"
+                  value={dateRange.from}
+                  onChange={(event) =>
+                    setDateRange((prev) => ({
+                      ...prev,
+                      from: event.target.value,
+                    }))
+                  }
+                  className="h-9 rounded border border-gray-300 bg-white px-2 text-sm text-gray-700 outline-none focus:border-general"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
+                По
+                <input
+                  type="date"
+                  value={dateRange.to}
+                  onChange={(event) =>
+                    setDateRange((prev) => ({
+                      ...prev,
+                      to: event.target.value,
+                    }))
+                  }
+                  className="h-9 rounded border border-gray-300 bg-white px-2 text-sm text-gray-700 outline-none focus:border-general"
+                />
+              </label>
+            </div>
           }
           leftClassName="flex-wrap"
           right={

@@ -10,18 +10,65 @@ const getMonthKeyFromValue = (value) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
+const getDateTime = (value) =>
+  isValidDate(value) ? new Date(value).getTime() : Number.MAX_SAFE_INTEGER
+
+const sortByDateValueAsc = (items, getDateValue) =>
+  [...items].sort(
+    (a, b) => getDateTime(getDateValue(a)) - getDateTime(getDateValue(b))
+  )
+
+const createEmptyEventStatusCounts = () => ({
+  draft: 0,
+  confirmed: 0,
+  finished: 0,
+  canceled: 0,
+})
+
+const getEventStatusCountKey = (event, now) => {
+  if (event?.status === 'draft') return 'draft'
+  if (event?.status === 'canceled') return 'canceled'
+
+  const dateRaw = event?.dateEnd ?? event?.eventDate
+  if (isValidDate(dateRaw) && new Date(dateRaw).getTime() < now) {
+    return 'finished'
+  }
+
+  return 'confirmed'
+}
+
+const getEventStatusCounts = (events, now) =>
+  events.reduce((counts, event) => {
+    counts[getEventStatusCountKey(event, now)] += 1
+    return counts
+  }, createEmptyEventStatusCounts())
+
+const getEventPaymentLeft = (event, eventFinanceMap) => {
+  const finance = eventFinanceMap.get(event?._id) || { income: 0, expense: 0 }
+  const paid = Math.max(Number(finance.income ?? 0), 0)
+  return Math.max(Number(event?.contractSum ?? 0) - paid, 0)
+}
+
 export const getStatisticsMonthDetails = ({
   monthKey,
   filteredEvents = [],
   filteredTransactions = [],
   eventFinanceMap = new Map(),
+  now = Date.now(),
 }) => {
-  const events = filteredEvents.filter(
-    (event) => getMonthKeyFromValue(event?.eventDate) === monthKey
+  const events = sortByDateValueAsc(
+    filteredEvents.filter(
+      (event) => getMonthKeyFromValue(event?.eventDate) === monthKey
+    ),
+    (event) => event?.eventDate
   )
   const eventIds = new Set(events.map((event) => event?._id).filter(Boolean))
-  const transactions = filteredTransactions.filter((transaction) =>
-    eventIds.has(transaction?.eventId)
+  const transactions = sortByDateValueAsc(
+    filteredTransactions.filter((transaction) => {
+      if (transaction?.eventId) return eventIds.has(transaction.eventId)
+      return getMonthKeyFromValue(transaction?.date) === monthKey
+    }),
+    (transaction) => transaction?.date
   )
 
   const totalIncome = transactions
@@ -31,16 +78,20 @@ export const getStatisticsMonthDetails = ({
     .filter((transaction) => transaction?.type === 'expense')
     .reduce((sum, transaction) => sum + Number(transaction.amount ?? 0), 0)
 
-  const paymentLeft = events.reduce((sum, event) => {
-    const finance = eventFinanceMap.get(event?._id) || { income: 0, expense: 0 }
-    const paid = Math.max(Number(finance.income ?? 0), 0)
-    return sum + Math.max(Number(event?.contractSum ?? 0) - paid, 0)
-  }, 0)
+  const paymentLeft = events.reduce(
+    (sum, event) => sum + getEventPaymentLeft(event, eventFinanceMap),
+    0
+  )
+  const hasUnderpaidEvents = events.some(
+    (event) => getEventPaymentLeft(event, eventFinanceMap) > 0
+  )
 
   const depositPaid = events.reduce((sum, event) => {
     const finance = eventFinanceMap.get(event?._id) || { income: 0, expense: 0 }
     return sum + Math.max(Number(finance.income ?? 0), 0)
   }, 0)
+
+  const eventStatusCounts = getEventStatusCounts(events, now)
 
   return {
     events,
@@ -51,6 +102,8 @@ export const getStatisticsMonthDetails = ({
       profit: totalIncome - totalExpense,
       paymentLeft,
       depositPaid,
+      hasUnderpaidEvents,
+      eventStatusCounts,
     },
   }
 }
