@@ -8,6 +8,7 @@ import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
 import TransactionRelationToggleButtons from '@components/IconToggleButtons/TransactionRelationToggleButtons'
 import TransactionTypeToggleButtons from '@components/IconToggleButtons/TransactionTypeToggleButtons'
+import TransactionDateRangeFilter from '@components/TransactionDateRangeFilter'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
 import TransactionCard from '@layouts/cards/TransactionCard'
@@ -18,6 +19,7 @@ import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
 import { setAtomValue } from '@state/storeHelpers'
 import useUiDensity from '@helpers/useUiDensity'
+import { toDateInputValue } from '@helpers/transactionDateRange'
 import { filterTransactions } from '@helpers/transactionFilters'
 import {
   useDeleteTransactionMutation,
@@ -88,15 +90,40 @@ const TransactionsContent = () => {
     [transactions]
   )
 
-  const filteredTransactions = useMemo(() => {
+  const transactionsBeforeDateFilter = useMemo(() => {
     return filterTransactions({
       transactions: sortedTransactions,
+      typeFilter,
+      relationFilter,
+      dateFrom: '',
+      dateTo: '',
+    })
+  }, [relationFilter, sortedTransactions, typeFilter])
+
+  const activeTransactionDateKeys = useMemo(() => {
+    const keys = new Set()
+    transactionsBeforeDateFilter.forEach((transaction) => {
+      const key = toDateInputValue(transaction?.date)
+      if (key) keys.add(key)
+    })
+    return keys
+  }, [transactionsBeforeDateFilter])
+
+  const filteredTransactions = useMemo(() => {
+    return filterTransactions({
+      transactions: transactionsBeforeDateFilter,
       typeFilter,
       relationFilter,
       dateFrom: dateRange.from,
       dateTo: dateRange.to,
     })
-  }, [dateRange.from, dateRange.to, relationFilter, sortedTransactions, typeFilter])
+  }, [
+    dateRange.from,
+    dateRange.to,
+    relationFilter,
+    transactionsBeforeDateFilter,
+    typeFilter,
+  ])
 
   const handleDelete = useCallback(
     (transactionId) => {
@@ -164,34 +191,11 @@ const TransactionsContent = () => {
                 value={relationFilter}
                 onChange={setRelationFilter}
               />
-              <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
-                С
-                <input
-                  type="date"
-                  value={dateRange.from}
-                  onChange={(event) =>
-                    setDateRange((prev) => ({
-                      ...prev,
-                      from: event.target.value,
-                    }))
-                  }
-                  className="h-9 rounded border border-gray-300 bg-white px-2 text-sm text-gray-700 outline-none focus:border-general"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
-                По
-                <input
-                  type="date"
-                  value={dateRange.to}
-                  onChange={(event) =>
-                    setDateRange((prev) => ({
-                      ...prev,
-                      to: event.target.value,
-                    }))
-                  }
-                  className="h-9 rounded border border-gray-300 bg-white px-2 text-sm text-gray-700 outline-none focus:border-general"
-                />
-              </label>
+              <TransactionDateRangeFilter
+                value={dateRange}
+                onChange={setDateRange}
+                activeDateKeys={activeTransactionDateKeys}
+              />
             </div>
           }
           leftClassName="flex-wrap"
@@ -218,7 +222,7 @@ const TransactionsContent = () => {
             rowHeight={itemHeight}
             rowComponent={RowComponent}
             rowProps={{}}
-                                    style={{ height: '100%', width: '100%' }}
+            style={{ height: '100%', width: '100%' }}
           />
         ) : (
           <EmptyState text="Транзакций пока нет" />
