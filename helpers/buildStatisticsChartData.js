@@ -20,6 +20,11 @@ const createEmptyEventCounts = () => ({
   canceled: 0,
 })
 
+const getNonCanceledEventCountsTotal = (eventCounts) =>
+  Number(eventCounts?.finished ?? 0) +
+  Number(eventCounts?.planned ?? 0) +
+  Number(eventCounts?.draft ?? 0)
+
 const getEventCountKey = (event, currentDate) => {
   if (event?.status === 'draft') return 'draft'
   if (event?.status === 'canceled') return 'canceled'
@@ -55,6 +60,7 @@ const ensureMonthBucket = ({
       paymentLeft: 0,
       eventCount: 0,
       eventCounts: createEmptyEventCounts(),
+      transferredEventCounts: createEmptyEventCounts(),
     })
   }
   return byMonth.get(key)
@@ -97,8 +103,13 @@ export const buildStatisticsChartData = ({
       isUnfinishedMonth,
     })
     const countKey = getEventCountKey(event, currentDate)
-    bucket.eventCounts[countKey] += 1
-    if (countKey !== 'canceled') bucket.eventCount += 1
+    const eventCountsTarget = event?.isTransferred
+      ? bucket.transferredEventCounts
+      : bucket.eventCounts
+    eventCountsTarget[countKey] += 1
+    if (countKey !== 'canceled' && !event?.isTransferred) {
+      bucket.eventCount += 1
+    }
   })
 
   filteredEvents.forEach((event) => {
@@ -148,7 +159,12 @@ export const buildStatisticsChartData = ({
   })
 
   const eventMonthIndexes = Array.from(byMonth.values())
-    .filter((value) => Number(value.eventCount ?? 0) > 0)
+    .filter(
+      (value) =>
+        Number(value.eventCount ?? 0) +
+          getNonCanceledEventCountsTotal(value.transferredEventCounts) >
+        0
+    )
     .map((value) => getMonthIndexFromKey(value.monthKey))
     .filter((monthIndex) => monthIndex >= 0 && monthIndex <= 11)
 

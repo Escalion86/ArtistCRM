@@ -102,6 +102,67 @@ const MONTH_EVENT_STATUS_ITEMS = [
   },
 ]
 
+const getEventStatusCountsTotal = (statusCounts = {}) =>
+  MONTH_EVENT_STATUS_ITEMS.reduce(
+    (sum, item) => sum + Number(statusCounts?.[item.key] ?? 0),
+    0
+  )
+
+const MonthEventStatusCard = ({
+  title,
+  totalCount,
+  statusCounts,
+  emptyText = 'Нет мероприятий',
+}) => (
+  <SurfaceCard className="rounded col-span-2" paddingClassName="p-3">
+    <div className="text-xs text-gray-500">{title}</div>
+    <div className="text-base font-semibold text-gray-800">{totalCount}</div>
+    {totalCount === 0 ? (
+      <div className="mt-1 text-xs text-gray-500">{emptyText}</div>
+    ) : (
+      <div className="mt-2 space-y-2">
+        <div
+          className="flex h-2 overflow-hidden rounded-full bg-gray-100"
+          aria-hidden="true"
+        >
+          {MONTH_EVENT_STATUS_ITEMS.map((item) => {
+            const count = Number(statusCounts?.[item.key] ?? 0)
+            if (count <= 0) return null
+            return (
+              <div
+                key={item.key}
+                className={item.colorClassName}
+                style={{
+                  width: `${(count / totalCount) * 100}%`,
+                }}
+              />
+            )
+          })}
+        </div>
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] leading-tight">
+          {MONTH_EVENT_STATUS_ITEMS.map((item) => {
+            const count = Number(statusCounts?.[item.key] ?? 0)
+            return (
+              <div
+                key={item.key}
+                className="flex min-w-0 items-center gap-1 text-gray-500"
+              >
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${item.colorClassName}`}
+                />
+                <span className="truncate">{item.shortLabel}</span>
+                <span className={`font-semibold ${item.textClassName}`}>
+                  {count}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )}
+  </SurfaceCard>
+)
+
 const getBarRawData = (bar) => bar?.data?.data ?? bar?.data?.data?.data ?? {}
 
 const getBarIndexValue = (bar) =>
@@ -748,6 +809,13 @@ const StatisticsContent = () => {
       isPastMonth || !hasUnderpaidEvents
         ? 'Фактическая прибыль'
         : 'Ожидаемая прибыль'
+    const eventStatusCounts = details.summary.eventStatusCounts || {}
+    const transferredEventStatusCounts =
+      details.summary.transferredEventStatusCounts || {}
+    const eventsTotal = getEventStatusCountsTotal(eventStatusCounts)
+    const transferredEventsTotal = getEventStatusCountsTotal(
+      transferredEventStatusCounts
+    )
 
     const MonthDetailsModal = () => (
       <div className="pb-2 space-y-4">
@@ -788,59 +856,18 @@ const StatisticsContent = () => {
               )}
             </div>
           </SurfaceCard>
-          <SurfaceCard className="rounded col-span-2" paddingClassName="p-3">
-            <div className="text-xs text-gray-500">Мероприятий</div>
-            <div className="text-base font-semibold text-gray-800">
-              {details.events.length}
-            </div>
-            {details.events.length === 0 ? (
-              <div className="mt-1 text-xs text-gray-500">Нет мероприятий</div>
-            ) : (
-              <div className="mt-2 space-y-2">
-                <div
-                  className="flex h-2 overflow-hidden rounded-full bg-gray-100"
-                  aria-hidden="true"
-                >
-                  {MONTH_EVENT_STATUS_ITEMS.map((item) => {
-                    const count = Number(
-                      details.summary.eventStatusCounts?.[item.key] ?? 0
-                    )
-                    if (count <= 0) return null
-                    return (
-                      <div
-                        key={item.key}
-                        className={item.colorClassName}
-                        style={{
-                          width: `${(count / details.events.length) * 100}%`,
-                        }}
-                      />
-                    )
-                  })}
-                </div>
-                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] leading-tight">
-                  {MONTH_EVENT_STATUS_ITEMS.map((item) => {
-                    const count = Number(
-                      details.summary.eventStatusCounts?.[item.key] ?? 0
-                    )
-                    return (
-                      <div
-                        key={item.key}
-                        className="flex min-w-0 items-center gap-1 text-gray-500"
-                      >
-                        <span
-                          className={`h-2 w-2 shrink-0 rounded-full ${item.colorClassName}`}
-                        />
-                        <span className="truncate">{item.shortLabel}</span>
-                        <span className={`font-semibold ${item.textClassName}`}>
-                          {count}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </SurfaceCard>
+          <MonthEventStatusCard
+            title="Мероприятий"
+            totalCount={eventsTotal}
+            statusCounts={eventStatusCounts}
+          />
+          {transferredEventsTotal > 0 ? (
+            <MonthEventStatusCard
+              title="Переданных мероприятий"
+              totalCount={transferredEventsTotal}
+              statusCounts={transferredEventStatusCounts}
+            />
+          ) : null}
         </div>
 
         <div className="space-y-2">
@@ -1172,6 +1199,17 @@ const StatisticsContent = () => {
                     valueFormat={(value) => value.toLocaleString('ru-RU')}
                     tooltip={({ indexValue, data }) => {
                       const eventCounts = data?.eventCounts || {}
+                      const transferredEventCounts =
+                        data?.transferredEventCounts || {}
+                      const transferredEventsTotal = [
+                        transferredEventCounts.finished,
+                        transferredEventCounts.planned,
+                        transferredEventCounts.draft,
+                        transferredEventCounts.canceled,
+                      ].reduce(
+                        (sum, value) => sum + Number(value ?? 0),
+                        0
+                      )
                       const profit = Number(data?.profit ?? 0)
                       const paymentLeft = Number(data?.paymentLeft ?? 0)
                       const totalProfit = profit + paymentLeft
@@ -1219,6 +1257,35 @@ const StatisticsContent = () => {
                                 eventCounts.canceled ?? 0
                               ).toLocaleString('ru-RU')}
                             </div>
+                            {transferredEventsTotal > 0 && (
+                              <div className="mt-1 pt-1 border-t border-gray-100">
+                                <div className="font-medium">Передано:</div>
+                                <div>
+                                  Проведено:{' '}
+                                  {Number(
+                                    transferredEventCounts.finished ?? 0
+                                  ).toLocaleString('ru-RU')}
+                                </div>
+                                <div>
+                                  Запланировано:{' '}
+                                  {Number(
+                                    transferredEventCounts.planned ?? 0
+                                  ).toLocaleString('ru-RU')}
+                                </div>
+                                <div>
+                                  Заявки:{' '}
+                                  {Number(
+                                    transferredEventCounts.draft ?? 0
+                                  ).toLocaleString('ru-RU')}
+                                </div>
+                                <div>
+                                  Отмены:{' '}
+                                  {Number(
+                                    transferredEventCounts.canceled ?? 0
+                                  ).toLocaleString('ru-RU')}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )

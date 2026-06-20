@@ -189,6 +189,70 @@ test('adds month event count breakdown for chart tooltip', () => {
   assert.equal(april.eventCount, 3)
 })
 
+test('separates transferred event counts for chart tooltip', () => {
+  const events = [
+    {
+      _id: 'event-finished',
+      eventDate: '2026-04-10T18:00:00.000Z',
+      status: 'active',
+      contractSum: 10000,
+    },
+    {
+      _id: 'event-transferred-finished',
+      eventDate: '2026-04-11T18:00:00.000Z',
+      status: 'active',
+      contractSum: 10000,
+      isTransferred: true,
+    },
+    {
+      _id: 'event-transferred-planned',
+      eventDate: '2026-04-25T18:00:00.000Z',
+      status: 'active',
+      contractSum: 10000,
+      isTransferred: true,
+    },
+    {
+      _id: 'event-transferred-draft',
+      eventDate: '2026-04-26T18:00:00.000Z',
+      status: 'draft',
+      contractSum: 10000,
+      isTransferred: true,
+    },
+    {
+      _id: 'event-transferred-canceled',
+      eventDate: '2026-04-27T18:00:00.000Z',
+      status: 'canceled',
+      contractSum: 10000,
+      isTransferred: true,
+    },
+  ]
+
+  const result = buildStatisticsChartData({
+    selectedYear: 2026,
+    filteredEvents: events.filter((event) => event.status !== 'canceled'),
+    countEvents: events,
+    filteredTransactions: [],
+    eventsMap: new Map(events.map((event) => [event._id, event])),
+    eventFinanceMap: new Map(),
+    currentDate: new Date('2026-04-20T12:00:00.000Z'),
+  })
+
+  const april = result.find((item) => item.monthKey === '2026-04')
+  assert.deepEqual(april.eventCounts, {
+    finished: 1,
+    planned: 0,
+    draft: 0,
+    canceled: 0,
+  })
+  assert.deepEqual(april.transferredEventCounts, {
+    finished: 1,
+    planned: 1,
+    draft: 1,
+    canceled: 1,
+  })
+  assert.equal(april.eventCount, 1)
+})
+
 test('shows empty months only between months with events', () => {
   const events = [
     {

@@ -91,7 +91,15 @@ export const getStatisticsMonthDetails = ({
     return sum + Math.max(Number(finance.income ?? 0), 0)
   }, 0)
 
-  const eventStatusCounts = getEventStatusCounts(events, now)
+  const transferredEvents = events.filter((event) => event?.isTransferred)
+  const eventStatusCounts = getEventStatusCounts(
+    events.filter((event) => !event?.isTransferred),
+    now
+  )
+  const transferredEventStatusCounts = getEventStatusCounts(
+    transferredEvents,
+    now
+  )
 
   return {
     events,
@@ -104,6 +112,7 @@ export const getStatisticsMonthDetails = ({
       depositPaid,
       hasUnderpaidEvents,
       eventStatusCounts,
+      transferredEventStatusCounts,
     },
   }
 }

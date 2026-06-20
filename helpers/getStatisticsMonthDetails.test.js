@@ -91,6 +91,12 @@ test('returns empty details for unknown month', () => {
       finished: 0,
       canceled: 0,
     },
+    transferredEventStatusCounts: {
+      draft: 0,
+      confirmed: 0,
+      finished: 0,
+      canceled: 0,
+    },
   })
 })
 
@@ -251,6 +257,61 @@ test('returns month event status counts by status and date', () => {
     draft: 1,
     confirmed: 2,
     finished: 2,
+    canceled: 1,
+  })
+})
+
+test('returns transferred month event status counts', () => {
+  const now = new Date('2026-06-19T12:00:00.000Z').getTime()
+
+  const result = getStatisticsMonthDetails({
+    monthKey: '2026-06',
+    now,
+    filteredEvents: [
+      {
+        _id: 'regular-finished',
+        status: 'active',
+        eventDate: '2026-06-05T10:00:00.000Z',
+      },
+      {
+        _id: 'transferred-finished',
+        status: 'active',
+        eventDate: '2026-06-06T10:00:00.000Z',
+        isTransferred: true,
+      },
+      {
+        _id: 'transferred-confirmed',
+        status: 'active',
+        eventDate: '2026-06-25T10:00:00.000Z',
+        isTransferred: true,
+      },
+      {
+        _id: 'transferred-draft',
+        status: 'draft',
+        eventDate: '2026-06-26T10:00:00.000Z',
+        isTransferred: true,
+      },
+      {
+        _id: 'transferred-canceled',
+        status: 'canceled',
+        eventDate: '2026-06-27T10:00:00.000Z',
+        isTransferred: true,
+      },
+    ],
+    filteredTransactions: [],
+    eventFinanceMap: new Map(),
+  })
+
+  assert.deepEqual(result.summary.eventStatusCounts, {
+    draft: 0,
+    confirmed: 0,
+    finished: 1,
+    canceled: 0,
+  })
+  assert.deepEqual(result.summary.transferredEventStatusCounts, {
+    draft: 1,
+    confirmed: 1,
+    finished: 1,
     canceled: 1,
   })
 })
