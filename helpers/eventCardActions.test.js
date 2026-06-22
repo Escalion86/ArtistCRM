@@ -28,3 +28,13 @@ test('hides additional events action for non-event card', () => {
 
   assert.equal(result, false)
 })
+
+test('hides additional events action when disabled explicitly', () => {
+  const result = shouldShowAdditionalEventsAction({
+    typeOfItem: 'event',
+    status: 'active',
+    enabled: false,
+  })
+
+  assert.equal(result, false)
+})

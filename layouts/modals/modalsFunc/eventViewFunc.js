@@ -13,7 +13,7 @@ import getEventDuration from '@helpers/getEventDuration'
 import getPersonFullName from '@helpers/getPersonFullName'
 import Image from 'next/image'
 import sanitizeHtml from '@helpers/sanitizeHtml'
-import { isAdditionalEventOverdue } from '@helpers/additionalEvents'
+import { getAdditionalEventsDisplayGroups } from '@helpers/additionalEvents'
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
@@ -27,6 +27,9 @@ import {
   getCloseBlockedByObligationsMessage,
   hasObligationPaymentMethod,
 } from '@helpers/transactionObligation'
+import AdditionalEventCard from './AdditionalEventCard'
+import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
+import openEventAdditionalEventViewModal from './eventAdditionalEventViewModal'
 
 const EVENT_STATUS_META = Object.freeze({
   draft: {
@@ -106,9 +109,15 @@ const eventViewFunc = (eventId) => {
     const itemsFunc = useAtomValue(itemsFuncAtom)
 
     const duration = getEventDuration(event)
-    const additionalEvents = Array.isArray(event?.additionalEvents)
-      ? event.additionalEvents
-      : []
+    const additionalEvents = useMemo(
+      () =>
+        Array.isArray(event?.additionalEvents) ? event.additionalEvents : [],
+      [event?.additionalEvents]
+    )
+    const additionalEventGroups = useMemo(
+      () => getAdditionalEventsDisplayGroups(additionalEvents),
+      [additionalEvents]
+    )
     const statusMeta =
       EVENT_STATUS_META[event?.status] || EVENT_STATUS_META.active
 
@@ -179,8 +188,41 @@ const eventViewFunc = (eventId) => {
       return { ...address, town: '' }
     }, [event?.address, siteSettings?.defaultTown])
 
-    const toggleAdditionalEventDone = async (index) => {
+    const updateAdditionalEvents = async (nextItems) => {
       if (!event?._id) return
+      await itemsFunc?.event?.set(
+        {
+          _id: event._id,
+          additionalEvents: nextItems,
+        },
+        false,
+        true
+      )
+    }
+
+    const editAdditionalEvent = (index) => {
+      const sourceItems = Array.isArray(event?.additionalEvents)
+        ? event.additionalEvents
+        : []
+      const sourceItem = sourceItems[index]
+      if (!sourceItem) return
+      openEventAdditionalEventEditorModal({
+        modalsFunc,
+        index,
+        sourceItem,
+        onConfirm: async (nextItem) => {
+          const currentItems = Array.isArray(event?.additionalEvents)
+            ? event.additionalEvents
+            : []
+          const nextItems = currentItems.map((item, idx) =>
+            idx === index ? { ...item, ...nextItem } : item
+          )
+          await updateAdditionalEvents(nextItems)
+        },
+      })
+    }
+
+    const toggleAdditionalEventDone = async (index) => {
       const sourceItems = Array.isArray(event?.additionalEvents)
         ? event.additionalEvents
         : []
@@ -195,31 +237,47 @@ const eventViewFunc = (eventId) => {
             }
           : item
       )
-      await itemsFunc?.event?.set(
-        {
-          _id: event._id,
-          additionalEvents: nextItems,
-        },
-        false,
-        true
-      )
+      await updateAdditionalEvents(nextItems)
     }
 
     const deleteAdditionalEvent = async (index) => {
-      if (!event?._id) return
       const sourceItems = Array.isArray(event?.additionalEvents)
         ? event.additionalEvents
         : []
       if (!sourceItems[index]) return
       const nextItems = sourceItems.filter((_, idx) => idx !== index)
-      await itemsFunc?.event?.set(
-        {
-          _id: event._id,
-          additionalEvents: nextItems,
+      await updateAdditionalEvents(nextItems)
+    }
+
+    const confirmDeleteAdditionalEvent = (index) => {
+      const sourceItems = Array.isArray(event?.additionalEvents)
+        ? event.additionalEvents
+        : []
+      if (!sourceItems[index]) return
+      modalsFunc.confirm({
+        title: 'Удаление доп. события',
+        text: 'Удалить это доп. событие?',
+        onConfirm: async () => {
+          await deleteAdditionalEvent(index)
         },
-        false,
-        true
-      )
+      })
+    }
+
+    const openAdditionalEventView = (index) => {
+      const sourceItems = Array.isArray(event?.additionalEvents)
+        ? event.additionalEvents
+        : []
+      const sourceItem = sourceItems[index]
+      if (!sourceItem) return
+      openEventAdditionalEventViewModal({
+        modalsFunc,
+        event,
+        item: sourceItem,
+        index,
+        onToggleDone: toggleAdditionalEventDone,
+        onEdit: editAdditionalEvent,
+        onDelete: deleteAdditionalEvent,
+      })
     }
 
     const openClientView = (client) => {
@@ -437,132 +495,32 @@ const eventViewFunc = (eventId) => {
 
             {additionalEvents.length > 0 && (
               <SectionBlock title="Доп. события">
-                <div className="tablet:grid-cols-2 laptop:grid-cols-3 grid grid-cols-1 gap-2">
-                  {additionalEvents.map((item, index) => {
-                    const isOverdue = isAdditionalEventOverdue(item)
-                    return (
-                      <div
-                        key={`additional-event-view-${index}`}
-                        className={`w-full cursor-pointer rounded-lg border p-2 transition hover:shadow-sm ${
-                          item?.done
-                            ? 'event-view-additional-done border-emerald-200 bg-emerald-50'
-                            : isOverdue
-                              ? 'border-red-300 bg-red-50'
-                              : 'event-view-kpi border-gray-200 bg-gray-50'
-                        }`}
-                        onClick={() =>
-                          modalsFunc.add({
-                            title: item?.title || `Событие #${index + 1}`,
-                            confirmButtonName: item?.done
-                              ? 'Возобновить'
-                              : 'Выполнено',
-                            declineButtonName: 'Закрыть',
-                            showDecline: true,
-                            onConfirm: () => toggleAdditionalEventDone(index),
-                            Children: ({ closeModal, setTopLeftComponent }) => {
-                              useEffect(() => {
-                                if (!setTopLeftComponent) return
-                                setTopLeftComponent(() => (
-                                  <CardButtons
-                                    item={{
-                                      _id: `${
-                                        event?._id || 'event'
-                                      }-additional-${index}`,
-                                      status: 'active',
-                                    }}
-                                    typeOfItem="event"
-                                    minimalActions
-                                    alwaysCompact
-                                    dropDownPlacement="left"
-                                    showCloneButton={false}
-                                    showHistoryButton={false}
-                                    showStatusButton={false}
-                                    onEdit={() => {
-                                      closeModal?.()
-                                      modalsFunc.event.edit(event?._id)
-                                    }}
-                                    onDelete={() =>
-                                      modalsFunc.confirm({
-                                        title: 'Удаление доп. события',
-                                        text: 'Удалить это доп. событие?',
-                                        onConfirm: async () => {
-                                          await deleteAdditionalEvent(index)
-                                          closeModal?.()
-                                        },
-                                      })
-                                    }
-                                  />
-                                ))
-                              }, [closeModal, setTopLeftComponent])
-
-                              return (
-                                <div className="flex flex-col gap-3 text-sm text-gray-800">
-                                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                                    <div className="text-xs tracking-wide text-gray-500 uppercase">
-                                      Статус
-                                    </div>
-                                    <div
-                                      className={`mt-1 text-sm font-semibold ${
-                                        item?.done
-                                          ? 'text-emerald-700'
-                                          : 'text-blue-700'
-                                      }`}
-                                    >
-                                      {item?.done ? 'Выполнено' : 'Активно'}
-                                    </div>
-                                  </div>
-                                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                                    <div className="text-xs tracking-wide text-gray-500 uppercase">
-                                      Дата и время
-                                    </div>
-                                    <div className="mt-1 font-semibold text-gray-900">
-                                      {formatDateTime(item?.date)}
-                                    </div>
-                                  </div>
-                                  {item?.description ? (
-                                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                                      <div className="text-xs tracking-wide text-gray-500 uppercase">
-                                        Описание
-                                      </div>
-                                      <div className="mt-1 whitespace-pre-wrap text-gray-700">
-                                        {item.description}
-                                      </div>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              )
-                            },
-                          })
-                        }
-                      >
-                        <div
-                          className={`truncate text-sm font-semibold ${
-                            item?.done
-                              ? 'text-emerald-700'
-                              : isOverdue
-                                ? 'text-red-700'
-                                : 'text-gray-900'
-                          }`}
-                        >
-                          {item?.done ? '✓ ' : isOverdue ? '⚠ ' : ''}
-                          {item?.title || `Событие #${index + 1}`}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {formatDateTime(item?.date)}
-                          {isOverdue && !item?.done && (
-                            <span className="ml-1.5 inline-flex rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
-                              Просрочено
-                            </span>
-                          )}
-                        </div>
-                        {item?.description ? (
-                          <div className="text-xs text-gray-700">
-                            {item.description}
-                          </div>
-                        ) : null}
+                <div className="flex flex-col gap-3">
+                  {additionalEventGroups.map((group) => (
+                    <section key={group.key} className="flex flex-col gap-2">
+                      <div className="text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                        {group.label}
                       </div>
-                    )
-                  })}
+                      <div className="tablet:grid-cols-2 laptop:grid-cols-3 grid grid-cols-1 gap-2">
+                        {group.items.map((item) => {
+                          const originalIndex = item.originalIndex
+                          return (
+                            <AdditionalEventCard
+                              key={`additional-event-view-${originalIndex}`}
+                              item={item}
+                              index={originalIndex}
+                              onOpen={() =>
+                                openAdditionalEventView(originalIndex)
+                              }
+                              onToggleDone={toggleAdditionalEventDone}
+                              onEdit={editAdditionalEvent}
+                              onDelete={confirmDeleteAdditionalEvent}
+                            />
+                          )
+                        })}
+                      </div>
+                    </section>
+                  ))}
                 </div>
               </SectionBlock>
             )}

@@ -428,6 +428,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const searchParams = useSearchParams()
   const listRef = useListRef()
   const openHandledRef = useRef(false)
+  const upcomingOverviewActionHandledRef = useRef(false)
   const [selectedTown, setSelectedTown] = useState('')
   const [pendingOpenId, setPendingOpenId] = useState(null)
   const [checkFilter, setCheckFilter] = useState({
@@ -832,12 +833,17 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     if (typeof window === 'undefined') return
     const action = searchParams?.get('openAction')
     if (action !== 'upcomingOverview') return
+    if (upcomingOverviewActionHandledRef.current) return
     if (modals.length > 0) return
+
+    upcomingOverviewActionHandledRef.current = true
+    if (pathname) {
+      window.history.replaceState(window.history.state, '', pathname)
+      router.replace(pathname, { scroll: false })
+    }
 
     const timer = setTimeout(() => {
       modalsFunc.event?.upcomingOverview?.()
-      // Clean up URL param without full page reload
-      if (pathname) router.replace(pathname, { scroll: false })
     }, 300)
 
     return () => clearTimeout(timer)

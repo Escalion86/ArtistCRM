@@ -126,6 +126,8 @@ const CardButtons = ({
   onEditClientContacts,
   onEditFinanceDocs,
   onAdditionalEvents,
+  showAdditionalEventsButton = true,
+  showCopyIdButton = true,
   showCloneButton = true,
   showHistoryButton = true,
   showStatusButton = true,
@@ -137,6 +139,7 @@ const CardButtons = ({
 
   const canManageUsers = ['dev', 'admin'].includes(loggedUser?.role)
   const canCopyId =
+    showCopyIdButton &&
     loggedUser?.role === 'dev' &&
     ['event', 'transaction', 'user', 'client'].includes(typeOfItem) &&
     Boolean(item?._id)
@@ -178,6 +181,7 @@ const CardButtons = ({
   const showAdditionalEventsAction = shouldShowAdditionalEventsAction({
     typeOfItem,
     status: item?.status,
+    enabled: showAdditionalEventsButton,
   })
   // (typeOfItem === 'event' && loggedUserActiveRole.events.edit) ||
   // (typeOfItem === 'user' && loggedUserActiveRole.users.edit) ||

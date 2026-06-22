@@ -1207,6 +1207,31 @@ body.theme-dark .event-view-additional-done {
   border-color: #065f46;
 }
 
+body.theme-dark .additional-event-list-card {
+  background: rgba(24, 19, 13, 0.92);
+  border-color: rgba(201, 168, 106, 0.24);
+}
+
+body.theme-dark .additional-event-list-card:hover {
+  background: rgba(32, 25, 17, 0.96);
+  border-color: rgba(235, 211, 165, 0.36);
+}
+
+body.theme-dark .additional-event-list-card--done {
+  background: rgba(6, 78, 59, 0.24);
+  border-color: rgba(16, 185, 129, 0.42);
+}
+
+body.theme-dark .additional-event-list-card--overdue {
+  background: rgba(127, 29, 29, 0.22);
+  border-color: rgba(248, 113, 113, 0.42);
+}
+
+body.theme-dark .additional-event-overdue-badge {
+  background: rgba(127, 29, 29, 0.36);
+  color: #fecaca;
+}
+
 .event-view-status--draft {
   border-color: #d1d5db;
   color: #374151;

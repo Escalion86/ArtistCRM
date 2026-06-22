@@ -677,8 +677,9 @@ const updateEventInCalendar = async (
     const contractSumVal = Number(event?.contractSum ?? 0)
     const isFullyPaid = contractSumVal > 0 && totalIncome >= contractSumVal
     const icons = []
-    if (hasDeposit) icons.push('☑️')
     if (isFullyPaid) icons.push('✅')
+    else if (hasDeposit) icons.push('☑️')
+
     if (Boolean(event?.isTransferred)) icons.push('➡️')
     if (icons.length > 0) {
       statusIconsPrefix = icons.join('') + ' '

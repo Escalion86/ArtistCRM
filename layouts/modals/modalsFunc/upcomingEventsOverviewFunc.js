@@ -26,6 +26,12 @@ import { useAtomValue } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import { useEventsQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
+import {
+  getEventAddressLine,
+  getEventTitle,
+  getPostponeActionsForSegment,
+  moveDateToDayOffset,
+} from '@helpers/upcomingEventsOverview'
 
 const SEGMENT_META = {
   overdue: {
@@ -121,7 +127,9 @@ const upcomingEventsOverviewFunc = () => {
       const overdueNoDepositItems = overdueNoDepositEvents.map((event) => ({
         eventId: event?._id,
         eventDate: event?.eventDate ?? null,
+        eventType: event?.eventType ?? '',
         eventStatus: event?.status ?? '',
+        eventAddress: event?.address ?? null,
         eventTown: event?.address?.town ?? '',
         eventDescription: event?.description ?? '',
         title: 'Просрочен задаток',
@@ -158,7 +166,9 @@ const upcomingEventsOverviewFunc = () => {
             doneBySegment[segment].push({
               eventId: event?._id,
               eventDate: event?.eventDate ?? null,
+              eventType: event?.eventType ?? '',
               eventStatus: event?.status ?? '',
+              eventAddress: event?.address ?? null,
               eventTown: event?.address?.town ?? '',
               eventDescription: event?.description ?? '',
               title: item?.title ?? '',
@@ -218,7 +228,7 @@ const upcomingEventsOverviewFunc = () => {
     const shiftAdditionalEventDate = async (
       eventId,
       additionalEventIndex,
-      days
+      targetDayOffset
     ) => {
       const source = segmentedAdditional.overdue
         .concat(segmentedAdditional.today)
@@ -229,8 +239,7 @@ const upcomingEventsOverviewFunc = () => {
             item.index === additionalEventIndex
         )
       const baseDate = parseDateSafe(source?.date) || new Date()
-      const nextDate = new Date(baseDate)
-      nextDate.setDate(nextDate.getDate() + days)
+      const nextDate = moveDateToDayOffset(baseDate, targetDayOffset, now)
       await updateAdditionalEventDate(eventId, additionalEventIndex, nextDate)
     }
 
@@ -398,14 +407,26 @@ const upcomingEventsOverviewFunc = () => {
                               ? formatDateTime(item.date, true, false, true, false)
                               : 'Дата не указана'}
                           </div>
+                          <div className="mt-1 text-xs text-gray-500">
+                            {getEventTitle(item)}
+                            {item.eventDate
+                              ? ` • начало ${formatDateTime(
+                                  item.eventDate,
+                                  true,
+                                  false,
+                                  true,
+                                  false
+                                )}`
+                              : ''}
+                          </div>
+                          {getEventAddressLine({ address: item.eventAddress }) ? (
+                            <div className="text-xs text-gray-500">
+                              {getEventAddressLine({ address: item.eventAddress })}
+                            </div>
+                          ) : null}
                           {item?.description ? (
                             <div className="text-xs text-gray-600">
                               {normalizeText(item.description)}
-                            </div>
-                          ) : null}
-                          {item.eventTown ? (
-                            <div className="mt-1 text-xs text-gray-500">
-                              {item.eventTown}
                             </div>
                           ) : null}
                         </div>
@@ -426,10 +447,10 @@ const upcomingEventsOverviewFunc = () => {
                         <div className="mt-2 grid grid-cols-2 items-center gap-2 tablet:flex tablet:flex-wrap">
                           <QuickActionButtons
                             wrapperClassName="col-span-2"
-                            actions={[
-                              {
-                                key: 'plus-1-day',
-                                label: '+1 день',
+                            actions={getPostponeActionsForSegment(key).map(
+                              (action) => ({
+                                key: action.key,
+                                label: action.label,
                                 variant: 'secondary',
                                 className: 'w-full tablet:w-auto',
                                 disabled:
@@ -438,24 +459,10 @@ const upcomingEventsOverviewFunc = () => {
                                   shiftAdditionalEventDate(
                                     item.eventId,
                                     item.index,
-                                    1
+                                    action.targetDayOffset
                                   ),
-                              },
-                              {
-                                key: 'plus-3-day',
-                                label: '+3 дня',
-                                variant: 'secondary',
-                                className: 'w-full tablet:w-auto',
-                                disabled:
-                                  savingKey === `${item.eventId}-${item.index}`,
-                                onClick: () =>
-                                  shiftAdditionalEventDate(
-                                    item.eventId,
-                                    item.index,
-                                    3
-                                  ),
-                              },
-                            ]}
+                              })
+                            )}
                           />
                           <DateTimeApplyControl
                             value={
@@ -481,16 +488,14 @@ const upcomingEventsOverviewFunc = () => {
           )
         })}
 
-        <ModalSection
-          title="Синхронизация"
-          titleClassName="card-title"
-          titleRight={<StatusChip tone={syncTone}>{queueSummary.total}</StatusChip>}
-        >
-          {queueSummary.total === 0 ? (
-            <div className="mt-2 text-sm text-gray-500">
-              Локальных изменений для синхронизации нет
-            </div>
-          ) : (
+        {queueSummary.total > 0 ? (
+          <ModalSection
+            title="Синхронизация"
+            titleClassName="card-title"
+            titleRight={
+              <StatusChip tone={syncTone}>{queueSummary.total}</StatusChip>
+            }
+          >
             <div className="mt-2 rounded border border-gray-200 px-3 py-2">
               <div className="text-sm font-semibold text-gray-900">
                 {isOnline
@@ -524,8 +529,8 @@ const upcomingEventsOverviewFunc = () => {
                 Синхронизировать
               </AppButton>
             </div>
-          )}
-        </ModalSection>
+          </ModalSection>
+        ) : null}
 
         <ModalSection
           title="Мероприятия на 3 дня"
@@ -549,18 +554,18 @@ const upcomingEventsOverviewFunc = () => {
                       : 'Дата не указана'}
                   </div>
                   <div className="text-xs text-gray-600">
-                    {event?.address?.town ? `${event.address.town} • ` : ''}
-                    {event?.status === 'draft'
-                      ? 'Заявка'
-                      : event?.status === 'closed'
-                        ? 'Закрыто'
-                        : event?.status === 'canceled'
-                          ? 'Отменено'
-                          : 'Активно'}
+                    {getEventTitle(event)}
                   </div>
-                  <div className="text-xs text-gray-600">
-                    {normalizeText(event?.description, 'Описание не указано')}
-                  </div>
+                  {getEventAddressLine(event) ? (
+                    <div className="text-xs text-gray-600">
+                      {getEventAddressLine(event)}
+                    </div>
+                  ) : null}
+                  {event?.description ? (
+                    <div className="text-xs text-gray-600">
+                      {normalizeText(event.description)}
+                    </div>
+                  ) : null}
                   <QuickActionButtons
                     wrapperClassName="mt-2"
                     actions={[
