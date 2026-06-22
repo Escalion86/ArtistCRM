@@ -1628,9 +1628,9 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   >
                     <span className="inline-flex items-center justify-center min-w-0 gap-2">
                       <span className="hidden tablet:inline">
-                        Ближайшие события
+                        Требует внимания
                       </span>
-                      <span className="tablet:hidden">Ближайшие</span>
+                      <span className="tablet:hidden">Внимание</span>
                       {upcomingOverviewBadges.length > 0 ? (
                         <span className="inline-flex items-center gap-1">
                           {upcomingOverviewBadges.map((badge) => (

@@ -14,10 +14,16 @@ import {
   getSoonNoDepositEvents,
   getUpcomingEventsByDays,
 } from '@helpers/additionalEvents'
+import {
+  getServerSyncQueueSummary,
+  readServerSyncQueue,
+  SERVER_SYNC_FLUSH_NOW_EVENT,
+  SERVER_SYNC_QUEUE_CHANGED_EVENT,
+} from '@helpers/serverSyncQueue'
 import { modalsFuncAtom } from '@state/atoms'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { useAtomValue } from 'jotai'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useEventsQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 
@@ -72,6 +78,8 @@ const toDateTimeLocalValue = (value) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
+const readQueueSummary = () => getServerSyncQueueSummary(readServerSyncQueue())
+
 const upcomingEventsOverviewFunc = () => {
   const UpcomingEventsOverviewModal = ({ closeModal }) => {
     const { data: eventsPayload } = useEventsQuery({
@@ -86,6 +94,10 @@ const upcomingEventsOverviewFunc = () => {
     const itemsFunc = useAtomValue(itemsFuncAtom)
     const [customDates, setCustomDates] = useState({})
     const [savingKey, setSavingKey] = useState('')
+    const [queueSummary, setQueueSummary] = useState(readQueueSummary)
+    const [isOnline, setIsOnline] = useState(() =>
+      typeof navigator === 'undefined' ? true : navigator.onLine
+    )
 
     const now = useMemo(() => new Date(), [])
     const segmentedAdditional = useMemo(
@@ -265,6 +277,41 @@ const upcomingEventsOverviewFunc = () => {
       }
     }
 
+    useEffect(() => {
+      const refreshQueueState = () => {
+        setQueueSummary(readQueueSummary())
+        setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine)
+      }
+
+      refreshQueueState()
+      window.addEventListener(SERVER_SYNC_QUEUE_CHANGED_EVENT, refreshQueueState)
+      window.addEventListener('online', refreshQueueState)
+      window.addEventListener('offline', refreshQueueState)
+
+      return () => {
+        window.removeEventListener(
+          SERVER_SYNC_QUEUE_CHANGED_EVENT,
+          refreshQueueState
+        )
+        window.removeEventListener('online', refreshQueueState)
+        window.removeEventListener('offline', refreshQueueState)
+      }
+    }, [])
+
+    const requestSync = () => {
+      window.dispatchEvent(new CustomEvent(SERVER_SYNC_FLUSH_NOW_EVENT))
+      setTimeout(() => setQueueSummary(readQueueSummary()), 250)
+    }
+
+    const syncTone =
+      queueSummary.conflict > 0 || queueSummary.failed > 0
+        ? 'overdue'
+        : queueSummary.syncing > 0
+          ? 'today'
+          : 'upcoming'
+    const syncButtonDisabled =
+      !isOnline || queueSummary.ready === 0 || queueSummary.syncing > 0
+
     return (
       <div className="flex flex-col gap-3 pb-2">
         {Object.keys(SEGMENT_META).map((key) => {
@@ -435,6 +482,52 @@ const upcomingEventsOverviewFunc = () => {
         })}
 
         <ModalSection
+          title="Синхронизация"
+          titleClassName="card-title"
+          titleRight={<StatusChip tone={syncTone}>{queueSummary.total}</StatusChip>}
+        >
+          {queueSummary.total === 0 ? (
+            <div className="mt-2 text-sm text-gray-500">
+              Локальных изменений для синхронизации нет
+            </div>
+          ) : (
+            <div className="mt-2 rounded border border-gray-200 px-3 py-2">
+              <div className="text-sm font-semibold text-gray-900">
+                {isOnline
+                  ? queueSummary.syncing > 0
+                    ? 'Синхронизация выполняется'
+                    : 'Есть локальные изменения'
+                  : 'Нет сети'}
+              </div>
+              <div className="mt-1 text-xs text-gray-600">
+                Ожидают отправки: {queueSummary.pending}. Готовы к повтору:{' '}
+                {queueSummary.ready}. Ошибки: {queueSummary.failed}. Конфликты:{' '}
+                {queueSummary.conflict}.
+              </div>
+              {queueSummary.waitingRetry > 0 ? (
+                <div className="mt-1 text-xs text-gray-500">
+                  {queueSummary.waitingRetry} измен. будут повторены позже
+                </div>
+              ) : null}
+              {queueSummary.conflict > 0 ? (
+                <div className="mt-1 text-xs text-red-600">
+                  Есть конфликт: изменение не будет отправлено автоматически.
+                </div>
+              ) : null}
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="mt-2 w-full tablet:w-auto"
+                disabled={syncButtonDisabled}
+                onClick={requestSync}
+              >
+                Синхронизировать
+              </AppButton>
+            </div>
+          )}
+        </ModalSection>
+
+        <ModalSection
           title="Мероприятия на 3 дня"
           titleClassName="card-title"
           titleRight={<StatusChip tone="upcoming">{upcomingEvents.length}</StatusChip>}
@@ -490,7 +583,7 @@ const upcomingEventsOverviewFunc = () => {
   }
 
   return {
-    title: 'Ближайшие события',
+    title: 'Требует внимания',
     confirmButtonName: 'Закрыть',
     showDecline: false,
     onConfirm: true,

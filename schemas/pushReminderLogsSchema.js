@@ -9,7 +9,10 @@ const pushReminderLogsSchema = {
   eventId: {
     type: Schema.Types.ObjectId,
     ref: 'Events',
-    required: true,
+    default: null,
+    required() {
+      return this.reminderType !== 'summary'
+    },
   },
   additionalEventIndex: {
     type: Number,
@@ -18,7 +21,7 @@ const pushReminderLogsSchema = {
   reminderType: {
     type: String,
     required: true,
-    enum: ['tomorrow', 'overdue'],
+    enum: ['tomorrow', 'overdue', 'summary'],
   },
   dateKey: {
     type: String,

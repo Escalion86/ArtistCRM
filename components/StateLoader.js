@@ -32,10 +32,16 @@ import {
 } from '@helpers/serverSyncMode'
 import {
   appendServerSyncQueueItem,
+  getReadyServerSyncQueueItems,
+  getServerSyncQueueSummary,
+  markServerSyncQueueItemConflict,
+  markServerSyncQueueItemFailed,
+  markServerSyncQueueItemSynced,
+  markServerSyncQueueItemSyncing,
   readServerSyncQueue,
   replaceServerSyncQueue,
   SERVER_SYNC_FLUSH_NOW_EVENT,
-  shiftServerSyncQueue,
+  updateServerSyncQueueItem,
 } from '@helpers/serverSyncQueue'
 import { sendClientLog } from '@helpers/clientLog'
 import { queryKeys } from '@helpers/queryKeys'
@@ -327,16 +333,19 @@ const StateLoader = (props) => {
       return {}
     }
 
-    const shouldBlock = (input, init) => {
-      const disabledFromStorage = readServerSyncDisabledFromStorage()
-      const disabled =
-        typeof disabledFromStorage === 'boolean'
-          ? disabledFromStorage
-          : serverSyncDisabled
-      if (!disabled) return false
+    const hasReplayHeader = (headersValue) => {
+      const headers = normalizeHeaders(headersValue)
+      return Object.entries(headers).some(
+        ([key, value]) =>
+          key.toLowerCase() === 'x-artistcrm-sync-replay' &&
+          String(value) === '1'
+      )
+    }
 
+    const isQueueableWrite = (input, init) => {
       const method = getMethod(input, init)
       if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return false
+      if (hasReplayHeader(init?.headers)) return false
 
       const inputUrl =
         typeof input === 'string'
@@ -357,11 +366,7 @@ const StateLoader = (props) => {
       return true
     }
 
-    window.fetch = async (input, init = {}) => {
-      if (!shouldBlock(input, init)) {
-        return nativeFetch(input, init)
-      }
-
+    const queueWrite = (input, init, reason = '') => {
       const method = getMethod(input, init)
       const inputUrl =
         typeof input === 'string'
@@ -378,16 +383,12 @@ const StateLoader = (props) => {
         body: normalizeBody(init?.body),
         headers: normalizeHeaders(init?.headers),
         createdAt: new Date().toISOString(),
+        lastError: reason,
       })
+    }
 
-      if (!privacyWarningShownRef.current) {
-        snackbar.warning(
-          'Серверная синхронизация отключена: запрос сохранен локально'
-        )
-        privacyWarningShownRef.current = true
-      }
-
-      return new Response(
+    const queuedResponse = () =>
+      new Response(
         JSON.stringify({
           success: true,
           data: null,
@@ -401,6 +402,43 @@ const StateLoader = (props) => {
           },
         }
       )
+
+    window.fetch = async (input, init = {}) => {
+      const queueableWrite = isQueueableWrite(input, init)
+      const disabledFromStorage = readServerSyncDisabledFromStorage()
+      const disabled =
+        typeof disabledFromStorage === 'boolean'
+          ? disabledFromStorage
+          : serverSyncDisabled
+
+      if (queueableWrite && disabled) {
+        queueWrite(input, init, 'server_sync_disabled')
+
+        if (!privacyWarningShownRef.current) {
+          snackbar.warning(
+            'Серверная синхронизация отключена: запрос сохранен локально'
+          )
+          privacyWarningShownRef.current = true
+        }
+
+        return queuedResponse()
+      }
+
+      if (queueableWrite && navigator && navigator.onLine === false) {
+        queueWrite(input, init, 'offline')
+        snackbar.warning('Нет сети: изменение сохранено и будет синхронизировано')
+        return queuedResponse()
+      }
+
+      try {
+        return await nativeFetch(input, init)
+      } catch (error) {
+        if (!queueableWrite) throw error
+
+        queueWrite(input, init, error?.message || 'network_error')
+        snackbar.warning('Нет связи: изменение сохранено и будет синхронизировано')
+        return queuedResponse()
+      }
     }
 
     return () => {
@@ -416,46 +454,97 @@ const StateLoader = (props) => {
       if (serverSyncDisabled) return
       if (!navigator.onLine) return
 
-      const queue = readServerSyncQueue()
-      if (queue.length === 0) return
+      const initialQueue = readServerSyncQueue()
+      if (initialQueue.length === 0) return
+
+      const initialSummary = getServerSyncQueueSummary(initialQueue)
+      if (initialSummary.ready === 0) return
 
       syncFlushInProgressRef.current = true
       try {
         let processed = 0
-        for (const item of queue) {
+        let failed = 0
+        let conflicts = 0
+
+        while (true) {
+          const queue = readServerSyncQueue()
+          const readyItems = getReadyServerSyncQueueItems(queue)
+          const item = readyItems[0]
+          if (!item) break
+
+          updateServerSyncQueueItem(item.id, (current) =>
+            markServerSyncQueueItemSyncing(current)
+          )
+
           const method = String(item?.method || 'POST').toUpperCase()
           const body =
             typeof item?.body === 'string' &&
             item.body !== '[form-data]' &&
-            item.body !== '[binary]'
+            item.body !== '[binary]' &&
+            item.body !== '[unserializable]'
               ? item.body
               : undefined
           const headers =
             item?.headers && typeof item.headers === 'object'
-              ? item.headers
+              ? { ...item.headers }
               : { 'Content-Type': 'application/json' }
+          headers['x-artistcrm-sync-replay'] = '1'
 
-          const response = await fetch(item.url, {
-            method,
-            headers,
-            body,
-          })
-          if (!response.ok) break
-          processed += 1
+          try {
+            const response = await fetch(item.url, {
+              method,
+              headers,
+              body,
+            })
+
+            if (response.ok) {
+              processed += 1
+              updateServerSyncQueueItem(item.id, (current) =>
+                markServerSyncQueueItemSynced(current)
+              )
+              continue
+            }
+
+            if (response.status === 409) {
+              conflicts += 1
+              updateServerSyncQueueItem(item.id, (current) =>
+                markServerSyncQueueItemConflict(
+                  current,
+                  `HTTP ${response.status}`
+                )
+              )
+              break
+            }
+
+            failed += 1
+            updateServerSyncQueueItem(item.id, (current) =>
+              markServerSyncQueueItemFailed(current, `HTTP ${response.status}`)
+            )
+            break
+          } catch (error) {
+            failed += 1
+            updateServerSyncQueueItem(item.id, (current) =>
+              markServerSyncQueueItemFailed(current, error)
+            )
+            break
+          }
         }
 
+        replaceServerSyncQueue(readServerSyncQueue())
+
         if (processed > 0) {
-          shiftServerSyncQueue(processed)
+          queryClient.invalidateQueries()
           snackbar.success(`Синхронизировано локальных изменений: ${processed}`)
         }
 
-        const left = readServerSyncQueue()
-        if (left.length > 0 && processed === 0) {
+        if (conflicts > 0) {
           snackbar.warning(
-            'Не удалось синхронизировать очередь. Проверьте подключение и повторите.'
+            'Есть конфликт синхронизации. Проверьте блок "Синхронизация".'
           )
-        } else if (left.length > 0 && processed > 0) {
-          replaceServerSyncQueue(left)
+        } else if (failed > 0) {
+          snackbar.warning(
+            'Не удалось синхронизировать часть очереди. Повторим позже.'
+          )
         }
       } catch (error) {
         snackbar.warning('Синхронизация очереди прервана')
@@ -480,7 +569,7 @@ const StateLoader = (props) => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener(SERVER_SYNC_FLUSH_NOW_EVENT, handleManualFlush)
     }
-  }, [serverSyncDisabled, snackbar])
+  }, [queryClient, serverSyncDisabled, snackbar])
 
   useEffect(() => {
     if (!loggedUser?._id || onboardingShownRef.current) return
