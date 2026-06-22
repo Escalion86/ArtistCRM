@@ -2,10 +2,9 @@
 import SiteSettings from '@models/SiteSettings'
 import PushReminderLogs from '@models/PushReminderLogs'
 import { logPushDelivery, sendPushToTenant } from '@server/pushNotifications'
+import { shouldRunForTenantReminderTime } from '@server/additionalEventsReminderTime'
 
 const DEFAULT_TIME_ZONE = 'Asia/Krasnoyarsk'
-const DEFAULT_REMINDER_TIME = '10:00'
-const VALID_REMINDER_MINUTES = new Set(['00', '15', '30', '45'])
 
 const MAX_SUMMARY_ITEMS = 15
 const SUMMARY_TAG = 'daily_push_reminder_summary'
@@ -44,29 +43,6 @@ const toDateKey = (value, timeZone = DEFAULT_TIME_ZONE) => {
   ].join('-')
 }
 
-const normalizeReminderTime = (value) => {
-  const raw = String(value || '').trim()
-  const match = raw.match(/^([01]\d|2[0-3]):([0-5]\d)$/)
-  if (!match) return DEFAULT_REMINDER_TIME
-  const minutes = match[2]
-  if (!VALID_REMINDER_MINUTES.has(minutes)) return DEFAULT_REMINDER_TIME
-  return `${match[1]}:${minutes}`
-}
-
-const getZonedTimeKey = (value, timeZone = DEFAULT_TIME_ZONE) => {
-  const date = toDate(value)
-  if (!date) return null
-  const parts = new Intl.DateTimeFormat('sv-SE', {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date)
-  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]))
-  if (!map.hour || !map.minute) return null
-  return `${map.hour}:${map.minute}`
-}
-
 const isSameZonedDay = (dateA, dateB, timeZone = DEFAULT_TIME_ZONE) => {
   const keyA = toDateKey(dateA, timeZone)
   const keyB = toDateKey(dateB, timeZone)
@@ -87,17 +63,6 @@ const canSendForTenant = (siteSettings) => {
   if (!basePushEnabled) return false
   if (remindersEnabled === false) return false
   return true
-}
-
-const shouldRunForTenantTime = (siteSettings, nowDate) => {
-  const timeZone = siteSettings?.timeZone || DEFAULT_TIME_ZONE
-  const currentTime = getZonedTimeKey(nowDate, timeZone)
-  const custom = siteSettings?.custom
-  const reminderTime =
-    typeof custom?.get === 'function'
-      ? custom.get('additionalEventsPushTime')
-      : custom?.additionalEventsPushTime
-  return currentTime === normalizeReminderTime(reminderTime)
 }
 
 const formatEventLine = ({ title, date, timeZone }) => {
@@ -247,7 +212,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
     canSendForTenant(item)
   )
   const scheduledTenantSettings = enabledTenantSettings.filter((item) =>
-    shouldRunForTenantTime(item, nowDate)
+    shouldRunForTenantReminderTime(item, nowDate)
   )
   const skippedByTime =
     enabledTenantSettings.length - scheduledTenantSettings.length
