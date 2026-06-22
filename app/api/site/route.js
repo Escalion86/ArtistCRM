@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import SiteSettings from '@models/SiteSettings'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import getUserTariffAccess from '@server/getUserTariffAccess'
+import { getProtectedCustomAccessFailures } from '@server/integrationAccess'
 
 const normalizeTowns = (towns = []) =>
   Array.from(
@@ -55,6 +57,28 @@ export const POST = async (req) => {
     )
   }
   await dbConnect()
+
+  const existingSiteSettings =
+    body.custom !== undefined
+      ? await SiteSettings.findOne({ tenantId }).lean()
+      : null
+  if (body.custom !== undefined) {
+    const access = await getUserTariffAccess(tenantId)
+    const failures = getProtectedCustomAccessFailures({
+      existingCustom: existingSiteSettings?.custom,
+      nextCustom: body.custom,
+      access,
+    })
+    if (failures.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Недоступно по тарифу: ${failures.join(', ')}`,
+        },
+        { status: 403 }
+      )
+    }
+  }
 
   const update = {}
   if (body.eventsTags !== undefined) update.eventsTags = body.eventsTags ?? []

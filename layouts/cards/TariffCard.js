@@ -96,6 +96,18 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
             readOnly
             noMargin
           />
+          <IconCheckBox
+            checked={tariff.allowAvitoIntegration}
+            label="Интеграция Avito"
+            readOnly
+            noMargin
+          />
+          <IconCheckBox
+            checked={tariff.allowVkIntegration}
+            label="Интеграция VK"
+            readOnly
+            noMargin
+          />
         </div>
       </div>
     </CardWrapper>
@@ -113,6 +125,8 @@ TariffCard.propTypes = {
     allowDocuments: PropTypes.bool,
     allowTelephony: PropTypes.bool,
     allowAi: PropTypes.bool,
+    allowAvitoIntegration: PropTypes.bool,
+    allowVkIntegration: PropTypes.bool,
     hidden: PropTypes.bool,
   }).isRequired,
   style: PropTypes.shape({}),

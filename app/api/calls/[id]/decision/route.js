@@ -121,6 +121,16 @@ export const POST = async (req, { params }) => {
   }
 
   if (!call.transcript && call.recordingUrl) {
+    if (!access?.allowAi) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Распознавание записи доступно только в тарифе с ИИ',
+        },
+        { status: 403 }
+      )
+    }
+
     try {
       call = await processCallRecording(id, tenantId)
     } catch (error) {

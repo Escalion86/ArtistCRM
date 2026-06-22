@@ -6,6 +6,7 @@ import {
   normalizeVkSettings,
   updateVkCustom,
 } from '@server/vkGroup'
+import { isTenantIntegrationAllowed } from '@server/integrationAccess'
 import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const parseWebhookBody = async (req) => {
@@ -53,6 +54,18 @@ export const POST = async (req, { params }) => {
   const vkGroup = normalizeVkSettings(siteSettings.custom)
   if (vkGroup.groupId && String(body?.group_id || '') !== vkGroup.groupId) {
     return jsonError('Forbidden', 403, 'bad_group')
+  }
+
+  const tariffAllowed = await isTenantIntegrationAllowed(
+    siteSettings.tenantId,
+    'vk'
+  )
+  if (!tariffAllowed) {
+    return jsonError(
+      'VK integration is not available on current tariff',
+      403,
+      'tariff_required'
+    )
   }
 
   if (body?.type === 'confirmation') {

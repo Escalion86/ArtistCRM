@@ -22,6 +22,9 @@ export const getUserTariffAccess = (user, tariffs = []) => {
     allowDocuments: trialActive || Boolean(tariff?.allowDocuments),
     allowTelephony: Boolean(tariff?.allowTelephony),
     allowAi: Boolean(tariff?.allowAi),
+    allowAvitoIntegration:
+      trialActive || Boolean(tariff?.allowAvitoIntegration),
+    allowVkIntegration: trialActive || Boolean(tariff?.allowVkIntegration),
     eventsPerMonth: trialActive ? Infinity : Number(tariff?.eventsPerMonth ?? 0),
   }
 }

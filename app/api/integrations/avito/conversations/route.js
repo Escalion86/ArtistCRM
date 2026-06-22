@@ -2,22 +2,28 @@ import { NextResponse } from 'next/server'
 import mongoose from 'mongoose'
 import AvitoConversations from '@models/AvitoConversations'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import { requireTenantIntegrationAccess } from '@server/integrationAccess'
 
 const isObjectId = (value) =>
   Boolean(value && mongoose.Types.ObjectId.isValid(String(value)))
 
 export const GET = async (req) => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) {
+  const accessResult = await requireTenantIntegrationAccess('avito')
+  if (!accessResult.ok) {
     return NextResponse.json(
       {
         success: false,
-        error: { code: 'unauthorized', type: 'auth', message: 'Не авторизован' },
+        error: {
+          code:
+            accessResult.status === 401 ? 'unauthorized' : 'tariff_required',
+          type: accessResult.status === 401 ? 'auth' : 'avito',
+          message: accessResult.error,
+        },
       },
-      { status: 401 }
+      { status: accessResult.status }
     )
   }
+  const { tenantId } = accessResult
 
   const { searchParams } = new URL(req.url)
   const clientId = String(searchParams.get('clientId') || '').trim()

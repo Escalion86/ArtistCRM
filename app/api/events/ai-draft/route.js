@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import Clients from '@models/Clients'
+import getUserTariffAccess from '@server/getUserTariffAccess'
 
 /**
  * POST /api/events/ai-draft
@@ -20,6 +21,14 @@ export async function POST(request) {
       return NextResponse.json(
         { error: 'Неавторизованный доступ', fields: null },
         { status: 401 }
+      )
+    }
+
+    const tariffAccess = await getUserTariffAccess(user?._id)
+    if (!tariffAccess?.allowAi) {
+      return NextResponse.json(
+        { success: false, error: 'AI-черновик доступен только в тарифе с ИИ' },
+        { status: 403 }
       )
     }
 

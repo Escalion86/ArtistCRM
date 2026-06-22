@@ -24,7 +24,7 @@ ArtistCRM близок к официальному запуску. Основн�
 - VK и Avito: модели переписок/сообщений, webhooks, UI в интеграциях, связь диалогов с клиентами, документы `docs/VK_GROUP_INTEGRATION_GUIDE.md` и `docs/AVITO_INTEGRATION_GUIDE.md`.
 - Телефония и AI: `app/api/calls/**`, `server/calls.js`, `server/callTranscription.js`, `server/callAiAnalysis.js`, `server/novofon.js`, AI-черновик заявки по звонку и голосу.
 - Push/PWA/offline: `app/api/push/**`, `server/additionalEventsPushReminders.js`, `helpers/serverSyncQueue.js`, настройки уведомлений и local/offline queue.
-- Биллинг и тарифы: YooKassa, Tochka, тарифные флаги `allowCalendarSync`, `allowStatistics`, `allowDocuments`, `allowTelephony`, `allowAi`.
+- Биллинг и тарифы: YooKassa, Tochka, тарифные флаги `allowCalendarSync`, `allowStatistics`, `allowDocuments`, `allowTelephony`, `allowAi`, `allowAvitoIntegration`, `allowVkIntegration`.
 - SEO: публичная главная, посадочные страницы, sitemap, robots, OG image, SEO-документация и monitoring checklist.
 
 ## P0: сделать до официального анонса

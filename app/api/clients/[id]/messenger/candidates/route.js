@@ -7,6 +7,11 @@ import VkConversations from '@models/VkConversations'
 import VkMessages from '@models/VkMessages'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import getUserTariffAccess from '@server/getUserTariffAccess'
+import {
+  getIntegrationAccessError,
+  hasIntegrationAccess,
+} from '@server/integrationAccess'
 
 const isObjectId = (value) =>
   Boolean(value && mongoose.Types.ObjectId.isValid(String(value)))
@@ -38,21 +43,25 @@ const normalizeConversation = (provider, conversation) => ({
   unreadCount: conversation.unreadCount || 0,
 })
 
-const loadCandidates = async ({ tenantId, clientId }) => {
+const loadCandidates = async ({ tenantId, clientId, access }) => {
   const query = {
     tenantId,
     $or: [{ clientId: null }, { clientId: { $exists: false } }, { clientId }],
   }
 
   const [avitoConversations, vkConversations] = await Promise.all([
-    AvitoConversations.find(query)
-      .sort({ lastMessageAt: -1, updatedAt: -1 })
-      .limit(100)
-      .lean(),
-    VkConversations.find(query)
-      .sort({ lastMessageAt: -1, updatedAt: -1 })
-      .limit(100)
-      .lean(),
+    hasIntegrationAccess(access, 'avito')
+      ? AvitoConversations.find(query)
+          .sort({ lastMessageAt: -1, updatedAt: -1 })
+          .limit(100)
+          .lean()
+      : Promise.resolve([]),
+    hasIntegrationAccess(access, 'vk')
+      ? VkConversations.find(query)
+          .sort({ lastMessageAt: -1, updatedAt: -1 })
+          .limit(100)
+          .lean()
+      : Promise.resolve([]),
   ])
 
   return [
@@ -81,10 +90,11 @@ export const GET = async (req, { params }) => {
   if (!isObjectId(clientId)) return jsonError('Некорректный ID клиента', 400, 'bad_id')
 
   await dbConnect()
+  const access = await getUserTariffAccess(tenantId)
   const clientExists = await ensureClientInTenant({ tenantId, clientId })
   if (!clientExists) return jsonError('Клиент не найден', 404, 'client_not_found')
 
-  const conversations = await loadCandidates({ tenantId, clientId })
+  const conversations = await loadCandidates({ tenantId, clientId, access })
 
   return NextResponse.json(
     { success: true, data: { conversations } },
@@ -113,6 +123,14 @@ export const PATCH = async (req, { params }) => {
   }
 
   await dbConnect()
+  const access = await getUserTariffAccess(tenantId)
+  if (!hasIntegrationAccess(access, provider)) {
+    return jsonError(
+      getIntegrationAccessError(provider),
+      403,
+      'tariff_required'
+    )
+  }
   const clientExists = await ensureClientInTenant({ tenantId, clientId })
   if (!clientExists) return jsonError('Клиент не найден', 404, 'client_not_found')
 
@@ -147,7 +165,7 @@ export const PATCH = async (req, { params }) => {
     ),
   ])
 
-  const conversations = await loadCandidates({ tenantId, clientId })
+  const conversations = await loadCandidates({ tenantId, clientId, access })
 
   return NextResponse.json(
     { success: true, data: { conversations } },

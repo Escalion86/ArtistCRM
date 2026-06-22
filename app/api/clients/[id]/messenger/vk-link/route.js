@@ -5,7 +5,7 @@ import SiteSettings from '@models/SiteSettings'
 import VkConversations from '@models/VkConversations'
 import VkMessages from '@models/VkMessages'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import { requireTenantIntegrationAccess } from '@server/integrationAccess'
 import {
   getVkUserProfile,
   normalizeStoredVkContact,
@@ -49,8 +49,11 @@ const normalizeClientConversation = (conversation) => ({
 })
 
 export const POST = async (req, { params }) => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
+  const accessResult = await requireTenantIntegrationAccess('vk')
+  if (!accessResult.ok) {
+    return jsonError(accessResult.error, accessResult.status, 'tariff_required')
+  }
+  const { tenantId } = accessResult
 
   const routeParams = await params
   const clientId = String(routeParams?.id || '').trim()

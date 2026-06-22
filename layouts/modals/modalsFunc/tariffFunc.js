@@ -39,6 +39,12 @@ const tariffFunc = (tariffId, clone = false) => {
     const [allowAi, setAllowAi] = useState(
       tariff?.allowAi ?? DEFAULT_TARIFF.allowAi
     )
+    const [allowAvitoIntegration, setAllowAvitoIntegration] = useState(
+      tariff?.allowAvitoIntegration ?? DEFAULT_TARIFF.allowAvitoIntegration
+    )
+    const [allowVkIntegration, setAllowVkIntegration] = useState(
+      tariff?.allowVkIntegration ?? DEFAULT_TARIFF.allowVkIntegration
+    )
     const [hidden, setHidden] = useState(
       tariff?.hidden ?? DEFAULT_TARIFF.hidden
     )
@@ -61,6 +67,8 @@ const tariffFunc = (tariffId, clone = false) => {
               allowDocuments,
               allowTelephony,
               allowAi,
+              allowAvitoIntegration,
+              allowVkIntegration,
               hidden,
             },
             clone
@@ -70,9 +78,11 @@ const tariffFunc = (tariffId, clone = false) => {
     }, [
       allowCalendarSync,
       allowDocuments,
+      allowAvitoIntegration,
       allowStatistics,
       allowTelephony,
       allowAi,
+      allowVkIntegration,
       checkErrors,
       closeModal,
       eventsPerMonth,
@@ -93,6 +103,8 @@ const tariffFunc = (tariffId, clone = false) => {
         tariff?.allowDocuments !== allowDocuments ||
         tariff?.allowTelephony !== allowTelephony ||
         tariff?.allowAi !== allowAi ||
+        tariff?.allowAvitoIntegration !== allowAvitoIntegration ||
+        tariff?.allowVkIntegration !== allowVkIntegration ||
         tariff?.hidden !== hidden
 
       setOnConfirmFunc(
@@ -103,9 +115,11 @@ const tariffFunc = (tariffId, clone = false) => {
     }, [
       allowCalendarSync,
       allowDocuments,
+      allowAvitoIntegration,
       allowStatistics,
       allowTelephony,
       allowAi,
+      allowVkIntegration,
       eventsPerMonth,
       hidden,
       price,
@@ -113,10 +127,12 @@ const tariffFunc = (tariffId, clone = false) => {
       setOnConfirmFunc,
       setOnShowOnCloseConfirmDialog,
       tariff?.allowCalendarSync,
+      tariff?.allowAvitoIntegration,
       tariff?.allowDocuments,
       tariff?.allowTelephony,
       tariff?.allowAi,
       tariff?.allowStatistics,
+      tariff?.allowVkIntegration,
       tariff?.eventsPerMonth,
       tariff?.hidden,
       tariff?.price,
@@ -191,6 +207,18 @@ const tariffFunc = (tariffId, clone = false) => {
               checked={allowAi}
               onClick={() => setAllowAi((prev) => !prev)}
               label="ИИ-возможности"
+              noMargin
+            />
+            <IconCheckBox
+              checked={allowAvitoIntegration}
+              onClick={() => setAllowAvitoIntegration((prev) => !prev)}
+              label="Интеграция Avito"
+              noMargin
+            />
+            <IconCheckBox
+              checked={allowVkIntegration}
+              onClick={() => setAllowVkIntegration((prev) => !prev)}
+              label="Интеграция VK"
               noMargin
             />
             <IconCheckBox

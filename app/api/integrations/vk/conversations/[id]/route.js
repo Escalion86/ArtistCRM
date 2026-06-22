@@ -4,7 +4,7 @@ import VkConversations from '@models/VkConversations'
 import Clients from '@models/Clients'
 import Events from '@models/Events'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import { requireTenantIntegrationAccess } from '@server/integrationAccess'
 
 const isObjectId = (value) =>
   Boolean(value && mongoose.Types.ObjectId.isValid(String(value)))
@@ -16,8 +16,11 @@ const jsonError = (message, status = 400, code = 'vk_error') =>
   )
 
 export const PATCH = async (req, { params }) => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
+  const accessResult = await requireTenantIntegrationAccess('vk')
+  if (!accessResult.ok) {
+    return jsonError(accessResult.error, accessResult.status, 'tariff_required')
+  }
+  const { tenantId } = accessResult
 
   const routeParams = await params
   const id = String(routeParams?.id || '').trim()

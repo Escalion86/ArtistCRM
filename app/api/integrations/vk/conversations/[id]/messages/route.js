@@ -4,7 +4,7 @@ import VkConversations from '@models/VkConversations'
 import VkMessages from '@models/VkMessages'
 import SiteSettings from '@models/SiteSettings'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import { requireTenantIntegrationAccess } from '@server/integrationAccess'
 import { normalizeVkSettings, sendVkMessage } from '@server/vkGroup'
 
 const isObjectId = (value) =>
@@ -17,8 +17,11 @@ const jsonError = (message, status = 400, code = 'vk_error') =>
   )
 
 export const GET = async (req, { params }) => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
+  const accessResult = await requireTenantIntegrationAccess('vk')
+  if (!accessResult.ok) {
+    return jsonError(accessResult.error, accessResult.status, 'tariff_required')
+  }
+  const { tenantId } = accessResult
 
   const routeParams = await params
   const id = String(routeParams?.id || '').trim()
@@ -46,8 +49,11 @@ export const GET = async (req, { params }) => {
 }
 
 export const POST = async (req, { params }) => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
+  const accessResult = await requireTenantIntegrationAccess('vk')
+  if (!accessResult.ok) {
+    return jsonError(accessResult.error, accessResult.status, 'tariff_required')
+  }
+  const { tenantId } = accessResult
 
   const routeParams = await params
   const id = String(routeParams?.id || '').trim()

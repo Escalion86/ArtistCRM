@@ -6,6 +6,7 @@ import {
   normalizeAvitoSettings,
   updateAvitoCustom,
 } from '@server/avito'
+import { isTenantIntegrationAllowed } from '@server/integrationAccess'
 import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const parseWebhookBody = async (req) => {
@@ -74,6 +75,24 @@ export const POST = async (req, { params }) => {
           code: 'disabled',
           type: 'avito',
           message: 'Avito integration is disabled',
+        },
+      },
+      { status: 403 }
+    )
+  }
+
+  const tariffAllowed = await isTenantIntegrationAllowed(
+    siteSettings.tenantId,
+    'avito'
+  )
+  if (!tariffAllowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'tariff_required',
+          type: 'avito',
+          message: 'Avito integration is not available on current tariff',
         },
       },
       { status: 403 }

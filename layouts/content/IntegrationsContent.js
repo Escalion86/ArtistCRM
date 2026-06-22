@@ -558,6 +558,8 @@ const IntegrationsContent = () => {
   const canUseCalendar = Boolean(tariffAccess?.allowCalendarSync)
   const canUseTelephony = Boolean(tariffAccess?.allowTelephony)
   const canUseAi = Boolean(tariffAccess?.allowAi)
+  const canUseAvito = Boolean(tariffAccess?.allowAvitoIntegration)
+  const canUseVk = Boolean(tariffAccess?.allowVkIntegration)
   const isEnabled = getCustomValue(customSettings, 'publicLeadEnabled') === true
   const endpointUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/api/public/lead'
@@ -1038,13 +1040,14 @@ const IntegrationsContent = () => {
           </div>
         </IntegrationAccordion>
 
-        <IntegrationAccordion
-          title="Avito"
-          description="Персональная интеграция сообщений Avito в заявки CRM."
-          connected={avitoEnabled && avitoStatus !== 'auth_error'}
-          warning={avitoEnabled && avitoStatus !== 'connected'}
-          loading={avitoLoading}
-        >
+        {canUseAvito ? (
+          <IntegrationAccordion
+            title="Avito"
+            description="Персональная интеграция сообщений Avito в заявки CRM."
+            connected={avitoEnabled && avitoStatus !== 'auth_error'}
+            warning={avitoEnabled && avitoStatus !== 'connected'}
+            loading={avitoLoading}
+          >
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-600">
               Подключение выполняется отдельно для вашего аккаунта Avito.
@@ -1160,15 +1163,17 @@ const IntegrationsContent = () => {
               </InstructionButton>
             </div>
           </div>
-        </IntegrationAccordion>
+          </IntegrationAccordion>
+        ) : null}
 
-        <IntegrationAccordion
-          title="VK"
-          description="Персональная интеграция сообщений группы VK в заявки CRM."
-          connected={vkEnabled && vkStatus !== 'auth_error'}
-          warning={vkEnabled && vkStatus !== 'connected'}
-          loading={vkLoading}
-        >
+        {canUseVk ? (
+          <IntegrationAccordion
+            title="VK"
+            description="Персональная интеграция сообщений группы VK в заявки CRM."
+            connected={vkEnabled && vkStatus !== 'auth_error'}
+            warning={vkEnabled && vkStatus !== 'connected'}
+            loading={vkLoading}
+          >
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-600">
               Подключение выполняется отдельно для вашей группы VK. Сообщения из
@@ -1323,7 +1328,8 @@ const IntegrationsContent = () => {
               </InstructionButton>
             </div>
           </div>
-        </IntegrationAccordion>
+          </IntegrationAccordion>
+        ) : null}
 
         {canUseTelephony ? (
           <IntegrationAccordion
@@ -1525,10 +1531,14 @@ const IntegrationsContent = () => {
             </div>
           </IntegrationAccordion>
         ) : null}
-        {!canUseCalendar && !canUseTelephony && !canUseAi ? (
+        {!canUseCalendar &&
+        !canUseTelephony &&
+        !canUseAi &&
+        !canUseAvito &&
+        !canUseVk ? (
           <div className="shrink-0 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Google Calendar, IP-телефония и AI-интеграции доступны только на
-            тарифах с соответствующими опциями.
+            Google Calendar, Avito, VK, IP-телефония и AI-интеграции доступны
+            только на тарифах с соответствующими опциями.
           </div>
         ) : null}
       </div>

@@ -8,6 +8,11 @@ import VkMessages from '@models/VkMessages'
 import SiteSettings from '@models/SiteSettings'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import getUserTariffAccess from '@server/getUserTariffAccess'
+import {
+  getIntegrationAccessError,
+  hasIntegrationAccess,
+} from '@server/integrationAccess'
 import {
   normalizeAvitoSettings,
   requestAvitoAccessToken,
@@ -101,21 +106,32 @@ const normalizeCallMessage = (call, clientId) => ({
   status: call.status || '',
 })
 
-const loadClientMessenger = async ({ tenantId, clientId, summary = false }) => {
+const loadClientMessenger = async ({
+  tenantId,
+  clientId,
+  access,
+  summary = false,
+}) => {
   const [avitoConversations, vkConversations] = await Promise.all([
-    AvitoConversations.find({ tenantId, clientId })
-      .sort({ lastMessageAt: -1, updatedAt: -1 })
-      .limit(100)
-      .lean(),
-    VkConversations.find({ tenantId, clientId })
-      .sort({ lastMessageAt: -1, updatedAt: -1 })
-      .limit(100)
-      .lean(),
+    hasIntegrationAccess(access, 'avito')
+      ? AvitoConversations.find({ tenantId, clientId })
+          .sort({ lastMessageAt: -1, updatedAt: -1 })
+          .limit(100)
+          .lean()
+      : Promise.resolve([]),
+    hasIntegrationAccess(access, 'vk')
+      ? VkConversations.find({ tenantId, clientId })
+          .sort({ lastMessageAt: -1, updatedAt: -1 })
+          .limit(100)
+          .lean()
+      : Promise.resolve([]),
   ])
-  const calls = await Calls.find({ tenantId, linkedClientId: clientId })
-    .sort({ startedAt: -1, createdAt: -1 })
-    .limit(100)
-    .lean()
+  const calls = hasIntegrationAccess(access, 'telephony')
+    ? await Calls.find({ tenantId, linkedClientId: clientId })
+        .sort({ startedAt: -1, createdAt: -1 })
+        .limit(100)
+        .lean()
+    : []
   const callConversation =
     calls.length > 0
       ? normalizeCallConversation({ clientId, lastCall: calls[0] })
@@ -198,7 +214,13 @@ export const GET = async (req, { params }) => {
   const summary = searchParams.get('summary') === '1'
 
   await dbConnect()
-  const data = await loadClientMessenger({ tenantId, clientId, summary })
+  const access = await getUserTariffAccess(tenantId)
+  const data = await loadClientMessenger({
+    tenantId,
+    clientId,
+    access,
+    summary,
+  })
 
   return NextResponse.json({ success: true, data }, { status: 200 })
 }
@@ -225,6 +247,14 @@ export const POST = async (req, { params }) => {
   if (!text) return jsonError('Введите текст сообщения', 400, 'empty_text')
 
   await dbConnect()
+  const access = await getUserTariffAccess(tenantId)
+  if (!hasIntegrationAccess(access, provider)) {
+    return jsonError(
+      getIntegrationAccessError(provider),
+      403,
+      'tariff_required'
+    )
+  }
 
   if (provider === 'avito') {
     const conversation = await AvitoConversations.findOne({
@@ -294,7 +324,7 @@ export const POST = async (req, { params }) => {
       )
     }
 
-    const data = await loadClientMessenger({ tenantId, clientId })
+    const data = await loadClientMessenger({ tenantId, clientId, access })
     return NextResponse.json({ success: true, data }, { status: 201 })
   }
 
@@ -352,6 +382,6 @@ export const POST = async (req, { params }) => {
     )
   }
 
-  const data = await loadClientMessenger({ tenantId, clientId })
+  const data = await loadClientMessenger({ tenantId, clientId, access })
   return NextResponse.json({ success: true, data }, { status: 201 })
 }

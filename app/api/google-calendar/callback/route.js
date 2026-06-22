@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import getUserTariffAccess from '@server/getUserTariffAccess'
 import {
   getOAuthClient,
   normalizeCalendarReminders,
@@ -66,6 +67,15 @@ export const GET = async (req) => {
   if (!decodedState?.nonce || decodedState.nonce !== cookieState) {
     const response = NextResponse.redirect(
       new URL(`${redirect}?gc_error=state`, baseUrl)
+    )
+    response.cookies.delete('gc_oauth_state')
+    return response
+  }
+
+  const access = await getUserTariffAccess(user._id)
+  if (!access?.allowCalendarSync) {
+    const response = NextResponse.redirect(
+      new URL(`${redirect}?gc_error=tariff`, baseUrl)
     )
     response.cookies.delete('gc_oauth_state')
     return response

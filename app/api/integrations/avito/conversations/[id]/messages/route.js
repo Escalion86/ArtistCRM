@@ -4,7 +4,7 @@ import AvitoConversations from '@models/AvitoConversations'
 import AvitoMessages from '@models/AvitoMessages'
 import SiteSettings from '@models/SiteSettings'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import { requireTenantIntegrationAccess } from '@server/integrationAccess'
 import {
   normalizeAvitoSettings,
   requestAvitoAccessToken,
@@ -21,8 +21,11 @@ const jsonError = (message, status = 400, code = 'avito_error') =>
   )
 
 export const GET = async (req, { params }) => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
+  const accessResult = await requireTenantIntegrationAccess('avito')
+  if (!accessResult.ok) {
+    return jsonError(accessResult.error, accessResult.status, 'tariff_required')
+  }
+  const { tenantId } = accessResult
 
   const routeParams = await params
   const id = String(routeParams?.id || '').trim()
@@ -50,8 +53,11 @@ export const GET = async (req, { params }) => {
 }
 
 export const POST = async (req, { params }) => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
+  const accessResult = await requireTenantIntegrationAccess('avito')
+  if (!accessResult.ok) {
+    return jsonError(accessResult.error, accessResult.status, 'tariff_required')
+  }
+  const { tenantId } = accessResult
 
   const routeParams = await params
   const id = String(routeParams?.id || '').trim()

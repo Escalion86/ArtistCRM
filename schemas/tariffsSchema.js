@@ -36,6 +36,14 @@ const tariffsSchema = {
     type: Boolean,
     default: false,
   },
+  allowAvitoIntegration: {
+    type: Boolean,
+    default: false,
+  },
+  allowVkIntegration: {
+    type: Boolean,
+    default: false,
+  },
   hidden: {
     type: Boolean,
     default: false,

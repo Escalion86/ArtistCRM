@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
 import SiteSettings from '@models/SiteSettings'
+import { requireTenantIntegrationAccess } from '@server/integrationAccess'
 import {
   backfillVkLeadClients,
   buildVkWebhookUrl,
@@ -17,8 +17,11 @@ const jsonError = (message, status = 400, code = 'vk_error') =>
   )
 
 export const GET = async (req) => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
+  const accessResult = await requireTenantIntegrationAccess('vk')
+  if (!accessResult.ok) {
+    return jsonError(accessResult.error, accessResult.status, 'tariff_required')
+  }
+  const { tenantId } = accessResult
 
   await dbConnect()
   const siteSettings = await SiteSettings.findOne({ tenantId }).lean()
@@ -41,8 +44,11 @@ export const GET = async (req) => {
 }
 
 export const POST = async () => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
+  const accessResult = await requireTenantIntegrationAccess('vk')
+  if (!accessResult.ok) {
+    return jsonError(accessResult.error, accessResult.status, 'tariff_required')
+  }
+  const { tenantId } = accessResult
 
   await dbConnect()
   const siteSettings = await SiteSettings.findOne({ tenantId }).lean()

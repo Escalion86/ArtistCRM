@@ -280,6 +280,18 @@ const TariffSelectContent = () => {
                     readOnly
                     noMargin
                   />
+                  <IconCheckBox
+                    checked={tariff.allowAvitoIntegration}
+                    label="Интеграция Avito"
+                    readOnly
+                    noMargin
+                  />
+                  <IconCheckBox
+                    checked={tariff.allowVkIntegration}
+                    label="Интеграция VK"
+                    readOnly
+                    noMargin
+                  />
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   {loggedUser?.tariffId === tariff._id && (

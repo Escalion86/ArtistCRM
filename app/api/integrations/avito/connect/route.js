@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import { requireTenantIntegrationAccess } from '@server/integrationAccess'
 import {
   buildAvitoWebhookUrl,
   createWebhookToken,
@@ -10,7 +10,6 @@ import {
   updateAvitoCustom,
 } from '@server/avito'
 import SiteSettings from '@models/SiteSettings'
-import getUserTariffAccess from '@server/getUserTariffAccess'
 
 const jsonError = (message, status = 400, code = 'avito_error') =>
   NextResponse.json(
@@ -19,8 +18,11 @@ const jsonError = (message, status = 400, code = 'avito_error') =>
   )
 
 export const POST = async (req) => {
-  const { tenantId } = await getTenantContext()
-  if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
+  const accessResult = await requireTenantIntegrationAccess('avito')
+  if (!accessResult.ok) {
+    return jsonError(accessResult.error, accessResult.status, 'tariff_required')
+  }
+  const { tenantId } = accessResult
 
   const body = await req.json().catch(() => ({}))
   const clientId = String(body?.clientId || '').trim()
@@ -32,11 +34,6 @@ export const POST = async (req) => {
   }
 
   await dbConnect()
-  const access = await getUserTariffAccess(tenantId)
-  if (!access?.trialActive && !access?.hasTariff) {
-    return jsonError('Не выбран тариф', 403, 'tariff_required')
-  }
-
   const currentSettings = await SiteSettings.findOne({ tenantId }).lean()
   const currentAvito = normalizeAvitoSettings(currentSettings?.custom)
   const webhookToken = currentAvito.webhookToken || createWebhookToken()
