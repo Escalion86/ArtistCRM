@@ -512,6 +512,7 @@ const eventViewFunc = (eventId) => {
                               onOpen={() =>
                                 openAdditionalEventView(originalIndex)
                               }
+                              onOpenEvent={() => modalsFunc.event?.view(event?._id)}
                               onToggleDone={toggleAdditionalEventDone}
                               onEdit={editAdditionalEvent}
                               onDelete={confirmDeleteAdditionalEvent}

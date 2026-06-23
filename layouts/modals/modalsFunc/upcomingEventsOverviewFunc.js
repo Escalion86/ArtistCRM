@@ -1,13 +1,8 @@
 import AppButton from '@components/AppButton'
-import DateTimeApplyControl from '@components/DateTimeApplyControl'
 import ModalSection from '@components/ModalSection'
 import QuickActionButtons from '@components/QuickActionButtons'
 import StatusChip from '@components/StatusChip'
 import formatDateTime from '@helpers/formatDateTime'
-import {
-  faCircleCheck,
-} from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   getAdditionalEventSegment,
   getAdditionalEventsListBySegments,
@@ -32,6 +27,9 @@ import {
   getPostponeActionsForSegment,
   moveDateToDayOffset,
 } from '@helpers/upcomingEventsOverview'
+import AdditionalEventCard from './AdditionalEventCard'
+import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
+import openEventAdditionalEventViewModal from './eventAdditionalEventViewModal'
 
 const SEGMENT_META = {
   overdue: {
@@ -73,17 +71,6 @@ const isSameDay = (a, b) => {
   )
 }
 
-const toDateTimeLocalValue = (value) => {
-  const date = parseDateSafe(value)
-  if (!date) return ''
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-  const hours = `${date.getHours()}`.padStart(2, '0')
-  const minutes = `${date.getMinutes()}`.padStart(2, '0')
-  return `${year}-${month}-${day}T${hours}:${minutes}`
-}
-
 const readQueueSummary = () => getServerSyncQueueSummary(readServerSyncQueue())
 
 const upcomingEventsOverviewFunc = () => {
@@ -98,7 +85,6 @@ const upcomingEventsOverviewFunc = () => {
     })
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const itemsFunc = useAtomValue(itemsFuncAtom)
-    const [customDates, setCustomDates] = useState({})
     const [savingKey, setSavingKey] = useState('')
     const [queueSummary, setQueueSummary] = useState(readQueueSummary)
     const [isOnline, setIsOnline] = useState(() =>
@@ -194,32 +180,53 @@ const upcomingEventsOverviewFunc = () => {
       }
     }, [events, now, overdueNoDepositEvents, segmentedAdditional])
 
-    const openEvent = (eventId) => {
-      closeModal?.()
-      setTimeout(() => modalsFunc.event?.view(eventId), 150)
-    }
+    const getEventById = (eventId) =>
+      (events ?? []).find((item) => String(item?._id) === String(eventId))
 
-    const updateAdditionalEventDate = async (eventId, additionalEventIndex, date) => {
-      if (!eventId || !date) return
-      const event = (events ?? []).find((item) => String(item?._id) === String(eventId))
-      if (!event) return
+    const getAdditionalEventSource = (eventId, additionalEventIndex) => {
+      const event = getEventById(eventId)
+      if (!event) return { event: null, sourceItem: null, additionalEvents: [] }
       const additionalEvents = Array.isArray(event.additionalEvents)
         ? event.additionalEvents
         : []
+      return {
+        event,
+        sourceItem: additionalEvents[additionalEventIndex] ?? null,
+        additionalEvents,
+      }
+    }
+
+    const updateAdditionalEvents = async (eventId, nextAdditionalEvents) => {
+      const event = getEventById(eventId)
+      if (!event) return
+      await itemsFunc?.event?.set(
+        {
+          _id: event._id,
+          additionalEvents: nextAdditionalEvents,
+        },
+        false,
+        true
+      )
+    }
+
+    const updateAdditionalEventDate = async (
+      eventId,
+      additionalEventIndex,
+      date
+    ) => {
+      if (!eventId || !date) return
+      const { sourceItem, additionalEvents } = getAdditionalEventSource(
+        eventId,
+        additionalEventIndex
+      )
+      if (!sourceItem) return
       const nextAdditionalEvents = additionalEvents.map((item, idx) =>
         idx === additionalEventIndex ? { ...item, date: date.toISOString() } : item
       )
       const actionKey = `${eventId}-${additionalEventIndex}`
       try {
         setSavingKey(actionKey)
-        await itemsFunc?.event?.set(
-          {
-            _id: event._id,
-            additionalEvents: nextAdditionalEvents,
-          },
-          false,
-          true
-        )
+        await updateAdditionalEvents(eventId, nextAdditionalEvents)
       } finally {
         setSavingKey('')
       }
@@ -230,36 +237,27 @@ const upcomingEventsOverviewFunc = () => {
       additionalEventIndex,
       targetDayOffset
     ) => {
-      const source = segmentedAdditional.overdue
-        .concat(segmentedAdditional.today)
-        .concat(segmentedAdditional.tomorrow)
-        .find(
-          (item) =>
-            String(item.eventId) === String(eventId) &&
-            item.index === additionalEventIndex
-        )
-      const baseDate = parseDateSafe(source?.date) || new Date()
+      const { sourceItem } = getAdditionalEventSource(
+        eventId,
+        additionalEventIndex
+      )
+      if (!sourceItem) return
+      const baseDate = parseDateSafe(sourceItem?.date) || new Date()
       const nextDate = moveDateToDayOffset(baseDate, targetDayOffset, now)
       await updateAdditionalEventDate(eventId, additionalEventIndex, nextDate)
     }
 
-    const applyCustomDate = async (eventId, additionalEventIndex) => {
-      const key = `${eventId}-${additionalEventIndex}`
-      const rawValue = customDates[key]
-      if (!rawValue) return
-      const nextDate = parseDateSafe(rawValue)
-      if (!nextDate) return
-      await updateAdditionalEventDate(eventId, additionalEventIndex, nextDate)
+    const openEvent = (eventId) => {
+      closeModal?.()
+      setTimeout(() => modalsFunc.event?.view(eventId), 150)
     }
 
     const toggleAdditionalEventDone = async (eventId, additionalEventIndex) => {
-      const event = (events ?? []).find((item) => String(item?._id) === String(eventId))
-      if (!event) return
-      const additionalEvents = Array.isArray(event.additionalEvents)
-        ? event.additionalEvents
-        : []
-      const target = additionalEvents[additionalEventIndex]
-      if (!target) return
+      const { sourceItem, additionalEvents } = getAdditionalEventSource(
+        eventId,
+        additionalEventIndex
+      )
+      if (!sourceItem) return
 
       const nextAdditionalEvents = additionalEvents.map((item, idx) =>
         idx === additionalEventIndex
@@ -270,20 +268,74 @@ const upcomingEventsOverviewFunc = () => {
             }
           : item
       )
-      const actionKey = `${eventId}-${additionalEventIndex}`
-      try {
-        setSavingKey(actionKey)
-        await itemsFunc?.event?.set(
-          {
-            _id: event._id,
-            additionalEvents: nextAdditionalEvents,
-          },
-          false,
-          true
-        )
-      } finally {
-        setSavingKey('')
-      }
+      await updateAdditionalEvents(eventId, nextAdditionalEvents)
+    }
+
+    const editAdditionalEvent = (eventId, additionalEventIndex) => {
+      const { sourceItem } = getAdditionalEventSource(
+        eventId,
+        additionalEventIndex
+      )
+      if (!sourceItem) return
+      openEventAdditionalEventEditorModal({
+        modalsFunc,
+        index: additionalEventIndex,
+        sourceItem,
+        onConfirm: async (nextItem) => {
+          const { additionalEvents } = getAdditionalEventSource(
+            eventId,
+            additionalEventIndex
+          )
+          const nextAdditionalEvents = additionalEvents.map((item, idx) =>
+            idx === additionalEventIndex ? { ...item, ...nextItem } : item
+          )
+          await updateAdditionalEvents(eventId, nextAdditionalEvents)
+        },
+      })
+    }
+
+    const deleteAdditionalEvent = async (eventId, additionalEventIndex) => {
+      const { sourceItem, additionalEvents } = getAdditionalEventSource(
+        eventId,
+        additionalEventIndex
+      )
+      if (!sourceItem) return
+      const nextAdditionalEvents = additionalEvents.filter(
+        (_, idx) => idx !== additionalEventIndex
+      )
+      await updateAdditionalEvents(eventId, nextAdditionalEvents)
+    }
+
+    const confirmDeleteAdditionalEvent = (eventId, additionalEventIndex) => {
+      const { sourceItem } = getAdditionalEventSource(
+        eventId,
+        additionalEventIndex
+      )
+      if (!sourceItem) return
+      modalsFunc.confirm({
+        title: 'Удаление доп. события',
+        text: 'Удалить это доп. событие?',
+        onConfirm: async () => {
+          await deleteAdditionalEvent(eventId, additionalEventIndex)
+        },
+      })
+    }
+
+    const openAdditionalEventView = (eventId, additionalEventIndex) => {
+      const { event, sourceItem } = getAdditionalEventSource(
+        eventId,
+        additionalEventIndex
+      )
+      if (!event || !sourceItem) return
+      openEventAdditionalEventViewModal({
+        modalsFunc,
+        event,
+        item: sourceItem,
+        index: additionalEventIndex,
+        onToggleDone: (index) => toggleAdditionalEventDone(eventId, index),
+        onEdit: (index) => editAdditionalEvent(eventId, index),
+        onDelete: (index) => deleteAdditionalEvent(eventId, index),
+      })
     }
 
     useEffect(() => {
@@ -337,77 +389,48 @@ const upcomingEventsOverviewFunc = () => {
                 <div className="mt-2 text-sm text-gray-500">{meta.emptyText}</div>
               ) : (
                 <div className="mt-2 flex flex-col gap-2">
-                  {items.slice(0, 12).map((item, idx) => (
-                    <div
-                      key={`${item.eventId}-${item.index}-${idx}`}
-                      className="rounded border border-gray-200 px-3 py-2"
-                    >
-                      <div className="flex items-start gap-2">
-                        {item.reminderType === 'additional' ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleAdditionalEventDone(item.eventId, item.index)
-                            }
-                            title={
-                              item?.done
-                                ? 'Отметить как не выполнено'
-                                : 'Отметить как выполнено'
-                            }
-                            aria-label={
-                              item?.done
-                                ? 'Отметить как не выполнено'
-                                : 'Отметить как выполнено'
-                            }
-                            disabled={savingKey === `${item.eventId}-${item.index}`}
-                            className={`mt-0.5 inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border transition ${
-                              item?.done || item.reminderType === 'additional_done'
-                                ? 'border-emerald-500 bg-emerald-500 text-white'
-                                : 'border-gray-300 bg-white text-gray-400 hover:border-emerald-400 hover:text-emerald-500'
-                            } ${
-                              savingKey === `${item.eventId}-${item.index}`
-                                ? 'cursor-not-allowed opacity-60'
-                                : ''
-                            }`}
-                          >
-                            <FontAwesomeIcon icon={faCircleCheck} />
-                          </button>
-                        ) : item.reminderType === 'additional_done' ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleAdditionalEventDone(item.eventId, item.index)
-                            }
-                            title="Снять отметку выполнения"
-                            aria-label="Снять отметку выполнения"
-                            disabled={savingKey === `${item.eventId}-${item.index}`}
-                            className={`mt-0.5 inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-emerald-500 bg-emerald-500 text-white transition ${
-                              savingKey === `${item.eventId}-${item.index}`
-                                ? 'cursor-not-allowed opacity-60'
-                                : ''
-                            }`}
-                          >
-                            <FontAwesomeIcon icon={faCircleCheck} />
-                          </button>
-                        ) : null}
-                        <div className="min-w-0 flex-1">
-                          {item.reminderType === 'additional_done' ? (
-                            <div className="mb-0.5 text-[11px] font-semibold text-emerald-600">
-                              Выполнено:{' '}
-                              {item.doneAt
-                                ? formatDateTime(item.doneAt, true, false, true, false)
-                                : 'время не указано'}
-                            </div>
-                          ) : null}
-                          <div className="text-sm font-semibold text-gray-900">
-                            {normalizeText(item.title, 'Доп. событие')}
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            {item.date
-                              ? formatDateTime(item.date, true, false, true, false)
-                              : 'Дата не указана'}
-                          </div>
-                          <div className="mt-1 text-xs text-gray-500">
+                  {items.slice(0, 12).map((item, idx) => {
+                    const eventAddressLine = getEventAddressLine({
+                      address: item.eventAddress,
+                    })
+                    const keyValue = `${item.eventId}-${item.index}-${idx}`
+
+                    if (
+                      item.reminderType === 'additional' ||
+                      item.reminderType === 'additional_done'
+                    ) {
+                      return (
+                        <AdditionalEventCard
+                          key={keyValue}
+                          item={{
+                            ...item,
+                            displayDate:
+                              item.reminderType === 'additional_done'
+                                ? item.doneAt ?? item.date
+                                : item.date,
+                            displayDateLabel:
+                              item.reminderType === 'additional_done'
+                                ? 'Выполнено'
+                                : '',
+                            title: normalizeText(item.title, 'Доп. событие'),
+                            description: normalizeText(item.description),
+                          }}
+                          index={item.index}
+                          onOpen={() =>
+                            openAdditionalEventView(item.eventId, item.index)
+                          }
+                          onOpenEvent={() => openEvent(item.eventId)}
+                          onToggleDone={(index) =>
+                            toggleAdditionalEventDone(item.eventId, index)
+                          }
+                          onEdit={(index) =>
+                            editAdditionalEvent(item.eventId, index)
+                          }
+                          onDelete={(index) =>
+                            confirmDeleteAdditionalEvent(item.eventId, index)
+                          }
+                        >
+                          <div className="text-xs text-gray-500">
                             {getEventTitle(item)}
                             {item.eventDate
                               ? ` • начало ${formatDateTime(
@@ -419,69 +442,80 @@ const upcomingEventsOverviewFunc = () => {
                                 )}`
                               : ''}
                           </div>
-                          {getEventAddressLine({ address: item.eventAddress }) ? (
+                          {eventAddressLine ? (
                             <div className="text-xs text-gray-500">
-                              {getEventAddressLine({ address: item.eventAddress })}
+                              {eventAddressLine}
                             </div>
                           ) : null}
-                          {item?.description ? (
-                            <div className="text-xs text-gray-600">
-                              {normalizeText(item.description)}
+                          {item.reminderType === 'additional' ? (
+                            <div
+                              className="mt-2"
+                              onClick={(event) => event.stopPropagation()}
+                              onKeyDown={(event) => event.stopPropagation()}
+                            >
+                              <QuickActionButtons
+                                actions={getPostponeActionsForSegment(key).map(
+                                  (action) => ({
+                                    key: action.key,
+                                    label: action.label,
+                                    variant: 'secondary',
+                                    className: 'w-full tablet:w-auto',
+                                    disabled:
+                                      savingKey ===
+                                      `${item.eventId}-${item.index}`,
+                                    onClick: () =>
+                                      shiftAdditionalEventDate(
+                                        item.eventId,
+                                        item.index,
+                                        action.targetDayOffset
+                                      ),
+                                  })
+                                )}
+                              />
                             </div>
                           ) : null}
+                        </AdditionalEventCard>
+                      )
+                    }
+
+                    return (
+                      <div
+                        key={keyValue}
+                        className="rounded border border-gray-200 px-3 py-2"
+                      >
+                        <div className="text-sm font-semibold text-gray-900">
+                          {normalizeText(item.title, 'Напоминание')}
                         </div>
+                        <div className="text-xs text-gray-600">
+                          {item.date
+                            ? formatDateTime(item.date, true, false, true, false)
+                            : 'Дата не указана'}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          {getEventTitle(item)}
+                          {item.eventDate
+                            ? ` • начало ${formatDateTime(
+                                item.eventDate,
+                                true,
+                                false,
+                                true,
+                                false
+                              )}`
+                            : ''}
+                        </div>
+                        {eventAddressLine ? (
+                          <div className="text-xs text-gray-500">
+                            {eventAddressLine}
+                          </div>
+                        ) : null}
+                        {item?.description ? (
+                          <div className="text-xs text-gray-600">
+                            {normalizeText(item.description)}
+                          </div>
+                        ) : null}
                       </div>
-                      <QuickActionButtons
-                        wrapperClassName="mt-2"
-                        actions={[
-                          {
-                            key: 'open-event',
-                            label: 'Открыть мероприятие',
-                            variant: 'secondary',
-                            className: 'w-full tablet:w-auto',
-                            onClick: () => openEvent(item.eventId),
-                          },
-                        ]}
-                      />
-                      {item.reminderType === 'additional' ? (
-                        <div className="mt-2 grid grid-cols-2 items-center gap-2 tablet:flex tablet:flex-wrap">
-                          <QuickActionButtons
-                            wrapperClassName="col-span-2"
-                            actions={getPostponeActionsForSegment(key).map(
-                              (action) => ({
-                                key: action.key,
-                                label: action.label,
-                                variant: 'secondary',
-                                className: 'w-full tablet:w-auto',
-                                disabled:
-                                  savingKey === `${item.eventId}-${item.index}`,
-                                onClick: () =>
-                                  shiftAdditionalEventDate(
-                                    item.eventId,
-                                    item.index,
-                                    action.targetDayOffset
-                                  ),
-                              })
-                            )}
-                          />
-                          <DateTimeApplyControl
-                            value={
-                              customDates[`${item.eventId}-${item.index}`] ??
-                              toDateTimeLocalValue(item.date)
-                            }
-                            onChange={(value) =>
-                              setCustomDates((prev) => ({
-                                ...prev,
-                                [`${item.eventId}-${item.index}`]: value,
-                              }))
-                            }
-                            disabled={savingKey === `${item.eventId}-${item.index}`}
-                            onClick={() => applyCustomDate(item.eventId, item.index)}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </ModalSection>
