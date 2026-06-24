@@ -37,6 +37,7 @@ import InputWrapper from '@components/InputWrapper'
 import LabeledContainer from '@components/LabeledContainer'
 import OtherContactsPicker from '@components/OtherContactsPicker'
 import LinksListEditor from '@components/LinksListEditor'
+import EventDocumentFilesEditor from '@components/EventDocumentFilesEditor'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import ServiceMultiSelect from '@components/ServiceMultiSelect'
@@ -98,6 +99,27 @@ const normalizeLinksList = (links) => {
   if (!Array.isArray(links)) return []
   return links
     .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter(Boolean)
+}
+
+const normalizeDocumentFilesList = (files) => {
+  if (!Array.isArray(files)) return []
+  return files
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const url = typeof item.url === 'string' ? item.url.trim() : ''
+      if (!url) return null
+      return {
+        name:
+          typeof item.name === 'string' && item.name.trim()
+            ? item.name.trim()
+            : url.split('/').pop() || 'Документ',
+        url,
+        size: Number.isFinite(Number(item.size)) ? Number(item.size) : 0,
+        type: typeof item.type === 'string' ? item.type.trim() : '',
+        uploadedAt: item.uploadedAt ?? new Date().toISOString(),
+      }
+    })
     .filter(Boolean)
 }
 
@@ -248,6 +270,18 @@ const eventFunc = (
     const [contractLinks, setContractLinks] = useState(
       event?.contractLinks ?? DEFAULT_EVENT.contractLinks ?? []
     )
+    const [invoiceFiles, setInvoiceFiles] = useState(
+      event?.invoiceFiles ?? DEFAULT_EVENT.invoiceFiles ?? []
+    )
+    const [receiptFiles, setReceiptFiles] = useState(
+      event?.receiptFiles ?? DEFAULT_EVENT.receiptFiles ?? []
+    )
+    const [actFiles, setActFiles] = useState(
+      event?.actFiles ?? DEFAULT_EVENT.actFiles ?? []
+    )
+    const [contractFiles, setContractFiles] = useState(
+      event?.contractFiles ?? DEFAULT_EVENT.contractFiles ?? []
+    )
     const [address, setAddress] = useState(() => {
       const normalized = normalizeAddressValue(event?.address)
 
@@ -332,6 +366,9 @@ const eventFunc = (
     const [errors, , addError, removeError, clearErrors] = useErrors()
     const addErrorRef = useRef(addError)
     const clearErrorsRef = useRef(clearErrors)
+    const newEventUploadKeyRef = useRef(
+      `new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    )
 
     useEffect(() => {
       addErrorRef.current = addError
@@ -371,6 +408,18 @@ const eventFunc = (
         actLinks: event?.actLinks ?? DEFAULT_EVENT.actLinks ?? [],
         contractLinks:
           event?.contractLinks ?? DEFAULT_EVENT.contractLinks ?? [],
+        invoiceFiles: normalizeDocumentFilesList(
+          event?.invoiceFiles ?? DEFAULT_EVENT.invoiceFiles ?? []
+        ),
+        receiptFiles: normalizeDocumentFilesList(
+          event?.receiptFiles ?? DEFAULT_EVENT.receiptFiles ?? []
+        ),
+        actFiles: normalizeDocumentFilesList(
+          event?.actFiles ?? DEFAULT_EVENT.actFiles ?? []
+        ),
+        contractFiles: normalizeDocumentFilesList(
+          event?.contractFiles ?? DEFAULT_EVENT.contractFiles ?? []
+        ),
         calendarImportChecked:
           event?.calendarImportChecked ??
           (eventId ? DEFAULT_EVENT.calendarImportChecked : true),
@@ -407,6 +456,10 @@ const eventFunc = (
       event?.receiptLinks,
       event?.actLinks,
       event?.contractLinks,
+      event?.invoiceFiles,
+      event?.receiptFiles,
+      event?.actFiles,
+      event?.contractFiles,
       event?.calendarImportChecked,
       event?.colleagueId,
       event?.otherContacts,
@@ -459,6 +512,14 @@ const eventFunc = (
           JSON.stringify(actLinks) ||
         JSON.stringify(initialEventValues.contractLinks ?? []) !==
           JSON.stringify(contractLinks) ||
+        JSON.stringify(initialEventValues.invoiceFiles ?? []) !==
+          JSON.stringify(invoiceFiles) ||
+        JSON.stringify(initialEventValues.receiptFiles ?? []) !==
+          JSON.stringify(receiptFiles) ||
+        JSON.stringify(initialEventValues.actFiles ?? []) !==
+          JSON.stringify(actFiles) ||
+        JSON.stringify(initialEventValues.contractFiles ?? []) !==
+          JSON.stringify(contractFiles) ||
         initialEventValues.calendarImportChecked !== calendarImportChecked ||
         JSON.stringify(initialEventValues.servicesIds ?? []) !==
           JSON.stringify(servicesIds) ||
@@ -484,6 +545,10 @@ const eventFunc = (
         receiptLinks,
         actLinks,
         contractLinks,
+        invoiceFiles,
+        receiptFiles,
+        actFiles,
+        contractFiles,
         calendarImportChecked,
         servicesIds,
         otherContacts,
@@ -505,7 +570,13 @@ const eventFunc = (
       setPersistedEventId(event._id)
     }, [event?._id])
 
-    const sourceEventId = clone ? null : (persistedEventId ?? event?._id ?? null)
+    const sourceEventId = clone
+      ? null
+      : (persistedEventId ?? event?._id ?? null)
+    const documentsUploadBaseDirectory = useMemo(
+      () => `events/${sourceEventId || newEventUploadKeyRef.current}/documents`,
+      [sourceEventId]
+    )
 
     const eventTransactions = useMemo(
       () =>
@@ -566,9 +637,9 @@ const eventFunc = (
       ? 'Закрыть можно только после завершения мероприятия'
       : closeState.hasObligations
         ? getCloseBlockedByObligationsMessage()
-      : !canClose
-        ? 'Закрыть можно только после всех поступлений и обязательных налогов'
-        : ''
+        : !canClose
+          ? 'Закрыть можно только после всех поступлений и обязательных налогов'
+          : ''
 
     const missingFields = useMemo(() => {
       const fields = []
@@ -614,7 +685,8 @@ const eventFunc = (
     const getTransactionsForEvent = useCallback(
       (targetEventId) =>
         (transactions ?? []).filter(
-          (transaction) => String(transaction?.eventId) === String(targetEventId)
+          (transaction) =>
+            String(transaction?.eventId) === String(targetEventId)
         ),
       [transactions]
     )
@@ -669,6 +741,10 @@ const eventFunc = (
       const normalizedReceiptLinks = normalizeLinksList(receiptLinks)
       const normalizedActLinks = normalizeLinksList(actLinks)
       const normalizedContractLinks = normalizeLinksList(contractLinks)
+      const normalizedInvoiceFiles = normalizeDocumentFilesList(invoiceFiles)
+      const normalizedReceiptFiles = normalizeDocumentFilesList(receiptFiles)
+      const normalizedActFiles = normalizeDocumentFilesList(actFiles)
+      const normalizedContractFiles = normalizeDocumentFilesList(contractFiles)
       const normalizedOtherContacts = normalizeOtherContacts(otherContacts)
         .map((item) => ({
           clientId: item.clientId ?? null,
@@ -721,6 +797,10 @@ const eventFunc = (
         payload.receiptLinks = normalizedReceiptLinks
         payload.actLinks = normalizedActLinks
         payload.contractLinks = normalizedContractLinks
+        payload.invoiceFiles = normalizedInvoiceFiles
+        payload.receiptFiles = normalizedReceiptFiles
+        payload.actFiles = normalizedActFiles
+        payload.contractFiles = normalizedContractFiles
       }
 
       return {
@@ -736,6 +816,7 @@ const eventFunc = (
       canUseDocuments,
       clientId,
       colleagueId,
+      contractFiles,
       contractLinks,
       contractSum,
       dateEnd,
@@ -746,10 +827,12 @@ const eventFunc = (
       eventType,
       financeComment,
       hasDepositTransaction,
+      invoiceFiles,
       invoiceLinks,
       isByContract,
       isTransferred,
       otherContacts,
+      receiptFiles,
       receiptLinks,
       requestCreatedAt,
       servicesIds,
@@ -757,6 +840,7 @@ const eventFunc = (
       status,
       waitDeposit,
       actLinks,
+      actFiles,
     ])
 
     const currentSavePayloadKey = useMemo(
@@ -1626,8 +1710,7 @@ const eventFunc = (
         const activeContractCandidate = useMemo(
           () =>
             contractClientCandidates.find(
-              (item) =>
-                String(item?.client?._id) === String(contractClientId)
+              (item) => String(item?.client?._id) === String(contractClientId)
             ) ??
             contractClientCandidates[0] ??
             null,
@@ -2348,10 +2431,24 @@ const eventFunc = (
                   onChange={setContractLinks}
                   noMargin
                 />
+                <EventDocumentFilesEditor
+                  label="Файлы договоров"
+                  files={contractFiles}
+                  onChange={setContractFiles}
+                  directory={`${documentsUploadBaseDirectory}/contracts`}
+                  noMargin
+                />
                 <LinksListEditor
                   label="Ссылки на счета"
                   links={invoiceLinks}
                   onChange={setInvoiceLinks}
+                  noMargin
+                />
+                <EventDocumentFilesEditor
+                  label="Файлы счетов"
+                  files={invoiceFiles}
+                  onChange={setInvoiceFiles}
+                  directory={`${documentsUploadBaseDirectory}/invoices`}
                   noMargin
                 />
                 <LinksListEditor
@@ -2360,10 +2457,24 @@ const eventFunc = (
                   onChange={setReceiptLinks}
                   noMargin
                 />
+                <EventDocumentFilesEditor
+                  label="Файлы чеков"
+                  files={receiptFiles}
+                  onChange={setReceiptFiles}
+                  directory={`${documentsUploadBaseDirectory}/receipts`}
+                  noMargin
+                />
                 <LinksListEditor
                   label="Ссылки на акты"
                   links={actLinks}
                   onChange={setActLinks}
+                  noMargin
+                />
+                <EventDocumentFilesEditor
+                  label="Файлы актов"
+                  files={actFiles}
+                  onChange={setActFiles}
+                  directory={`${documentsUploadBaseDirectory}/acts`}
                   noMargin
                 />
               </div>

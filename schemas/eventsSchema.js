@@ -86,6 +86,54 @@ const eventsSchema = {
     type: [String],
     default: [],
   },
+  invoiceFiles: {
+    type: [
+      {
+        name: { type: String, default: '' },
+        url: { type: String, default: '' },
+        size: { type: Number, default: 0 },
+        type: { type: String, default: '' },
+        uploadedAt: { type: Date, default: () => new Date() },
+      },
+    ],
+    default: [],
+  },
+  receiptFiles: {
+    type: [
+      {
+        name: { type: String, default: '' },
+        url: { type: String, default: '' },
+        size: { type: Number, default: 0 },
+        type: { type: String, default: '' },
+        uploadedAt: { type: Date, default: () => new Date() },
+      },
+    ],
+    default: [],
+  },
+  actFiles: {
+    type: [
+      {
+        name: { type: String, default: '' },
+        url: { type: String, default: '' },
+        size: { type: Number, default: 0 },
+        type: { type: String, default: '' },
+        uploadedAt: { type: Date, default: () => new Date() },
+      },
+    ],
+    default: [],
+  },
+  contractFiles: {
+    type: [
+      {
+        name: { type: String, default: '' },
+        url: { type: String, default: '' },
+        size: { type: Number, default: 0 },
+        type: { type: String, default: '' },
+        uploadedAt: { type: Date, default: () => new Date() },
+      },
+    ],
+    default: [],
+  },
   address: {
     type: {
       town: { type: String, default: '' },

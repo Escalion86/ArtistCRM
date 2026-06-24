@@ -33,6 +33,7 @@ export const GET = async () => {
         statusColors: settings.statusColors,
         syncSettings: settings.syncSettings,
         deleteCanceledFromCalendar: settings.deleteCanceledFromCalendar,
+        skipTransferredFromCalendar: settings.skipTransferredFromCalendar,
       },
     },
     { status: 200 }

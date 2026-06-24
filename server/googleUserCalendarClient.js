@@ -123,6 +123,8 @@ const normalizeCalendarSettings = (user) => {
   const settings = user?.googleCalendar ?? {}
   const deleteCanceledFromCalendar =
     settings?.deleteCanceledFromCalendar === true
+  const skipTransferredFromCalendar =
+    settings?.skipTransferredFromCalendar === true
   return {
     enabled: Boolean(settings.enabled),
     calendarId: settings.calendarId || '',
@@ -138,6 +140,7 @@ const normalizeCalendarSettings = (user) => {
     statusColors: normalizeCalendarStatusColors(settings.statusColors),
     syncSettings: normalizeCalendarSyncSettings(settings.syncSettings),
     deleteCanceledFromCalendar,
+    skipTransferredFromCalendar,
   }
 }
 

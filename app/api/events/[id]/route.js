@@ -11,12 +11,17 @@ import {
 } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
-import { notifyTaskCreated, notifyTaskCompleted, notifyTaskUpdated } from '@server/taskPushNotifications'
+import {
+  notifyTaskCreated,
+  notifyTaskCompleted,
+  notifyTaskUpdated,
+} from '@server/taskPushNotifications'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 import {
   hasDocuments,
   normalizeAdditionalEvents,
   normalizeDepositExpectedAmount,
+  normalizeEventDocumentFiles,
   normalizeEventType,
   normalizeWaitDeposit,
   parseDateValue,
@@ -85,9 +90,7 @@ const normalizeObjectId = (value) => {
 
 const normalizeObjectIdList = (items) => {
   if (!Array.isArray(items)) return []
-  return items
-    .map((item) => normalizeObjectId(item))
-    .filter(Boolean)
+  return items.map((item) => normalizeObjectId(item)).filter(Boolean)
 }
 const getNextStatus = (current, body) => {
   const next = body?.status
@@ -198,10 +201,7 @@ export const PUT = async (req, { params }) => {
       )
     }
   }
-  if (
-    body.eventType !== undefined &&
-    !normalizeEventType(body.eventType)
-  ) {
+  if (body.eventType !== undefined && !normalizeEventType(body.eventType)) {
     return NextResponse.json(
       { success: false, error: 'Поле "Что за событие" обязательно' },
       { status: 400 }
@@ -252,6 +252,14 @@ export const PUT = async (req, { params }) => {
     update.contractLinks = Array.isArray(body.contractLinks)
       ? body.contractLinks
       : []
+  if (body.invoiceFiles !== undefined)
+    update.invoiceFiles = normalizeEventDocumentFiles(body.invoiceFiles)
+  if (body.receiptFiles !== undefined)
+    update.receiptFiles = normalizeEventDocumentFiles(body.receiptFiles)
+  if (body.actFiles !== undefined)
+    update.actFiles = normalizeEventDocumentFiles(body.actFiles)
+  if (body.contractFiles !== undefined)
+    update.contractFiles = normalizeEventDocumentFiles(body.contractFiles)
   if (body.isByContract !== undefined)
     update.isByContract = Boolean(body.isByContract)
   if (body.servicesIds !== undefined)
@@ -338,8 +346,12 @@ export const PUT = async (req, { params }) => {
 
   // Send push notifications for task changes
   if (responseEvent) {
-    const oldTasks = Array.isArray(oldEvent?.additionalEvents) ? oldEvent.additionalEvents : []
-    const newTasks = Array.isArray(responseEvent?.additionalEvents) ? responseEvent.additionalEvents : []
+    const oldTasks = Array.isArray(oldEvent?.additionalEvents)
+      ? oldEvent.additionalEvents
+      : []
+    const newTasks = Array.isArray(responseEvent?.additionalEvents)
+      ? responseEvent.additionalEvents
+      : []
 
     // Check for new tasks
     for (let i = 0; i < newTasks.length; i++) {
@@ -354,7 +366,9 @@ export const PUT = async (req, { params }) => {
           tenantId,
           event: responseEvent,
           task: newTask,
-        }).catch((err) => console.log('Push notification error (task created)', err))
+        }).catch((err) =>
+          console.log('Push notification error (task created)', err)
+        )
       } else if (
         oldTask.title !== newTask.title ||
         String(oldTask.date) !== String(newTask.date) ||
@@ -365,7 +379,9 @@ export const PUT = async (req, { params }) => {
           tenantId,
           event: responseEvent,
           task: newTask,
-        }).catch((err) => console.log('Push notification error (task updated)', err))
+        }).catch((err) =>
+          console.log('Push notification error (task updated)', err)
+        )
       }
 
       // Task marked as done
@@ -374,7 +390,9 @@ export const PUT = async (req, { params }) => {
           tenantId,
           event: responseEvent,
           task: newTask,
-        }).catch((err) => console.log('Push notification error (task completed)', err))
+        }).catch((err) =>
+          console.log('Push notification error (task completed)', err)
+        )
       }
     }
   }

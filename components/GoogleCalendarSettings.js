@@ -155,6 +155,7 @@ const serializeSyncSettings = (value) =>
   JSON.stringify(normalizeSyncSettings(value))
 
 const serializeCanceledDeleteFlag = (value) => JSON.stringify(Boolean(value))
+const serializeTransferredSkipFlag = (value) => JSON.stringify(Boolean(value))
 
 const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
   const [calendarStatus, setCalendarStatus] = useState({
@@ -187,6 +188,12 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
     useState(false)
   const [savedDeleteCanceledFromCalendar, setSavedDeleteCanceledFromCalendar] =
     useState(false)
+  const [skipTransferredFromCalendar, setSkipTransferredFromCalendar] =
+    useState(false)
+  const [
+    savedSkipTransferredFromCalendar,
+    setSavedSkipTransferredFromCalendar,
+  ] = useState(false)
   const [checkedSyncSummary, setCheckedSyncSummary] = useState('')
   const [syncProgress, setSyncProgress] = useState({
     open: false,
@@ -216,6 +223,9 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       const nextDeleteCanceledFromCalendar = Boolean(
         result?.data?.deleteCanceledFromCalendar
       )
+      const nextSkipTransferredFromCalendar = Boolean(
+        result?.data?.skipTransferredFromCalendar
+      )
       setCalendarReminders(nextReminders)
       setStatusColors(nextStatusColors)
       setSyncSettings(nextSyncSettings)
@@ -224,6 +234,8 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       setSavedSyncSettings(nextSyncSettings)
       setDeleteCanceledFromCalendar(nextDeleteCanceledFromCalendar)
       setSavedDeleteCanceledFromCalendar(nextDeleteCanceledFromCalendar)
+      setSkipTransferredFromCalendar(nextSkipTransferredFromCalendar)
+      setSavedSkipTransferredFromCalendar(nextSkipTransferredFromCalendar)
     } catch (error) {
       setCalendarError('Не удалось загрузить статус')
       setCalendarStatus((prev) => ({ ...prev, loading: false }))
@@ -338,6 +350,8 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       setSavedSyncSettings(DEFAULT_SYNC_SETTINGS)
       setDeleteCanceledFromCalendar(false)
       setSavedDeleteCanceledFromCalendar(false)
+      setSkipTransferredFromCalendar(false)
+      setSavedSkipTransferredFromCalendar(false)
       await loadCalendarStatus()
     } catch (error) {
       setCalendarError('Не удалось отключить календарь')
@@ -382,6 +396,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
           statusColors,
           reminders: calendarReminders,
           deleteCanceledFromCalendar,
+          skipTransferredFromCalendar,
         }),
       })
       const result = await response.json()
@@ -392,6 +407,9 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
       }
       setSavedStatusColors(normalizeStatusColors(statusColors))
       setSavedDeleteCanceledFromCalendar(Boolean(deleteCanceledFromCalendar))
+      setSavedSkipTransferredFromCalendar(
+        Boolean(skipTransferredFromCalendar)
+      )
       await loadCalendarStatus()
       setSyncSuggestModal({ open: true, source: 'colors' })
     } catch (error) {
@@ -413,6 +431,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
           reminders: calendarReminders,
           statusColors,
           deleteCanceledFromCalendar,
+          skipTransferredFromCalendar,
         }),
       })
       const result = await response.json()
@@ -436,7 +455,9 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
     serializeStatusColors(statusColors) !==
       serializeStatusColors(savedStatusColors) ||
     serializeCanceledDeleteFlag(deleteCanceledFromCalendar) !==
-      serializeCanceledDeleteFlag(savedDeleteCanceledFromCalendar)
+      serializeCanceledDeleteFlag(savedDeleteCanceledFromCalendar) ||
+    serializeTransferredSkipFlag(skipTransferredFromCalendar) !==
+      serializeTransferredSkipFlag(savedSkipTransferredFromCalendar)
   const syncSettingsChanged =
     serializeSyncSettings(syncSettings) !==
     serializeSyncSettings(savedSyncSettings)
@@ -804,7 +825,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
         </div>
         <div className="p-3 mt-4 bg-white border border-gray-200 rounded">
           <div className="text-sm font-semibold text-gray-800">
-            Цвета мероприятий по статусам
+            Цвета по статусам и условия синхронизации
           </div>
           <div className="mt-2 text-xs text-gray-500">
             Цвет применяется к событию в Google Calendar при синхронизации.
@@ -813,10 +834,19 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
             <IconCheckBox
               checked={deleteCanceledFromCalendar}
               onClick={() => setDeleteCanceledFromCalendar((prev) => !prev)}
-              label="Удалять из календаря, если отменено"
+              label="Не синхронизировать с календарем, если отменено"
               small
               noMargin
               disabled={!calendarStatus.connected}
+            />
+            <IconCheckBox
+              checked={skipTransferredFromCalendar}
+              onClick={() => setSkipTransferredFromCalendar((prev) => !prev)}
+              label="Не синхронизировать с календарем, если передано"
+              small
+              noMargin
+              disabled={!calendarStatus.connected}
+              wrapperClassName="mt-2"
             />
           </div>
           <div className="flex flex-col gap-2 mt-3">
@@ -881,7 +911,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
                 !statusColorsChanged
               }
             >
-              Сохранить цвета
+              Сохранить цвета и условия
             </button>
           </div>
         </div>
@@ -923,7 +953,7 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
                 ? 'Синхронизировать мероприятия, чтобы обновить уведомления в Google Calendar?'
                 : syncSuggestModal.source === 'syncSettings'
                   ? 'Синхронизировать мероприятия, чтобы обновить данные в Google Calendar?'
-                  : 'Синхронизировать мероприятия, чтобы обновить цвета в Google Calendar?'}
+                  : 'Синхронизировать мероприятия, чтобы обновить цвета и условия синхронизации в Google Calendar?'}
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <button

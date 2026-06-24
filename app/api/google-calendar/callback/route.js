@@ -7,6 +7,7 @@ import getUserTariffAccess from '@server/getUserTariffAccess'
 import {
   getOAuthClient,
   normalizeCalendarReminders,
+  normalizeCalendarSyncSettings,
   normalizeCalendarStatusColors,
 } from '@server/googleUserCalendarClient'
 
@@ -98,7 +99,10 @@ export const GET = async (req) => {
     tokens.expiry_date ? new Date(tokens.expiry_date) : prev.tokenExpiry || null
   const reminders = normalizeCalendarReminders(prev.reminders)
   const statusColors = normalizeCalendarStatusColors(prev.statusColors)
+  const syncSettings = normalizeCalendarSyncSettings(prev.syncSettings)
   const deleteCanceledFromCalendar = prev?.deleteCanceledFromCalendar === true
+  const skipTransferredFromCalendar =
+    prev?.skipTransferredFromCalendar === true
 
   existing.googleCalendar = {
     enabled: true,
@@ -112,7 +116,9 @@ export const GET = async (req) => {
     email: prev.email || '',
     reminders,
     statusColors,
+    syncSettings,
     deleteCanceledFromCalendar,
+    skipTransferredFromCalendar,
   }
 
   await existing.save()

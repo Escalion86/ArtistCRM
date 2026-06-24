@@ -60,12 +60,17 @@ export const POST = async (req) => {
     body?.deleteCanceledFromCalendar !== undefined
       ? Boolean(body.deleteCanceledFromCalendar)
       : Boolean(settings.deleteCanceledFromCalendar)
+  const skipTransferredFromCalendar =
+    body?.skipTransferredFromCalendar !== undefined
+      ? Boolean(body.skipTransferredFromCalendar)
+      : Boolean(settings.skipTransferredFromCalendar)
   dbUser.googleCalendar = {
     ...settings,
     reminders,
     statusColors,
     syncSettings,
     deleteCanceledFromCalendar,
+    skipTransferredFromCalendar,
   }
   await dbUser.save()
 
@@ -77,6 +82,7 @@ export const POST = async (req) => {
         statusColors,
         syncSettings,
         deleteCanceledFromCalendar,
+        skipTransferredFromCalendar,
       },
     },
     { status: 200 }

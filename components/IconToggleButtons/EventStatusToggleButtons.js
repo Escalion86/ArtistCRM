@@ -32,6 +32,13 @@ const BUTTON_STYLES = {
     text: '#0ea5e9',
     label: 'Закрыты',
   },
+  transferred: {
+    bg: '#f59e0b',
+    bgHover: '#d97706',
+    border: '#f59e0b',
+    text: '#d97706',
+    label: 'Переданы',
+  },
   canceled: {
     bg: '#dc2626',
     bgHover: '#b91c1c',
@@ -42,9 +49,9 @@ const BUTTON_STYLES = {
 }
 
 const MODE_KEYS = {
-  upcoming: ['request', 'active', 'canceled'],
-  past: ['finished', 'closed', 'canceled'],
-  all: ['request', 'active', 'finished', 'closed', 'canceled'],
+  upcoming: ['request', 'active', 'transferred', 'canceled'],
+  past: ['finished', 'closed', 'transferred', 'canceled'],
+  all: ['request', 'active', 'finished', 'closed', 'transferred', 'canceled'],
 }
 
 const getButtonSx = (selected, tone) => {

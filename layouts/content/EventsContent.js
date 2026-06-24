@@ -46,12 +46,14 @@ import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
+import { getEventStatusFlags } from '@helpers/eventStatusFilter'
 
 const getStatusFilterDefaults = (filter) => {
   if (filter === 'upcoming') {
     return {
       request: true,
       active: true,
+      transferred: false,
       canceled: false,
     }
   }
@@ -59,6 +61,7 @@ const getStatusFilterDefaults = (filter) => {
     return {
       finished: true,
       closed: true,
+      transferred: false,
       canceled: false,
     }
   }
@@ -67,14 +70,16 @@ const getStatusFilterDefaults = (filter) => {
     active: true,
     finished: true,
     closed: true,
+    transferred: false,
     canceled: false,
   }
 }
 
 const getStatusFilterKeys = (filter) => {
-  if (filter === 'upcoming') return ['request', 'active', 'canceled']
-  if (filter === 'past') return ['finished', 'closed', 'canceled']
-  return ['request', 'active', 'finished', 'closed', 'canceled']
+  if (filter === 'upcoming')
+    return ['request', 'active', 'transferred', 'canceled']
+  if (filter === 'past') return ['finished', 'closed', 'transferred', 'canceled']
+  return ['request', 'active', 'finished', 'closed', 'transferred', 'canceled']
 }
 
 const STATUS_FILTER_META = {
@@ -102,6 +107,12 @@ const STATUS_FILTER_META = {
     selectedClass: 'border-sky-600 bg-sky-600 text-white',
     idleClass: 'border-sky-200 bg-white text-sky-700 hover:bg-sky-50',
     dotClass: 'bg-sky-600',
+  },
+  transferred: {
+    label: 'Переданы',
+    selectedClass: 'border-amber-500 bg-amber-500 text-white',
+    idleClass: 'border-amber-200 bg-white text-amber-700 hover:bg-amber-50',
+    dotClass: 'bg-amber-500',
   },
   canceled: {
     label: 'Отменены',
@@ -131,17 +142,32 @@ const PAST_QUICK_FILTERS = [
   {
     key: 'needsClose',
     label: 'Нужно закрыть',
-    statusFilter: { finished: true, closed: false, canceled: false },
+    statusFilter: {
+      finished: true,
+      closed: false,
+      transferred: false,
+      canceled: false,
+    },
   },
   {
     key: 'closed',
     label: 'Закрытые',
-    statusFilter: { finished: false, closed: true, canceled: false },
+    statusFilter: {
+      finished: false,
+      closed: true,
+      transferred: false,
+      canceled: false,
+    },
   },
   {
     key: 'canceled',
     label: 'Отмененные',
-    statusFilter: { finished: false, closed: false, canceled: true },
+    statusFilter: {
+      finished: false,
+      closed: false,
+      transferred: false,
+      canceled: true,
+    },
   },
 ]
 
@@ -306,31 +332,6 @@ const getEventCompletionTime = (event) => {
   return Number.isNaN(time) ? null : time
 }
 
-const getEventStatusFlags = (event, now) => {
-  const status = event?.status
-  const isRequest = status === 'draft'
-  const isCanceled = status === 'canceled'
-  const isClosed = status === 'closed'
-  const rawEnd = event?.dateEnd ?? event?.eventDate ?? null
-  const endDate = rawEnd ? new Date(rawEnd) : null
-  const isFinished =
-    !isRequest &&
-    !isCanceled &&
-    !isClosed &&
-    endDate instanceof Date &&
-    !Number.isNaN(endDate.getTime()) &&
-    endDate.getTime() < now.getTime()
-  const isActive = !isRequest && !isCanceled && !isClosed && !isFinished
-
-  return {
-    request: isRequest,
-    active: isActive,
-    finished: isFinished,
-    closed: isClosed,
-    canceled: isCanceled,
-  }
-}
-
 const toMonthStart = (value = new Date()) =>
   new Date(value.getFullYear(), value.getMonth(), 1)
 
@@ -444,7 +445,6 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const [pastHasMore, setPastHasMore] = useState(false)
   const [pastNextBefore, setPastNextBefore] = useState(null)
   const [pastLoadingMore, setPastLoadingMore] = useState(false)
-  const [pastTotalCount, setPastTotalCount] = useState(0)
   const [serverFilteredCount, setServerFilteredCount] = useState(null)
   const [pastActiveClosableCount, setPastActiveClosableCount] = useState(0)
   const reminderShownRef = useRef(false)
@@ -457,17 +457,14 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       setPastHasMore(false)
       setPastNextBefore(null)
       setPastLoadingMore(false)
-      setPastTotalCount(0)
       setServerFilteredCount(null)
       return
     }
     setPastHasMore(Boolean(eventsPaging?.hasMore))
     setPastNextBefore(eventsPaging?.nextBefore || null)
-    setPastTotalCount(Number(eventsPaging?.totalCount || 0))
   }, [
     eventsPaging?.hasMore,
     eventsPaging?.nextBefore,
-    eventsPaging?.totalCount,
     filter,
   ])
 
@@ -535,10 +532,14 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     const canceledParam = parseBooleanSearchParam(
       searchParams?.get('statusCanceled')
     )
+    const transferredParam = parseBooleanSearchParam(
+      searchParams?.get('statusTransferred')
+    )
 
     if (
       finishedParam === null &&
       closedParam === null &&
+      transferredParam === null &&
       canceledParam === null
     ) {
       return
@@ -553,6 +554,10 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         closedParam === null
           ? getStatusFilterDefaults('past').closed
           : closedParam,
+      transferred:
+        transferredParam === null
+          ? getStatusFilterDefaults('past').transferred
+          : transferredParam,
       canceled:
         canceledParam === null
           ? getStatusFilterDefaults('past').canceled
@@ -909,7 +914,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     ;(async () => {
       try {
         const response = await getData(
-          '/api/events?scope=past&countOnly=1&statusFinished=true&statusClosed=false&statusCanceled=false',
+          '/api/events?scope=past&countOnly=1&statusFinished=true&statusClosed=false&statusTransferred=false&statusCanceled=false',
           null,
           null,
           null,
@@ -936,26 +941,11 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
         ? 'Прошедшие'
         : 'Все'
 
-  const isDefaultPastFilters =
-    filter === 'past' &&
-    !selectedTown &&
-    !additionalQuickFilter &&
-    checkFilter.checked &&
-    checkFilter.unchecked &&
-    statusFilter.finished === true &&
-    statusFilter.closed === true &&
-    statusFilter.canceled === false
-
   useEffect(() => {
     if (filter !== 'past') return
 
     if (!pastHasMore) {
       setServerFilteredCount(sortedEvents.length)
-      return
-    }
-
-    if (isDefaultPastFilters && pastTotalCount > 0) {
-      setServerFilteredCount(pastTotalCount)
       return
     }
 
@@ -965,6 +955,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       countOnly: '1',
       statusFinished: String(Boolean(statusFilter.finished)),
       statusClosed: String(Boolean(statusFilter.closed)),
+      statusTransferred: String(Boolean(statusFilter.transferred)),
       statusCanceled: String(Boolean(statusFilter.canceled)),
     })
 
@@ -1003,14 +994,13 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     checkFilter.checked,
     checkFilter.unchecked,
     filter,
-    isDefaultPastFilters,
     pastHasMore,
-    pastTotalCount,
     selectedTown,
     sortedEvents.length,
     statusFilter.canceled,
     statusFilter.closed,
     statusFilter.finished,
+    statusFilter.transferred,
   ])
 
   const displayedCount =
@@ -1094,7 +1084,6 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
 
       setPastHasMore(Boolean(nextMeta?.hasMore))
       setPastNextBefore(nextMeta?.nextBefore || null)
-      setPastTotalCount(Number(nextMeta?.totalCount || loadedItems.length || 0))
     } finally {
       setPastLoadingMore(false)
     }

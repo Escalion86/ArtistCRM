@@ -17,6 +17,10 @@ import {
   getUserCalendarId,
   normalizeCalendarSettings,
 } from '@server/googleUserCalendarClient'
+import {
+  buildGoogleCalendarStatusIconsPrefix,
+  shouldSkipGoogleCalendarEventSync,
+} from '@helpers/googleCalendarStatusIcons'
 
 function isJson(str) {
   try {
@@ -664,26 +668,10 @@ const updateEventInCalendar = async (
     const statusTransactions = await Transactions.find({ eventId: event._id })
       .select('amount type category')
       .lean()
-    let totalIncome = 0
-    let hasDeposit = false
-    for (const t of statusTransactions) {
-      if (t.type === 'income') {
-        totalIncome += Number(t.amount ?? 0)
-        if (['deposit', 'advance'].includes(String(t.category ?? ''))) {
-          hasDeposit = true
-        }
-      }
-    }
-    const contractSumVal = Number(event?.contractSum ?? 0)
-    const isFullyPaid = contractSumVal > 0 && totalIncome >= contractSumVal
-    const icons = []
-    if (isFullyPaid) icons.push('✅')
-    else if (hasDeposit) icons.push('☑️')
-
-    if (Boolean(event?.isTransferred)) icons.push('➡️')
-    if (icons.length > 0) {
-      statusIconsPrefix = icons.join('') + ' '
-    }
+    statusIconsPrefix = buildGoogleCalendarStatusIconsPrefix(
+      event,
+      statusTransactions
+    )
   }
 
   const buildCalendarTitle = () => {
@@ -713,6 +701,9 @@ const updateEventInCalendar = async (
   const statusColors = settings?.statusColors ?? {}
   const deleteCanceledFromCalendar = Boolean(
     settings?.deleteCanceledFromCalendar
+  )
+  const skipTransferredFromCalendar = Boolean(
+    settings?.skipTransferredFromCalendar
   )
   const calendarReminders = reminders.useDefault
     ? { useDefault: true }
@@ -878,7 +869,12 @@ const updateEventInCalendar = async (
       )
     })
 
-  if (isCanceled && deleteCanceledFromCalendar) {
+  if (
+    shouldSkipGoogleCalendarEventSync(event, {
+      deleteCanceledFromCalendar,
+      skipTransferredFromCalendar,
+    })
+  ) {
     if (event.googleCalendarId) {
       try {
         await calendarDelete(event.googleCalendarId)

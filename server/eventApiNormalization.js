@@ -9,11 +9,25 @@ const hasDocuments = (payload) => {
   const contractLinks = Array.isArray(payload?.contractLinks)
     ? payload.contractLinks
     : []
+  const invoiceFiles = Array.isArray(payload?.invoiceFiles)
+    ? payload.invoiceFiles
+    : []
+  const receiptFiles = Array.isArray(payload?.receiptFiles)
+    ? payload.receiptFiles
+    : []
+  const actFiles = Array.isArray(payload?.actFiles) ? payload.actFiles : []
+  const contractFiles = Array.isArray(payload?.contractFiles)
+    ? payload.contractFiles
+    : []
   return (
     invoiceLinks.some((item) => Boolean(item)) ||
     receiptLinks.some((item) => Boolean(item)) ||
     actLinks.some((item) => Boolean(item)) ||
-    contractLinks.some((item) => Boolean(item))
+    contractLinks.some((item) => Boolean(item)) ||
+    invoiceFiles.some((item) => Boolean(item?.url)) ||
+    receiptFiles.some((item) => Boolean(item?.url)) ||
+    actFiles.some((item) => Boolean(item?.url)) ||
+    contractFiles.some((item) => Boolean(item?.url))
   )
 }
 
@@ -63,6 +77,30 @@ const normalizeAdditionalEvents = (items) => {
     .filter(Boolean)
 }
 
+const normalizeEventDocumentFiles = (items) => {
+  if (!Array.isArray(items)) return []
+  return items
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const url = typeof item.url === 'string' ? item.url.trim() : ''
+      if (!url) return null
+      const name =
+        typeof item.name === 'string' && item.name.trim()
+          ? item.name.trim()
+          : url.split('/').pop() || 'Документ'
+      const size = Number(item.size)
+      const uploadedAt = parseDateValue(item.uploadedAt) ?? new Date()
+      return {
+        name,
+        url,
+        size: Number.isFinite(size) && size >= 0 ? Math.floor(size) : 0,
+        type: typeof item.type === 'string' ? item.type.trim() : '',
+        uploadedAt: uploadedAt.toISOString(),
+      }
+    })
+    .filter(Boolean)
+}
+
 export {
   hasDocuments,
   parseDateValue,
@@ -70,5 +108,5 @@ export {
   normalizeEventType,
   normalizeDepositExpectedAmount,
   normalizeAdditionalEvents,
+  normalizeEventDocumentFiles,
 }
-

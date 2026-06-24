@@ -11,6 +11,7 @@ import {
   hasDocuments,
   normalizeAdditionalEvents,
   normalizeDepositExpectedAmount,
+  normalizeEventDocumentFiles,
   normalizeEventType,
   normalizeWaitDeposit,
   parseDateValue,
@@ -179,24 +180,42 @@ export const GET = async (req) => {
       const statusCanceled = parseBooleanParam(
         searchParams.get('statusCanceled')
       )
+      const statusTransferred = parseBooleanParam(
+        searchParams.get('statusTransferred')
+      )
 
       if (
         statusFinished !== null ||
         statusClosed !== null ||
+        statusTransferred !== null ||
         statusCanceled !== null
       ) {
         const statusConditions = []
-        if (statusClosed === true) statusConditions.push({ status: 'closed' })
+        const nonTransferredQuery = { isTransferred: { $ne: true } }
+        const withTransferScope = (query) =>
+          statusTransferred === false
+            ? { $and: [query, nonTransferredQuery] }
+            : query
+
+        if (statusClosed === true)
+          statusConditions.push(withTransferScope({ status: 'closed' }))
+        if (statusTransferred === true) {
+          statusConditions.push({
+            $and: [{ isTransferred: true }, { status: { $ne: 'canceled' } }],
+          })
+        }
         if (statusCanceled === true)
           statusConditions.push({ status: 'canceled' })
         if (statusFinished === true) {
-          statusConditions.push({
+          statusConditions.push(
+            withTransferScope({
             $or: [
               { status: { $exists: false } },
               { status: null },
               { status: { $nin: ['draft', 'closed', 'canceled'] } },
             ],
-          })
+            })
+          )
         }
 
         if (statusConditions.length === 0) {
@@ -404,6 +423,10 @@ export const POST = async (req) => {
       ? new Date(body.requestCreatedAt)
       : new Date(),
     additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
+    invoiceFiles: normalizeEventDocumentFiles(body.invoiceFiles),
+    receiptFiles: normalizeEventDocumentFiles(body.receiptFiles),
+    actFiles: normalizeEventDocumentFiles(body.actFiles),
+    contractFiles: normalizeEventDocumentFiles(body.contractFiles),
     eventType: eventTypeValue,
     waitDeposit: normalizeWaitDeposit(body.waitDeposit),
     depositDueAt: parseDateValue(body.depositDueAt),

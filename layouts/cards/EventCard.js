@@ -16,6 +16,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faShare,
   faTriangleExclamation,
+  faFileContract,
   // faCircleCheck,
   // faBan,
   faUserSlash,
@@ -364,6 +365,13 @@ const EventCard = ({
               icon={faShare}
               className="w-4 h-4 text-amber-500"
               aria-label="Передано коллеге"
+            />
+          )}
+          {event.isByContract && (
+            <FontAwesomeIcon
+              icon={faFileContract}
+              className="w-4 h-4 text-blue-600"
+              aria-label="Мероприятие по договору"
             />
           )}
           {needsCheck && (

@@ -205,6 +205,10 @@ const usersSchema = {
         type: Boolean,
         default: false,
       },
+      skipTransferredFromCalendar: {
+        type: Boolean,
+        default: false,
+      },
       syncSettings: {
         titleMode: { type: String, default: 'eventType_services' },
         showDescription: { type: Boolean, default: true },
