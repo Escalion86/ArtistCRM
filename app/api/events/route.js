@@ -209,11 +209,11 @@ export const GET = async (req) => {
         if (statusFinished === true) {
           statusConditions.push(
             withTransferScope({
-            $or: [
-              { status: { $exists: false } },
-              { status: null },
-              { status: { $nin: ['draft', 'closed', 'canceled'] } },
-            ],
+              $or: [
+                { status: { $exists: false } },
+                { status: null },
+                { status: { $nin: ['draft', 'closed', 'canceled'] } },
+              ],
             })
           )
         }
@@ -423,10 +423,7 @@ export const POST = async (req) => {
       ? new Date(body.requestCreatedAt)
       : new Date(),
     additionalEvents: normalizeAdditionalEvents(body.additionalEvents),
-    invoiceFiles: normalizeEventDocumentFiles(body.invoiceFiles),
-    receiptFiles: normalizeEventDocumentFiles(body.receiptFiles),
-    actFiles: normalizeEventDocumentFiles(body.actFiles),
-    contractFiles: normalizeEventDocumentFiles(body.contractFiles),
+    documentFiles: normalizeEventDocumentFiles(body.documentFiles),
     eventType: eventTypeValue,
     waitDeposit: normalizeWaitDeposit(body.waitDeposit),
     depositDueAt: parseDateValue(body.depositDueAt),

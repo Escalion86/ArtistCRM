@@ -53,6 +53,8 @@ const buildDocumentFile = ({ sourceFile, uploadItem, directory }) => {
   return {
     name:
       uploadedName || sourceFile?.name || url.split('/').pop() || 'Документ',
+    description:
+      uploadedName || sourceFile?.name || url.split('/').pop() || 'Документ',
     url,
     size: sourceFile?.size ?? uploadItem?.size ?? 0,
     type: sourceFile?.type ?? uploadItem?.type ?? '',
@@ -75,6 +77,14 @@ const EventDocumentFilesEditor = ({
   const handleRemoveFile = (index) => {
     if (!window.confirm('Удалить файл из списка документов?')) return
     onChange?.(safeFiles.filter((_, idx) => idx !== index))
+  }
+
+  const handleDescriptionChange = (index, description) => {
+    onChange?.(
+      safeFiles.map((file, idx) =>
+        idx === index ? { ...file, description } : file
+      )
+    )
   }
 
   const handleFilesSelected = async (event) => {
@@ -123,13 +133,13 @@ const EventDocumentFilesEditor = ({
             {safeFiles.map((file, index) => (
               <div
                 key={`${label}-file-${file?.url || index}`}
-                className="flex items-center gap-2"
+                className="tablet:flex-row tablet:items-center flex flex-col gap-2 rounded border border-gray-200 p-2"
               >
                 <a
                   href={file?.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:border-general min-w-0 flex-1 rounded border border-gray-200 px-2 py-1.5 text-sm text-gray-900"
+                  className="hover:border-general tablet:w-56 min-w-0 rounded border border-gray-200 px-2 py-1.5 text-sm text-gray-900"
                   title={file?.name || file?.url}
                 >
                   <span className="block truncate font-medium">
@@ -141,13 +151,24 @@ const EventDocumentFilesEditor = ({
                     </span>
                   ) : null}
                 </a>
-                <IconActionButton
-                  icon={faTrashAlt}
-                  onClick={() => handleRemoveFile(index)}
-                  title="Удалить файл"
-                  variant="danger"
-                  size="xs"
+                <input
+                  type="text"
+                  value={file?.description ?? ''}
+                  onChange={(event) =>
+                    handleDescriptionChange(index, event.target.value)
+                  }
+                  placeholder="Описание/Название"
+                  className="focus:border-general focus:ring-general/20 min-h-9 min-w-0 flex-1 rounded border border-gray-300 px-2 text-sm outline-none focus:ring-2"
                 />
+                <div className="tablet:self-auto self-end">
+                  <IconActionButton
+                    icon={faTrashAlt}
+                    onClick={() => handleRemoveFile(index)}
+                    title="Удалить файл"
+                    variant="danger"
+                    size="xs"
+                  />
+                </div>
               </div>
             ))}
           </div>

@@ -252,14 +252,8 @@ export const PUT = async (req, { params }) => {
     update.contractLinks = Array.isArray(body.contractLinks)
       ? body.contractLinks
       : []
-  if (body.invoiceFiles !== undefined)
-    update.invoiceFiles = normalizeEventDocumentFiles(body.invoiceFiles)
-  if (body.receiptFiles !== undefined)
-    update.receiptFiles = normalizeEventDocumentFiles(body.receiptFiles)
-  if (body.actFiles !== undefined)
-    update.actFiles = normalizeEventDocumentFiles(body.actFiles)
-  if (body.contractFiles !== undefined)
-    update.contractFiles = normalizeEventDocumentFiles(body.contractFiles)
+  if (body.documentFiles !== undefined)
+    update.documentFiles = normalizeEventDocumentFiles(body.documentFiles)
   if (body.isByContract !== undefined)
     update.isByContract = Boolean(body.isByContract)
   if (body.servicesIds !== undefined)

@@ -114,6 +114,8 @@ const normalizeDocumentFilesList = (files) => {
           typeof item.name === 'string' && item.name.trim()
             ? item.name.trim()
             : url.split('/').pop() || 'Документ',
+        description:
+          typeof item.description === 'string' ? item.description.trim() : '',
         url,
         size: Number.isFinite(Number(item.size)) ? Number(item.size) : 0,
         type: typeof item.type === 'string' ? item.type.trim() : '',
@@ -270,17 +272,8 @@ const eventFunc = (
     const [contractLinks, setContractLinks] = useState(
       event?.contractLinks ?? DEFAULT_EVENT.contractLinks ?? []
     )
-    const [invoiceFiles, setInvoiceFiles] = useState(
-      event?.invoiceFiles ?? DEFAULT_EVENT.invoiceFiles ?? []
-    )
-    const [receiptFiles, setReceiptFiles] = useState(
-      event?.receiptFiles ?? DEFAULT_EVENT.receiptFiles ?? []
-    )
-    const [actFiles, setActFiles] = useState(
-      event?.actFiles ?? DEFAULT_EVENT.actFiles ?? []
-    )
-    const [contractFiles, setContractFiles] = useState(
-      event?.contractFiles ?? DEFAULT_EVENT.contractFiles ?? []
+    const [documentFiles, setDocumentFiles] = useState(
+      event?.documentFiles ?? DEFAULT_EVENT.documentFiles ?? []
     )
     const [address, setAddress] = useState(() => {
       const normalized = normalizeAddressValue(event?.address)
@@ -408,17 +401,8 @@ const eventFunc = (
         actLinks: event?.actLinks ?? DEFAULT_EVENT.actLinks ?? [],
         contractLinks:
           event?.contractLinks ?? DEFAULT_EVENT.contractLinks ?? [],
-        invoiceFiles: normalizeDocumentFilesList(
-          event?.invoiceFiles ?? DEFAULT_EVENT.invoiceFiles ?? []
-        ),
-        receiptFiles: normalizeDocumentFilesList(
-          event?.receiptFiles ?? DEFAULT_EVENT.receiptFiles ?? []
-        ),
-        actFiles: normalizeDocumentFilesList(
-          event?.actFiles ?? DEFAULT_EVENT.actFiles ?? []
-        ),
-        contractFiles: normalizeDocumentFilesList(
-          event?.contractFiles ?? DEFAULT_EVENT.contractFiles ?? []
+        documentFiles: normalizeDocumentFilesList(
+          event?.documentFiles ?? DEFAULT_EVENT.documentFiles ?? []
         ),
         calendarImportChecked:
           event?.calendarImportChecked ??
@@ -456,10 +440,7 @@ const eventFunc = (
       event?.receiptLinks,
       event?.actLinks,
       event?.contractLinks,
-      event?.invoiceFiles,
-      event?.receiptFiles,
-      event?.actFiles,
-      event?.contractFiles,
+      event?.documentFiles,
       event?.calendarImportChecked,
       event?.colleagueId,
       event?.otherContacts,
@@ -512,14 +493,8 @@ const eventFunc = (
           JSON.stringify(actLinks) ||
         JSON.stringify(initialEventValues.contractLinks ?? []) !==
           JSON.stringify(contractLinks) ||
-        JSON.stringify(initialEventValues.invoiceFiles ?? []) !==
-          JSON.stringify(invoiceFiles) ||
-        JSON.stringify(initialEventValues.receiptFiles ?? []) !==
-          JSON.stringify(receiptFiles) ||
-        JSON.stringify(initialEventValues.actFiles ?? []) !==
-          JSON.stringify(actFiles) ||
-        JSON.stringify(initialEventValues.contractFiles ?? []) !==
-          JSON.stringify(contractFiles) ||
+        JSON.stringify(initialEventValues.documentFiles ?? []) !==
+          JSON.stringify(documentFiles) ||
         initialEventValues.calendarImportChecked !== calendarImportChecked ||
         JSON.stringify(initialEventValues.servicesIds ?? []) !==
           JSON.stringify(servicesIds) ||
@@ -545,10 +520,7 @@ const eventFunc = (
         receiptLinks,
         actLinks,
         contractLinks,
-        invoiceFiles,
-        receiptFiles,
-        actFiles,
-        contractFiles,
+        documentFiles,
         calendarImportChecked,
         servicesIds,
         otherContacts,
@@ -741,10 +713,7 @@ const eventFunc = (
       const normalizedReceiptLinks = normalizeLinksList(receiptLinks)
       const normalizedActLinks = normalizeLinksList(actLinks)
       const normalizedContractLinks = normalizeLinksList(contractLinks)
-      const normalizedInvoiceFiles = normalizeDocumentFilesList(invoiceFiles)
-      const normalizedReceiptFiles = normalizeDocumentFilesList(receiptFiles)
-      const normalizedActFiles = normalizeDocumentFilesList(actFiles)
-      const normalizedContractFiles = normalizeDocumentFilesList(contractFiles)
+      const normalizedDocumentFiles = normalizeDocumentFilesList(documentFiles)
       const normalizedOtherContacts = normalizeOtherContacts(otherContacts)
         .map((item) => ({
           clientId: item.clientId ?? null,
@@ -797,10 +766,7 @@ const eventFunc = (
         payload.receiptLinks = normalizedReceiptLinks
         payload.actLinks = normalizedActLinks
         payload.contractLinks = normalizedContractLinks
-        payload.invoiceFiles = normalizedInvoiceFiles
-        payload.receiptFiles = normalizedReceiptFiles
-        payload.actFiles = normalizedActFiles
-        payload.contractFiles = normalizedContractFiles
+        payload.documentFiles = normalizedDocumentFiles
       }
 
       return {
@@ -816,7 +782,6 @@ const eventFunc = (
       canUseDocuments,
       clientId,
       colleagueId,
-      contractFiles,
       contractLinks,
       contractSum,
       dateEnd,
@@ -827,12 +792,10 @@ const eventFunc = (
       eventType,
       financeComment,
       hasDepositTransaction,
-      invoiceFiles,
       invoiceLinks,
       isByContract,
       isTransferred,
       otherContacts,
-      receiptFiles,
       receiptLinks,
       requestCreatedAt,
       servicesIds,
@@ -840,7 +803,7 @@ const eventFunc = (
       status,
       waitDeposit,
       actLinks,
-      actFiles,
+      documentFiles,
     ])
 
     const currentSavePayloadKey = useMemo(
@@ -2431,37 +2394,16 @@ const eventFunc = (
                   onChange={setContractLinks}
                   noMargin
                 />
-                <EventDocumentFilesEditor
-                  label="Файлы договоров"
-                  files={contractFiles}
-                  onChange={setContractFiles}
-                  directory={`${documentsUploadBaseDirectory}/contracts`}
-                  noMargin
-                />
                 <LinksListEditor
                   label="Ссылки на счета"
                   links={invoiceLinks}
                   onChange={setInvoiceLinks}
                   noMargin
                 />
-                <EventDocumentFilesEditor
-                  label="Файлы счетов"
-                  files={invoiceFiles}
-                  onChange={setInvoiceFiles}
-                  directory={`${documentsUploadBaseDirectory}/invoices`}
-                  noMargin
-                />
                 <LinksListEditor
                   label="Ссылки на чеки"
                   links={receiptLinks}
                   onChange={setReceiptLinks}
-                  noMargin
-                />
-                <EventDocumentFilesEditor
-                  label="Файлы чеков"
-                  files={receiptFiles}
-                  onChange={setReceiptFiles}
-                  directory={`${documentsUploadBaseDirectory}/receipts`}
                   noMargin
                 />
                 <LinksListEditor
@@ -2471,10 +2413,10 @@ const eventFunc = (
                   noMargin
                 />
                 <EventDocumentFilesEditor
-                  label="Файлы актов"
-                  files={actFiles}
-                  onChange={setActFiles}
-                  directory={`${documentsUploadBaseDirectory}/acts`}
+                  label="Файлы и документы"
+                  files={documentFiles}
+                  onChange={setDocumentFiles}
+                  directory={documentsUploadBaseDirectory}
                   noMargin
                 />
               </div>
