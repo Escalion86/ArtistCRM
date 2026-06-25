@@ -44,6 +44,11 @@ const getTranscriptionProviderConfig = (settings = {}) => {
   }
 }
 
+export const isCallTranscriptionConfigured = (settings = {}) => {
+  const provider = getTranscriptionProviderConfig(settings)
+  return Boolean(!provider.error && provider.apiKey)
+}
+
 const getFileNameFromUrl = (url) => {
   try {
     const parsed = new URL(url)

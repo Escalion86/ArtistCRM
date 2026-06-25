@@ -3,8 +3,10 @@ import Calls from '@models/Calls'
 import dbConnect from '@server/dbConnect'
 import { normalizeCallInput, processCallRecording } from '@server/calls'
 import { notifyCallRecordingReady } from '@server/callPush'
-import { isTelephonyTariffAllowedForTenant } from '@server/telephonyAccess'
 import { logTelephonyWebhook } from '@server/telephonyWebhookLogger'
+import { getTenantAiSettings } from '@server/aiSettings'
+import { isCallTranscriptionConfigured } from '@server/callTranscription'
+import getUserTariffAccess from '@server/getUserTariffAccess'
 import {
   getNovofonSettings,
   getNovofonTenantId,
@@ -149,8 +151,8 @@ const handleNovofonWebhook = async (req) => {
     )
   }
 
-  const hasTariffAccess = await isTelephonyTariffAllowedForTenant(tenantId)
-  if (!hasTariffAccess) {
+  const tariffAccess = await getUserTariffAccess(tenantId)
+  if (!tariffAccess?.allowTelephony) {
     await logNovofonWebhook({
       tenantId,
       body,
@@ -238,8 +240,19 @@ const handleNovofonWebhook = async (req) => {
     },
   })
 
+  let canAutoCreateEventFromRecording = false
+  if (call?.recordingUrl && !call?.transcript) {
+    const aiSettings = await getTenantAiSettings(tenantId)
+    canAutoCreateEventFromRecording =
+      Boolean(tariffAccess?.allowAi) &&
+      isCallTranscriptionConfigured(aiSettings)
+  }
+
   const shouldAutoProcessRecording =
-    call?.recordingUrl && call?.linkedClientId && !call?.transcript
+    call?.recordingUrl &&
+    call?.linkedClientId &&
+    !call?.transcript &&
+    canAutoCreateEventFromRecording
 
   if (shouldAutoProcessRecording) {
     try {
@@ -284,7 +297,11 @@ const handleNovofonWebhook = async (req) => {
   }
 
   if (shouldNotifyRecording) {
-    await notifyCallRecordingReady({ tenantId, call })
+    await notifyCallRecordingReady({
+      tenantId,
+      call,
+      canAutoCreateEventFromRecording,
+    })
     call = await Calls.findOneAndUpdate(
       { _id: call._id, tenantId },
       {

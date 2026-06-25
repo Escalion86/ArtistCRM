@@ -4,6 +4,7 @@ import {
   logPushDelivery,
   sendPushToTenant,
 } from '@server/pushNotifications'
+import { getCallRecordingNotificationState } from '@helpers/callRecordingPrompt.mjs'
 
 const readCustomValue = (custom, key) =>
   typeof custom?.get === 'function' ? custom.get(key) : custom?.[key]
@@ -34,7 +35,11 @@ const isCallPushEnabled = async (tenantId) => {
   return configured || activeSubscriptions > 0
 }
 
-export const notifyCallRecordingReady = async ({ tenantId, call }) => {
+export const notifyCallRecordingReady = async ({
+  tenantId,
+  call,
+  canAutoCreateEventFromRecording = false,
+}) => {
   if (!tenantId || !call?._id || !call?.recordingUrl) return null
   const enabled = await isCallPushEnabled(tenantId)
   if (!enabled) {
@@ -51,23 +56,26 @@ export const notifyCallRecordingReady = async ({ tenantId, call }) => {
   }
 
   const phone = formatPhone(call.normalizedPhone || call.phone)
+  const promptState = getCallRecordingNotificationState({
+    call,
+    phoneLabel: phone,
+    canAutoCreateEventFromRecording,
+  })
+  if (!promptState) return null
+
   const payload = {
     title: 'Получена запись звонка',
-    body: phone
-      ? `Звонок с ${phone}. Создать заявку из разговора?`
-      : 'Создать заявку из разговора?',
+    body: promptState.body,
     icon: '/icons/AppImages/android/android-launchericon-192-192.png',
     badge: '/icons/notification-badge.svg',
     tag: `novofon-recording-${call._id}`,
     requireInteraction: true,
-    actions: [
-      { action: 'create_event', title: 'Да' },
-      { action: 'no_event', title: 'Нет' },
-    ],
+    actions: promptState.actions,
     data: {
       url: `/cabinet/calls?callId=${call._id}`,
       callId: String(call._id),
       type: 'novofon_recording',
+      promptKind: promptState.kind,
     },
   }
 

@@ -34,6 +34,7 @@ import useSnackbar from '@helpers/useSnackbar'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import { getCallActionButtonState } from '@helpers/callActionButtonState.mjs'
+import { canOpenCallEventDraft } from '@helpers/callEventDraft.mjs'
 
 const STATUS_LABELS = {
   new: 'Новый',
@@ -260,7 +261,7 @@ const CallDetailsModalContent = ({
     type: 'createEvent',
     idleLabel: 'Создать заявку',
     loadingLabel: 'Создается...',
-    disabled: !call.transcript && !call.aiSummary,
+    disabled: !canOpenCallEventDraft(call) || call.status === 'processing',
   })
 
   return (

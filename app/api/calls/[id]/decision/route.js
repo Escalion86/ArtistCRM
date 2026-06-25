@@ -9,6 +9,8 @@ import {
   ensureClientForCall,
   processCallRecording,
 } from '@server/calls'
+import { getTenantAiSettings } from '@server/aiSettings'
+import { isCallTranscriptionConfigured } from '@server/callTranscription'
 import { requireTelephonyTariffAccess } from '@server/telephonyAccess'
 import {
   normalizeAdditionalEvents,
@@ -121,11 +123,19 @@ export const POST = async (req, { params }) => {
   }
 
   if (!call.transcript && call.recordingUrl) {
-    if (!access?.allowAi) {
+    const aiSettings = access?.allowAi
+      ? await getTenantAiSettings(tenantId)
+      : {}
+    if (!access?.allowAi || !isCallTranscriptionConfigured(aiSettings)) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Распознавание записи доступно только в тарифе с ИИ',
+          error:
+            'Автоматическая заявка из записи недоступна: подключите ИИ-распознавание или откройте звонок и заполните заявку вручную.',
+          data: {
+            call,
+            url: `/cabinet/calls?callId=${id}`,
+          },
         },
         { status: 403 }
       )
