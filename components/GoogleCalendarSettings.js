@@ -6,6 +6,7 @@ import AddIconButton from '@components/AddIconButton'
 import IconActionButton from '@components/IconActionButton'
 import NativeSelect from '@components/NativeSelect'
 import { toNormalizedNumber } from '@helpers/numberInput'
+import { shouldSaveGoogleCalendarSettingsBeforeSync } from '@helpers/googleCalendarSettingsState'
 import { faSpinner, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { reachGoalOnce } from '@helpers/metrikaGoals'
@@ -461,6 +462,12 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
   const syncSettingsChanged =
     serializeSyncSettings(syncSettings) !==
     serializeSyncSettings(savedSyncSettings)
+  const calendarSettingsChangedBeforeSync =
+    shouldSaveGoogleCalendarSettingsBeforeSync({
+      remindersChanged,
+      statusColorsChanged,
+      syncSettingsChanged,
+    })
 
   const handleSyncCheckedEvents = async () => {
     if (calendarLoading || calendarStatus.loading) return
@@ -469,6 +476,36 @@ const GoogleCalendarSettings = ({ redirectPath = '/cabinet/integrations' }) => {
     setCheckedSyncSummary('')
     setSyncProgress({ open: false, total: 0, done: 0 })
     try {
+      if (calendarSettingsChangedBeforeSync) {
+        const saveResponse = await fetch('/api/google-calendar/reminders', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            reminders: calendarReminders,
+            statusColors,
+            syncSettings,
+            deleteCanceledFromCalendar,
+            skipTransferredFromCalendar,
+          }),
+        })
+        const saveResult = await saveResponse.json()
+        if (!saveResult?.success) {
+          setCalendarError(
+            saveResult?.error ||
+              'Не удалось сохранить настройки перед синхронизацией'
+          )
+          setCalendarLoading(false)
+          return
+        }
+        setSavedReminders(normalizeReminders(calendarReminders))
+        setSavedStatusColors(normalizeStatusColors(statusColors))
+        setSavedSyncSettings(normalizeSyncSettings(syncSettings))
+        setSavedDeleteCanceledFromCalendar(Boolean(deleteCanceledFromCalendar))
+        setSavedSkipTransferredFromCalendar(
+          Boolean(skipTransferredFromCalendar)
+        )
+      }
+
       const listResponse = await fetch('/api/events/google-sync-checked')
       const listResult = await listResponse.json()
       if (!listResult?.success) {
