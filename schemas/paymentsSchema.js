@@ -78,6 +78,35 @@ const paymentsSchema = {
     type: Schema.Types.Mixed,
     default: undefined,
   },
+  referralReward: {
+    type: {
+      referralUserId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Users',
+        default: null,
+      },
+      referrerId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Users',
+        default: null,
+      },
+      sourcePaymentId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Payments',
+        default: null,
+      },
+      percent: {
+        type: Number,
+        default: null,
+      },
+      rewardFor: {
+        type: String,
+        enum: ['balance_topup'],
+        default: null,
+      },
+    },
+    default: null,
+  },
   comment: {
     type: String,
     default: '',

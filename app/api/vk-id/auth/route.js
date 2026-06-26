@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import mongoose from 'mongoose'
 import dbConnect from '@server/dbConnect'
 import { ensureVkUser } from '@server/ensureVkUser'
 import { exchangeVkCode, fetchVkUserInfo } from '@server/vkIdAuth'
@@ -19,6 +20,13 @@ const buildError = (code, status, message) =>
     { status }
   )
 
+const normalizeReferrerId = (value) => {
+  const stringValue = value ? String(value).trim() : ''
+  if (!stringValue) return null
+  if (!mongoose.Types.ObjectId.isValid(stringValue)) return null
+  return stringValue
+}
+
 export const POST = async (req) => {
   const body = await req.json().catch(() => ({}))
   const code = String(body?.code || '').trim()
@@ -27,6 +35,7 @@ export const POST = async (req) => {
     body?.code_verifier || body?.codeVerifier || ''
   ).trim()
   const state = String(body?.state || '').trim()
+  const referrerId = normalizeReferrerId(body?.referrerId ?? body?.ref)
   const accessToken = String(
     body?.access_token || body?.accessToken || ''
   ).trim()
@@ -98,6 +107,7 @@ export const POST = async (req) => {
     await dbConnect()
     const user = await ensureVkUser({
       ...userInfoResult.data,
+      referrerId,
     })
     if (!user?._id) {
       console.error('[vk-id/auth] ensureVkUser returned empty user', {

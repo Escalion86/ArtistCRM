@@ -131,7 +131,11 @@ function validate_login(
     })
 }
 
-const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
+const LoginInputs = ({
+  callbackUrl = '/cabinet',
+  initialMode = 'login',
+  initialReferrerId = '',
+}) => {
   const vkOneTapContainerRef = useRef(null)
   const [vkConfig, setVkConfig] = useState({
     loaded: false,
@@ -143,7 +147,9 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
   })
   const [vkLoading, setVkLoading] = useState(false)
   const [vkRenderNonce, setVkRenderNonce] = useState(0)
-  const [mode, setMode] = useState('login')
+  const [mode, setMode] = useState(
+    initialMode === 'register' ? 'register' : 'login'
+  )
   const canUseVkOneTap = mode === 'login' || mode === 'register'
   const vkAuthEnabled = vkConfig.loaded && vkConfig.allowVkAuth
   const [loginPhone, setLoginPhone] = useState(null)
@@ -431,6 +437,7 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
         consentPrivacyPolicy: registerPrivacyAccepted,
         consentPersonalData: registerPersonalDataAccepted,
         consentToMailing: false,
+        referrerId: initialReferrerId || undefined,
       })
 
       if (!res.ok || json?.success === false) {
@@ -772,6 +779,8 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
                   idToken,
                   state: payload?.state || '',
                   mode,
+                  referrerId:
+                    mode === 'register' ? initialReferrerId || undefined : undefined,
                 }),
               })
               const authJson = await authResponse.json().catch(() => ({}))
@@ -828,6 +837,7 @@ const LoginInputs = ({ callbackUrl = '/cabinet' }) => {
   }, [
     callbackUrl,
     canUseVkOneTap,
+    initialReferrerId,
     mode,
     vkAuthEnabled,
     vkConfig,

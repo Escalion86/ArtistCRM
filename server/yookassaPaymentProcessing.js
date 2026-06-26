@@ -1,7 +1,9 @@
 import Payments from '@models/Payments'
+import SiteSettings from '@models/SiteSettings'
 import Users from '@models/Users'
 import { applyTariffPurchase } from '@server/billing'
 import { SBP_BONUS_RATE, getSbpBonusAmount } from '@server/billingConfig'
+import { createReferralRewardForBalanceTopup } from '@server/referralRewards'
 import { getYookassaPayment, normalizeAmount } from '@server/yookassa'
 
 const getPaymentMethodInfo = (providerPayment) => {
@@ -36,6 +38,16 @@ const getPaymentMethodInfo = (providerPayment) => {
     title: type || '',
     details: {},
   }
+}
+
+const logReferralRewardError = (paymentId, error) => {
+  console.error('[referralRewards] failed to create reward', {
+    paymentId: paymentId ? String(paymentId) : null,
+    error: {
+      name: error?.name,
+      message: error?.message,
+    },
+  })
 }
 
 const processSucceededYookassaPayment = async ({ payment, providerPayment }) => {
@@ -114,6 +126,19 @@ const processSucceededYookassaPayment = async ({ payment, providerPayment }) => 
       paymentMethodType: methodInfo.type,
       paymentMethodTitle: methodInfo.title,
     })
+  }
+
+  if (payment.purpose === 'balance') {
+    try {
+      await createReferralRewardForBalanceTopup({
+        payment,
+        UsersModel: Users,
+        PaymentsModel: Payments,
+        SiteSettingsModel: SiteSettings,
+      })
+    } catch (error) {
+      logReferralRewardError(payment?._id, error)
+    }
   }
 
   if (payment.purpose === 'tariff' && payment.tariffId) {

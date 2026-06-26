@@ -107,6 +107,11 @@ const usersSchema = {
     ref: 'Tariffs',
     default: null,
   },
+  referrerId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Users',
+    default: null,
+  },
   trialActivatedAt: {
     type: Date,
     default: null,

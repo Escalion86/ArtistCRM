@@ -77,6 +77,17 @@ const siteSettingsSchema = {
     type: Boolean,
     default: false,
   },
+  referralProgram: {
+    type: {
+      percent: {
+        type: Number,
+        default: 5,
+      },
+    },
+    default: {
+      percent: 5,
+    },
+  },
   custom: {
     type: Map,
     of: Schema.Types.Mixed,

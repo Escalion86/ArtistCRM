@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import Users from '@models/Users'
 import Tariffs from '@models/Tariffs'
 import {
@@ -28,6 +29,23 @@ const buildPatch = (user, profile) => {
   return patch
 }
 
+const normalizeReferrerId = (value) => {
+  const stringValue = value ? String(value).trim() : ''
+  if (!stringValue) return null
+  if (!mongoose.Types.ObjectId.isValid(stringValue)) return null
+  return stringValue
+}
+
+const resolveReferrerId = async (rawReferrerId, currentUserId = null) => {
+  const referrerId = normalizeReferrerId(rawReferrerId)
+  if (!referrerId) return null
+  if (currentUserId && String(currentUserId) === String(referrerId)) return null
+
+  const referrer = await Users.findById(referrerId).select('_id').lean()
+  if (!referrer?._id) return null
+  return referrer._id
+}
+
 export const ensureVkUser = async ({
   vkId = '',
   phone = '',
@@ -35,6 +53,7 @@ export const ensureVkUser = async ({
   firstName = '',
   secondName = '',
   image = '',
+  referrerId = null,
 }) => {
   const normalizedVkId = String(vkId || '').trim()
   const normalizedPhone = normalizePhone(phone)
@@ -58,6 +77,7 @@ export const ensureVkUser = async ({
     const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
 
     try {
+      const resolvedReferrerId = await resolveReferrerId(referrerId)
       user = await Users.create({
         ...(normalizedVkId ? { vkId: normalizedVkId } : {}),
         email: normalizedEmail,
@@ -68,6 +88,7 @@ export const ensureVkUser = async ({
         registrationType: 'vk',
         role: 'user',
         tenantId: null,
+        referrerId: resolvedReferrerId,
         tariffId: cheapestTariff?._id ?? null,
         trialActivatedAt: now,
         trialEndsAt,
@@ -102,6 +123,10 @@ export const ensureVkUser = async ({
       secondName,
       image,
     })
+    if (!user.referrerId) {
+      const resolvedReferrerId = await resolveReferrerId(referrerId, user._id)
+      if (resolvedReferrerId) patch.referrerId = resolvedReferrerId
+    }
 
     if (Object.keys(patch).length > 0) {
       user = await Users.findByIdAndUpdate(

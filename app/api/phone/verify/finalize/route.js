@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import mongoose from 'mongoose'
 import dbConnect from '@server/dbConnect'
 import Users from '@models/Users'
 import Tariffs from '@models/Tariffs'
@@ -25,10 +26,31 @@ const getDuplicateKeyField = (error) => {
   return ''
 }
 
+const normalizeReferrerId = (value) => {
+  const stringValue = value ? String(value).trim() : ''
+  if (!stringValue) return null
+  if (!mongoose.Types.ObjectId.isValid(stringValue)) return null
+  return stringValue
+}
+
+const resolveReferrerId = async (rawReferrerId, currentUserId = null) => {
+  const referrerId = normalizeReferrerId(rawReferrerId)
+  if (!referrerId) return null
+  if (currentUserId && String(currentUserId) === String(referrerId)) return null
+
+  const referrer = await Users.findById(referrerId).select('_id').lean()
+  if (!referrer?._id) return null
+  return referrer._id
+}
+
 const createRegisterUser = async (
   phone,
   hashedPassword,
-  { consentPrivacyPolicy = false, consentPersonalData = false } = {}
+  {
+    consentPrivacyPolicy = false,
+    consentPersonalData = false,
+    referrerId = null,
+  } = {}
 ) => {
   const cheapestTariff = await Tariffs.findOne({
     hidden: { $ne: true },
@@ -45,6 +67,7 @@ const createRegisterUser = async (
     role: 'user',
     tenantId: null,
     tariffId: cheapestTariff?._id ?? null,
+    referrerId: referrerId ?? null,
     trialActivatedAt: now,
     trialEndsAt,
     trialUsed: true,
@@ -72,6 +95,7 @@ export const POST = async (req) => {
       body?.consentPrivacyPolicy === true || legacyTermsAccepted
     const consentPersonalData =
       body?.consentPersonalData === true || legacyTermsAccepted
+    const rawReferrerId = body?.referrerId ?? body?.ref ?? null
 
     if (!validateFlow(flow)) {
       return NextResponse.json(
@@ -143,17 +167,21 @@ export const POST = async (req) => {
 
       if (user && !user.password) {
         const now = new Date()
+        const referrerId = await resolveReferrerId(rawReferrerId, user._id)
         user.password = hashedPassword
         if (!user.tenantId) user.tenantId = user._id
+        if (!user.referrerId && referrerId) user.referrerId = referrerId
         user.consentPrivacyPolicyAccepted = true
         user.consentPersonalDataAccepted = true
         user.privacyPolicyAcceptedAt = now
         user.personalDataProcessingAcceptedAt = now
         await user.save()
       } else {
+        const referrerId = await resolveReferrerId(rawReferrerId)
         await createRegisterUser(phone, hashedPassword, {
           consentPrivacyPolicy,
           consentPersonalData,
+          referrerId,
         })
       }
     }

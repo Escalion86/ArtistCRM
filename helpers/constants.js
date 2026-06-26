@@ -631,6 +631,9 @@ export const DEFAULT_SITE_SETTINGS = Object.freeze({
   codeSendService: 'telefonip',
   timeZone: 'Asia/Krasnoyarsk',
   storeCalendarResponse: false,
+  referralProgram: {
+    percent: 5,
+  },
 })
 
 export const EVENT_RELATIONSHIP_ACCESS = [
@@ -826,12 +829,27 @@ export const pages = [
     icon: faBell,
   },
   {
-    id: 21,
+    id: 26,
     group: 6,
+    name: 'Реферальная система',
+    href: 'referrals',
+    icon: faMoneyBill,
+  },
+  {
+    id: 21,
+    group: 10,
     name: 'Тарифы',
     href: 'tariffs',
     icon: faMoneyBill,
-    accessRoles: ['admin', 'dev'],
+    accessRoles: ['dev'],
+  },
+  {
+    id: 27,
+    group: 10,
+    name: 'Реферальная система',
+    href: 'site-referrals',
+    icon: faMoneyBill,
+    accessRoles: ['dev'],
   },
   {
     id: 99,
@@ -888,6 +906,11 @@ export const pagesGroups = [
     id: 9,
     name: 'Звонки',
     icon: faPhone,
+  },
+  {
+    id: 10,
+    name: 'Настройки сайта',
+    icon: faCog,
   },
   {
     id: 99,

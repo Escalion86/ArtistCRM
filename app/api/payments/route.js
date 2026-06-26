@@ -3,12 +3,24 @@ import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import Users from '@models/Users'
 import Payments from '@models/Payments'
+import SiteSettings from '@models/SiteSettings'
+import { createReferralRewardForBalanceTopup } from '@server/referralRewards'
 
 const sanitizeUser = (user) => {
   if (!user) return null
   const data = typeof user.toObject === 'function' ? user.toObject() : user
   const { password, ...rest } = data
   return rest
+}
+
+const logReferralRewardError = (paymentId, error) => {
+  console.error('[referralRewards] failed to create reward', {
+    paymentId: paymentId ? String(paymentId) : null,
+    error: {
+      name: error?.name,
+      message: error?.message,
+    },
+  })
 }
 
 export const GET = async (req) => {
@@ -100,6 +112,17 @@ export const POST = async (req) => {
     source: 'manual',
     comment: body.comment ?? '',
   })
+
+  try {
+    await createReferralRewardForBalanceTopup({
+      payment,
+      UsersModel: Users,
+      PaymentsModel: Payments,
+      SiteSettingsModel: SiteSettings,
+    })
+  } catch (error) {
+    logReferralRewardError(payment?._id, error)
+  }
 
   return NextResponse.json(
     { success: true, data: { user: sanitizeUser(userToUpdate), payment } },

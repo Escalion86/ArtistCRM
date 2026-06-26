@@ -21,10 +21,21 @@ const normalizeCallbackUrl = (value) => {
   return value
 }
 
+const normalizeInitialMode = (value) =>
+  value === 'register' ? 'register' : 'login'
+
+const normalizeReferrerId = (value) => {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  return /^[a-f\d]{24}$/i.test(trimmed) ? trimmed : ''
+}
+
 export default async function Login({ searchParams }) {
   let session = null
   const params = await searchParams
   const callbackUrl = normalizeCallbackUrl(params?.callbackUrl)
+  const initialMode = normalizeInitialMode(params?.mode)
+  const initialReferrerId = normalizeReferrerId(params?.ref)
 
   try {
     session = await getServerSession(authOptions)
@@ -34,5 +45,11 @@ export default async function Login({ searchParams }) {
 
   if (session) return redirect(callbackUrl)
 
-  return <LoginInputs callbackUrl={callbackUrl} />
+  return (
+    <LoginInputs
+      callbackUrl={callbackUrl}
+      initialMode={initialMode}
+      initialReferrerId={initialReferrerId}
+    />
+  )
 }

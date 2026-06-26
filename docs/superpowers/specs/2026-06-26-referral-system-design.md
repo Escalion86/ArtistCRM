@@ -107,7 +107,7 @@ Rules:
 - Ignore `referrerId` when the referenced user does not exist.
 - Ignore self-referrals.
 - If an existing phone-only placeholder user is completed, set `referrerId` only if it is still empty.
-- VK ID registration attribution is out of scope for this first implementation; the referral link opens the phone registration flow.
+- VK ID registration receives the same `referrerId` from the referral link because the register screen can offer VK ID One Tap.
 
 ## Reward Flow
 
