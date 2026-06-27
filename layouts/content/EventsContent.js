@@ -47,40 +47,13 @@ import { getUserTariffAccess } from '@helpers/tariffAccess'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import { getEventStatusFlags } from '@helpers/eventStatusFilter'
-
-const getStatusFilterDefaults = (filter) => {
-  if (filter === 'upcoming') {
-    return {
-      request: true,
-      active: true,
-      transferred: false,
-      canceled: false,
-    }
-  }
-  if (filter === 'past') {
-    return {
-      finished: true,
-      closed: true,
-      transferred: false,
-      canceled: false,
-    }
-  }
-  return {
-    request: true,
-    active: true,
-    finished: true,
-    closed: true,
-    transferred: false,
-    canceled: false,
-  }
-}
-
-const getStatusFilterKeys = (filter) => {
-  if (filter === 'upcoming')
-    return ['request', 'active', 'transferred', 'canceled']
-  if (filter === 'past') return ['finished', 'closed', 'transferred', 'canceled']
-  return ['request', 'active', 'finished', 'closed', 'transferred', 'canceled']
-}
+import {
+  createEventListFiltersState,
+  getStatusFilterDefaults,
+  getStatusFilterKeys,
+  readEventListFiltersState,
+  writeEventListFiltersState,
+} from '@helpers/eventListFilters'
 
 const STATUS_FILTER_META = {
   request: {
@@ -430,14 +403,15 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const listRef = useListRef()
   const openHandledRef = useRef(false)
   const upcomingOverviewActionHandledRef = useRef(false)
-  const [selectedTown, setSelectedTown] = useState('')
+  const [selectedTown, setSelectedTown] = useState(
+    () => createEventListFiltersState(filter).selectedTown
+  )
   const [pendingOpenId, setPendingOpenId] = useState(null)
-  const [checkFilter, setCheckFilter] = useState({
-    checked: true,
-    unchecked: true,
-  })
+  const [checkFilter, setCheckFilter] = useState(
+    () => createEventListFiltersState(filter).checkFilter
+  )
   const [statusFilter, setStatusFilter] = useState(() =>
-    getStatusFilterDefaults(filter)
+    createEventListFiltersState(filter).statusFilter
   )
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [additionalQuickFilter, setAdditionalQuickFilter] = useState('')
@@ -449,6 +423,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const [pastActiveClosableCount, setPastActiveClosableCount] = useState(0)
   const reminderShownRef = useRef(false)
   const noDepositReminderShownRef = useRef(false)
+  const skipEventFiltersPersistRef = useRef(true)
   const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
   const itemHeight = isCompact ? 152 : 170
 
@@ -516,7 +491,15 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   }, [modals.length])
 
   useEffect(() => {
-    setStatusFilter(getStatusFilterDefaults(filter))
+    const nextFilters =
+      typeof window === 'undefined'
+        ? createEventListFiltersState(filter)
+        : readEventListFiltersState(filter, window.localStorage)
+
+    skipEventFiltersPersistRef.current = true
+    setSelectedTown(nextFilters.selectedTown)
+    setCheckFilter(nextFilters.checkFilter)
+    setStatusFilter(nextFilters.statusFilter)
     setAdditionalQuickFilter('')
   }, [filter])
 
@@ -564,6 +547,21 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
           : canceledParam,
     })
   }, [filter, searchParams])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    if (skipEventFiltersPersistRef.current) {
+      skipEventFiltersPersistRef.current = false
+      return
+    }
+
+    writeEventListFiltersState(filter, window.localStorage, {
+      selectedTown,
+      checkFilter,
+      statusFilter,
+    })
+  }, [checkFilter, filter, selectedTown, statusFilter])
 
   const filteredByCheck = useMemo(() => {
     if (checkFilter.checked && checkFilter.unchecked) return filteredEvents

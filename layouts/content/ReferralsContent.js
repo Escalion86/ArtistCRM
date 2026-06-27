@@ -185,7 +185,7 @@ const ReferralsContent = () => {
               )}
             </div>
             <MutedText as="p" className="text-gray-500">
-              Если QR-код не загрузился, используйте ссылку слева.
+              Если QR-код не загрузился, используйте ссылку.
             </MutedText>
           </div>
         </div>
