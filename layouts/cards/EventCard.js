@@ -39,6 +39,7 @@ import {
   getEventPublicApiSourceLabel,
   isEventCreatedViaPublicApi,
 } from '@helpers/eventSource'
+import { getEventTransferDisplay } from '@helpers/eventTransferDisplay'
 import { useClientsQuery } from '@helpers/useClientsQuery'
 import { useEventQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
@@ -88,6 +89,10 @@ const EventCard = ({
   const client = useMemo(
     () => clients.find((item) => item._id === event?.clientId) ?? null,
     [clients, event?.clientId]
+  )
+  const transferDisplay = useMemo(
+    () => getEventTransferDisplay(event, clients),
+    [clients, event]
   )
   const { data: cachedTransactions = [] } = useTransactionsQuery(undefined, {
     enabled: false,
@@ -351,7 +356,7 @@ const EventCard = ({
       style={style}
       outerClassName="px-2 py-1"
       onClick={() => !loading && modalsFunc.event?.view(event._id)}
-      className="event-card-shell card-body-pad laptop:flex-row laptop:items-start laptop:gap-4 flex h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg py-3 pr-3 pl-4"
+      className="event-card-shell card-body-pad laptop:flex-row laptop:items-start laptop:gap-4 flex min-h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg py-3 pr-3 pl-4"
     >
       <CardOverlay loading={loading} error={error} />
       <div
@@ -515,6 +520,22 @@ const EventCard = ({
               )}
             </span>
           </div>
+          {transferDisplay.isTransferred ? (
+            <div className="flex min-h-[25px] flex-nowrap items-center gap-x-2">
+              <span className="hidden font-medium phoneH:block">
+                Передано:
+              </span>
+              <span className="min-w-0 truncate">
+                {transferDisplay.colleagueName || 'коллега не указан'}
+              </span>
+              {transferDisplay.colleague ? (
+                <ContactsIconsButtons
+                  user={transferDisplay.colleague}
+                  showChat
+                />
+              ) : null}
+            </div>
+          ) : null}
           <div className="flex min-h-[25px] flex-nowrap items-center gap-x-2">
             <span className="hidden font-medium phoneH:block">Клиент:</span>
             <span className="min-w-0 truncate">

@@ -11,6 +11,7 @@ import formatMinutes from '@helpers/formatMinutes'
 import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getEventDuration from '@helpers/getEventDuration'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { getEventTransferDisplay } from '@helpers/eventTransferDisplay'
 import Image from 'next/image'
 import sanitizeHtml from '@helpers/sanitizeHtml'
 import { getAdditionalEventsDisplayGroups } from '@helpers/additionalEvents'
@@ -131,6 +132,10 @@ const eventViewFunc = (eventId) => {
     const mainClient = useMemo(
       () => clients.find((item) => item._id === event?.clientId) ?? null,
       [clients, event?.clientId]
+    )
+    const transferDisplay = useMemo(
+      () => getEventTransferDisplay(event, clients),
+      [clients, event]
     )
     const otherContacts = useMemo(() => {
       const contacts = Array.isArray(event?.otherContacts)
@@ -408,7 +413,9 @@ const eventViewFunc = (eventId) => {
               )}
             </SectionBlock>
 
-            {(mainClient || otherContacts.length > 0) && (
+            {(mainClient ||
+              transferDisplay.isTransferred ||
+              otherContacts.length > 0) && (
               <SectionBlock title="Контакты">
                 {mainClient ? (
                   <div
@@ -437,6 +444,42 @@ const eventViewFunc = (eventId) => {
                 ) : (
                   <TextLine label="Клиент">Не указан</TextLine>
                 )}
+                {transferDisplay.isTransferred ? (
+                  <div
+                    {...getClientCardProps(transferDisplay.colleague)}
+                    className={cn(
+                      'event-view-kpi focus:ring-general/30 mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 transition focus:ring-2 focus:outline-none',
+                      transferDisplay.colleague
+                        ? 'hover:border-general cursor-pointer hover:bg-white hover:shadow-sm'
+                        : ''
+                    )}
+                  >
+                    <div className="text-sm font-semibold text-amber-900">
+                      Передано коллеге:{' '}
+                      {transferDisplay.colleagueName || 'не указан'}
+                    </div>
+                    {transferDisplay.colleague &&
+                      formatClientContactLines(transferDisplay.colleague).map(
+                        (line) => (
+                          <div key={line} className="text-xs text-gray-600">
+                            {line}
+                          </div>
+                        )
+                      )}
+                    {transferDisplay.colleague ? (
+                      <div
+                        className="mt-1"
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
+                        <ContactsIconsButtons
+                          user={transferDisplay.colleague}
+                          showChat
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 {otherContacts.length > 0 && (
                   <div className="mt-2">
                     <div className="mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">
