@@ -28,6 +28,7 @@ import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import CardOverlay from '@components/CardOverlay'
 import CardActions from '@components/CardActions'
 import CardWrapper from '@components/CardWrapper'
+import DropDown from '@components/DropDown'
 import StatusChip from '@components/StatusChip'
 import {
   getSoonNoDepositEvents,
@@ -39,7 +40,7 @@ import {
   getEventPublicApiSourceLabel,
   isEventCreatedViaPublicApi,
 } from '@helpers/eventSource'
-import { getEventTransferDisplay } from '@helpers/eventTransferDisplay'
+import { getEventExtraContactDisplays } from '@helpers/eventTransferDisplay'
 import { useClientsQuery } from '@helpers/useClientsQuery'
 import { useEventQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
@@ -90,8 +91,8 @@ const EventCard = ({
     () => clients.find((item) => item._id === event?.clientId) ?? null,
     [clients, event?.clientId]
   )
-  const transferDisplay = useMemo(
-    () => getEventTransferDisplay(event, clients),
+  const extraContactDisplays = useMemo(
+    () => getEventExtraContactDisplays(event, clients),
     [clients, event]
   )
   const { data: cachedTransactions = [] } = useTransactionsQuery(undefined, {
@@ -520,24 +521,54 @@ const EventCard = ({
               )}
             </span>
           </div>
-          {transferDisplay.isTransferred ? (
-            <div className="flex min-h-[25px] flex-nowrap items-center gap-x-2">
-              <span className="hidden font-medium phoneH:block">
-                Передано:
-              </span>
-              <span className="min-w-0 truncate">
-                {transferDisplay.colleagueName || 'коллега не указан'}
-              </span>
-              {transferDisplay.colleague ? (
-                <ContactsIconsButtons
-                  user={transferDisplay.colleague}
-                  showChat
-                />
-              ) : null}
-            </div>
-          ) : null}
           <div className="flex min-h-[25px] flex-nowrap items-center gap-x-2">
             <span className="hidden font-medium phoneH:block">Клиент:</span>
+            {extraContactDisplays.length > 0 ? (
+              <div onClick={(event) => event.stopPropagation()}>
+                <DropDown
+                  trigger={
+                    <button
+                      type="button"
+                      className="bg-general text-white flex h-6 min-h-6 min-w-7 cursor-pointer items-center justify-center rounded-full px-1.5 text-xs font-semibold shadow-sm transition hover:bg-toxic"
+                      aria-label={`Показать дополнительные контакты: ${extraContactDisplays.length}`}
+                    >
+                      +{extraContactDisplays.length}
+                    </button>
+                  }
+                  placement="left"
+                  menuPadding="sm"
+                  menuClassName="w-[min(320px,calc(100vw-24px))] items-stretch justify-start"
+                  renderInPortal
+                  turnOffAutoClose="inside"
+                >
+                  <div
+                    className="flex w-full flex-col gap-2 p-2"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {extraContactDisplays.map((contact) => (
+                      <div
+                        key={contact.key}
+                        className="rounded-md border border-gray-200 bg-gray-50 px-2 py-2"
+                      >
+                        <div className="text-sm font-semibold text-gray-800">
+                          {contact.label}
+                        </div>
+                        {contact.comment ? (
+                          <div className="text-xs text-gray-600">
+                            {contact.comment}
+                          </div>
+                        ) : null}
+                        <ContactsIconsButtons
+                          user={contact.client}
+                          showChat
+                          className="mt-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </DropDown>
+              </div>
+            ) : null}
             <span className="min-w-0 truncate">
               {client
                 ? getPersonFullName(client, { fallback: client._id })
