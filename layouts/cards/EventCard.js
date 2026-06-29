@@ -537,7 +537,7 @@ const EventCard = ({
                   }
                   placement="left"
                   menuPadding="sm"
-                  menuClassName="w-[min(320px,calc(100vw-24px))] items-stretch justify-start"
+                  menuClassName="w-[min(320px,calc(100vw-24px))] items-stretch justify-start !border-gray-200 !bg-white"
                   renderInPortal
                   turnOffAutoClose="inside"
                 >
