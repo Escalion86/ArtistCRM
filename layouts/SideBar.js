@@ -2,7 +2,6 @@
 import {
   faAngleDown,
   faAngleUp,
-  faArrowUp,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { pages, pagesGroups } from '@helpers/constants'
@@ -234,7 +233,7 @@ const Menu = ({ menuCfg, activePage, pendingPage, onNavigate, pageBadges }) => {
                       animate={openedMenuIndex === index ? 'show' : 'hide'}
                       className="mr-2 ml-3 overflow-hidden"
                     >
-                      {item.items.map((subitem, index) => (
+                      {item.items.map((subitem) => (
                         <MenuItem
                           key={'menu' + subitem.id}
                           item={subitem}

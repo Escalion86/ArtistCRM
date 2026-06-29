@@ -3,7 +3,6 @@
 import RotateButton from '@components/IconToggleButtons/RotateButton'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ReactCrop, {
-  centerCrop,
   convertToPixelCrop,
   makeAspectCrop,
 } from 'react-image-crop'
@@ -139,17 +138,13 @@ const cropImageFunc = (
   const CropImageModal = ({
     closeModal,
     setOnConfirmFunc,
-    setOnDeclineFunc,
-    setOnShowOnCloseConfirmDialog,
-    setDisableConfirm,
-    setDisableDecline,
   }) => {
     const [imgSrc, setImgSrc] = useState('')
     const [firstInit, setFirstInit] = useState(true)
     const ref = useRef()
     const [crop, setCrop] = useState()
     const [completedCrop, setCompletedCrop] = useState(null)
-    const [scale, setScale] = useState(1)
+    const [scale] = useState(1)
     const [rotate, setRotate] = useState(0)
 
     const getCroppedImg = useCallback((
@@ -249,7 +244,7 @@ const cropImageFunc = (
       if (!imgSrc) {
         // setCrop(undefined) // Makes crop preview update between images.
         const reader = new FileReader()
-        reader.addEventListener('load', (e) => {
+        reader.addEventListener('load', () => {
           // const imageElement = new Image()
           const imageUrl = reader.result?.toString() || ''
           // imageElement.src = imageUrl

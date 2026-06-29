@@ -1,5 +1,4 @@
 import getDiffBetweenDates from './getDiffBetweenDates'
-import getMinutesBetween from './getMinutesBetween'
 
 const isEventInProcess = (event) => {
   // const minutesBetween = getMinutesBetween(event.date)

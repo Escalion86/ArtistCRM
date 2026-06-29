@@ -1,4 +1,4 @@
-import getNoun, {
+import {
   getNounDays,
   getNounHours,
   getNounMinutes,

@@ -1,6 +1,5 @@
 'use client'
 
-import { signOut } from 'next-auth/react'
 // import Fab from '@components/Fab'
 // import FabMenu from '@components/FabMenu'
 // import LoadingSpinner from '@components/LoadingSpinner'
@@ -64,7 +63,7 @@ function CabinetPage(props) {
 
   const Component = CONTENTS[currentPage]
     ? CONTENTS[currentPage].Component
-    : (props) => <div className="flex justify-center px-2">Ошибка 404</div>
+    : () => <div className="flex justify-center px-2">Ошибка 404</div>
 
   const title = CONTENTS[currentPage] ? CONTENTS[currentPage].name : ''
 

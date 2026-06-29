@@ -30,7 +30,6 @@ import { useAtom, useAtomValue } from 'jotai'
 import Input from '@components/Input'
 import ComboBox from '@components/ComboBox'
 import AppButton from '@components/AppButton'
-import QuickActionButtons from '@components/QuickActionButtons'
 import RequisitesWarning from '@components/RequisitesWarning'
 import AddressPoolPicker from '@components/AddressPoolPicker'
 import InputWrapper from '@components/InputWrapper'
@@ -207,7 +206,6 @@ const eventFunc = (
     setOnCloseButtonFunc,
     setOnShowOnCloseConfirmDialog,
     setDisableConfirm,
-    setDisableDecline,
     setComponentInFooter,
   }) => {
     const { data: eventFromQuery } = useEventQuery(eventId)
@@ -348,7 +346,7 @@ const eventFunc = (
         return googleCalendarResponse
       try {
         return JSON.stringify(googleCalendarResponse, null, 2)
-      } catch (error) {
+      } catch {
         return String(googleCalendarResponse)
       }
     }, [googleCalendarResponse])
@@ -568,14 +566,6 @@ const eventFunc = (
     const expenseTransactions = useMemo(
       () => eventTransactions.filter((item) => item.type === 'expense'),
       [eventTransactions]
-    )
-    const incomeTotal = useMemo(
-      () =>
-        incomeTransactions.reduce(
-          (total, item) => total + (item.amount ?? 0),
-          0
-        ),
-      [incomeTransactions]
     )
     const hasDepositTransaction = useMemo(
       () =>
@@ -1456,7 +1446,7 @@ const eventFunc = (
           setFinanceLoading(true)
           try {
             await deleteTransactionMutation.mutateAsync(id)
-          } catch (error) {
+          } catch {
             setFinanceError('Не удалось удалить транзакцию')
           }
           setFinanceLoading(false)

@@ -1,4 +1,3 @@
-import { DAYS_OF_WEEK, MONTHS, MONTHS_FULL } from './constants'
 import dateToDateTimeStr from './dateToDateTimeStr'
 
 function formatEventDateTime(event, props = {}) {

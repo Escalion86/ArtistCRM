@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import Input from '@components/Input'
 import IconCheckBox from '@components/IconCheckBox'

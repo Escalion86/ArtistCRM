@@ -46,7 +46,7 @@ const normalizeCabinetProps = (input, sessionUser, page) => {
   }
 }
 
-export default async function Cabinet({ params, searchParams }) {
+export default async function Cabinet({ params }) {
   let session = null
 
   try {

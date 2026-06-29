@@ -6,7 +6,6 @@ import { updateEventInCalendar } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import { notifyTaskCreated } from '@server/taskPushNotifications'
-import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 import {
   hasDocuments,
   normalizeAdditionalEvents,

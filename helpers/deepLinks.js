@@ -12,8 +12,6 @@
  * Event params: event_id (required), tab, date
  */
 
-import { isValidObjectId } from 'mongoose'
-
 // --- Constants ---
 
 export const DEEP_LINK_VERSION = 'v1'

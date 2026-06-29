@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import mongoose from 'mongoose'
 import Events from '@models/Events'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'

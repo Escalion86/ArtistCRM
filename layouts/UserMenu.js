@@ -2,7 +2,6 @@ import {
   // faHome,
   // faListAlt,
   faCircleExclamation,
-  faSignInAlt,
   faSignOutAlt,
   faTags,
   faUserAlt,
