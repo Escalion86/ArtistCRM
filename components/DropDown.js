@@ -207,7 +207,7 @@ const DropDown = ({
     <div
       ref={menuRef}
       className={cn(
-        'z-[80] flex items-center justify-center rounded-lg border border-gray-400 bg-white shadow-md dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-800',
+        'z-[80] flex items-center justify-center rounded-lg border border-gray-200 bg-white shadow-md dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-800',
         strategyAbsolute && !renderInPortal
           ? cn(
               `absolute top-full ${openOnHover ? 'mt-0' : 'mt-2'}`,
