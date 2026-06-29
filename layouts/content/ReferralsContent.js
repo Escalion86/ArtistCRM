@@ -3,6 +3,8 @@
 import Button from '@components/Button'
 import LoadingSpinner from '@components/LoadingSpinner'
 import MutedText from '@components/MutedText'
+import formatDate from '@helpers/formatDate'
+import { formatMoney } from '@helpers/formatMoney'
 import useSnackbar from '@helpers/useSnackbar'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { useAtomValue } from 'jotai'
@@ -10,6 +12,14 @@ import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 const DEFAULT_PERCENT = 5
+
+const getUserName = (user) => {
+  const name = [user?.secondName, user?.firstName, user?.thirdName]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+  return name || 'Пользователь'
+}
 
 const ReferralsContent = () => {
   const loggedUser = useAtomValue(loggedUserAtom)
@@ -19,6 +29,9 @@ const ReferralsContent = () => {
   const [qrSrc, setQrSrc] = useState('')
   const [isQrLoading, setIsQrLoading] = useState(false)
   const [qrErrorText, setQrErrorText] = useState('')
+  const [referralsData, setReferralsData] = useState(null)
+  const [isReferralsLoading, setIsReferralsLoading] = useState(true)
+  const [referralsErrorText, setReferralsErrorText] = useState('')
 
   const loggedUserId = loggedUser?._id ? String(loggedUser._id) : ''
   const qrServiceBaseUrl = (
@@ -30,6 +43,40 @@ const ReferralsContent = () => {
       setOrigin(window.location.origin)
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadReferrals = async () => {
+      if (!loggedUserId) return
+      setIsReferralsLoading(true)
+      setReferralsErrorText('')
+      try {
+        const response = await fetch('/api/referrals', {
+          cache: 'no-store',
+        })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok || result?.success === false) {
+          throw new Error(result?.error || 'Не удалось загрузить рефералов')
+        }
+        if (!cancelled) setReferralsData(result?.data ?? null)
+      } catch (error) {
+        if (!cancelled) {
+          setReferralsErrorText(
+            error?.message || 'Не удалось загрузить рефералов'
+          )
+        }
+      } finally {
+        if (!cancelled) setIsReferralsLoading(false)
+      }
+    }
+
+    loadReferrals()
+
+    return () => {
+      cancelled = true
+    }
+  }, [loggedUserId])
 
   useEffect(() => {
     let cancelled = false
@@ -188,6 +235,71 @@ const ReferralsContent = () => {
               Если QR-код не загрузился, используйте ссылку.
             </MutedText>
           </div>
+        </div>
+
+        <div className="flex max-w-5xl flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="text-lg font-semibold text-gray-900">
+                Мои рефералы
+              </div>
+              <MutedText as="p" className="mt-1 text-gray-500">
+                Здесь отображаются пользователи, которые зарегистрировались по
+                вашей реферальной ссылке.
+              </MutedText>
+            </div>
+            {referralsData ? (
+              <div className="text-sm text-gray-700 sm:text-right">
+                <div>Рефералов: {referralsData.referralsCount ?? 0}</div>
+                <div>
+                  Начислено: {formatMoney(referralsData.rewardsTotal ?? 0)}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {isReferralsLoading ? (
+            <div className="flex min-h-24 items-center justify-center">
+              <LoadingSpinner size="sm" text="Загрузка рефералов..." />
+            </div>
+          ) : referralsErrorText ? (
+            <div className="text-danger text-sm">{referralsErrorText}</div>
+          ) : referralsData?.referrals?.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="border-b border-gray-200 text-xs text-gray-500 uppercase">
+                  <tr>
+                    <th className="py-2 pr-4 font-medium">Пользователь</th>
+                    <th className="py-2 pr-4 font-medium">Регистрация</th>
+                    <th className="py-2 pr-4 font-medium">Начислений</th>
+                    <th className="py-2 font-medium">Сумма</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {referralsData.referrals.map((row) => (
+                    <tr key={row.user._id}>
+                      <td className="py-3 pr-4 text-gray-900">
+                        {getUserName(row.user)}
+                      </td>
+                      <td className="py-3 pr-4 text-gray-600">
+                        {formatDate(row.user.createdAt) || '—'}
+                      </td>
+                      <td className="py-3 pr-4 text-gray-600">
+                        {row.rewardsCount ?? 0}
+                      </td>
+                      <td className="py-3 text-gray-900">
+                        {formatMoney(row.rewardsTotal ?? 0)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+              Пока никто не зарегистрировался по вашей реферальной ссылке.
+            </div>
+          )}
         </div>
       </div>
     </div>
