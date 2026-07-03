@@ -35,8 +35,7 @@ import AddressPoolPicker from '@components/AddressPoolPicker'
 import InputWrapper from '@components/InputWrapper'
 import LabeledContainer from '@components/LabeledContainer'
 import OtherContactsPicker from '@components/OtherContactsPicker'
-import LinksListEditor from '@components/LinksListEditor'
-import EventDocumentFilesEditor from '@components/EventDocumentFilesEditor'
+import EventDocumentsEditor from '@components/EventDocumentsEditor'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import ServiceMultiSelect from '@components/ServiceMultiSelect'
@@ -69,6 +68,16 @@ import {
   getTransactionDateLabel,
   OBLIGATION_PAYMENT_METHOD,
 } from '@helpers/transactionObligation'
+import {
+  DOCUMENT_TYPES,
+  getDocumentLastNumberKey,
+  getDocumentTypeLabel,
+} from '@helpers/documentTypes'
+import { normalizeDocumentTemplatesFromSettings } from '@helpers/documentTemplates'
+import {
+  mergeLegacyEventDocuments,
+  normalizeEventDocuments,
+} from '@helpers/eventDocuments'
 
 const normalizeAddressValue = (rawAddress) => {
   const normalized = { ...DEFAULT_ADDRESS }
@@ -92,36 +101,6 @@ const normalizeAddressValue = (rawAddress) => {
   })
 
   return normalized
-}
-
-const normalizeLinksList = (links) => {
-  if (!Array.isArray(links)) return []
-  return links
-    .map((value) => (typeof value === 'string' ? value.trim() : ''))
-    .filter(Boolean)
-}
-
-const normalizeDocumentFilesList = (files) => {
-  if (!Array.isArray(files)) return []
-  return files
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const url = typeof item.url === 'string' ? item.url.trim() : ''
-      if (!url) return null
-      return {
-        name:
-          typeof item.name === 'string' && item.name.trim()
-            ? item.name.trim()
-            : url.split('/').pop() || 'Документ',
-        description:
-          typeof item.description === 'string' ? item.description.trim() : '',
-        url,
-        size: Number.isFinite(Number(item.size)) ? Number(item.size) : 0,
-        type: typeof item.type === 'string' ? item.type.trim() : '',
-        uploadedAt: item.uploadedAt ?? new Date().toISOString(),
-      }
-    })
-    .filter(Boolean)
 }
 
 const normalizeOtherContacts = (contacts) => {
@@ -258,20 +237,10 @@ const eventFunc = (
       event?.dateEnd ?? DEFAULT_EVENT.dateEnd ?? null
     )
     const [dateEndTouched, setDateEndTouched] = useState(false)
-    const [invoiceLinks, setInvoiceLinks] = useState(
-      event?.invoiceLinks ?? DEFAULT_EVENT.invoiceLinks ?? []
-    )
-    const [receiptLinks, setReceiptLinks] = useState(
-      event?.receiptLinks ?? DEFAULT_EVENT.receiptLinks ?? []
-    )
-    const [actLinks, setActLinks] = useState(
-      event?.actLinks ?? DEFAULT_EVENT.actLinks ?? []
-    )
-    const [contractLinks, setContractLinks] = useState(
-      event?.contractLinks ?? DEFAULT_EVENT.contractLinks ?? []
-    )
-    const [documentFiles, setDocumentFiles] = useState(
-      event?.documentFiles ?? DEFAULT_EVENT.documentFiles ?? []
+    const [documents, setDocuments] = useState(() =>
+      mergeLegacyEventDocuments(
+        clone ? DEFAULT_EVENT : (event ?? DEFAULT_EVENT)
+      )
     )
     const [address, setAddress] = useState(() => {
       const normalized = normalizeAddressValue(event?.address)
@@ -394,13 +363,8 @@ const eventFunc = (
         eventType: event?.eventType ?? DEFAULT_EVENT.eventType,
         financeComment: event?.financeComment ?? DEFAULT_EVENT.financeComment,
         dateEnd: event?.dateEnd ?? DEFAULT_EVENT.dateEnd,
-        invoiceLinks: event?.invoiceLinks ?? DEFAULT_EVENT.invoiceLinks ?? [],
-        receiptLinks: event?.receiptLinks ?? DEFAULT_EVENT.receiptLinks ?? [],
-        actLinks: event?.actLinks ?? DEFAULT_EVENT.actLinks ?? [],
-        contractLinks:
-          event?.contractLinks ?? DEFAULT_EVENT.contractLinks ?? [],
-        documentFiles: normalizeDocumentFilesList(
-          event?.documentFiles ?? DEFAULT_EVENT.documentFiles ?? []
+        documents: mergeLegacyEventDocuments(
+          clone ? DEFAULT_EVENT : (event ?? DEFAULT_EVENT)
         ),
         calendarImportChecked:
           event?.calendarImportChecked ??
@@ -421,34 +385,10 @@ const eventFunc = (
             ),
       }
     }, [
-      event?.clientId,
-      event?.eventDate,
-      event?.address,
-      event?.contractSum,
-      event?.waitDeposit,
-      event?.depositDueAt,
-      event?.depositExpectedAmount,
-      event?.description,
-      event?.eventType,
-      event?.isByContract,
-      event?.financeComment,
-      event?.comment,
-      event?.dateEnd,
-      event?.invoiceLinks,
-      event?.receiptLinks,
-      event?.actLinks,
-      event?.contractLinks,
-      event?.documentFiles,
-      event?.calendarImportChecked,
-      event?.colleagueId,
-      event?.otherContacts,
-      event?.servicesIds,
+      event,
       initialIsTransferred,
       initialStatusValue,
-      event?.requestCreatedAt,
-      event?.createdAt,
       requestCreatedAt,
-      event?.additionalEvents,
       siteSettings?.defaultTown,
     ])
 
@@ -483,16 +423,8 @@ const eventFunc = (
         initialEventValues.requestCreatedAt !== requestCreatedAt ||
         JSON.stringify(initialEventValues.additionalEvents ?? []) !==
           JSON.stringify(additionalEvents) ||
-        JSON.stringify(initialEventValues.invoiceLinks ?? []) !==
-          JSON.stringify(invoiceLinks) ||
-        JSON.stringify(initialEventValues.receiptLinks ?? []) !==
-          JSON.stringify(receiptLinks) ||
-        JSON.stringify(initialEventValues.actLinks ?? []) !==
-          JSON.stringify(actLinks) ||
-        JSON.stringify(initialEventValues.contractLinks ?? []) !==
-          JSON.stringify(contractLinks) ||
-        JSON.stringify(initialEventValues.documentFiles ?? []) !==
-          JSON.stringify(documentFiles) ||
+        JSON.stringify(initialEventValues.documents ?? []) !==
+          JSON.stringify(documents) ||
         initialEventValues.calendarImportChecked !== calendarImportChecked ||
         JSON.stringify(initialEventValues.servicesIds ?? []) !==
           JSON.stringify(servicesIds) ||
@@ -514,11 +446,7 @@ const eventFunc = (
         description,
         eventType,
         financeComment,
-        invoiceLinks,
-        receiptLinks,
-        actLinks,
-        contractLinks,
-        documentFiles,
+        documents,
         calendarImportChecked,
         servicesIds,
         otherContacts,
@@ -699,11 +627,7 @@ const eventFunc = (
         typeof contractSum === 'number' && !Number.isNaN(contractSum)
           ? contractSum
           : 0
-      const normalizedInvoiceLinks = normalizeLinksList(invoiceLinks)
-      const normalizedReceiptLinks = normalizeLinksList(receiptLinks)
-      const normalizedActLinks = normalizeLinksList(actLinks)
-      const normalizedContractLinks = normalizeLinksList(contractLinks)
-      const normalizedDocumentFiles = normalizeDocumentFilesList(documentFiles)
+      const normalizedDocuments = normalizeEventDocuments(documents)
       const normalizedOtherContacts = normalizeOtherContacts(otherContacts)
         .map((item) => ({
           clientId: item.clientId ?? null,
@@ -752,11 +676,7 @@ const eventFunc = (
       }
 
       if (canUseDocuments) {
-        payload.invoiceLinks = normalizedInvoiceLinks
-        payload.receiptLinks = normalizedReceiptLinks
-        payload.actLinks = normalizedActLinks
-        payload.contractLinks = normalizedContractLinks
-        payload.documentFiles = normalizedDocumentFiles
+        payload.documents = normalizedDocuments
       }
 
       return {
@@ -772,28 +692,24 @@ const eventFunc = (
       canUseDocuments,
       clientId,
       colleagueId,
-      contractLinks,
       contractSum,
       dateEnd,
       depositDueAt,
       depositExpectedAmount,
       description,
+      documents,
       eventDate,
       eventType,
       financeComment,
       hasDepositTransaction,
-      invoiceLinks,
       isByContract,
       isTransferred,
       otherContacts,
-      receiptLinks,
       requestCreatedAt,
       servicesIds,
       sourceEventId,
       status,
       waitDeposit,
-      actLinks,
-      documentFiles,
     ])
 
     const currentSavePayloadKey = useMemo(
@@ -1363,6 +1279,126 @@ const eventFunc = (
       },
       []
     )
+    const documentTemplates = useMemo(
+      () => normalizeDocumentTemplatesFromSettings(siteSettings?.custom ?? {}),
+      [siteSettings?.custom]
+    )
+
+    const openDocumentTemplateModal = (template) => {
+      if (!template?.templateBase64) return
+      const settingsRef = { current: siteSettings }
+      const lastNumberKey = getDocumentLastNumberKey(template.type)
+      const currentLastNumber = Number(siteSettings?.custom?.[lastNumberKey])
+      const nextDefaultNumber =
+        Number.isFinite(currentLastNumber) && currentLastNumber > 0
+          ? currentLastNumber + 1
+          : 1
+      const now = new Date()
+      const defaultDocumentDate = `${now.getFullYear()}-${String(
+        now.getMonth() + 1
+      ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      const numberRef = { current: String(nextDefaultNumber) }
+      const dateRef = { current: defaultDocumentDate }
+      const clientRef = { current: selectedClient }
+
+      const updateLastDocumentNumber = async (value) => {
+        const parsed = Number(String(value ?? '').trim())
+        if (!Number.isFinite(parsed) || parsed <= 0) return
+        const currentSettings = settingsRef.current
+        const previous = Number(currentSettings?.custom?.[lastNumberKey])
+        if (Number.isFinite(previous) && previous >= parsed) return
+        await postData(
+          '/api/site',
+          {
+            custom: {
+              ...(currentSettings?.custom ?? {}),
+              [lastNumberKey]: parsed,
+            },
+          },
+          (data) => setSiteSettings(data),
+          null,
+          false,
+          loggedUser?._id
+        )
+      }
+
+      const DocumentTemplatePreview = () => {
+        const liveSiteSettings = useAtomValue(siteSettingsAtom)
+        const [documentNumber, setDocumentNumber] = useState(
+          String(nextDefaultNumber)
+        )
+        const [documentDate, setDocumentDate] = useState(defaultDocumentDate)
+
+        useEffect(() => {
+          numberRef.current = documentNumber
+        }, [documentNumber])
+        useEffect(() => {
+          dateRef.current = documentDate
+        }, [documentDate])
+        useEffect(() => {
+          settingsRef.current = liveSiteSettings
+        }, [liveSiteSettings])
+
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="rounded border border-gray-200 px-3 py-2 text-sm text-gray-700">
+              {template.name} ·{' '}
+              {getDocumentTypeLabel(template.type, template.customTypeName)}
+            </div>
+            <div className="mt-1.5 flex items-end gap-2">
+              <Input
+                label="№ документа"
+                value={documentNumber}
+                onChange={setDocumentNumber}
+                type="number"
+                min={1}
+                noMargin
+                className="w-[104px]"
+                inputClassName="hide-number-spin w-[35px]"
+              />
+              <Input
+                label="Дата документа"
+                value={documentDate}
+                onChange={setDocumentDate}
+                type="date"
+                noMargin
+                className="w-[150px]"
+              />
+            </div>
+          </div>
+        )
+      }
+
+      modalsFunc.add({
+        title: 'Формирование документа',
+        confirmButtonName: 'Скачать Word (.docx)',
+        declineButtonName: 'Закрыть',
+        showDecline: true,
+        onConfirm: async () => {
+          const documentNumber = numberRef.current
+          const documentDate = dateRef.current
+          const fileName = `${template.name} №${String(documentNumber || '').trim() || '1'} от ${formatDateForDocFileName(documentDate) || formatDateForDocFileName(new Date())}.docx`
+          const buildVariables =
+            template.type === DOCUMENT_TYPES.ACT
+              ? buildActTemplateVariables
+              : buildContractTemplateVariables
+          const variables = buildVariables(
+            documentNumber,
+            documentDate,
+            settingsRef.current,
+            'docx',
+            clientRef.current
+          )
+          await exportDocxFromTemplate({
+            templateBase64: template.templateBase64,
+            fileName,
+            variables,
+          })
+          await updateLastDocumentNumber(documentNumber)
+        },
+        Children: DocumentTemplatePreview,
+      })
+    }
 
     const eventTypeOptions = useMemo(() => {
       const rawEventTypes = Array.isArray(siteSettings?.custom?.eventTypes)
@@ -2352,24 +2388,48 @@ const eventFunc = (
               noMargin
             />
             {isByContract && canUseDocuments && (
-              <div className="flex flex-wrap items-center gap-2">
-                <AppButton
-                  variant="secondary"
-                  size="sm"
-                  className="rounded"
-                  onClick={openContractTemplateModal}
-                >
-                  Сформировать договор
-                </AppButton>
-                <AppButton
-                  variant="secondary"
-                  size="sm"
-                  className="rounded"
-                  onClick={openActTemplateModal}
-                >
-                  Сформировать акт
-                </AppButton>
-              </div>
+              <LabeledContainer label="Сформировать документ" noMargin>
+                <div className="flex w-full flex-col gap-2">
+                  {documentTemplates.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {documentTemplates.map((template) => (
+                        <button
+                          key={template.id}
+                          type="button"
+                          className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+                          onClick={() => openDocumentTemplateModal(template)}
+                        >
+                          {template.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        Загрузите DOCX-шаблоны на странице Документы.
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <AppButton
+                          variant="secondary"
+                          size="sm"
+                          className="rounded"
+                          onClick={openContractTemplateModal}
+                        >
+                          Стандартный договор
+                        </AppButton>
+                        <AppButton
+                          variant="secondary"
+                          size="sm"
+                          className="rounded"
+                          onClick={openActTemplateModal}
+                        >
+                          Стандартный акт
+                        </AppButton>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </LabeledContainer>
             )}
             {isDraft ? (
               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -2377,38 +2437,15 @@ const eventFunc = (
               </div>
             ) : null}
             {isByContract && !isDraft && canUseDocuments && (
-              <div className="mt-3 flex flex-col gap-3">
-                <LinksListEditor
-                  label="Ссылки на договора"
-                  links={contractLinks}
-                  onChange={setContractLinks}
-                  noMargin
-                />
-                <LinksListEditor
-                  label="Ссылки на счета"
-                  links={invoiceLinks}
-                  onChange={setInvoiceLinks}
-                  noMargin
-                />
-                <LinksListEditor
-                  label="Ссылки на чеки"
-                  links={receiptLinks}
-                  onChange={setReceiptLinks}
-                  noMargin
-                />
-                <LinksListEditor
-                  label="Ссылки на акты"
-                  links={actLinks}
-                  onChange={setActLinks}
-                  noMargin
-                />
-                <EventDocumentFilesEditor
-                  label="Файлы и документы"
-                  files={documentFiles}
-                  onChange={setDocumentFiles}
-                  directory={documentsUploadBaseDirectory}
-                  noMargin
-                />
+              <div className="mt-3">
+                <LabeledContainer label="Документы мероприятия" noMargin>
+                  <EventDocumentsEditor
+                    documents={documents}
+                    onChange={setDocuments}
+                    directory={documentsUploadBaseDirectory}
+                    noMargin
+                  />
+                </LabeledContainer>
               </div>
             )}
 

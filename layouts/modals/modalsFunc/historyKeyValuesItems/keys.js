@@ -18,6 +18,7 @@ export const eventKeys = {
   receiptLinks: 'Ссылки на чеки',
   actLinks: 'Ссылки на акты',
   documentFiles: 'Файлы и документы',
+  documents: 'Документы мероприятия',
   isTransferred: 'Передано коллеге',
   colleagueId: 'Коллега',
   otherContacts: 'Прочие контакты',
