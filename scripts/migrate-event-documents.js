@@ -25,6 +25,7 @@ const loadEnvFile = (filePath) => {
 }
 
 const connect = async () => {
+  loadEnvFile(path.join(process.cwd(), '.env'))
   loadEnvFile(path.join(process.cwd(), '.env.local'))
   if (!process.env.MONGODB_URI) {
     throw new Error('MONGODB_URI is missing')
