@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useAtomValue } from 'jotai'
 import ComboBox from '@components/ComboBox'
 import Input from '@components/Input'
 import { sendFile } from '@helpers/cloudinary'
@@ -11,6 +12,7 @@ import {
   getDocumentTypeLabel,
 } from '@helpers/documentTypes'
 import { normalizeEventDocuments } from '@helpers/eventDocuments'
+import { modalsFuncAtom } from '@state/atoms'
 
 const CLOUD_UPLOADS_URL = 'https://cloud.escalion.ru/uploads'
 
@@ -54,123 +56,264 @@ const EventDocumentsEditor = ({
   directory,
   noMargin = false,
 }) => {
-  const fileInputRef = useRef(null)
-  const [linkType, setLinkType] = useState(DOCUMENT_TYPES.CONTRACT)
-  const [linkCustomTypeName, setLinkCustomTypeName] = useState('')
-  const [linkTitle, setLinkTitle] = useState('')
-  const [linkUrl, setLinkUrl] = useState('')
-  const [fileType, setFileType] = useState(DOCUMENT_TYPES.OTHER)
-  const [fileCustomTypeName, setFileCustomTypeName] = useState('')
-  const [fileTitle, setFileTitle] = useState('')
-  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const modalsFunc = useAtomValue(modalsFuncAtom)
 
   const safeDocuments = useMemo(
     () => normalizeEventDocuments(documents),
     [documents]
   )
 
-  const emitChange = (nextDocuments) => {
-    onChange?.(normalizeEventDocuments(nextDocuments))
-  }
+  const emitChange = useCallback(
+    (nextDocuments) => {
+      onChange?.(normalizeEventDocuments(nextDocuments))
+    },
+    [onChange]
+  )
 
   const buildTitle = (title, type, customTypeName) =>
     String(title ?? '').trim() || getDocumentDefaultTitle(type, customTypeName)
 
-  const handleAddLink = () => {
-    const url = String(linkUrl ?? '').trim()
-    if (!url) {
-      setError('Добавьте ссылку на документ')
-      return
-    }
-    const customTypeName =
-      linkType === DOCUMENT_TYPES.OTHER ? linkCustomTypeName.trim() : ''
-    emitChange([
-      ...safeDocuments,
-      {
-        id: createId(),
-        type: linkType,
-        customTypeName,
-        title: buildTitle(linkTitle, linkType, customTypeName),
-        url,
-        file: null,
-        createdAt: new Date().toISOString(),
-      },
-    ])
-    setError('')
-    setLinkTitle('')
-    setLinkUrl('')
-  }
-
-  const handleFilesSelected = async (event) => {
-    const selectedFiles = Array.from(event.target.files ?? [])
-    event.target.value = ''
-    if (!selectedFiles.length || !directory) return
-    setUploading(true)
-    setError('')
-    try {
-      const customTypeName =
-        fileType === DOCUMENT_TYPES.OTHER ? fileCustomTypeName.trim() : ''
-      const uploadedDocuments = []
-      for (const sourceFile of selectedFiles) {
-        const uploadItems = await sendFile(
-          sourceFile,
-          null,
-          directory,
-          null,
-          'artistcrm',
-          setError
-        )
-        const normalizedItems = Array.isArray(uploadItems)
-          ? uploadItems
-          : [uploadItems]
-        normalizedItems.forEach((uploadItem) => {
-          const url = normalizeUploadUrl(uploadItem, directory)
-          if (!url) return
-          const name =
-            uploadItem?.originalName ||
-            uploadItem?.name ||
-            uploadItem?.fileName ||
-            sourceFile.name ||
-            url.split('/').pop() ||
-            'Документ'
-          uploadedDocuments.push({
-            id: createId(),
-            type: fileType,
-            customTypeName,
-            title: buildTitle(fileTitle || name, fileType, customTypeName),
-            url: '',
-            file: {
-              name,
-              url,
-              path: uploadItem?.path || uploadItem?.filePath || '',
-              size: sourceFile.size ?? uploadItem?.size ?? 0,
-              contentType: sourceFile.type ?? uploadItem?.type ?? '',
-            },
-            createdAt: new Date().toISOString(),
-          })
-        })
-      }
-      if (uploadedDocuments.length > 0) {
-        emitChange([...safeDocuments, ...uploadedDocuments])
-        setFileTitle('')
-      }
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const updateDocument = (id, patch) => {
-    emitChange(
-      safeDocuments.map((document) =>
-        document.id === id ? { ...document, ...patch } : document
-      )
-    )
-  }
-
   const removeDocument = (id) => {
     if (!window.confirm('Удалить документ из мероприятия?')) return
     emitChange(safeDocuments.filter((document) => document.id !== id))
+  }
+
+  const openAddDocumentModal = () => {
+    const AddEventDocumentModal = ({
+      closeModal,
+      setOnConfirmFunc,
+      setConfirmButtonName,
+      setDisableConfirm,
+    }) => {
+      const [mode, setMode] = useState('link')
+      const [type, setType] = useState(DOCUMENT_TYPES.CONTRACT)
+      const [customTypeName, setCustomTypeName] = useState('')
+      const [title, setTitle] = useState('')
+      const [url, setUrl] = useState('')
+      const [file, setFile] = useState(null)
+      const [localError, setLocalError] = useState('')
+      const [saving, setSaving] = useState(false)
+      const confirmRef = useRef(null)
+
+      const handleConfirm = useCallback(async () => {
+        const normalizedCustomTypeName =
+          type === DOCUMENT_TYPES.OTHER ? customTypeName.trim() : ''
+        const now = new Date().toISOString()
+
+        if (mode === 'link') {
+          const normalizedUrl = String(url ?? '').trim()
+          if (!normalizedUrl) {
+            setLocalError('Добавьте ссылку на документ')
+            return
+          }
+          emitChange([
+            ...safeDocuments,
+            {
+              id: createId(),
+              type,
+              customTypeName: normalizedCustomTypeName,
+              title: buildTitle(title, type, normalizedCustomTypeName),
+              url: normalizedUrl,
+              file: null,
+              createdAt: now,
+            },
+          ])
+          setError('')
+          closeModal()
+          return
+        }
+
+        if (!directory) {
+          setLocalError('Сначала сохраните мероприятие, затем прикрепите файл')
+          return
+        }
+        if (!file) {
+          setLocalError('Выберите файл документа')
+          return
+        }
+
+        setSaving(true)
+        setLocalError('')
+        try {
+          const uploadItems = await sendFile(
+            file,
+            null,
+            directory,
+            null,
+            'artistcrm',
+            setLocalError
+          )
+          const normalizedItems = Array.isArray(uploadItems)
+            ? uploadItems
+            : [uploadItems]
+          const uploadedDocuments = normalizedItems
+            .map((uploadItem) => {
+              const fileUrl = normalizeUploadUrl(uploadItem, directory)
+              if (!fileUrl) return null
+              const name =
+                uploadItem?.originalName ||
+                uploadItem?.name ||
+                uploadItem?.fileName ||
+                file.name ||
+                fileUrl.split('/').pop() ||
+                'Документ'
+              return {
+                id: createId(),
+                type,
+                customTypeName: normalizedCustomTypeName,
+                title: buildTitle(title || name, type, normalizedCustomTypeName),
+                url: '',
+                file: {
+                  name,
+                  url: fileUrl,
+                  path: uploadItem?.path || uploadItem?.filePath || '',
+                  size: file.size ?? uploadItem?.size ?? 0,
+                  contentType: file.type ?? uploadItem?.type ?? '',
+                },
+                createdAt: now,
+              }
+            })
+            .filter(Boolean)
+
+          if (!uploadedDocuments.length) {
+            setLocalError('Не удалось получить ссылку на загруженный файл')
+            return
+          }
+
+          emitChange([...safeDocuments, ...uploadedDocuments])
+          setError('')
+          closeModal()
+        } finally {
+          setSaving(false)
+        }
+      }, [
+        closeModal,
+        customTypeName,
+        file,
+        mode,
+        title,
+        type,
+        url,
+      ])
+
+      useEffect(() => {
+        confirmRef.current = handleConfirm
+      }, [handleConfirm])
+
+      useEffect(() => {
+        setConfirmButtonName(saving ? 'Загрузка...' : 'Добавить')
+      }, [saving, setConfirmButtonName])
+
+      useEffect(() => {
+        setDisableConfirm(saving)
+      }, [saving, setDisableConfirm])
+
+      useEffect(() => {
+        setOnConfirmFunc(() => confirmRef.current?.())
+      }, [setOnConfirmFunc])
+
+      return (
+        <div className="flex flex-col gap-3">
+          {localError ? (
+            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {localError}
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className={`flex h-10 cursor-pointer items-center justify-center rounded border px-3 text-sm font-semibold ${
+                mode === 'link'
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-gray-200 bg-white text-gray-700'
+              }`}
+              onClick={() => {
+                setMode('link')
+                setLocalError('')
+              }}
+            >
+              Ссылка
+            </button>
+            <button
+              type="button"
+              className={`flex h-10 cursor-pointer items-center justify-center rounded border px-3 text-sm font-semibold ${
+                mode === 'file'
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-gray-200 bg-white text-gray-700'
+              }`}
+              onClick={() => {
+                setMode('file')
+                setLocalError('')
+              }}
+            >
+              Файл
+            </button>
+          </div>
+
+          <ComboBox
+            label="Тип"
+            items={DOCUMENT_TYPE_OPTIONS}
+            value={type}
+            onChange={(value) => setType(value || DOCUMENT_TYPES.OTHER)}
+            noMargin
+            fullWidth
+          />
+          {type === DOCUMENT_TYPES.OTHER ? (
+            <Input
+              label="Название типа"
+              value={customTypeName}
+              onChange={setCustomTypeName}
+              noMargin
+              fullWidth
+            />
+          ) : null}
+          <Input
+            label="Название"
+            value={title}
+            onChange={setTitle}
+            noMargin
+            fullWidth
+          />
+          {mode === 'link' ? (
+            <Input
+              label="Ссылка"
+              value={url}
+              onChange={setUrl}
+              noMargin
+              fullWidth
+            />
+          ) : (
+            <div className="flex flex-col gap-2 rounded border border-gray-200 p-3">
+              <div className="text-sm font-semibold text-gray-800">
+                {file?.name || 'Файл не выбран'}
+              </div>
+              <input
+                type="file"
+                onChange={(event) => {
+                  setLocalError('')
+                  setFile(event.target.files?.[0] ?? null)
+                }}
+              />
+              {!directory ? (
+                <div className="text-xs text-amber-700">
+                  Для прикрепления файла нужно сначала сохранить мероприятие.
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    modalsFunc.add({
+      title: 'Добавить документ',
+      confirmButtonName: 'Добавить',
+      declineButtonName: 'Закрыть',
+      closeButtonName: 'Закрыть',
+      Children: AddEventDocumentModal,
+    })
   }
 
   return (
@@ -181,96 +324,16 @@ const EventDocumentsEditor = ({
         </div>
       ) : null}
 
-      <div className="rounded border border-gray-200 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold text-gray-800">
-          Добавить ссылку
-        </div>
-        <div className="mt-2 grid grid-cols-1 gap-2 tablet:grid-cols-[160px_1fr]">
-          <ComboBox
-            label="Тип"
-            items={DOCUMENT_TYPE_OPTIONS}
-            value={linkType}
-            onChange={(value) => setLinkType(value || DOCUMENT_TYPES.OTHER)}
-            noMargin
-            fullWidth
-          />
-          <Input
-            label="Название"
-            value={linkTitle}
-            onChange={setLinkTitle}
-            noMargin
-            fullWidth
-          />
-          {linkType === DOCUMENT_TYPES.OTHER ? (
-            <Input
-              label="Название типа"
-              value={linkCustomTypeName}
-              onChange={setLinkCustomTypeName}
-              noMargin
-              fullWidth
-            />
-          ) : null}
-          <Input
-            label="Ссылка"
-            value={linkUrl}
-            onChange={setLinkUrl}
-            noMargin
-            fullWidth
-          />
+          Добавленные документы
         </div>
         <button
           type="button"
-          className="action-icon-button action-icon-button--warning mt-2 flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold tablet:w-auto"
-          onClick={handleAddLink}
+          className="action-icon-button action-icon-button--warning flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold tablet:w-auto"
+          onClick={openAddDocumentModal}
         >
-          Добавить ссылку
-        </button>
-      </div>
-
-      <div className="rounded border border-gray-200 p-3">
-        <div className="text-sm font-semibold text-gray-800">
-          Прикрепить файл
-        </div>
-        <div className="mt-2 grid grid-cols-1 gap-2 tablet:grid-cols-[160px_1fr]">
-          <ComboBox
-            label="Тип"
-            items={DOCUMENT_TYPE_OPTIONS}
-            value={fileType}
-            onChange={(value) => setFileType(value || DOCUMENT_TYPES.OTHER)}
-            noMargin
-            fullWidth
-          />
-          <Input
-            label="Название"
-            value={fileTitle}
-            onChange={setFileTitle}
-            noMargin
-            fullWidth
-          />
-          {fileType === DOCUMENT_TYPES.OTHER ? (
-            <Input
-              label="Название типа"
-              value={fileCustomTypeName}
-              onChange={setFileCustomTypeName}
-              noMargin
-              fullWidth
-            />
-          ) : null}
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={handleFilesSelected}
-        />
-        <button
-          type="button"
-          className="action-icon-button action-icon-button--warning mt-2 flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold tablet:w-auto"
-          disabled={uploading || !directory}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {uploading ? 'Загрузка...' : 'Выбрать файл'}
+          Добавить документ
         </button>
       </div>
 
@@ -283,69 +346,35 @@ const EventDocumentsEditor = ({
           safeDocuments.map((document) => (
             <div
               key={document.id}
-              className="rounded border border-gray-200 p-3"
+              className="flex flex-col gap-2 rounded border border-gray-200 p-3 tablet:flex-row tablet:items-center tablet:justify-between"
             >
-              <div className="grid grid-cols-1 gap-2 tablet:grid-cols-[160px_1fr]">
-                <ComboBox
-                  label="Тип"
-                  items={DOCUMENT_TYPE_OPTIONS}
-                  value={document.type}
-                  onChange={(value) => {
-                    const nextType = value || DOCUMENT_TYPES.OTHER
-                    updateDocument(document.id, {
-                      type: nextType,
-                      customTypeName: '',
-                      title: getDocumentDefaultTitle(nextType),
-                    })
-                  }}
-                  noMargin
-                  fullWidth
-                />
-                <Input
-                  label="Название"
-                  value={document.title}
-                  onChange={(value) =>
-                    updateDocument(document.id, { title: value })
-                  }
-                  noMargin
-                  fullWidth
-                />
-                {document.type === DOCUMENT_TYPES.OTHER ? (
-                  <Input
-                    label="Название типа"
-                    value={document.customTypeName}
-                    onChange={(value) =>
-                      updateDocument(document.id, { customTypeName: value })
-                    }
-                    noMargin
-                    fullWidth
-                  />
-                ) : null}
-              </div>
-              <a
-                href={document.url || document.file?.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 block truncate text-xs text-gray-500 hover:text-gray-900"
-              >
-                {getDocumentTypeLabel(
-                  document.type,
-                  document.customTypeName
-                )}{' '}
-                · {document.url || document.file?.name || 'Документ'}
-                {formatFileSize(document.file?.size)
-                  ? ` · ${formatFileSize(document.file.size)}`
-                  : ''}
-              </a>
-              <div className="mt-2 flex justify-end">
-                <button
-                  type="button"
-                  className="action-icon-button action-icon-button--warning flex h-8 cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
-                  onClick={() => removeDocument(document.id)}
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-gray-800">
+                  {document.title || getDocumentDefaultTitle(document.type)}
+                </div>
+                <a
+                  href={document.url || document.file?.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 block truncate text-xs text-gray-500 hover:text-gray-900"
                 >
-                  Удалить
-                </button>
+                  {getDocumentTypeLabel(
+                    document.type,
+                    document.customTypeName
+                  )}{' '}
+                  · {document.url || document.file?.name || 'Документ'}
+                  {formatFileSize(document.file?.size)
+                    ? ` · ${formatFileSize(document.file.size)}`
+                    : ''}
+                </a>
               </div>
+              <button
+                type="button"
+                className="action-icon-button action-icon-button--warning flex h-8 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold tablet:w-auto"
+                onClick={() => removeDocument(document.id)}
+              >
+                Удалить
+              </button>
             </div>
           ))
         )}
