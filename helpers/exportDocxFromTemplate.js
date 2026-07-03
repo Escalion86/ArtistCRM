@@ -323,6 +323,7 @@ const exportDocxFromTemplate = async ({
   templateBase64,
   fileName = 'document.docx',
   variables = {},
+  download = true,
 }) => {
   if (typeof window === 'undefined') return false
   const bytes = base64ToUint8Array(templateBase64)
@@ -359,8 +360,8 @@ const exportDocxFromTemplate = async ({
     mimeType:
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   })
-  downloadBlob(output, fileName)
-  return true
+  if (download) downloadBlob(output, fileName)
+  return output
 }
 
 export default exportDocxFromTemplate
