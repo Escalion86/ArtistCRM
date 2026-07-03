@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   hasDocuments,
   normalizeEventDocumentFiles,
+  normalizeEventDocuments,
 } from './eventApiNormalization.js'
 
 test('normalizes event document file metadata', () => {
@@ -47,4 +48,34 @@ test('detects document files as documents', () => {
     }),
     true
   )
+})
+
+test('detects typed documents as documents', () => {
+  assert.equal(
+    hasDocuments({
+      documents: [
+        {
+          type: 'contract',
+          title: 'Договор',
+          url: 'https://example.com/contract',
+        },
+      ],
+    }),
+    true
+  )
+})
+
+test('normalizes typed event documents', () => {
+  const documents = normalizeEventDocuments([
+    {
+      type: 'receipt',
+      title: ' Чек ',
+      url: ' https://example.com/receipt ',
+    },
+  ])
+
+  assert.equal(documents.length, 1)
+  assert.equal(documents[0].type, 'receipt')
+  assert.equal(documents[0].title, 'Чек')
+  assert.equal(documents[0].url, 'https://example.com/receipt')
 })

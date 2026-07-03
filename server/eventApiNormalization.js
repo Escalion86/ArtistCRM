@@ -1,25 +1,9 @@
-const hasDocuments = (payload) => {
-  const invoiceLinks = Array.isArray(payload?.invoiceLinks)
-    ? payload.invoiceLinks
-    : []
-  const receiptLinks = Array.isArray(payload?.receiptLinks)
-    ? payload.receiptLinks
-    : []
-  const actLinks = Array.isArray(payload?.actLinks) ? payload.actLinks : []
-  const contractLinks = Array.isArray(payload?.contractLinks)
-    ? payload.contractLinks
-    : []
-  const documentFiles = Array.isArray(payload?.documentFiles)
-    ? payload.documentFiles
-    : []
-  return (
-    invoiceLinks.some((item) => Boolean(item)) ||
-    receiptLinks.some((item) => Boolean(item)) ||
-    actLinks.some((item) => Boolean(item)) ||
-    contractLinks.some((item) => Boolean(item)) ||
-    documentFiles.some((item) => Boolean(item?.url))
-  )
-}
+import {
+  eventHasDocuments,
+  normalizeEventDocuments,
+} from '../helpers/eventDocuments.js'
+
+const hasDocuments = (payload) => eventHasDocuments(payload)
 
 const parseDateValue = (value) => {
   if (!value) return null
@@ -102,4 +86,5 @@ export {
   normalizeDepositExpectedAmount,
   normalizeAdditionalEvents,
   normalizeEventDocumentFiles,
+  normalizeEventDocuments,
 }

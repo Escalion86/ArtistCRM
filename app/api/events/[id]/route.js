@@ -22,6 +22,7 @@ import {
   normalizeAdditionalEvents,
   normalizeDepositExpectedAmount,
   normalizeEventDocumentFiles,
+  normalizeEventDocuments,
   normalizeEventType,
   normalizeWaitDeposit,
   parseDateValue,
@@ -254,6 +255,8 @@ export const PUT = async (req, { params }) => {
       : []
   if (body.documentFiles !== undefined)
     update.documentFiles = normalizeEventDocumentFiles(body.documentFiles)
+  if (body.documents !== undefined)
+    update.documents = normalizeEventDocuments(body.documents)
   if (body.isByContract !== undefined)
     update.isByContract = Boolean(body.isByContract)
   if (body.servicesIds !== undefined)

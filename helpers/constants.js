@@ -239,6 +239,7 @@ export const DEFAULT_EVENT = Object.freeze({
   actLinks: [],
   contractLinks: [],
   documentFiles: [],
+  documents: [],
   servicesIds: [],
   address: DEFAULT_ADDRESS,
   status: 'active',
