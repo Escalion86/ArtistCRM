@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import LabeledContainer from '@components/LabeledContainer'
+import ComboBox from '@components/ComboBox'
+import Input from '@components/Input'
 import ReactMarkdown from 'react-markdown'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
@@ -10,6 +12,15 @@ import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
+import {
+  DOCUMENT_TYPE_OPTIONS,
+  DOCUMENT_TYPES,
+  getDocumentTypeLabel,
+} from '@helpers/documentTypes'
+import {
+  normalizeDocumentTemplatesFromSettings,
+  validateDocxTemplateFileMeta,
+} from '@helpers/documentTemplates'
 
 const DEFAULT_CONTRACT_TEMPLATE_DOWNLOAD_URL =
   '/templates/default-contract-template.docx'
@@ -109,15 +120,17 @@ const DocumentsContent = () => {
   const tariffs = useAtomValue(tariffsAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
-  const contractTemplateInputRef = useRef(null)
-  const actTemplateInputRef = useRef(null)
 
-  const customSettings = siteSettings?.custom ?? {}
+  const customSettings = useMemo(() => siteSettings?.custom ?? {}, [siteSettings])
   const tariffAccess = useMemo(
     () => getUserTariffAccess(loggedUser, tariffs),
     [loggedUser, tariffs]
   )
   const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
+  const documentTemplates = useMemo(
+    () => normalizeDocumentTemplatesFromSettings(customSettings),
+    [customSettings]
+  )
 
   const readFileAsBase64 = (file) =>
     new Promise((resolve, reject) => {
@@ -131,35 +144,160 @@ const DocumentsContent = () => {
       reader.readAsDataURL(file)
     })
 
-  const saveDocxTemplate = async (type, file) => {
-    if (!file) return
-    if (
-      file.type !==
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ) {
-      return
-    }
-    const base64 = await readFileAsBase64(file)
-    const prevCustom = siteSettings?.custom ?? {}
-    const nextCustom = {
-      ...prevCustom,
-    }
-    if (type === 'contract') {
-      nextCustom.contractDocxTemplateBase64 = base64
-      nextCustom.contractDocxTemplateFileName = file.name
-    } else {
-      nextCustom.actDocxTemplateBase64 = base64
-      nextCustom.actDocxTemplateFileName = file.name
-    }
+  const saveDocumentTemplates = async (templates) => {
+    const normalizedTemplates = normalizeDocumentTemplatesFromSettings({
+      documentTemplates: templates,
+    })
 
     await postData(
       '/api/site',
-      { custom: nextCustom },
+      {
+        custom: {
+          ...(siteSettings?.custom ?? {}),
+          documentTemplates: normalizedTemplates,
+        },
+      },
       (data) => setSiteSettings(data),
       null,
       false,
       null
     )
+  }
+
+  const openTemplateEditor = (template = null) => {
+    const isEdit = Boolean(template?.id)
+
+    const TemplateEditor = ({ closeModal, setOnConfirmFunc }) => {
+      const [name, setName] = useState(template?.name ?? '')
+      const [type, setType] = useState(template?.type ?? DOCUMENT_TYPES.CONTRACT)
+      const [customTypeName, setCustomTypeName] = useState(
+        template?.customTypeName ?? ''
+      )
+      const [file, setFile] = useState(null)
+      const [error, setError] = useState('')
+      const confirmRef = useRef(null)
+
+      const handleSave = useCallback(async () => {
+        const normalizedName = String(name ?? '').trim()
+        if (!normalizedName) {
+          setError('Введите название шаблона')
+          return
+        }
+        if (!isEdit && !file) {
+          setError('Загрузите DOCX-файл')
+          return
+        }
+        if (file) {
+          const validation = validateDocxTemplateFileMeta(file)
+          if (!validation.valid) {
+            setError(validation.error)
+            return
+          }
+        }
+
+        const now = new Date().toISOString()
+        const base64 = file ? await readFileAsBase64(file) : ''
+        const nextTemplate = {
+          id:
+            template?.id ||
+            (typeof crypto !== 'undefined' && crypto?.randomUUID
+              ? crypto.randomUUID()
+              : `template-${Date.now()}`),
+          name: normalizedName,
+          type,
+          customTypeName:
+            type === DOCUMENT_TYPES.OTHER
+              ? String(customTypeName ?? '').trim()
+              : '',
+          fileName: file?.name || template?.fileName || 'template.docx',
+          templateBase64: base64 || template?.templateBase64 || '',
+          createdAt: template?.createdAt || now,
+          updatedAt: now,
+        }
+        const nextTemplates = isEdit
+          ? documentTemplates.map((item) =>
+              item.id === template.id ? nextTemplate : item
+            )
+          : [...documentTemplates, nextTemplate]
+        await saveDocumentTemplates(nextTemplates)
+        closeModal()
+      }, [
+        closeModal,
+        customTypeName,
+        file,
+        name,
+        type,
+      ])
+
+      useEffect(() => {
+        confirmRef.current = handleSave
+      }, [handleSave])
+
+      useEffect(() => {
+        setOnConfirmFunc(() => confirmRef.current?.())
+      }, [setOnConfirmFunc])
+
+      return (
+        <div className="flex flex-col gap-3">
+          {error ? (
+            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          ) : null}
+          <Input
+            label="Название шаблона"
+            value={name}
+            onChange={setName}
+            noMargin
+            fullWidth
+          />
+          <ComboBox
+            label="Тип документа"
+            items={DOCUMENT_TYPE_OPTIONS}
+            value={type}
+            onChange={(value) => setType(value || DOCUMENT_TYPES.OTHER)}
+            noMargin
+            fullWidth
+          />
+          {type === DOCUMENT_TYPES.OTHER ? (
+            <Input
+              label="Название типа"
+              value={customTypeName}
+              onChange={setCustomTypeName}
+              noMargin
+              fullWidth
+            />
+          ) : null}
+          <div className="flex flex-col gap-2 rounded border border-gray-200 p-3">
+            <div className="text-sm font-semibold text-gray-800">
+              {file?.name ||
+                template?.fileName ||
+                (isEdit ? 'Файл не изменяется' : 'Файл не выбран')}
+            </div>
+            <input
+              type="file"
+              accept=".docx"
+              onChange={(event) => {
+                setError('')
+                setFile(event.target.files?.[0] ?? null)
+              }}
+            />
+            <div className="text-xs text-gray-500">
+              DOCX-шаблон до 5 МБ. Для редактирования можно оставить текущий
+              файл.
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    modalsFunc.add({
+      title: isEdit ? 'Редактирование шаблона' : 'Новый шаблон',
+      confirmButtonName: 'Сохранить',
+      declineButtonName: 'Закрыть',
+      showDecline: true,
+      Children: TemplateEditor,
+    })
   }
 
   return (
@@ -197,79 +335,83 @@ const DocumentsContent = () => {
                   Открыть инструкцию DOCX
                 </button>
               </div>
-              <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
-                <div className="p-3 border border-gray-200 rounded">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-sm font-semibold text-gray-800">
-                    DOCX-шаблон договора
+                    Шаблоны документов
                   </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    Текущий:{' '}
-                    {customSettings?.contractDocxTemplateFileName ||
-                      'не загружен'}
-                  </div>
-                  <input
-                    ref={contractTemplateInputRef}
-                    type="file"
-                    accept=".docx"
-                    className="hidden"
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0]
-                      await saveDocxTemplate('contract', file)
-                      event.target.value = ''
-                    }}
-                  />
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <button
-                      type="button"
-                      className="action-icon-button action-icon-button--warning tablet:w-auto tablet:min-w-[168px] flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
-                      onClick={() => contractTemplateInputRef.current?.click()}
-                    >
-                      Загрузить .docx
-                    </button>
-                    <a
-                      href={DEFAULT_CONTRACT_TEMPLATE_DOWNLOAD_URL}
-                      download
-                      className="action-icon-button action-icon-button--warning tablet:w-auto tablet:min-w-[168px] inline-flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
-                    >
-                      Скачать стандартный шаблон
-                    </a>
-                  </div>
+                  <button
+                    type="button"
+                    className="action-icon-button action-icon-button--warning tablet:w-auto flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                    onClick={() => openTemplateEditor()}
+                  >
+                    Добавить шаблон
+                  </button>
                 </div>
-                <div className="p-3 border border-gray-200 rounded">
-                  <div className="text-sm font-semibold text-gray-800">
-                    DOCX-шаблон акта
+                {documentTemplates.length === 0 ? (
+                  <div className="rounded border border-gray-200 p-3 text-sm text-gray-500">
+                    Шаблоны еще не загружены.
                   </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    Текущий:{' '}
-                    {customSettings?.actDocxTemplateFileName || 'не загружен'}
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+                    {documentTemplates.map((template) => (
+                      <div
+                        key={template.id}
+                        className="rounded border border-gray-200 p-3"
+                      >
+                        <div className="text-sm font-semibold text-gray-800">
+                          {template.name}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          {getDocumentTypeLabel(
+                            template.type,
+                            template.customTypeName
+                          )}{' '}
+                          · {template.fileName}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="action-icon-button action-icon-button--warning tablet:w-auto flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                            onClick={() => openTemplateEditor(template)}
+                          >
+                            Редактировать
+                          </button>
+                          <button
+                            type="button"
+                            className="action-icon-button action-icon-button--warning tablet:w-auto flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                            onClick={async () => {
+                              if (!window.confirm('Удалить шаблон документа?'))
+                                return
+                              await saveDocumentTemplates(
+                                documentTemplates.filter(
+                                  (item) => item.id !== template.id
+                                )
+                              )
+                            }}
+                          >
+                            Удалить
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <input
-                    ref={actTemplateInputRef}
-                    type="file"
-                    accept=".docx"
-                    className="hidden"
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0]
-                      await saveDocxTemplate('act', file)
-                      event.target.value = ''
-                    }}
-                  />
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <button
-                      type="button"
-                      className="action-icon-button action-icon-button--warning tablet:w-auto tablet:min-w-[168px] flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
-                      onClick={() => actTemplateInputRef.current?.click()}
-                    >
-                      Загрузить .docx
-                    </button>
-                    <a
-                      href={DEFAULT_ACT_TEMPLATE_DOWNLOAD_URL}
-                      download
-                      className="action-icon-button action-icon-button--warning tablet:w-auto tablet:min-w-[168px] inline-flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
-                    >
-                      Скачать стандартный шаблон
-                    </a>
-                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={DEFAULT_CONTRACT_TEMPLATE_DOWNLOAD_URL}
+                    download
+                    className="action-icon-button action-icon-button--warning tablet:w-auto tablet:min-w-[168px] inline-flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                  >
+                    Скачать пример договора
+                  </a>
+                  <a
+                    href={DEFAULT_ACT_TEMPLATE_DOWNLOAD_URL}
+                    download
+                    className="action-icon-button action-icon-button--warning tablet:w-auto tablet:min-w-[168px] inline-flex h-9 w-full cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
+                  >
+                    Скачать пример акта
+                  </a>
                 </div>
               </div>
             </div>
