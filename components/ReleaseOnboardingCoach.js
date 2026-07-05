@@ -276,7 +276,7 @@ const ReleaseOnboardingCoach = () => {
         id: 'demo',
         title: 'Создайте учебную заявку',
         description:
-          'Учебная заявка покажет, когда ее переводить в мероприятие или подтвержденный заказ, а когда закрывать.',
+          'Учебная заявка покажет путь от интереса клиента до закрытия. Если пример не нужен, удалите его из списка мероприятий через меню карточки.',
         done: hasAnyEvent || demoEventCreated || demoEventSkipped,
         actionText: isCreatingDemoEvent ? 'Создаем...' : 'Создать учебную заявку',
         onAction: createDemoEvent,
