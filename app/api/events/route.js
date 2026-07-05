@@ -7,6 +7,10 @@ import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import { notifyTaskCreated } from '@server/taskPushNotifications'
 import {
+  buildPastCompletionQuery,
+  buildUpcomingCompletionQuery,
+} from '@helpers/eventScopeQueries.mjs'
+import {
   hasDocuments,
   normalizeAdditionalEvents,
   normalizeDepositExpectedAmount,
@@ -33,36 +37,6 @@ const parseBooleanParam = (value) => {
   if (value === '0' || value === 'false') return false
   return null
 }
-
-const buildPastCompletionQuery = (cutoffDate) => ({
-  $or: [
-    { dateEnd: { $lt: cutoffDate } },
-    {
-      $and: [
-        { $or: [{ dateEnd: null }, { dateEnd: { $exists: false } }] },
-        { eventDate: { $lt: cutoffDate } },
-      ],
-    },
-  ],
-})
-
-const buildUpcomingCompletionQuery = (nowDate) => ({
-  $or: [
-    { dateEnd: { $gte: nowDate } },
-    {
-      $and: [
-        { $or: [{ dateEnd: null }, { dateEnd: { $exists: false } }] },
-        { eventDate: { $gte: nowDate } },
-      ],
-    },
-    {
-      $and: [
-        { $or: [{ dateEnd: null }, { dateEnd: { $exists: false } }] },
-        { $or: [{ eventDate: null }, { eventDate: { $exists: false } }] },
-      ],
-    },
-  ],
-})
 
 const buildDateRangeQuery = (dateFrom, dateTo) => {
   const dateFilter = {}
