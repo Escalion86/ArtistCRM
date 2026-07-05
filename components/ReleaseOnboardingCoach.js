@@ -32,6 +32,7 @@ const hasAdditionalEvents = (events = []) =>
 
 const ACTIVITY_PRESET_KEY = 'onboardingActivityPreset'
 const STARTER_SERVICES_CREATED_KEY = 'onboardingStarterServicesCreated'
+const STARTER_SERVICES_MANUAL_KEY = 'onboardingStarterServicesManual'
 const DEMO_EVENT_CREATED_KEY = 'onboardingDemoEventCreated'
 const DEMO_EVENT_SKIPPED_KEY = 'onboardingDemoEventSkipped'
 const EDUCATION_DONE_KEY = 'onboardingEducationDone'
@@ -82,12 +83,15 @@ const ReleaseOnboardingCoach = () => {
   const selectedPreset = getOnboardingPreset(activePresetKey)
   const starterServicesCreated =
     getCustomValue(custom, STARTER_SERVICES_CREATED_KEY) === true
+  const starterServicesManual =
+    getCustomValue(custom, STARTER_SERVICES_MANUAL_KEY) === true
   const demoEventCreated =
     getCustomValue(custom, DEMO_EVENT_CREATED_KEY) === true
   const demoEventSkipped =
     getCustomValue(custom, DEMO_EVENT_SKIPPED_KEY) === true
   const educationDone = getCustomValue(custom, EDUCATION_DONE_KEY) === true
   const hasAnyEvent = Array.isArray(events) && events.length > 0
+  const hasExistingServices = Array.isArray(services) && services.length > 0
 
   const saveCustom = useCallback(
     async (nextCustomPatch) =>
@@ -125,6 +129,12 @@ const ReleaseOnboardingCoach = () => {
     const presetKey = selectedPresetKey || getCustomValue(custom, ACTIVITY_PRESET_KEY)
     const starterServices = getStarterServicesForPreset(presetKey)
     if (!itemsFunc?.service?.set || starterServices.length === 0) return
+    if (Array.isArray(services) && services.length > 0) {
+      snackbar.info(
+        'Вижу, что у вас уже есть услуги. Новые услуги из пресета могут испортить структуру, лучше добавьте нужное вручную.'
+      )
+      return
+    }
 
     setIsCreatingServices(true)
     try {
@@ -149,7 +159,19 @@ const ReleaseOnboardingCoach = () => {
     } finally {
       setIsCreatingServices(false)
     }
-  }, [custom, itemsFunc?.service, saveCustom, selectedPresetKey, setServices, snackbar])
+  }, [
+    custom,
+    itemsFunc?.service,
+    saveCustom,
+    selectedPresetKey,
+    services,
+    setServices,
+    snackbar,
+  ])
+
+  const markStarterServicesManual = useCallback(async () => {
+    await saveCustom({ [STARTER_SERVICES_MANUAL_KEY]: true })
+  }, [saveCustom])
 
   const markEducationDone = useCallback(async () => {
     await saveCustom({ [EDUCATION_DONE_KEY]: true })
@@ -230,19 +252,34 @@ const ReleaseOnboardingCoach = () => {
         title: 'Настройте стартовые услуги',
         description:
           'Начните с 1-3 основных услуг. Группы можно добавить позже, когда список станет большим.',
-        done:
-          (Array.isArray(services) && services.length > 0) ||
-          starterServicesCreated,
-        actionText: isCreatingServices
-          ? 'Создаем...'
-          : 'Создать услуги из пресета',
-        onAction: createStarterServices,
-        secondaryActionText: 'Добавить вручную',
-        onSecondaryAction: () => modalsFunc?.service?.add?.(),
+        done: starterServicesCreated || starterServicesManual,
+        actionText: hasExistingServices
+          ? 'Понятно, добавлю вручную'
+          : isCreatingServices
+            ? 'Создаем...'
+            : 'Создать услуги из пресета',
+        onAction: hasExistingServices
+          ? markStarterServicesManual
+          : createStarterServices,
+        secondaryActionText: hasExistingServices
+          ? 'Открыть услуги'
+          : 'Добавить вручную',
+        onSecondaryAction: hasExistingServices
+          ? () => router.push('/cabinet/services')
+          : () => modalsFunc?.service?.add?.(),
         renderContent: () => (
-          <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-            Группа - это полка, услуга - конкретное предложение. Если услуг
-            мало, оставьте их без группы.
+          <div className="mt-2 flex flex-col gap-2">
+            {hasExistingServices ? (
+              <div className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-800">
+                Вижу, что у вас уже есть созданные услуги. Создание новых услуг
+                из пресета может испортить вашу структуру, поэтому лучше
+                добавьте или поправьте услуги вручную.
+              </div>
+            ) : null}
+            <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+              Группа - это полка, услуга - конкретное предложение. Если услуг
+              мало, оставьте их без группы.
+            </div>
           </div>
         ),
       },
@@ -276,12 +313,19 @@ const ReleaseOnboardingCoach = () => {
         id: 'demo',
         title: 'Создайте учебную заявку',
         description:
-          'Учебная заявка покажет путь от интереса клиента до закрытия. Если пример не нужен, удалите его из списка мероприятий через меню карточки.',
+          'Учебная заявка покажет путь от интереса клиента до закрытия. Дата мероприятия в ней не задается: это еще не подтвержденный заказ.',
         done: hasAnyEvent || demoEventCreated || demoEventSkipped,
         actionText: isCreatingDemoEvent ? 'Создаем...' : 'Создать учебную заявку',
         onAction: createDemoEvent,
         secondaryActionText: 'Пропустить',
         onSecondaryAction: skipDemoEvent,
+        renderContent: () => (
+          <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            В заявке будет создано следующее действие на завтра в 12:00. Если
+            пример не нужен, удалите его из списка мероприятий через меню
+            карточки.
+          </div>
+        ),
       },
       {
         id: 'additional',
@@ -302,17 +346,19 @@ const ReleaseOnboardingCoach = () => {
       educationDone,
       events,
       hasAnyEvent,
+      hasExistingServices,
       isCreatingDemoEvent,
       isCreatingServices,
       isSavingPreset,
+      markStarterServicesManual,
       markEducationDone,
       modalsFunc,
       router,
       selectPreset,
       selectedPreset.key,
-      services,
       skipDemoEvent,
       starterServicesCreated,
+      starterServicesManual,
     ]
   )
 

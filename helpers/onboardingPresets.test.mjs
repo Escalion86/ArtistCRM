@@ -48,6 +48,17 @@ test('demo event payload is visibly marked as educational', () => {
   assert.match(payload.description, /Учебная заявка/)
 })
 
+test('demo event has no event date and creates tomorrow follow-up task', () => {
+  const payload = buildDemoEventPayload('events', [])
+  const taskDate = new Date(payload.additionalEvents[0].date)
+
+  assert.equal(payload.eventDate, null)
+  assert.equal(payload.dateEnd, null)
+  assert.equal(taskDate.getHours(), 12)
+  assert.equal(taskDate.getMinutes(), 0)
+  assert.equal(taskDate.getSeconds(), 0)
+})
+
 test('status education explains all canonical statuses', () => {
   const items = getStatusEducationItems('other')
   assert.deepEqual(
