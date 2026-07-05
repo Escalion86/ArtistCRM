@@ -181,8 +181,14 @@ const userOnboardingFunc = () => {
 
     return (
       <FormWrapper flex className="flex-col gap-3">
-        <div className="text-sm text-gray-600">
-          Заполните обязательные данные для корректной работы системы.
+        <div className="flex flex-col gap-1 text-sm text-gray-600">
+          <span>
+            Эти данные нужны для корректных дат, напоминаний и документов.
+          </span>
+          <span>
+            Город и часовой пояс помогут не ошибаться со временем заявок,
+            событий и перезвонов.
+          </span>
         </div>
         <Input
           label="Имя"
