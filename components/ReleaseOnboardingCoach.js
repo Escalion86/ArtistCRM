@@ -1,14 +1,21 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { getData, postData } from '@helpers/CRUD'
+import {
+  ONBOARDING_ACTIVITY_PRESETS,
+  buildDemoEventPayload,
+  getOnboardingPreset,
+  getStarterServicesForPreset,
+  getStatusEducationItems,
+} from '@helpers/onboardingPresets.mjs'
 import { modalsFuncAtom } from '@state/atoms'
 import eventsAtom from '@state/atoms/eventsAtom'
+import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import servicesAtom from '@state/atoms/servicesAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import cn from 'classnames'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useSnackbar from '@helpers/useSnackbar'
 
 const getCustomValue = (custom, key) => {
@@ -23,10 +30,17 @@ const hasAdditionalEvents = (events = []) =>
       Array.isArray(event?.additionalEvents) && event.additionalEvents.length > 0
   )
 
+const ACTIVITY_PRESET_KEY = 'onboardingActivityPreset'
+const STARTER_SERVICES_CREATED_KEY = 'onboardingStarterServicesCreated'
+const DEMO_EVENT_CREATED_KEY = 'onboardingDemoEventCreated'
+const DEMO_EVENT_SKIPPED_KEY = 'onboardingDemoEventSkipped'
+const EDUCATION_DONE_KEY = 'onboardingEducationDone'
+
 const ReleaseOnboardingCoach = () => {
   const router = useRouter()
   const snackbar = useSnackbar()
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const itemsFunc = useAtomValue(itemsFuncAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
   const services = useAtomValue(servicesAtom)
   const setServices = useSetAtom(servicesAtom)
@@ -37,6 +51,12 @@ const ReleaseOnboardingCoach = () => {
   const [selectedStepIndex, setSelectedStepIndex] = useState(null)
   const [forceShow, setForceShow] = useState(false)
   const [servicesLoaded, setServicesLoaded] = useState(false)
+  const [selectedPresetKey, setSelectedPresetKey] = useState(
+    getCustomValue(siteSettings?.custom, ACTIVITY_PRESET_KEY) || ''
+  )
+  const [isSavingPreset, setIsSavingPreset] = useState(false)
+  const [isCreatingServices, setIsCreatingServices] = useState(false)
+  const [isCreatingDemoEvent, setIsCreatingDemoEvent] = useState(false)
   const manualStepSelectionRef = useRef(false)
   const saveInProgressRef = useRef(false)
 
@@ -53,53 +73,247 @@ const ReleaseOnboardingCoach = () => {
     Boolean(timeZone) &&
     timeZoneConfirmed
 
-  const custom = siteSettings?.custom ?? {}
+  const custom = useMemo(() => siteSettings?.custom ?? {}, [siteSettings?.custom])
   const isCompleted =
     getCustomValue(custom, 'releaseOnboardingCompleted') === true
   const forceShowToken = getCustomValue(custom, 'releaseOnboardingShowToken')
-  const hasActiveEvent = Array.isArray(events)
-    ? events.some((event) => event?.status === 'active')
-    : false
+  const storedPresetKey = getCustomValue(custom, ACTIVITY_PRESET_KEY) || ''
+  const activePresetKey = selectedPresetKey || storedPresetKey
+  const selectedPreset = getOnboardingPreset(activePresetKey)
+  const starterServicesCreated =
+    getCustomValue(custom, STARTER_SERVICES_CREATED_KEY) === true
+  const demoEventCreated =
+    getCustomValue(custom, DEMO_EVENT_CREATED_KEY) === true
+  const demoEventSkipped =
+    getCustomValue(custom, DEMO_EVENT_SKIPPED_KEY) === true
+  const educationDone = getCustomValue(custom, EDUCATION_DONE_KEY) === true
+  const hasAnyEvent = Array.isArray(events) && events.length > 0
+
+  const saveCustom = useCallback(
+    async (nextCustomPatch) =>
+      postData(
+        '/api/site',
+        {
+          custom: {
+            ...(siteSettings?.custom ?? {}),
+            ...nextCustomPatch,
+          },
+        },
+        (data) => setSiteSettings(data),
+        null,
+        false,
+        null
+      ),
+    [setSiteSettings, siteSettings?.custom]
+  )
+
+  const selectPreset = useCallback(
+    async (presetKey) => {
+      setSelectedPresetKey(presetKey)
+      setIsSavingPreset(true)
+      try {
+        const result = await saveCustom({ [ACTIVITY_PRESET_KEY]: presetKey })
+        if (!result) snackbar.error('Не удалось сохранить вид деятельности')
+      } finally {
+        setIsSavingPreset(false)
+      }
+    },
+    [saveCustom, snackbar]
+  )
+
+  const createStarterServices = useCallback(async () => {
+    const presetKey = selectedPresetKey || getCustomValue(custom, ACTIVITY_PRESET_KEY)
+    const starterServices = getStarterServicesForPreset(presetKey)
+    if (!itemsFunc?.service?.set || starterServices.length === 0) return
+
+    setIsCreatingServices(true)
+    try {
+      const createdServices = []
+      for (const service of starterServices) {
+        const created = await itemsFunc.service.set(service, false, true)
+        if (created?._id) createdServices.push(created)
+      }
+      if (createdServices.length > 0) {
+        setServices((prev) => {
+          const existingIds = new Set((prev ?? []).map((item) => item?._id))
+          return [
+            ...(prev ?? []),
+            ...createdServices.filter((item) => !existingIds.has(item._id)),
+          ]
+        })
+        snackbar.success('Стартовые услуги созданы')
+        await saveCustom({ [STARTER_SERVICES_CREATED_KEY]: true })
+      } else {
+        snackbar.error('Не удалось создать стартовые услуги')
+      }
+    } finally {
+      setIsCreatingServices(false)
+    }
+  }, [custom, itemsFunc?.service, saveCustom, selectedPresetKey, setServices, snackbar])
+
+  const markEducationDone = useCallback(async () => {
+    await saveCustom({ [EDUCATION_DONE_KEY]: true })
+  }, [saveCustom])
+
+  const skipDemoEvent = useCallback(async () => {
+    await saveCustom({ [DEMO_EVENT_SKIPPED_KEY]: true })
+  }, [saveCustom])
+
+  const createDemoEvent = useCallback(async () => {
+    const presetKey = selectedPresetKey || getCustomValue(custom, ACTIVITY_PRESET_KEY)
+    const serviceIds = Array.isArray(services)
+      ? services
+          .slice(0, 2)
+          .map((service) => service?._id)
+          .filter(Boolean)
+      : []
+    const payload = buildDemoEventPayload(presetKey, serviceIds)
+    if (!itemsFunc?.event?.set) return
+
+    setIsCreatingDemoEvent(true)
+    try {
+      const created = await itemsFunc.event.set(payload, false, true)
+      if (created?._id) {
+        snackbar.success('Учебная заявка создана')
+        await saveCustom({ [DEMO_EVENT_CREATED_KEY]: true })
+        router.push('/cabinet/eventsUpcoming')
+      } else {
+        snackbar.error('Не удалось создать учебную заявку')
+      }
+    } finally {
+      setIsCreatingDemoEvent(false)
+    }
+  }, [
+    custom,
+    itemsFunc?.event,
+    router,
+    saveCustom,
+    selectedPresetKey,
+    services,
+    snackbar,
+  ])
 
   const steps = useMemo(
     () => [
       {
-        id: 'services',
-        title: 'Создайте услугу',
+        id: 'activity',
+        title: 'Выберите вид деятельности',
         description:
-          'Добавьте хотя бы одну услугу, чтобы использовать ее в заявках.',
-        done: Array.isArray(services) && services.length > 0,
-        actionText: 'Добавить услугу',
-        onAction: () => modalsFunc?.service?.add?.(),
+          'Так мастер подберет понятные примеры услуг, заявок и следующих действий.',
+        done: Boolean(activePresetKey),
+        renderContent: () => (
+          <div className="mt-3 grid grid-cols-1 gap-2">
+            {ONBOARDING_ACTIVITY_PRESETS.map((preset) => (
+              <button
+                type="button"
+                key={preset.key}
+                disabled={isSavingPreset}
+                onClick={() => selectPreset(preset.key)}
+                className={cn(
+                  'cursor-pointer rounded border px-3 py-2 text-left text-sm transition hover:border-general disabled:cursor-wait disabled:opacity-70',
+                  selectedPreset.key === preset.key
+                    ? 'border-general bg-general/10 text-gray-900'
+                    : 'border-gray-200 bg-white text-gray-700'
+                )}
+              >
+                <span className="font-semibold">{preset.title}</span>
+                <span className="mt-0.5 block text-xs text-gray-500">
+                  {preset.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        ),
       },
       {
-        id: 'event',
-        title: 'Создайте первую заявку',
-        description: 'Создайте мероприятие в статусе "Заявка".',
-        done: Array.isArray(events) && events.length > 0,
-        actionText: 'Новая заявка',
-        onAction: () => modalsFunc?.event?.create?.(),
+        id: 'services',
+        title: 'Настройте стартовые услуги',
+        description:
+          'Начните с 1-3 основных услуг. Группы можно добавить позже, когда список станет большим.',
+        done:
+          (Array.isArray(services) && services.length > 0) ||
+          starterServicesCreated,
+        actionText: isCreatingServices
+          ? 'Создаем...'
+          : 'Создать услуги из пресета',
+        onAction: createStarterServices,
+        secondaryActionText: 'Добавить вручную',
+        onSecondaryAction: () => modalsFunc?.service?.add?.(),
+        renderContent: () => (
+          <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            Группа - это полка, услуга - конкретное предложение. Если услуг
+            мало, оставьте их без группы.
+          </div>
+        ),
+      },
+      {
+        id: 'statuses',
+        title: 'Разберитесь со статусами',
+        description:
+          'Статусы показывают путь клиента: интерес, подтверждение, завершение или отмена.',
+        done: educationDone,
+        actionText: 'Понятно',
+        onAction: markEducationDone,
+        renderContent: () => (
+          <div className="mt-3 grid grid-cols-1 gap-2">
+            {getStatusEducationItems(selectedPreset.key).map((item) => (
+              <div
+                key={item.status}
+                className="rounded-md border border-gray-200 bg-white px-3 py-2"
+              >
+                <div className="text-sm font-semibold text-gray-900">
+                  {item.title}
+                </div>
+                <div className="mt-0.5 text-xs text-gray-600">
+                  {item.description}
+                </div>
+              </div>
+            ))}
+          </div>
+        ),
+      },
+      {
+        id: 'demo',
+        title: 'Создайте учебную заявку',
+        description:
+          'Учебная заявка покажет, когда ее переводить в мероприятие или подтвержденный заказ, а когда закрывать.',
+        done: hasAnyEvent || demoEventCreated || demoEventSkipped,
+        actionText: isCreatingDemoEvent ? 'Создаем...' : 'Создать учебную заявку',
+        onAction: createDemoEvent,
+        secondaryActionText: 'Пропустить',
+        onSecondaryAction: skipDemoEvent,
       },
       {
         id: 'additional',
-        title: 'Добавьте доп. событие',
+        title: 'Поставьте следующий контакт',
         description:
-          'В заявке добавьте напоминание (например: "Узнать что решили"), чтобы не потерять контакт.',
+          'У каждой новой заявки должен быть следующий шаг: перезвонить, уточнить решение, получить задаток или подготовить договор.',
         done: hasAdditionalEvents(events),
         actionText: 'Открыть мероприятия',
         onAction: () => router.push('/cabinet/eventsUpcoming'),
       },
-      {
-        id: 'activeStatus',
-        title: 'Переведите заявку в тип "Мероприятие"',
-        description:
-          'Статус "Активно" означает, что клиент подтвердил мероприятие и вы берете его в работу.',
-        done: hasActiveEvent,
-        actionText: 'Открыть мероприятия',
-        onAction: () => router.push('/cabinet/eventsUpcoming'),
-      },
     ],
-    [events, hasActiveEvent, modalsFunc, router, services]
+    [
+      activePresetKey,
+      createDemoEvent,
+      createStarterServices,
+      demoEventCreated,
+      demoEventSkipped,
+      educationDone,
+      events,
+      hasAnyEvent,
+      isCreatingDemoEvent,
+      isCreatingServices,
+      isSavingPreset,
+      markEducationDone,
+      modalsFunc,
+      router,
+      selectPreset,
+      selectedPreset.key,
+      services,
+      skipDemoEvent,
+      starterServicesCreated,
+    ]
   )
 
   const currentStepIndex = useMemo(
@@ -301,15 +515,30 @@ const ReleaseOnboardingCoach = () => {
           ) : null}
         </div>
         <div className="mt-1 text-sm text-gray-600">{viewedStep.description}</div>
+        {typeof viewedStep.renderContent === 'function'
+          ? viewedStep.renderContent()
+          : null}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={viewedStep.onAction}
-            className="action-icon-button action-icon-button--warning inline-flex h-9 items-center justify-center rounded px-3 text-sm font-semibold"
-          >
-            {viewedStep.actionText}
-          </button>
+          {viewedStep.actionText && typeof viewedStep.onAction === 'function' ? (
+            <button
+              type="button"
+              onClick={viewedStep.onAction}
+              className="action-icon-button action-icon-button--warning inline-flex h-9 items-center justify-center rounded px-3 text-sm font-semibold"
+            >
+              {viewedStep.actionText}
+            </button>
+          ) : null}
+          {viewedStep.secondaryActionText &&
+          typeof viewedStep.onSecondaryAction === 'function' ? (
+            <button
+              type="button"
+              onClick={viewedStep.onSecondaryAction}
+              className="action-icon-button action-icon-button--neutral inline-flex h-9 items-center justify-center rounded px-3 text-sm font-semibold"
+            >
+              {viewedStep.secondaryActionText}
+            </button>
+          ) : null}
           {forceShow && isAllStepsDone ? (
             <button
               type="button"
