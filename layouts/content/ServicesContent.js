@@ -12,6 +12,8 @@ import { modalsFuncAtom } from '@state/atoms'
 import serviceGroupsAtom from '@state/atoms/serviceGroupsAtom'
 import { useAtomValue } from 'jotai'
 import { useServicesQuery } from '@helpers/useEntityQueries'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTrashAlt } from '@fortawesome/free-regular-svg-icons'
 import cn from 'classnames'
 
 const ChevronIcon = ({ open }) => (
@@ -136,9 +138,6 @@ const ServicesContent = () => {
 
   // Tree view with groups
   const { groups, grouped, withoutGroup } = groupedData
-  const hasServicesInGroups = groups.some(
-    (g) => (grouped[g._id]?.length || 0) > 0
-  )
 
   return (
     <div className="flex flex-col h-full gap-4">
@@ -187,25 +186,40 @@ const ServicesContent = () => {
             </div>
           )}
 
-          {/* Groups with services */}
+          {/* Groups */}
           {groups.map((group) => {
             const servicesInGroup = grouped[group._id] || []
-            if (servicesInGroup.length === 0) return null
             const isExpanded = expandedGroups[group._id] !== false
 
             return (
               <div key={group._id}>
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(group._id)}
-                  className="flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
-                >
-                  <ChevronIcon open={isExpanded} />
-                  <span>{group.title}</span>
-                  <span className="text-xs font-normal text-gray-400">
-                    ({servicesInGroup.length})
-                  </span>
-                </button>
+                <div className="flex w-full items-center gap-1 rounded transition hover:bg-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group._id)}
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded px-1 py-1 text-left text-sm font-semibold text-gray-700"
+                  >
+                    <ChevronIcon open={isExpanded} />
+                    <span className="truncate">{group.title}</span>
+                    <span className="text-xs font-normal text-gray-400">
+                      ({servicesInGroup.length})
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      modalsFunc.serviceGroup?.delete(group._id, {
+                        title: group.title,
+                      })
+                    }}
+                    className="flex h-8 w-8 min-w-8 cursor-pointer items-center justify-center rounded text-red-500 transition hover:bg-red-50 hover:text-red-700"
+                    title="Удалить группу"
+                    aria-label={`Удалить группу ${group.title || 'услуг'}`}
+                  >
+                    <FontAwesomeIcon icon={faTrashAlt} className="h-4 w-4" />
+                  </button>
+                </div>
 
                 {isExpanded && (
                   <div className="flex flex-col gap-2 pl-5 mt-2">
@@ -218,7 +232,7 @@ const ServicesContent = () => {
             )
           })}
 
-          {!hasServicesInGroups && withoutGroup.length === 0 && (
+          {groups.length === 0 && withoutGroup.length === 0 && (
             <EmptyState text="Услуги не найдены" bordered={false} />
           )}
         </div>

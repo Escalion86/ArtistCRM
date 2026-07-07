@@ -1,8 +1,10 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson } from '@helpers/apiClient'
 import { queryKeys } from '@helpers/queryKeys'
+import { moveServicesFromGroupToUngrouped } from '@helpers/serviceGroups'
 
 // ============ SERVICES ============
 
@@ -105,6 +107,44 @@ export const useServiceGroupsQuery = (initialData) =>
       normalizeListPayload(await apiJson('/api/service-groups')),
     initialData: Array.isArray(initialData) ? initialData : [],
   })
+
+export const useServiceGroupActions = () => {
+  const queryClient = useQueryClient()
+
+  const { mutateAsync: deleteServiceGroup } = useMutation({
+    mutationFn: async (serviceGroupId) => {
+      await apiJson(`/api/service-groups/${serviceGroupId}`, {
+        method: 'DELETE',
+        body: JSON.stringify({}),
+      })
+      return serviceGroupId
+    },
+    onSuccess: (serviceGroupId) => {
+      queryClient.removeQueries({
+        queryKey: queryKeys.serviceGroup(serviceGroupId),
+      })
+      queryClient.setQueriesData({ queryKey: ['serviceGroups'] }, (prev) => {
+        if (!Array.isArray(prev)) return prev
+        return removeById(prev, serviceGroupId)
+      })
+      queryClient.setQueriesData({ queryKey: ['services'] }, (prev) =>
+        moveServicesFromGroupToUngrouped(prev, serviceGroupId)
+      )
+      queryClient.setQueriesData({ queryKey: ['service'] }, (prev) =>
+        prev && String(prev?.groupId || '') === String(serviceGroupId)
+          ? { ...prev, groupId: null }
+          : prev
+      )
+    },
+  })
+
+  return useMemo(
+    () => ({
+      delete: (serviceGroupId) => deleteServiceGroup(serviceGroupId),
+    }),
+    [deleteServiceGroup]
+  )
+}
 
 // ============ USERS ============
 

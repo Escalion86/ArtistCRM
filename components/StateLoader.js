@@ -47,6 +47,7 @@ import { sendClientLog } from '@helpers/clientLog'
 import { queryKeys } from '@helpers/queryKeys'
 import { useEventActions } from '@helpers/useEventsQuery'
 import { useClientActions } from '@helpers/useClientsQuery'
+import { useServiceGroupActions } from '@helpers/useEntityQueries'
 import { isPushSupported, syncPushSubscription } from '@helpers/pushClient'
 import useCabinetPerformanceMetrics from '@helpers/useCabinetPerformanceMetrics'
 
@@ -86,6 +87,7 @@ const StateLoader = (props) => {
   const serverSyncDisabled = resolveServerSyncDisabled(siteSettingsState)
   const eventActions = useEventActions()
   const clientActions = useClientActions()
+  const serviceGroupActions = useServiceGroupActions()
 
   useWindowDimensionsRecoil()
 
@@ -112,6 +114,7 @@ const StateLoader = (props) => {
       disableServerSync: serverSyncDisabled,
       eventActions,
       clientActions,
+      serviceGroupActions,
     })
     setItemsFunc(itemsFunc)
     setModalsFunc(
@@ -130,6 +133,7 @@ const StateLoader = (props) => {
     eventActions,
     router,
     serverSyncDisabled,
+    serviceGroupActions,
     setItemsFunc,
     setModalsFunc,
     snackbar,

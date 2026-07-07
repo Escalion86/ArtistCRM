@@ -54,6 +54,10 @@ import clientMessengerFunc from './modalsFunc/clientMessengerFunc'
 import clientTransactionsFunc from './modalsFunc/clientTransactionsFunc'
 import clientSelectFunc from './modalsFunc/clientSelectFunc'
 import clientEventsFunc from './modalsFunc/clientEventsFunc'
+import {
+  buildServiceDeleteBlockedText,
+  buildServiceDeleteConfirmText,
+} from '@helpers/serviceDeleteCheck'
 // import userHistoryFunc from './modalsFunc/userHistoryFunc'
 // import userActionsHistoryFunc from './modalsFunc/userActionsHistoryFunc'
 // import userPersonalStatusEditFunc from './modalsFunc/userPersonalStatusEditFunc'
@@ -363,16 +367,10 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
             return
           }
           if (reasons.length > 0) {
-            const reasonLines = reasons
-              .map((item) => {
-                if (item.type === 'events') return `Мероприятия: ${item.count}`
-                return null
-              })
-              .filter(Boolean)
-              .join('\n')
+            const eventsReason = reasons.find((item) => item.type === 'events')
             addModal({
               title: 'Удаление услуги недоступно',
-              text: `Удалить услугу нельзя, есть связанные данные:\n${reasonLines}`,
+              text: buildServiceDeleteBlockedText(eventsReason?.count),
               confirmButtonName: 'Понятно',
               onConfirm: true,
               showDecline: false,
@@ -381,7 +379,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
           }
           addModal({
             title: 'Удаление услуги',
-            text: 'Вы уверены, что хотите удалить услугу?',
+            text: buildServiceDeleteConfirmText(),
             onConfirm: async () => itemsFunc.service.delete(serviceId),
           })
         } catch (error) {
@@ -411,6 +409,14 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
       add: (onSuccess) => addModal(serviceGroupFunc(null, true, onSuccess)),
       edit: (serviceGroupId, onSuccess) =>
         addModal(serviceGroupFunc(serviceGroupId, false, onSuccess)),
+      delete: (serviceGroupId, options = {}) =>
+        addModal({
+          title: 'Удаление группы услуг',
+          text: `Вы уверены, что хотите удалить группу услуг${
+            options?.title ? ` «${options.title}»` : ''
+          }?\n\nСама группа будет удалена, а все услуги из нее будут перемещены в группу «Без группы».`,
+          onConfirm: async () => itemsFunc.serviceGroup.delete(serviceGroupId),
+        }),
     },
     client: {
       edit: (clientId, onSuccess) =>

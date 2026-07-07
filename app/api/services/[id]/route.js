@@ -3,6 +3,7 @@ import Services from '@models/Services'
 import Events from '@models/Events'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import { buildServiceDeleteBlockedText } from '@helpers/serviceDeleteCheck'
 
 export const PUT = async (req, { params }) => {
   const { id } = await params
@@ -48,7 +49,7 @@ export const DELETE = async (req, { params }) => {
     return NextResponse.json(
       {
         success: false,
-        error: `Нельзя удалить услугу: есть мероприятия (${eventsCount})`,
+        error: buildServiceDeleteBlockedText(eventsCount),
       },
       { status: 409 }
     )

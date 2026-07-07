@@ -41,26 +41,25 @@ export const DELETE = async (req, { params }) => {
   }
   await dbConnect()
 
-  // Проверяем, есть ли услуги в этой группе
-  const servicesCount = await Services.countDocuments({
-    tenantId,
-    groupId: id,
-  })
-  if (servicesCount > 0) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: `Нельзя удалить группу: в ней ${servicesCount} услуг`,
-      },
-      { status: 409 }
-    )
-  }
-
-  const deleted = await ServiceGroups.findOneAndDelete({ _id: id, tenantId })
-  if (!deleted)
+  const group = await ServiceGroups.findOne({ _id: id, tenantId })
+  if (!group)
     return NextResponse.json(
       { success: false, error: 'Группа не найдена' },
       { status: 404 }
     )
-  return NextResponse.json({ success: true }, { status: 200 })
+
+  const movedServices = await Services.updateMany(
+    { tenantId, groupId: id },
+    { $set: { groupId: null } }
+  )
+
+  await ServiceGroups.deleteOne({ _id: id, tenantId })
+
+  return NextResponse.json(
+    {
+      success: true,
+      data: { movedServicesCount: movedServices.modifiedCount ?? 0 },
+    },
+    { status: 200 }
+  )
 }

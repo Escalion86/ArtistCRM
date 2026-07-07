@@ -312,6 +312,8 @@ const itemsFuncGenerator = (
               ? eventActions
               : itemName === 'client'
                 ? clientActions
+                : itemName === 'serviceGroup'
+                  ? options?.serviceGroupActions
                 : null
 
           if (serverActions?.set) {
@@ -424,12 +426,17 @@ const itemsFuncGenerator = (
               ? eventActions
               : itemName === 'client'
                 ? clientActions
+                : itemName === 'serviceGroup'
+                  ? options?.serviceGroupActions
                 : null
 
           if (serverActions?.delete) {
             setLoadingCard(itemName + itemId)
             try {
               await serverActions.delete(itemId)
+              if (itemName === 'serviceGroup') {
+                props.deleteServiceGroup(itemId)
+              }
               setNotLoadingCard(itemName + itemId)
               if (messages[itemName]?.delete?.success)
                 snackbar.success(messages[itemName].delete.success)
