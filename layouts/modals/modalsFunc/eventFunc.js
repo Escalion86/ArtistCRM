@@ -1506,7 +1506,7 @@ const eventFunc = (
                 <div className="flex flex-wrap gap-2">
                   {[
                     { value: 'draft', label: 'Заявка' },
-                    { value: 'active', label: 'Мероприятие' },
+                    { value: 'active', label: 'Подтверждено' },
                     { value: 'canceled', label: 'Отменено' },
                     { value: 'closed', label: 'Закрыто' },
                   ].map((item) => {
@@ -1916,7 +1916,7 @@ const eventFunc = (
             />
             {isDraft ? (
               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                {`Для заявки финансы, транзакции и документы недоступны. Переведите тип в "Мероприятие"`}
+                {`Для заявки финансы, транзакции и документы недоступны. Переведите тип в "Подтверждено"`}
               </div>
             ) : null}
             {isByContract && !isDraft && canUseDocuments && (

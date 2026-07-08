@@ -79,7 +79,7 @@ const STATUS_COLOR_OPTIONS = Object.freeze([
 
 const STATUS_COLOR_FIELDS = Object.freeze([
   { key: 'draft', label: 'Заявка' },
-  { key: 'active', label: 'Мероприятие' },
+  { key: 'active', label: 'Подтверждено' },
   { key: 'canceled', label: 'Отменено' },
   { key: 'closed', label: 'Закрыто' },
 ])

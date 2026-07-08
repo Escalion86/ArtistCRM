@@ -38,7 +38,7 @@ const EVENT_STATUS_META = Object.freeze({
     className: 'event-view-status event-view-status--draft',
   },
   active: {
-    label: 'Мероприятие',
+    label: 'Подтверждено',
     className: 'event-view-status event-view-status--active',
   },
   canceled: {

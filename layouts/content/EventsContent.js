@@ -169,7 +169,7 @@ const AddEventMenu = ({
       onClick: onCreateRequest,
     },
     {
-      label: 'Мероприятие',
+      label: 'Подтверждено',
       icon: <EventAvailableIcon fontSize="small" />,
       onClick: onCreateEvent,
     },
