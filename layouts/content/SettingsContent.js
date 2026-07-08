@@ -22,6 +22,11 @@ import {
   SERVER_SYNC_QUEUE_CHANGED_EVENT,
 } from '@helpers/serverSyncQueue'
 import { useSiteSettingsQuery } from '@helpers/useEntityQueries'
+import {
+  FIRST_RUN_WIZARD_COMPLETED_KEY,
+  FIRST_RUN_WIZARD_SHOW_TOKEN_KEY,
+  SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY,
+} from '@helpers/firstRunWizard.mjs'
 
 const TIME_ZONE_OPTIONS = [
   { value: 'UTC', name: 'UTC' },
@@ -248,10 +253,38 @@ const SettingsContent = () => {
           showArrows
           className="max-w-80"
         />
+        <LabeledContainer label="Передача заказов коллеге" noMargin>
+          <div className="flex flex-col gap-2">
+            <IconCheckBox
+              checked={
+                customSettings?.[SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY] === true
+              }
+              onClick={() =>
+                saveSiteSettingsPatch({
+                  custom: {
+                    ...(siteSettingsState?.custom ?? {}),
+                    [SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY]:
+                      customSettings?.[SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY] !==
+                      true,
+                  },
+                })
+              }
+              label="Иногда передаю заказ коллеге"
+              checkedIconColor={checkBoxColors.checked}
+              uncheckedIconColor={checkBoxColors.unchecked}
+            />
+            <MutedText className="text-gray-500">
+              Если включено, в редакторе заявки появятся поля «Передано
+              коллеге» и выбор коллеги. Если выключено, эти поля скрыты и
+              новые карточки ведутся как ваши собственные заказы.
+            </MutedText>
+          </div>
+        </LabeledContainer>
         <LabeledContainer label="Мастер запуска" noMargin>
           <div className="flex items-center justify-between w-full gap-3">
             <MutedText className="text-gray-500">
-              Сбросьте прогресс, чтобы снова пройти шаги первичной настройки.
+              Снова откройте мастер первого запуска, чтобы обновить профиль,
+              город, специализацию, услуги и подсказки по статусам.
             </MutedText>
             <button
               type="button"
@@ -260,8 +293,8 @@ const SettingsContent = () => {
                 saveSiteSettingsPatch({
                   custom: {
                     ...(siteSettingsState?.custom ?? {}),
-                    releaseOnboardingCompleted: false,
-                    releaseOnboardingShowToken: Date.now(),
+                    [FIRST_RUN_WIZARD_COMPLETED_KEY]: false,
+                    [FIRST_RUN_WIZARD_SHOW_TOKEN_KEY]: Date.now(),
                   },
                 })
               }
