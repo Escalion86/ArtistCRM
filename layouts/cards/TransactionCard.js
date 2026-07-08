@@ -49,13 +49,12 @@ const TransactionCard = ({
     ? getPersonFullName(client, { fallback: 'Без клиента' })
     : 'Без клиента'
 
-  const eventTitle =
-    event
-      ? formatAddress(event?.address, '') ||
-        (event?.eventDate
-          ? `Мероприятие ${formatDate(event.eventDate, false, true)}`
-          : 'Мероприятие')
-      : 'Без мероприятия'
+  const eventTitle = event
+    ? formatAddress(event?.address, '') ||
+      (event?.eventDate
+        ? `Мероприятие ${formatDate(event.eventDate, false, true)}`
+        : 'Мероприятие')
+    : 'Без мероприятия'
 
   const eventDateTime = event?.eventDate
     ? `${formatDate(event.eventDate, false, true)} ${new Date(
@@ -72,8 +71,7 @@ const TransactionCard = ({
   const categoryLabel =
     TRANSACTION_CATEGORIES.find((item) => item.value === transaction.category)
       ?.name ?? null
-  const isObligation =
-    transaction.paymentMethod === OBLIGATION_PAYMENT_METHOD
+  const isObligation = transaction.paymentMethod === OBLIGATION_PAYMENT_METHOD
   const dateLabel = getTransactionDateLabel(transaction.paymentMethod)
 
   return (
@@ -86,6 +84,7 @@ const TransactionCard = ({
       <CardActions>
         <CardButtons
           item={transaction}
+          compactTriggerClassName="card-menu-trigger h-8 min-h-8 w-8"
           typeOfItem="transaction"
           minimalActions
           alwaysCompact

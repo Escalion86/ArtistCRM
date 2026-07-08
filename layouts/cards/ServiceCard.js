@@ -34,12 +34,13 @@ const ServiceCard = ({ service, style }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && modalsFunc.service?.view(service._id)}
-      className="flex w-full h-full p-4 text-left cursor-pointer card-body-pad group hover:border-gray-300"
+      className="card-body-pad group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
         <CardButtons
           item={service}
+          compactTriggerClassName="card-menu-trigger h-8 min-h-8 w-8"
           typeOfItem="service"
           minimalActions
           alwaysCompact
@@ -47,7 +48,7 @@ const ServiceCard = ({ service, style }) => {
         />
       </CardActions>
 
-      <div className="flex w-full h-full gap-3">
+      <div className="flex h-full w-full gap-3">
         {previewImage && (
           <img
             src={previewImage}
@@ -55,13 +56,13 @@ const ServiceCard = ({ service, style }) => {
             className="h-16 w-16 min-w-[64px] rounded-lg object-cover"
           />
         )}
-        <div className="flex flex-col w-full h-full gap-2">
+        <div className="flex h-full w-full flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-base card-title">
+            <div className="card-title text-base">
               {service.title || 'Без названия'}
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 text-sm card-meta">
+          <div className="card-meta flex flex-wrap gap-3 text-sm">
             <div>
               <span className="font-medium">Продолжительность:</span>{' '}
               {durationLabel}
@@ -72,7 +73,7 @@ const ServiceCard = ({ service, style }) => {
               </div>
             )}
           </div>
-          <TextLinesLimiter className="text-sm card-muted" lines={3}>
+          <TextLinesLimiter className="card-muted text-sm" lines={3}>
             {description}
           </TextLinesLimiter>
         </div>

@@ -85,7 +85,7 @@ const MenuItem = ({
       <FontAwesomeIcon icon={icon} className="h-7 w-7" />
       <div className="prevent-select-text whitespace-nowrap">{tooltipText}</div>
       {badges.length > 0 ? (
-        <div className="flex items-center gap-1 ml-auto">
+        <div className="ml-auto flex items-center gap-1">
           {badges.map((badge) => (
             <span
               key={badge.key}
@@ -491,12 +491,12 @@ const CardButtons = ({
         <button
           type="button"
           className={cn(
-            'text-general hover:border-general/30 hover:bg-general/10 flex h-8 min-h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-transparent p-0 transition',
+            'text-general hover:border-general/30 hover:bg-general/10 flex h-8 min-h-8 w-8 cursor-pointer items-center justify-center rounded-bl-2xl border border-transparent p-0 transition',
             compactTriggerClassName
           )}
           aria-label="Открыть меню действий"
         >
-          <FontAwesomeIcon icon={faEllipsisV} className="w-5 h-5 min-h-5" />
+          <FontAwesomeIcon icon={faEllipsisV} className="h-5 min-h-5 w-5" />
         </button>
       }
       className={className}

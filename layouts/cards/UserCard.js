@@ -90,6 +90,7 @@ const UserCard = ({ userId, hidden = false, style }) => {
       <CardActions>
         <CardButtons
           item={user}
+          compactTriggerClassName="card-menu-trigger h-10 min-h-10 w-10"
           typeOfItem="user"
           minimalActions
           alwaysCompact
@@ -103,10 +104,7 @@ const UserCard = ({ userId, hidden = false, style }) => {
         />
         <div className="relative flex flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <UserName
-              user={user}
-              className="card-title text-base"
-            />
+            <UserName user={user} className="card-title text-base" />
           </div>
           <div className="card-meta text-xs font-semibold">
             Тариф: {tariffTitle}
@@ -134,4 +132,3 @@ const UserCard = ({ userId, hidden = false, style }) => {
 }
 
 export default UserCard
-

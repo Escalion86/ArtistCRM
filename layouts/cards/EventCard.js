@@ -360,37 +360,59 @@ const EventCard = ({
       className="event-card-shell card-body-pad laptop:flex-row laptop:items-start laptop:gap-4 flex min-h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg py-3 pr-3 pl-4"
     >
       <CardOverlay loading={loading} error={error} />
+      <CardActions>
+        <CardButtons
+          item={event}
+          typeOfItem="event"
+          minimalActions
+          alwaysCompact
+          compactTriggerClassName="card-menu-trigger h-10 min-h-10 w-10"
+          calendarLink={calendarLink}
+          onEdit={() => modalsFunc.event?.edit(event._id)}
+          onEditClientContacts={() =>
+            modalsFunc.event?.edit(event._id, {
+              initialTab: 'Клиент и Контакты',
+            })
+          }
+          onEditFinanceDocs={() =>
+            modalsFunc.event?.edit(event._id, {
+              initialTab: 'Финансы и Документы',
+            })
+          }
+          showEditButton={!isClosed}
+        />
+      </CardActions>
       <div
         className={`absolute top-3 bottom-3 left-0 w-1 rounded-r-full ${statusMarkerClassName}`}
         aria-hidden="true"
       />
-      <div className="flex items-center justify-between w-full gap-x-1">
-        <div className="flex items-center flex-1 min-w-0 gap-2">
+      <div className="flex w-full items-center justify-between gap-x-1">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {event.isTransferred && (
             <FontAwesomeIcon
               icon={faShare}
-              className="w-4 h-4 text-amber-500"
+              className="h-4 w-4 text-amber-500"
               aria-label="Передано коллеге"
             />
           )}
           {event.isByContract && (
             <FontAwesomeIcon
               icon={faFileContract}
-              className="w-4 h-4 text-blue-600"
+              className="h-4 w-4 text-blue-600"
               aria-label="Мероприятие по договору"
             />
           )}
           {needsCheck && (
             <FontAwesomeIcon
               icon={faTriangleExclamation}
-              className="w-4 h-4 text-amber-500"
+              className="h-4 w-4 text-amber-500"
               aria-label="Проверка мероприятия не завершена"
             />
           )}
           {hasCalendarError && (
             <FontAwesomeIcon
               icon={faCalendarXmark}
-              className="w-4 h-4 text-red-500"
+              className="h-4 w-4 text-red-500"
               aria-label="Синхронизация с календарем не выполнена"
             />
           )}
@@ -442,41 +464,19 @@ const EventCard = ({
           {!client && (
             <FontAwesomeIcon
               icon={faUserSlash}
-              className="w-4 h-4 text-red-500"
+              className="h-4 w-4 text-red-500"
               aria-label="Клиент не указан"
             />
           )}
-          <div className="flex-1 mr-8 text-base truncate card-title tablet:text-lg">
+          <div className="card-title tablet:text-lg mr-8 flex-1 truncate text-base">
             {[eventTitle, servicesTitle].join(' • ')}
           </div>
-          <CardActions className="z-10 -mt-2 -mr-2">
-            <CardButtons
-              item={event}
-              typeOfItem="event"
-              minimalActions
-              alwaysCompact
-              compactTriggerClassName="event-card-menu-trigger h-10 min-h-10 w-10 rounded-full"
-              calendarLink={calendarLink}
-              onEdit={() => modalsFunc.event?.edit(event._id)}
-              onEditClientContacts={() =>
-                modalsFunc.event?.edit(event._id, {
-                  initialTab: 'Клиент и Контакты',
-                })
-              }
-              onEditFinanceDocs={() =>
-                modalsFunc.event?.edit(event._id, {
-                  initialTab: 'Финансы и Документы',
-                })
-              }
-              showEditButton={!isClosed}
-            />
-          </CardActions>
         </div>
       </div>
       <div className="flex gap-x-1 py-0.5">
         <div className="card-meta flex min-w-0 flex-1 flex-col gap-0.5 pr-2 text-sm">
           <div className="card-title text-general">{eventDateLabel}</div>
-          <div className="flex items-center h-6 gap-1 overflow-hidden">
+          <div className="flex h-6 items-center gap-1 overflow-hidden">
             {hasSoonNoDepositWarning ? (
               <StatusChip tone="overdue">
                 <span className="truncate">Просрочен задаток</span>
@@ -496,8 +496,8 @@ const EventCard = ({
             ) : null}
           </div>
           <div className="flex h-[25px] flex-nowrap items-center gap-x-3">
-            <span className="hidden font-medium phoneH:block">Место:</span>
-            <span className="flex items-center min-w-0 gap-2 truncate">
+            <span className="phoneH:block hidden font-medium">Место:</span>
+            <span className="flex min-w-0 items-center gap-2 truncate">
               <span className="truncate">
                 {formatAddress(displayAddress, '-')}
               </span>
@@ -508,28 +508,28 @@ const EventCard = ({
                   rel="noreferrer"
                   title="Открыть в 2ГИС"
                   onClick={(event) => event.stopPropagation()}
-                  className="flex items-center justify-center transition-transform h-7 w-7 hover:scale-110"
+                  className="flex h-7 w-7 items-center justify-center transition-transform hover:scale-110"
                 >
                   <Image
                     src="/img/navigators/2gis.webp"
                     alt="2gis"
                     width={16}
                     height={16}
-                    className="w-4 h-4"
+                    className="h-4 w-4"
                   />
                 </a>
               )}
             </span>
           </div>
           <div className="flex min-h-[25px] flex-nowrap items-center gap-x-2">
-            <span className="hidden font-medium phoneH:block">Клиент:</span>
+            <span className="phoneH:block hidden font-medium">Клиент:</span>
             {extraContactDisplays.length > 0 ? (
               <div onClick={(event) => event.stopPropagation()}>
                 <DropDown
                   trigger={
                     <button
                       type="button"
-                      className="bg-general text-white flex h-6 min-h-6 min-w-7 cursor-pointer items-center justify-center rounded-full px-1.5 text-xs font-semibold shadow-sm transition hover:bg-toxic"
+                      className="bg-general hover:bg-toxic flex h-6 min-h-6 min-w-7 cursor-pointer items-center justify-center rounded-full px-1.5 text-xs font-semibold text-white shadow-sm transition"
                       aria-label={`Показать дополнительные контакты: ${extraContactDisplays.length}`}
                     >
                       +{extraContactDisplays.length}

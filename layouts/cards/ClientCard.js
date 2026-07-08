@@ -40,7 +40,9 @@ const formatSignificantDate = (value) => {
 
 const getFirstSignificantDateLabel = (client) => {
   const item = Array.isArray(client?.significantDates)
-    ? client.significantDates.find((dateItem) => dateItem?.title || dateItem?.date)
+    ? client.significantDates.find(
+        (dateItem) => dateItem?.title || dateItem?.date
+      )
     : null
   if (!item) return ''
   const title = item.title || 'Дата'
@@ -66,6 +68,7 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
       <CardOverlay loading={loading} error={error} />
       <CardActions>
         <CardButtons
+          compactTriggerClassName="card-menu-trigger h-10 min-h-10 w-10"
           item={client}
           typeOfItem="client"
           minimalActions

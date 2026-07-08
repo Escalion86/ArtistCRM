@@ -37,6 +37,7 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
       <CardActions>
         <CardButtons
           item={tariff}
+          compactTriggerClassName="card-menu-trigger h-10 min-h-10 w-10"
           typeOfItem="tariff"
           minimalActions
           alwaysCompact
