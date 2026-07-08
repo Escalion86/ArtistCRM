@@ -66,6 +66,7 @@ test('status education explains all canonical statuses', () => {
     ['draft', 'active', 'closed', 'canceled']
   )
   assert.match(items[0].title, /Заявка/)
+  assert.equal(items.find((item) => item.status === 'active')?.title, 'Подтверждено')
   assert.match(items[1].description, /подтвердил/)
   assert.match(items[2].description, /заверш/)
 })

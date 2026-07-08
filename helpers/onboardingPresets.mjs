@@ -251,8 +251,7 @@ export const getStatusEducationItems = (key) => {
     },
     {
       status: 'active',
-      title:
-        confirmedWord === 'заказ' ? 'Подтвержденный заказ' : 'Мероприятие',
+      title: 'Подтверждено',
       description: `Клиент подтвердил ${confirmedWord}, дату или условия. Теперь это работа, которую нужно вести в календаре, финансах и документах.`,
     },
     {
