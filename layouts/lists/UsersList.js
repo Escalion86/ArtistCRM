@@ -25,6 +25,7 @@ const UsersList = ({ users }) => {
           style={style}
           key={users[index]._id}
           userId={users[index]._id}
+          user={users[index]}
         />
       )}
     </ListWrapper>

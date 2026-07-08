@@ -7,6 +7,7 @@ import Users from '@models/Users'
 import Tariffs from '@models/Tariffs'
 import dbConnect from './dbConnect'
 import mongoose from 'mongoose'
+import { applyUserEventStats } from '@helpers/userEventStats'
 
 let tenantBackfillApplied = false
 
@@ -328,6 +329,30 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
       : safeLoggedUser
         ? [safeLoggedUser]
         : []
+    const userIds = usersPayload.map((item) => item?._id).filter(Boolean)
+    const userEventStats =
+      shouldFetchUsers && userIds.length > 0
+        ? await Events.aggregate([
+            { $match: { tenantId: { $in: userIds } } },
+            {
+              $group: {
+                _id: { tenantId: '$tenantId', status: '$status' },
+                count: { $sum: 1 },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                tenantId: '$_id.tenantId',
+                status: '$_id.status',
+                count: 1,
+              },
+            },
+          ])
+        : []
+    const usersWithEventStats = shouldFetchUsers
+      ? applyUserEventStats(usersPayload, userEventStats)
+      : usersPayload
 
     const fetchResult = {
       loggedUser: JSON.parse(JSON.stringify(safeLoggedUser)),
@@ -340,7 +365,7 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
       transactions: JSON.parse(JSON.stringify(transactions)),
       services: JSON.parse(JSON.stringify(services)),
       tariffs: JSON.parse(JSON.stringify(tariffs)),
-      users: JSON.parse(JSON.stringify(usersPayload)),
+      users: JSON.parse(JSON.stringify(usersWithEventStats)),
       serverSettings: JSON.parse(
         JSON.stringify({
           dateTime: serverDateTime,

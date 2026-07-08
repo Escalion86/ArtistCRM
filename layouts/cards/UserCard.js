@@ -15,19 +15,14 @@ import { useAtomValue } from 'jotai'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import formatDate from '@helpers/formatDate'
 import CardWrapper from '@components/CardWrapper'
-import { useEventsQuery } from '@helpers/useEventsQuery'
 
-const UserCard = ({ userId, hidden = false, style }) => {
+const UserCard = ({ userId, user: userProp, hidden = false, style }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
-  const user = useAtomValue(userSelector(userId))
+  const selectedUser = useAtomValue(userSelector(userId))
+  const user = userProp ?? selectedUser
   const loading = useAtomValue(loadingAtom('user' + userId))
   const error = useAtomValue(errorAtom('user' + userId))
   const tariffs = useAtomValue(tariffsAtom)
-  const { data: eventsPayload } = useEventsQuery({
-    scope: 'all',
-    enabled: false,
-  })
-  const events = eventsPayload?.data ?? []
   // const widthNum = useWindowDimensionsTailwindNum()
   // const itemFunc = useAtomValue(itemsFuncAtom)
 
@@ -59,20 +54,8 @@ const UserCard = ({ userId, hidden = false, style }) => {
     return value.toLocaleString('ru-RU')
   })()
 
-  const eventsCount = (() => {
-    if (!user?._id) return 0
-    return (events ?? []).filter(
-      (item) => String(item?.tenantId) === String(user._id)
-    ).length
-  })()
-
-  const requestsCount = (() => {
-    if (!user?._id) return 0
-    return (events ?? []).filter(
-      (item) =>
-        String(item?.tenantId) === String(user._id) && item?.status === 'draft'
-    ).length
-  })()
+  const eventsCount = Number(user?.eventsCount ?? 0)
+  const requestsCount = Number(user?.requestsCount ?? 0)
 
   const registrationLabel = user?.createdAt
     ? formatDate(user.createdAt, false, true)

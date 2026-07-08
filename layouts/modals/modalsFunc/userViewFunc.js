@@ -11,7 +11,6 @@ import userSelector from '@state/selectors/userSelector'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
-import { useEventsQuery } from '@helpers/useEventsQuery'
 
 const CardButtonsComponent = ({ user }) => (
   <CardButtons
@@ -33,11 +32,6 @@ const userViewFunc = (userId, params = {}) => {
 
     const user = useAtomValue(userSelector(userId))
     const tariffs = useAtomValue(tariffsAtom)
-    const { data: eventsPayload } = useEventsQuery({
-      scope: 'all',
-      enabled: false,
-    })
-    const events = useMemo(() => eventsPayload?.data ?? [], [eventsPayload?.data])
 
     useEffect(() => {
       if (!user) closeModal()
@@ -78,21 +72,8 @@ const userViewFunc = (userId, params = {}) => {
       )
     }, [user?.role])
 
-    const eventsCount = useMemo(() => {
-      if (!user?._id) return 0
-      return (events ?? []).filter(
-        (item) => String(item?.tenantId) === String(user._id)
-      ).length
-    }, [events, user?._id])
-
-    const requestsCount = useMemo(() => {
-      if (!user?._id) return 0
-      return (events ?? []).filter(
-        (item) =>
-          String(item?.tenantId) === String(user._id) &&
-          item?.status === 'draft'
-      ).length
-    }, [events, user?._id])
+    const eventsCount = Number(user?.eventsCount ?? 0)
+    const requestsCount = Number(user?.requestsCount ?? 0)
 
     if (!user) return null
 

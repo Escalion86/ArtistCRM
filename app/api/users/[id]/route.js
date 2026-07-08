@@ -5,6 +5,8 @@ import getTenantContext from '@server/getTenantContext'
 import bcrypt from 'bcryptjs'
 import Tariffs from '@models/Tariffs'
 import Payments from '@models/Payments'
+import Events from '@models/Events'
+import { applyUserEventStats } from '@helpers/userEventStats'
 
 const addMonths = (date, count) => {
   const next = new Date(date)
@@ -26,6 +28,31 @@ const sanitizeUser = (user) => {
   const data = typeof user.toObject === 'function' ? user.toObject() : user
   const { password, ...rest } = data
   return rest
+}
+
+const appendEventStats = async (user) => {
+  const sanitized = sanitizeUser(user)
+  if (!sanitized?._id) return sanitized
+
+  const eventStats = await Events.aggregate([
+    { $match: { tenantId: sanitized._id } },
+    {
+      $group: {
+        _id: { tenantId: '$tenantId', status: '$status' },
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        tenantId: '$_id.tenantId',
+        status: '$_id.status',
+        count: 1,
+      },
+    },
+  ])
+
+  return applyUserEventStats([sanitized], eventStats)[0] ?? sanitized
 }
 
 export const PUT = async (req, { params }) => {
@@ -292,7 +319,7 @@ export const PUT = async (req, { params }) => {
     console.log('[users][PUT] update failed', { query })
   }
   return NextResponse.json(
-    { success: true, data: sanitizeUser(updated) },
+    { success: true, data: await appendEventStats(updated) },
     { status: 200 }
   )
 }

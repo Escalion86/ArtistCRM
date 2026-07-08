@@ -4,6 +4,8 @@ import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import bcrypt from 'bcryptjs'
 import Tariffs from '@models/Tariffs'
+import Events from '@models/Events'
+import { applyUserEventStats } from '@helpers/userEventStats'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -29,7 +31,31 @@ export const GET = async () => {
   const canManageAllUsers = ['dev', 'admin'].includes(user?.role)
   const query = canManageAllUsers ? {} : { tenantId }
   const users = await Users.find(query).select('-password').lean()
-  return NextResponse.json({ success: true, data: users }, { status: 200 })
+  const userIds = users.map((item) => item?._id).filter(Boolean)
+  const eventStats =
+    userIds.length > 0
+      ? await Events.aggregate([
+          { $match: { tenantId: { $in: userIds } } },
+          {
+            $group: {
+              _id: { tenantId: '$tenantId', status: '$status' },
+              count: { $sum: 1 },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              tenantId: '$_id.tenantId',
+              status: '$_id.status',
+              count: 1,
+            },
+          },
+        ])
+      : []
+  return NextResponse.json(
+    { success: true, data: applyUserEventStats(users, eventStats) },
+    { status: 200 }
+  )
 }
 
 export const POST = async (req) => {
@@ -92,7 +118,10 @@ export const POST = async (req) => {
   }
 
   return NextResponse.json(
-    { success: true, data: sanitizeUser(created) },
+    {
+      success: true,
+      data: { ...sanitizeUser(created), eventsCount: 0, requestsCount: 0 },
+    },
     { status: 201 }
   )
 }
