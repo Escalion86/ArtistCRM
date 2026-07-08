@@ -66,6 +66,7 @@ import {
   mergeLegacyEventDocuments,
   normalizeEventDocuments,
 } from '@helpers/eventDocuments'
+import { shouldShowColleagueTransferControls } from '@helpers/firstRunWizard.mjs'
 
 const normalizeAddressValue = (rawAddress) => {
   const normalized = { ...DEFAULT_ADDRESS }
@@ -199,6 +200,8 @@ const eventFunc = (
     const [status, setStatus] = useState(initialStatusValue)
     const [persistedEventId, setPersistedEventId] = useState(event?._id ?? null)
     const isDraft = status === 'draft'
+    const showColleagueTransferControls =
+      shouldShowColleagueTransferControls(siteSettings)
 
     const [clientId, setClientId] = useState(
       event?.clientId ?? DEFAULT_EVENT.clientId
@@ -510,7 +513,9 @@ const eventFunc = (
       if (!eventDate) fields.push('Дата начала')
       if (!eventType?.trim()) fields.push('Что за событие')
       if (!servicesIds || servicesIds.length === 0) fields.push('Услуги')
-      if (isTransferred && !colleagueId) fields.push('Коллега')
+      if (showColleagueTransferControls && isTransferred && !colleagueId) {
+        fields.push('Коллега')
+      }
       return fields
     }, [
       clientId,
@@ -519,6 +524,7 @@ const eventFunc = (
       servicesIds,
       isTransferred,
       colleagueId,
+      showColleagueTransferControls,
     ])
     const requiredMissing = missingFields.length > 0
 
@@ -619,6 +625,14 @@ const eventFunc = (
           googleCalendarEventId: item.googleCalendarEventId?.trim() ?? '',
         }))
         .filter((item) => item.title || item.description || item.date)
+      const effectiveIsTransferred = showColleagueTransferControls
+        ? isTransferred
+        : Boolean(initialEventValues.isTransferred)
+      const effectiveColleagueId = showColleagueTransferControls
+        ? isTransferred
+          ? colleagueId
+          : null
+        : (initialEventValues.colleagueId ?? null)
 
       const payload = {
         _id: sourceEventId ?? null,
@@ -626,8 +640,8 @@ const eventFunc = (
         status,
         requestCreatedAt: requestCreatedAt ?? new Date().toISOString(),
         additionalEvents: normalizedAdditionalEvents,
-        isTransferred,
-        colleagueId: isTransferred ? colleagueId : null,
+        isTransferred: effectiveIsTransferred,
+        colleagueId: effectiveIsTransferred ? effectiveColleagueId : null,
         eventDate,
         dateEnd,
         address: normalizeAddressValue(address),
@@ -675,11 +689,13 @@ const eventFunc = (
       eventType,
       financeComment,
       hasDepositTransaction,
+      initialEventValues,
       isByContract,
       isTransferred,
       otherContacts,
       requestCreatedAt,
       servicesIds,
+      showColleagueTransferControls,
       sourceEventId,
       status,
       waitDeposit,
@@ -887,7 +903,7 @@ const eventFunc = (
         addErrorRef.current({ eventType: 'Укажите, что за событие' })
         hasError = true
       }
-      if (isTransferred && !colleagueId) {
+      if (showColleagueTransferControls && isTransferred && !colleagueId) {
         addErrorRef.current({ colleagueId: 'Выберите коллегу' })
         hasError = true
       }
@@ -904,6 +920,7 @@ const eventFunc = (
       eventType,
       isTransferred,
       servicesIds,
+      showColleagueTransferControls,
     ])
 
     const addMinutesToDate = (value, minutes) => {
@@ -1602,28 +1619,32 @@ const eventFunc = (
                 value={description}
                 rows={3}
               />
-              <IconCheckBox
-                checked={isTransferred}
-                onClick={() => {
-                  setIsTransferred((prev) => !prev)
-                  removeError('colleagueId')
-                }}
-                label="Передано коллеге"
-                checkedIcon={faCircleCheck}
-                checkedIconColor="#F97316"
-              />
-              {isTransferred && (
-                <ColleaguePicker
-                  selectedColleague={selectedColleague}
-                  selectedColleagueId={colleagueId}
-                  onSelectClick={openColleagueSelectModal}
-                  label="Коллега"
-                  required={isTransferred}
-                  error={errors.colleagueId}
-                  compact
-                  paddingY
-                  fullWidth
-                />
+              {showColleagueTransferControls && (
+                <>
+                  <IconCheckBox
+                    checked={isTransferred}
+                    onClick={() => {
+                      setIsTransferred((prev) => !prev)
+                      removeError('colleagueId')
+                    }}
+                    label="Передано коллеге"
+                    checkedIcon={faCircleCheck}
+                    checkedIconColor="#F97316"
+                  />
+                  {isTransferred && (
+                    <ColleaguePicker
+                      selectedColleague={selectedColleague}
+                      selectedColleagueId={colleagueId}
+                      onSelectClick={openColleagueSelectModal}
+                      label="Коллега"
+                      required={isTransferred}
+                      error={errors.colleagueId}
+                      compact
+                      paddingY
+                      fullWidth
+                    />
+                  )}
+                </>
               )}
               {!calendarImportChecked && (
                 <IconCheckBox
