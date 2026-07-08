@@ -11,7 +11,6 @@ import usersAtom from '@state/atoms/usersAtom'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import { useEffect, useRef } from 'react'
 import LoadingSpinner from '@components/LoadingSpinner'
-import ReleaseOnboardingCoach from '@components/ReleaseOnboardingCoach'
 import ModalsPortal from '@layouts/modals/ModalsPortal'
 import isSiteLoadingAtom from '@state/atoms/isSiteLoadingAtom'
 import cn from 'classnames'
@@ -50,6 +49,7 @@ import { useClientActions } from '@helpers/useClientsQuery'
 import { useServiceGroupActions } from '@helpers/useEntityQueries'
 import { isPushSupported, syncPushSubscription } from '@helpers/pushClient'
 import useCabinetPerformanceMetrics from '@helpers/useCabinetPerformanceMetrics'
+import { shouldOpenFirstRunWizard } from '@helpers/firstRunWizard.mjs'
 
 const StateLoader = (props) => {
   if (props.error && Object.keys(props.error).length > 0)
@@ -576,27 +576,21 @@ const StateLoader = (props) => {
   }, [queryClient, serverSyncDisabled, snackbar])
 
   useEffect(() => {
-    if (!loggedUser?._id || onboardingShownRef.current) return
-    const firstName = loggedUser?.firstName?.trim() ?? ''
-    const secondName = loggedUser?.secondName?.trim() ?? ''
-    const town = siteSettingsState?.defaultTown?.trim() ?? ''
-    const timeZone = siteSettingsState?.timeZone ?? ''
-    const timeZoneConfirmed =
-      siteSettingsState?.custom?.timeZoneConfirmed === true
-    const needsOnboarding =
-      !firstName || !secondName || !town || !timeZone || !timeZoneConfirmed
+    const shouldOpen = shouldOpenFirstRunWizard({
+      loggedUser,
+      siteSettings: siteSettingsState,
+      alreadyShown: onboardingShownRef.current,
+    })
 
-    if (needsOnboarding && modalFunc?.user?.onboarding) {
+    if (shouldOpen && modalFunc?.user?.firstRunWizard) {
       onboardingShownRef.current = true
-      modalFunc.user.onboarding()
+      modalFunc.user.firstRunWizard()
     }
   }, [
-    loggedUser?._id,
-    loggedUser?.firstName,
-    loggedUser?.secondName,
-    siteSettingsState?.defaultTown,
-    siteSettingsState?.timeZone,
-    siteSettingsState?.custom?.timeZoneConfirmed,
+    loggedUser,
+    siteSettingsState,
+    siteSettingsState?.custom?.firstRunWizardCompleted,
+    siteSettingsState?.custom?.firstRunWizardShowToken,
     modalFunc,
   ])
 
@@ -638,7 +632,6 @@ const StateLoader = (props) => {
       ) : (
         <div className="relative w-full bg-transparent">{props.children}</div>
       )}
-      <ReleaseOnboardingCoach />
       <ModalsPortal />
     </div>
   )
