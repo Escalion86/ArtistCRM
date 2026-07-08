@@ -315,6 +315,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
         canManageUsers ? addModal(userTopupFunc(userId, onSuccess)) : null,
       topupInfo: (userId) => addModal(userTopupInfoFunc(userId)),
       onboarding: () => addModal(userOnboardingFunc()),
+      firstRunWizard: () => addModal(userOnboardingFunc()),
       changePassword: () => addModal(changePasswordFunc()),
       passwordChange: (userId) =>
         canManageUsers ? addModal(userPasswordChangeFunc(userId)) : null,
