@@ -3,6 +3,7 @@ import Services from '@models/Services'
 import Events from '@models/Events'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import { buildTenantSafeUpdate } from '@server/tenantSafeUpdate'
 import { buildServiceDeleteBlockedText } from '@helpers/serviceDeleteCheck'
 
 export const PUT = async (req, { params }) => {
@@ -18,9 +19,10 @@ export const PUT = async (req, { params }) => {
   await dbConnect()
   const service = await Services.findOneAndUpdate(
     { _id: id, tenantId },
-    body,
+    buildTenantSafeUpdate(body),
     {
       returnDocument: 'after',
+      runValidators: true,
     }
   )
   if (!service)

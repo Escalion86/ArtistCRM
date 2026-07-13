@@ -30,7 +30,7 @@ export const useServicesQuery = (initialData) =>
   useQuery({
     queryKey: queryKeys.services(),
     queryFn: async () => normalizeListPayload(await apiJson('/api/services')),
-    initialData: Array.isArray(initialData) ? initialData : [],
+    ...(Array.isArray(initialData) ? { initialData } : {}),
   })
 
 export const useServiceQuery = (serviceId, initialData) =>
@@ -105,7 +105,7 @@ export const useServiceGroupsQuery = (initialData) =>
     queryKey: queryKeys.serviceGroups(),
     queryFn: async () =>
       normalizeListPayload(await apiJson('/api/service-groups')),
-    initialData: Array.isArray(initialData) ? initialData : [],
+    ...(Array.isArray(initialData) ? { initialData } : {}),
   })
 
 export const useServiceGroupActions = () => {
@@ -152,7 +152,7 @@ export const useUsersQuery = (initialData) =>
   useQuery({
     queryKey: queryKeys.users(),
     queryFn: async () => normalizeListPayload(await apiJson('/api/users')),
-    initialData: Array.isArray(initialData) ? initialData : [],
+    ...(Array.isArray(initialData) ? { initialData } : {}),
   })
 
 export const useUserQuery = (userId, initialData) =>
@@ -226,7 +226,7 @@ export const useTariffsQuery = (initialData) =>
   useQuery({
     queryKey: queryKeys.tariffs(),
     queryFn: async () => normalizeListPayload(await apiJson('/api/tariffs')),
-    initialData: Array.isArray(initialData) ? initialData : [],
+    ...(Array.isArray(initialData) ? { initialData } : {}),
   })
 
 export const useTariffQuery = (tariffId, initialData) =>
@@ -318,7 +318,9 @@ export const useSiteSettingsQuery = (initialData) =>
       const payload = await apiJson('/api/site')
       return payload?.data ?? defaultSiteSettings
     },
-    initialData: initialData ?? defaultSiteSettings,
+    ...(initialData !== undefined
+      ? { initialData: initialData ?? defaultSiteSettings }
+      : {}),
   })
 
 // ============ LOGGED USER ============
@@ -330,6 +332,6 @@ export const useLoggedUserQuery = (initialData) =>
       const payload = await apiJson('/api/auth/session')
       return payload?.user ?? payload?.data ?? null
     },
-    initialData: initialData ?? null,
+    ...(initialData !== undefined ? { initialData: initialData ?? null } : {}),
     staleTime: 30000,
   })

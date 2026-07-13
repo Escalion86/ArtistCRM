@@ -1,8 +1,7 @@
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import mongoose from 'mongoose'
 import Events from '@models/Events'
 import Transactions from '@models/Transactions'
-import Histories from '@models/Histories'
 import dbConnect from '@server/dbConnect'
 import {
   deleteEventFromCalendar,
@@ -11,6 +10,7 @@ import {
 } from '@server/CRUD'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import createHistorySafely from '@server/historyAudit'
 import {
   notifyTaskCreated,
   notifyTaskCompleted,
@@ -307,13 +307,16 @@ export const PUT = async (req, { params }) => {
 
   const changes = compareObjectsWithDif(oldEvent, event.toJSON?.() ?? event)
   if (Object.keys(changes).length > 0) {
-    await Histories.create({
-      schema: Events.collection.collectionName,
-      action: 'update',
-      data: [changes],
-      userId: String(user._id),
-      difference: true,
-    })
+    await createHistorySafely(
+      {
+        schema: Events.collection.collectionName,
+        action: 'update',
+        data: [changes],
+        userId: String(user._id),
+        difference: true,
+      },
+      'events.update'
+    )
   }
 
   let responseEvent = event
@@ -429,12 +432,15 @@ export const DELETE = async (req, { params }) => {
       { success: false, error: 'Мероприятие не найдено' },
       { status: 404 }
     )
-  await Histories.create({
-    schema: Events.collection.collectionName,
-    action: 'delete',
-    data: [deleted.toJSON?.() ?? deleted],
-    userId: String(user._id),
-  })
+  await createHistorySafely(
+    {
+      schema: Events.collection.collectionName,
+      action: 'delete',
+      data: [deleted.toJSON?.() ?? deleted],
+      userId: String(user._id),
+    },
+    'events.delete'
+  )
   const additionalCalendarEventIds = Array.isArray(deleted.additionalEvents)
     ? deleted.additionalEvents
         .map((item) =>
@@ -453,36 +459,47 @@ export const DELETE = async (req, { params }) => {
     deleted.calendarImportChecked ||
     deleted.importedFromCalendar
   ) {
-    try {
-      const access = await getUserTariffAccess(user._id)
-      if (access?.allowCalendarSync) {
-        const uniqueCalendarEventIds = Array.from(new Set(calendarEventIds))
-        for (const googleCalendarId of uniqueCalendarEventIds) {
-          try {
-            await deleteEventFromCalendar(
-              googleCalendarId,
-              deleted.googleCalendarCalendarId,
-              user
-            )
-          } catch (error) {
-            if (error?.code !== 404 && error?.code !== 410) {
-              console.log('Google Calendar delete event item error', {
-                eventId: deleted?._id,
+    after(async () => {
+      try {
+        const access = await getUserTariffAccess(user._id)
+        if (access?.allowCalendarSync) {
+          const uniqueCalendarEventIds = Array.from(new Set(calendarEventIds))
+          for (const googleCalendarId of uniqueCalendarEventIds) {
+            try {
+              await deleteEventFromCalendar(
                 googleCalendarId,
-                error,
-              })
+                deleted.googleCalendarCalendarId,
+                user
+              )
+            } catch (error) {
+              if (error?.code !== 404 && error?.code !== 410) {
+                console.log('Google Calendar delete event item error', {
+                  eventId: String(deleted?._id ?? ''),
+                  googleCalendarId,
+                  error: {
+                    name: error?.name,
+                    code: error?.code,
+                  },
+                })
+              }
             }
           }
+          await deleteRelatedEventsFromCalendar(
+            deleted._id,
+            deleted.googleCalendarCalendarId,
+            user
+          )
         }
-        await deleteRelatedEventsFromCalendar(
-          deleted._id,
-          deleted.googleCalendarCalendarId,
-          user
-        )
+      } catch (error) {
+        console.log('Google Calendar delete error', {
+          eventId: String(deleted?._id ?? ''),
+          error: {
+            name: error?.name,
+            code: error?.code,
+          },
+        })
       }
-    } catch (error) {
-      console.log('Google Calendar delete error', error)
-    }
+    })
   }
   return NextResponse.json({ success: true }, { status: 200 })
 }

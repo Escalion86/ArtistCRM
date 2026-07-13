@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import Events from '@models/Events'
-import Histories from '@models/Histories'
 import dbConnect from '@server/dbConnect'
 import { updateEventInCalendar } from '@server/CRUD'
+import createHistorySafely from '@server/historyAudit'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import { notifyTaskCreated } from '@server/taskPushNotifications'
@@ -409,12 +409,15 @@ export const POST = async (req) => {
       ? ''
       : 'calendar_sync_unavailable',
   })
-  await Histories.create({
-    schema: Events.collection.collectionName,
-    action: 'add',
-    data: [event.toJSON()],
-    userId: String(user._id),
-  })
+  await createHistorySafely(
+    {
+      schema: Events.collection.collectionName,
+      action: 'add',
+      data: [event.toJSON()],
+      userId: String(user._id),
+    },
+    'events.create'
+  )
   let responseEvent = event
   if (!event?.importedFromCalendar && access?.allowCalendarSync) {
     try {

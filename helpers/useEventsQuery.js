@@ -89,10 +89,14 @@ export const useEventsQuery = ({
         await apiJson(buildEventsUrl({ scope, dateFrom, dateTo })),
         initialMeta
       ),
-    initialData: {
-      data: Array.isArray(initialData) ? initialData : [],
-      meta: initialMeta ?? {},
-    },
+    ...(Array.isArray(initialData)
+      ? {
+          initialData: {
+            data: initialData,
+            meta: initialMeta ?? {},
+          },
+        }
+      : {}),
     ...options,
   })
 

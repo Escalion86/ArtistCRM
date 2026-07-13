@@ -4,6 +4,7 @@ import Events from '@models/Events'
 import Transactions from '@models/Transactions'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import { buildTenantSafeUpdate } from '@server/tenantSafeUpdate'
 
 export const GET = async (req, { params }) => {
   const { id } = await params
@@ -36,9 +37,14 @@ export const PUT = async (req, { params }) => {
   }
   await dbConnect()
 
-  const client = await Clients.findOneAndUpdate({ _id: id, tenantId }, body, {
-    returnDocument: 'after',
-  })
+  const client = await Clients.findOneAndUpdate(
+    { _id: id, tenantId },
+    buildTenantSafeUpdate(body),
+    {
+      returnDocument: 'after',
+      runValidators: true,
+    }
+  )
   if (!client)
     return NextResponse.json(
       { success: false, error: 'Клиент не найден' },

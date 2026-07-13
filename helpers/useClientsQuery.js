@@ -54,7 +54,7 @@ export const useClientsQuery = (initialData) =>
   useQuery({
     queryKey: queryKeys.clients(),
     queryFn: async () => normalizeListPayload(await apiJson('/api/clients')),
-    initialData: Array.isArray(initialData) ? initialData : [],
+    ...(Array.isArray(initialData) ? { initialData } : {}),
   })
 
 export const useClientQuery = (clientId, initialData) =>
@@ -88,7 +88,10 @@ export const useClientRelationsQuery = (clientId) => {
 
       queryClient.setQueryData(queryKeys.events({ clientId }), {
         data: relations.events,
-        meta: eventsPayload?.meta ?? { scope: 'client', totalCount: relations.events.length },
+        meta: eventsPayload?.meta ?? {
+          scope: 'client',
+          totalCount: relations.events.length,
+        },
       })
       queryClient.setQueryData(
         queryKeys.transactions({ clientId }),

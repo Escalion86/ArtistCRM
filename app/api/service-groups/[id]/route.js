@@ -3,6 +3,7 @@ import ServiceGroups from '@models/ServiceGroups'
 import Services from '@models/Services'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
+import { buildTenantSafeUpdate } from '@server/tenantSafeUpdate'
 
 export const PUT = async (req, { params }) => {
   const { id } = await params
@@ -17,9 +18,10 @@ export const PUT = async (req, { params }) => {
   await dbConnect()
   const group = await ServiceGroups.findOneAndUpdate(
     { _id: id, tenantId },
-    body,
+    buildTenantSafeUpdate(body),
     {
       returnDocument: 'after',
+      runValidators: true,
     }
   )
   if (!group)

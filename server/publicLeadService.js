@@ -1,8 +1,9 @@
 import SiteSettings from '@models/SiteSettings'
 import Clients from '@models/Clients'
 import Events from '@models/Events'
-import Histories from '@models/Histories'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import createHistorySafely from '@server/historyAudit'
+import { sanitizeRawPayload } from './publicLeadPayload.mjs'
 
 const readCustomValue = (custom, key) => {
   if (!custom) return undefined
@@ -30,7 +31,10 @@ const normalizePublicLeadApiKeys = (custom) => {
         .filter((item) => item.key)
     : []
 
-  const legacyKey = normalizeText(readCustomValue(custom, 'publicLeadApiKey'), 256)
+  const legacyKey = normalizeText(
+    readCustomValue(custom, 'publicLeadApiKey'),
+    256
+  )
   if (
     legacyKey &&
     !normalized.some((item) => String(item.key) === String(legacyKey))
@@ -60,22 +64,6 @@ const normalizeServicesIds = (value) => {
     .map((item) => normalizeText(item, 64))
     .filter(Boolean)
     .slice(0, 20)
-}
-
-const SENSITIVE_RAW_PAYLOAD_KEY = /api[_-]?key|token|secret|password|authorization/i
-
-const sanitizeRawPayload = (value, depth = 0) => {
-  if (depth > 4) return null
-  if (Array.isArray(value)) {
-    return value.slice(0, 50).map((item) => sanitizeRawPayload(item, depth + 1))
-  }
-  if (!value || typeof value !== 'object') return value
-
-  return Object.fromEntries(
-    Object.entries(value)
-      .filter(([key]) => !SENSITIVE_RAW_PAYLOAD_KEY.test(String(key)))
-      .map(([key, item]) => [key, sanitizeRawPayload(item, depth + 1)])
-  )
 }
 
 const getPublicLeadApiKey = (req, body, allowApiKeyAlias = false) =>
@@ -272,12 +260,15 @@ const createPublicLeadDraftEvent = async ({
     },
   })
 
-  await Histories.create({
-    schema: Events.collection.collectionName,
-    action: 'add',
-    data: [event.toJSON()],
-    userId: historyUserId,
-  })
+  await createHistorySafely(
+    {
+      schema: Events.collection.collectionName,
+      action: 'add',
+      data: [event.toJSON()],
+      userId: historyUserId,
+    },
+    'public-lead.create'
+  )
 
   return event
 }
@@ -296,4 +287,3 @@ export {
   upsertPublicLeadClient,
   createPublicLeadDraftEvent,
 }
-
