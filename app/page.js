@@ -95,7 +95,7 @@ const faqItems = [
   {
     question: 'Есть ли синхронизация с Google Календарём?',
     answer:
-      'Да, на расширенных тарифах мероприятия и напоминания можно синхронизировать с Google Календарём.',
+      'Да. Доступность синхронизации мероприятий и напоминаний с Google Календарём указана в актуальной таблице тарифов.',
   },
 ]
 
@@ -127,6 +127,20 @@ const steps = [
   ['Контакт', 'Планируете звонок или встречу'],
   ['Оплата', 'Отмечаете задаток и остаток'],
   ['Событие', 'Проводите и закрываете мероприятие'],
+]
+
+const tariffFeatureRows = [
+  { label: 'Работа с заявками и мероприятиями', included: true },
+  { label: 'Клиентская база', included: true },
+  { label: 'Учёт оплат и расходов', included: true },
+  { label: 'Мероприятий в месяц', type: 'eventsLimit' },
+  { label: 'Синхронизация с Google Календарём', key: 'allowCalendarSync' },
+  { label: 'Статистика и аналитика', key: 'allowStatistics' },
+  { label: 'Договоры, акты и документы', key: 'allowDocuments' },
+  { label: 'IP-телефония', key: 'allowTelephony' },
+  { label: 'ИИ-возможности', key: 'allowAi' },
+  { label: 'Интеграция с Avito', key: 'allowAvitoIntegration' },
+  { label: 'Интеграция с VK', key: 'allowVkIntegration' },
 ]
 
 function ArrowIcon() {
@@ -229,21 +243,90 @@ function ProductPreview() {
   )
 }
 
-function TariffFeatures({ isFree }) {
-  const features = isFree
-    ? ['Заявки без ограничений', 'Клиенты без ограничений', 'Учёт оплат']
-    : [
-        'Всё из бесплатного тарифа',
-        'Google Календарь',
-        'Статистика',
-        'Документы',
-      ]
+function TariffAvailability({ available }) {
+  if (!available) {
+    return <span className="landing-tariff-unavailable" aria-label="Недоступно">—</span>
+  }
   return (
-    <ul className="landing-pricing-features">
-      {features.map((feature) => (
-        <li key={feature}><CheckIcon />{feature}</li>
-      ))}
-    </ul>
+    <span className="landing-tariff-available" aria-label="Доступно">
+      <CheckIcon />
+    </span>
+  )
+}
+
+function TariffComparison({ tariffs }) {
+  if (tariffs.length === 0) {
+    return (
+      <div className="landing-pricing-empty">
+        <p>Тарифы временно недоступны. Попробуйте открыть страницу позже.</p>
+        <Link href="/login" className="landing-button landing-button-primary">
+          Перейти в кабинет
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="landing-tariff-scroll" tabIndex="0" aria-label="Сравнение тарифов">
+      <table
+        className="landing-tariff-table"
+        style={{ minWidth: `${280 + tariffs.length * 210}px` }}
+      >
+        <thead>
+          <tr>
+            <th scope="col">Возможности</th>
+            {tariffs.map((tariff) => (
+              <th scope="col" key={String(tariff._id)}>
+                <span>{tariff.title || 'Тариф'}</span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {tariffFeatureRows.map((feature) => (
+            <tr key={feature.label}>
+              <th scope="row">{feature.label}</th>
+              {tariffs.map((tariff) => {
+                if (feature.type === 'eventsLimit') {
+                  return (
+                    <td key={String(tariff._id)} className="landing-tariff-limit">
+                      {formatEventsLimit(tariff.eventsPerMonth)}
+                    </td>
+                  )
+                }
+                const available = feature.included || Boolean(tariff?.[feature.key])
+                return (
+                  <td key={String(tariff._id)}>
+                    <TariffAvailability available={available} />
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row">Стоимость в месяц</th>
+            {tariffs.map((tariff) => {
+              const isFree = Number(tariff?.price ?? 0) === 0
+              return (
+                <td key={String(tariff._id)}>
+                  <strong>{formatPrice(tariff.price)}</strong>
+                  <Link
+                    href="/login?callbackUrl=%2Fcabinet%2Ftariff-select"
+                    className={`landing-button ${
+                      isFree ? 'landing-button-secondary' : 'landing-button-primary'
+                    }`}
+                  >
+                    {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
+                  </Link>
+                </td>
+              )
+            })}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   )
 }
 
@@ -410,37 +493,7 @@ export default async function HomePage() {
             <h2>Начните бесплатно. Расширяйтесь, когда понадобится.</h2>
             <p>Базовые возможности доступны без оплаты — можно спокойно проверить систему на реальной работе.</p>
           </div>
-          <div className="landing-pricing-grid">
-            {publicTariffs.length > 0 ? (
-              publicTariffs.map((tariff) => {
-                const isFree = Number(tariff?.price ?? 0) === 0
-                return (
-                  <article key={String(tariff._id)} className={`landing-tariff ${isFree ? 'is-free' : ''}`}>
-                    <h3>{tariff.title || (isFree ? 'Бесплатный' : 'Расширенный')}</h3>
-                    <strong>{formatPrice(tariff.price)}</strong>
-                    <p>{formatEventsLimit(tariff.eventsPerMonth)}</p>
-                    <Link href="/login" className={`landing-button ${isFree ? 'landing-button-secondary' : 'landing-button-primary'}`}>
-                      {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
-                    </Link>
-                    <TariffFeatures isFree={isFree} />
-                  </article>
-                )
-              })
-            ) : (
-              <>
-                <article className="landing-tariff is-free">
-                  <h3>Бесплатный</h3><strong>0 ₽</strong><p>Для старта и первых заявок</p>
-                  <Link href="/login" className="landing-button landing-button-secondary">Начать бесплатно</Link>
-                  <TariffFeatures isFree />
-                </article>
-                <article className="landing-tariff">
-                  <h3>Расширенный</h3><strong>По тарифу</strong><p>Для активной работы</p>
-                  <Link href="/login" className="landing-button landing-button-primary">Посмотреть тариф</Link>
-                  <TariffFeatures isFree={false} />
-                </article>
-              </>
-            )}
-          </div>
+          <TariffComparison tariffs={publicTariffs} />
         </div>
       </section>
 

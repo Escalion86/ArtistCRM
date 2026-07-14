@@ -1674,15 +1674,14 @@ body.theme-dark .statistics-tooltip {
   font-size: 13px;
 }
 
-.landing-proof span,
-.landing-pricing-features li {
+.landing-proof span {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .landing-proof svg,
-.landing-pricing-features svg,
+.landing-tariff-available svg,
 .landing-payment-status svg,
 .landing-agenda-item i svg,
 .landing-step-visual svg {
@@ -2012,8 +2011,7 @@ body.theme-dark .statistics-tooltip {
 }
 
 .landing-benefit h3,
-.landing-step h3,
-.landing-tariff h3 {
+.landing-step h3 {
   margin-top: 26px;
   font-family: 'Futura PT', sans-serif;
   font-size: 22px;
@@ -2159,61 +2157,163 @@ body.theme-dark .statistics-tooltip {
   text-align: center;
 }
 
-.landing-pricing-grid {
-  display: grid;
-  max-width: 940px;
-  grid-template-columns: repeat(2, 1fr);
-  margin: 72px auto 0;
-  border-top: 1px solid var(--landing-line);
+.landing-tariff-scroll {
+  max-width: 1180px;
+  margin: 64px auto 0;
+  overflow-x: auto;
+  border: 1px solid var(--landing-line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 18px 46px rgba(42, 38, 31, 0.08);
+  scrollbar-color: rgba(154, 107, 39, 0.45) transparent;
+  scrollbar-width: thin;
+}
+
+.landing-tariff-scroll:focus-visible {
+  outline: 3px solid rgba(154, 107, 39, 0.26);
+  outline-offset: 4px;
+}
+
+.landing-tariff-table {
+  width: 100%;
+  min-width: 820px;
+  border-spacing: 0;
+  table-layout: fixed;
+  color: #30302b;
+}
+
+.landing-tariff-table th,
+.landing-tariff-table td {
+  border-right: 1px solid var(--landing-line);
   border-bottom: 1px solid var(--landing-line);
+  padding: 16px 18px;
+  vertical-align: middle;
 }
 
-.landing-tariff {
-  padding: 48px 62px 54px;
+.landing-tariff-table tr > :last-child {
+  border-right: 0;
 }
 
-.landing-tariff + .landing-tariff {
-  border-left: 1px solid var(--landing-line);
+.landing-tariff-table thead th {
+  height: 92px;
+  background: #faf7f1;
+  text-align: center;
 }
 
-.landing-tariff h3 {
-  margin-top: 0;
-  font-size: 28px;
+.landing-tariff-table thead th:first-child,
+.landing-tariff-table tbody th,
+.landing-tariff-table tfoot th {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 280px;
+  text-align: left;
 }
 
-.landing-tariff > strong {
+.landing-tariff-table thead th:first-child {
+  z-index: 3;
+  color: var(--landing-muted);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.landing-tariff-table thead th:not(:first-child) span {
   display: block;
-  min-height: 70px;
-  margin-top: 14px;
-  font-family: 'Futura PT', sans-serif;
-  font-size: clamp(2.8rem, 5vw, 4.2rem);
-  font-weight: 500;
-  letter-spacing: -0.04em;
+  font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.landing-tariff-table tbody th {
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.landing-tariff-table tbody td {
+  text-align: center;
+}
+
+.landing-tariff-table tbody tr:nth-child(even) th,
+.landing-tariff-table tbody tr:nth-child(even) td {
+  background: #fdfbf7;
+}
+
+.landing-tariff-available {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid #a8c4a8;
+  border-radius: 50%;
+  background: #f1f8f1;
+  color: var(--landing-green);
+}
+
+.landing-tariff-unavailable {
+  display: inline-block;
+  color: #aaa79f;
+  font-size: 24px;
+  font-weight: 400;
   line-height: 1;
 }
 
-.landing-tariff > p {
-  min-height: 24px;
-  margin-top: 13px;
-  color: var(--landing-muted);
-  font-size: 15px;
+.landing-tariff-limit {
+  color: #56564f;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
-.landing-tariff .landing-button {
+.landing-tariff-table tfoot th,
+.landing-tariff-table tfoot td {
+  border-bottom: 0;
+  background: var(--landing-bronze-soft);
+}
+
+.landing-tariff-table tfoot th {
+  font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.landing-tariff-table tfoot td {
+  padding: 24px 18px 26px;
+  text-align: center;
+}
+
+.landing-tariff-table tfoot td > strong {
+  display: block;
+  min-height: 32px;
+  font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.landing-tariff-table tfoot .landing-button {
   width: 100%;
-  margin-top: 28px;
+  max-width: 190px;
+  margin-top: 16px;
+  padding-inline: 14px;
 }
 
-.landing-pricing-features {
-  display: grid;
-  gap: 18px;
-  margin-top: 34px;
-  color: #41413c;
-  font-size: 15px;
-}
-
-.landing-pricing-features svg {
-  color: var(--landing-bronze);
+.landing-pricing-empty {
+  display: flex;
+  max-width: 760px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 58px auto 0;
+  border: 1px solid var(--landing-line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 24px;
+  color: var(--landing-muted);
 }
 
 .landing-faq {
@@ -2613,18 +2713,44 @@ body.theme-dark .statistics-tooltip {
     font-size: 21px;
   }
 
-  .landing-pricing-grid {
-    grid-template-columns: 1fr;
-    margin-top: 52px;
+  .landing-tariff-scroll {
+    width: calc(100vw - 16px);
+    margin-top: 46px;
+    margin-left: -8px;
+    border-radius: 14px 0 0 14px;
   }
 
-  .landing-tariff {
-    padding: 38px 16px 44px;
+  .landing-tariff-table {
+    min-width: 760px;
   }
 
-  .landing-tariff + .landing-tariff {
-    border-top: 1px solid var(--landing-line);
-    border-left: 0;
+  .landing-tariff-table th,
+  .landing-tariff-table td {
+    padding: 14px 12px;
+  }
+
+  .landing-tariff-table thead th:first-child,
+  .landing-tariff-table tbody th,
+  .landing-tariff-table tfoot th {
+    width: 190px;
+    box-shadow: 8px 0 18px rgba(42, 38, 31, 0.06);
+  }
+
+  .landing-tariff-table thead th:not(:first-child) span {
+    font-size: 21px;
+  }
+
+  .landing-tariff-table tbody th {
+    font-size: 13px;
+  }
+
+  .landing-tariff-table tfoot td > strong {
+    font-size: 23px;
+  }
+
+  .landing-pricing-empty {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .landing-faq summary {
