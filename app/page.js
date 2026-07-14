@@ -85,7 +85,7 @@ const faqItems = [
   {
     question: 'Нужно ли устанавливать программу?',
     answer:
-      'Нет. ArtistCRM работает в браузере на компьютере и телефоне, а данные хранятся в облаке.',
+      'Не обязательно. ArtistCRM работает в браузере, а при желании его можно установить как PWA-приложение на телефон или компьютер. Данные синхронизируются через облако.',
   },
   {
     question: 'Можно ли начать бесплатно?',
@@ -141,6 +141,7 @@ const tariffFeatureRows = [
   { label: 'ИИ-возможности', key: 'allowAi' },
   { label: 'Интеграция с Avito', key: 'allowAvitoIntegration' },
   { label: 'Интеграция с VK', key: 'allowVkIntegration' },
+  { label: 'Подключение сайта по API', key: 'allowPublicLeadApi' },
 ]
 
 function ArrowIcon() {

@@ -109,6 +109,12 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
             readOnly
             noMargin
           />
+          <IconCheckBox
+            checked={tariff.allowPublicLeadApi}
+            label="Подключение сайта по API"
+            readOnly
+            noMargin
+          />
         </div>
       </div>
     </CardWrapper>
@@ -128,6 +134,7 @@ TariffCard.propTypes = {
     allowAi: PropTypes.bool,
     allowAvitoIntegration: PropTypes.bool,
     allowVkIntegration: PropTypes.bool,
+    allowPublicLeadApi: PropTypes.bool,
     hidden: PropTypes.bool,
   }).isRequired,
   style: PropTypes.shape({}),

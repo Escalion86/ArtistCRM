@@ -560,6 +560,7 @@ const IntegrationsContent = () => {
   const canUseAi = Boolean(tariffAccess?.allowAi)
   const canUseAvito = Boolean(tariffAccess?.allowAvitoIntegration)
   const canUseVk = Boolean(tariffAccess?.allowVkIntegration)
+  const canUsePublicLeadApi = Boolean(tariffAccess?.allowPublicLeadApi)
   const isEnabled = getCustomValue(customSettings, 'publicLeadEnabled') === true
   const endpointUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/api/public/lead'
@@ -933,11 +934,12 @@ const IntegrationsContent = () => {
           </IntegrationAccordion>
         ) : null}
 
-        <IntegrationAccordion
-          title="Входящие заявки API"
-          description="Ключи для сайта, Tilda и других источников заявок."
-          connected={isEnabled && apiKeys.some((item) => item.enabled)}
-        >
+        {canUsePublicLeadApi ? (
+          <IntegrationAccordion
+            title="Входящие заявки API"
+            description="Ключи для сайта, Tilda и других источников заявок."
+            connected={isEnabled && apiKeys.some((item) => item.enabled)}
+          >
           <div className="flex flex-col gap-3">
             <div className="text-sm text-gray-600">
               Создайте отдельный ключ для каждого источника заявок. Название
@@ -1038,7 +1040,8 @@ const IntegrationsContent = () => {
               </InstructionButton>
             </div>
           </div>
-        </IntegrationAccordion>
+          </IntegrationAccordion>
+        ) : null}
 
         {canUseAvito ? (
           <IntegrationAccordion

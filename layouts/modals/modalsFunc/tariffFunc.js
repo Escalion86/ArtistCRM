@@ -45,6 +45,9 @@ const tariffFunc = (tariffId, clone = false) => {
     const [allowVkIntegration, setAllowVkIntegration] = useState(
       tariff?.allowVkIntegration ?? DEFAULT_TARIFF.allowVkIntegration
     )
+    const [allowPublicLeadApi, setAllowPublicLeadApi] = useState(
+      tariff?.allowPublicLeadApi ?? DEFAULT_TARIFF.allowPublicLeadApi
+    )
     const [hidden, setHidden] = useState(
       tariff?.hidden ?? DEFAULT_TARIFF.hidden
     )
@@ -69,6 +72,7 @@ const tariffFunc = (tariffId, clone = false) => {
               allowAi,
               allowAvitoIntegration,
               allowVkIntegration,
+              allowPublicLeadApi,
               hidden,
             },
             clone
@@ -83,6 +87,7 @@ const tariffFunc = (tariffId, clone = false) => {
       allowTelephony,
       allowAi,
       allowVkIntegration,
+      allowPublicLeadApi,
       checkErrors,
       closeModal,
       eventsPerMonth,
@@ -105,6 +110,7 @@ const tariffFunc = (tariffId, clone = false) => {
         tariff?.allowAi !== allowAi ||
         tariff?.allowAvitoIntegration !== allowAvitoIntegration ||
         tariff?.allowVkIntegration !== allowVkIntegration ||
+        tariff?.allowPublicLeadApi !== allowPublicLeadApi ||
         tariff?.hidden !== hidden
 
       setOnConfirmFunc(
@@ -120,6 +126,7 @@ const tariffFunc = (tariffId, clone = false) => {
       allowTelephony,
       allowAi,
       allowVkIntegration,
+      allowPublicLeadApi,
       eventsPerMonth,
       hidden,
       price,
@@ -133,6 +140,7 @@ const tariffFunc = (tariffId, clone = false) => {
       tariff?.allowAi,
       tariff?.allowStatistics,
       tariff?.allowVkIntegration,
+      tariff?.allowPublicLeadApi,
       tariff?.eventsPerMonth,
       tariff?.hidden,
       tariff?.price,
@@ -219,6 +227,12 @@ const tariffFunc = (tariffId, clone = false) => {
               checked={allowVkIntegration}
               onClick={() => setAllowVkIntegration((prev) => !prev)}
               label="Интеграция VK"
+              noMargin
+            />
+            <IconCheckBox
+              checked={allowPublicLeadApi}
+              onClick={() => setAllowPublicLeadApi((prev) => !prev)}
+              label="Подключение сайта по API"
               noMargin
             />
             <IconCheckBox

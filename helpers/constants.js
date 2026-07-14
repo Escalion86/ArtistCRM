@@ -424,6 +424,7 @@ export const DEFAULT_TARIFF = Object.freeze({
   allowAi: false,
   allowAvitoIntegration: false,
   allowVkIntegration: false,
+  allowPublicLeadApi: false,
   hidden: false,
 })
 

@@ -141,11 +141,18 @@ const resolvePublicLeadTenant = async (apiKey) => {
 
   const tenantId = siteSettings.tenantId
   const access = await getUserTariffAccess(tenantId)
-  if (!access?.trialActive && !access?.hasTariff) {
+  if (!access?.hasTariff) {
     return {
       ok: false,
       status: 403,
       error: 'Не выбран тариф',
+    }
+  }
+  if (!access.allowPublicLeadApi) {
+    return {
+      ok: false,
+      status: 403,
+      error: 'Подключение сайта по API недоступно на текущем тарифе',
     }
   }
 

@@ -25,6 +25,7 @@ export const getUserTariffAccess = (user, tariffs = []) => {
     allowAvitoIntegration:
       trialActive || Boolean(tariff?.allowAvitoIntegration),
     allowVkIntegration: trialActive || Boolean(tariff?.allowVkIntegration),
+    allowPublicLeadApi: Boolean(tariff?.allowPublicLeadApi),
     eventsPerMonth: trialActive ? Infinity : Number(tariff?.eventsPerMonth ?? 0),
   }
 }

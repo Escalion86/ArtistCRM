@@ -292,6 +292,12 @@ const TariffSelectContent = () => {
                     readOnly
                     noMargin
                   />
+                  <IconCheckBox
+                    checked={tariff.allowPublicLeadApi}
+                    label="Подключение сайта по API"
+                    readOnly
+                    noMargin
+                  />
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   {loggedUser?.tariffId === tariff._id && (
