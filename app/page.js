@@ -24,9 +24,7 @@ export const metadata = {
     'google календарь для мероприятий',
     'учет клиентов и оплат',
   ],
-  alternates: {
-    canonical: homeUrl,
-  },
+  alternates: { canonical: homeUrl },
   openGraph: {
     type: 'website',
     locale: 'ru_RU',
@@ -67,7 +65,7 @@ export const metadata = {
 export const dynamic = 'force-dynamic'
 
 const formatPrice = (price) => {
-  if (!price || Number(price) === 0) return 'Бесплатно'
+  if (!price || Number(price) === 0) return '0 ₽'
   return `${Number(price).toLocaleString('ru-RU')} ₽/мес`
 }
 
@@ -80,37 +78,179 @@ const formatEventsLimit = (limit) => {
 
 const faqItems = [
   {
-    question: 'Для кого подходит ArtistCRM?',
+    question: 'Подойдёт ли ArtistCRM, если у меня немного мероприятий?',
     answer:
-      'ArtistCRM подходит соло-артистам, ведущим, музыкантам и небольшим командам, которым важно не терять заявки и контролировать сроки мероприятий.',
+      'Да. Бесплатный тариф позволяет вести заявки, клиентов и оплаты без ограничений — можно начать в комфортном темпе.',
   },
   {
-    question: 'Есть ли синхронизация с Google Календарем?',
+    question: 'Нужно ли устанавливать программу?',
     answer:
-      'Да, ArtistCRM поддерживает синхронизацию мероприятий и дополнительных событий с Google Календарем.',
+      'Нет. ArtistCRM работает в браузере на компьютере и телефоне, а данные хранятся в облаке.',
   },
   {
-    question: 'Можно ли вести финансы по мероприятиям?',
+    question: 'Можно ли начать бесплатно?',
     answer:
-      'Да, в системе доступен учет оплат и расходов, контроль задатков, а также базовая аналитика по финансовым результатам мероприятий.',
+      'Да. Создайте кабинет и проверьте основные возможности на реальных заявках без оплаты.',
   },
   {
-    question: 'Можно ли формировать документы по мероприятию?',
+    question: 'Есть ли синхронизация с Google Календарём?',
     answer:
-      'Да, в ArtistCRM доступны шаблоны договоров и актов с автоподстановкой данных из карточки мероприятия.',
-  },
-  {
-    question: 'Работает ли CRM с телефона?',
-    answer:
-      'Да, веб-интерфейс адаптирован под мобильные устройства, чтобы ключевые действия были удобны на смартфоне.',
+      'Да, на расширенных тарифах мероприятия и напоминания можно синхронизировать с Google Календарём.',
   },
 ]
 
+const benefits = [
+  {
+    icon: 'inbox',
+    title: 'Не теряйте заявки',
+    text: 'Следующий контакт и просроченные задачи всегда на виду.',
+  },
+  {
+    icon: 'wallet',
+    title: 'Контролируйте оплаты',
+    text: 'Задатки, остатки и расходы привязаны к мероприятию.',
+  },
+  {
+    icon: 'calendar',
+    title: 'Помните о каждом событии',
+    text: 'Календарь и напоминания помогают держать сроки.',
+  },
+  {
+    icon: 'document',
+    title: 'Готовьте документы быстрее',
+    text: 'Договоры и акты собираются из данных заявки.',
+  },
+]
+
+const steps = [
+  ['Заявка', 'Сохраняете обращение и источник'],
+  ['Контакт', 'Планируете звонок или встречу'],
+  ['Оплата', 'Отмечаете задаток и остаток'],
+  ['Событие', 'Проводите и закрываете мероприятие'],
+]
+
+function ArrowIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M4 10h11M11 6l4 4-4 4" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="m5 10 3 3 7-7" />
+    </svg>
+  )
+}
+
+function FeatureIcon({ type }) {
+  const paths = {
+    inbox: <path d="M4 7h16v12H4V7Zm0 7h4l2 2h4l2-2h4M7 7V4h10v3" />,
+    wallet: <path d="M4 6h15v13H4V6Zm0 3h15m-4 4h4m-2 0v.01M7 6V4h9v2" />,
+    calendar: <path d="M5 5h14v15H5V5Zm0 5h14M8 3v4m8-4v4m-7 7h2m3 0h2" />,
+    document: <path d="M6 3h9l4 4v13H6V3Zm9 0v5h4M9 13h7m-7 3h5" />,
+  }
+  return (
+    <svg className="landing-feature-icon" viewBox="0 0 24 24" aria-hidden="true">
+      {paths[type]}
+    </svg>
+  )
+}
+
+function ProductPreview() {
+  return (
+    <div className="landing-product-wrap landing-reveal" style={{ '--delay': '120ms' }}>
+      <div className="landing-product-outline" />
+      <div className="landing-product">
+        <aside className="landing-product-nav">
+          <div className="landing-product-brand">
+            Artist<span>CRM</span>
+          </div>
+          {['Сегодня', 'Заявки', 'Клиенты', 'Мероприятия', 'Оплаты'].map(
+            (item, index) => (
+              <div
+                key={item}
+                className={`landing-product-nav-row ${index === 0 ? 'is-active' : ''}`}
+              >
+                <span className="landing-product-nav-dot" />
+                {item}
+              </div>
+            )
+          )}
+        </aside>
+        <div className="landing-product-agenda">
+          <div className="landing-product-title-row">
+            <div>
+              <strong>Сегодня</strong>
+              <span>Пятница, 23 мая</span>
+            </div>
+            <span className="landing-product-select">Неделя⌄</span>
+          </div>
+          <div className="landing-agenda-item is-done">
+            <time>10:00</time>
+            <div><strong>Созвон с клиентом</strong><span>Обсудить программу</span></div>
+            <i><CheckIcon /></i>
+          </div>
+          <div className="landing-agenda-item is-done">
+            <time>12:30</time>
+            <div><strong>Проверить оплату</strong><span>Банк, мероприятие 17 мая</span></div>
+            <i><CheckIcon /></i>
+          </div>
+          <div className="landing-agenda-item is-current">
+            <time>15:00</time>
+            <div><strong>Позвонить Анне</strong><span>Свадьба · 24 августа</span></div>
+            <b>☎</b>
+          </div>
+          <div className="landing-agenda-item">
+            <time>18:00</time>
+            <div><strong>Репетиция</strong><span>Студия SoundHall</span></div>
+            <i />
+          </div>
+        </div>
+        <div className="landing-product-event">
+          <div className="landing-product-event-head">
+            <strong>Свадьба · 24 августа</strong>
+            <span>•••</span>
+          </div>
+          <div className="landing-payment-status"><CheckIcon /> Задаток получен</div>
+          <dl>
+            <div><dt>Дата</dt><dd>24 августа, 17:00</dd></div>
+            <div><dt>Клиент</dt><dd>Анна Смирнова</dd></div>
+            <div><dt>Бюджет</dt><dd>150 000 ₽</dd></div>
+          </dl>
+          <div className="landing-payment-row"><span>Задаток</span><strong>45 000 ₽</strong></div>
+          <div className="landing-payment-row is-muted"><span>Остаток</span><strong>105 000 ₽</strong></div>
+          <div className="landing-product-open">Открыть мероприятие</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TariffFeatures({ isFree }) {
+  const features = isFree
+    ? ['Заявки без ограничений', 'Клиенты без ограничений', 'Учёт оплат']
+    : [
+        'Всё из бесплатного тарифа',
+        'Google Календарь',
+        'Статистика',
+        'Документы',
+      ]
+  return (
+    <ul className="landing-pricing-features">
+      {features.map((feature) => (
+        <li key={feature}><CheckIcon />{feature}</li>
+      ))}
+    </ul>
+  )
+}
+
 export default async function HomePage() {
   const session = await getServerSession(authOptions)
-  if (session?.user?._id) {
-    redirect('/cabinet')
-  }
+  if (session?.user?._id) redirect('/cabinet')
+
   let tariffs = []
   try {
     await dbConnect()
@@ -120,7 +260,6 @@ export default async function HomePage() {
   } catch (error) {
     tariffs = []
   }
-
   const publicTariffs = tariffs ?? []
 
   const softwareApplicationSchema = {
@@ -141,16 +280,8 @@ export default async function HomePage() {
             price: Number(tariff?.price ?? 0),
             priceCurrency: 'RUB',
           }))
-        : [
-            {
-              '@type': 'Offer',
-              price: 0,
-              priceCurrency: 'RUB',
-              name: 'Бесплатный тариф',
-            },
-          ],
+        : [{ '@type': 'Offer', price: 0, priceCurrency: 'RUB', name: 'Бесплатный тариф' }],
   }
-
   const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -158,22 +289,18 @@ export default async function HomePage() {
     url: homeUrl,
     logo: `${normalizedSiteUrl}/img/logo-96.webp`,
   }
-
   const faqSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity: faqItems.map((item) => ({
       '@type': 'Question',
       name: item.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.answer,
-      },
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
     })),
   }
 
   return (
-    <main className="relative overflow-hidden home-page">
+    <main className="landing-page">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -184,401 +311,178 @@ export default async function HomePage() {
           ]),
         }}
       />
-      <div className="relative z-20 flex items-center justify-between w-full max-w-6xl px-6 pt-6 mx-auto">
-        <Link href="/" className="flex items-center gap-3 cursor-pointer">
-          <Image
-            src="/img/logo-48.png"
-            alt="ArtistCRM"
-            width={36}
-            height={36}
-            sizes="36px"
-            className="object-cover rounded-full h-9 w-9"
-            priority
-          />
-          <span className="text-sm font-semibold tracking-wide text-black">
-            ArtistCRM
-          </span>
-        </Link>
-        <Link href="/login" className="cursor-pointer ui-btn ui-btn-primary">
-          Войти в систему
-        </Link>
-      </div>
 
-      <div className="absolute inset-0 pointer-events-none home-hero-bg">
-        <div className="absolute right-0 rounded-full from-general/40 -top-24 h-72 w-72 bg-gradient-to-br via-white/10 to-transparent blur-3xl" />
-        <div className="via-general/20 absolute bottom-0 left-0 h-80 w-80 rounded-full bg-gradient-to-tr from-[#c9a86a]/30 to-transparent blur-3xl" />
-        <div className="absolute inset-x-0 top-40 mx-auto h-64 w-[80%] bg-[radial-gradient(circle_at_center,rgba(201,168,106,0.22),transparent_60%)]" />
-      </div>
-
-      <section className="relative flex flex-col max-w-6xl gap-10 px-6 pt-20 pb-16 mx-auto lg:flex-row lg:items-center">
-        <div className="flex-1">
-          <p className="landing-reveal text-general text-sm font-semibold tracking-[0.3em] uppercase">
-            CRM для артистов
-          </p>
-          <h1 className="mt-5 text-4xl font-semibold text-black landing-reveal font-futuraPT sm:text-5xl lg:text-6xl">
-            Соберите все заявки, финансы и клиентов в одном понятном месте
-          </h1>
-          <p className="max-w-xl mt-6 text-base text-gray-700 landing-reveal sm:text-lg">
-            ArtistCRM помогает артистам контролировать заявки, вести учет
-            доходов, держать связь с клиентами и закрывать документы по каждому
-            мероприятию без хаоса и табличек.
-          </p>
-          <p className="max-w-xl mt-3 text-sm text-gray-600 landing-reveal sm:text-base">
-            CRM — это система хранения заявок, клиентов, оплат и историй
-            действий в одном месте.
-          </p>
-          <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-gray-600 landing-reveal">
-            <span className="flex items-center gap-2 px-4 py-2 rounded-full shadow-sm home-chip bg-white/80">
-              Все данные сохраняются в облаке и доступны с любого устройства
-            </span>
-            <span className="flex items-center gap-2 px-4 py-2 rounded-full shadow-sm home-chip bg-white/80">
-              Мобильный кабинет для быстрых действий с заявки
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-4 mt-8 landing-reveal">
-            <Link
-              href="/login"
-              className="cursor-pointer ui-btn ui-btn-primary"
-            >
-              Войти в систему
-            </Link>
-            <Link
-              href="#pricing"
-              className="cursor-pointer ui-btn ui-btn-secondary"
-            >
-              Посмотреть тарифы
-            </Link>
-          </div>
-        </div>
-
-        <div className="relative flex-1 hidden lg:block">
-          <div className="w-full p-6 border shadow-lg home-panel landing-reveal rounded-3xl border-white/70 bg-white/80 backdrop-blur lg:mt-6">
-            <p className="text-general text-xs font-semibold tracking-[0.2em] uppercase">
-              Ключевые моменты
-            </p>
-            <h2 className="mt-3 text-2xl font-semibold text-black font-futuraPT">
-              Полный контроль в одном месте
-            </h2>
-            <p className="mt-3 text-sm text-gray-600">
-              Заявки, клиенты, финансы и документы собираются в ArtistCRM без
-              потерь.
-            </p>
-            <div className="grid gap-3 mt-4">
-              {[
-                'Учет всех поступающих заявок',
-                'Контроль финансов и доходов',
-                'Ведение статистики по мероприятиям',
-                'Работа с клиентами и история общения',
-                'Синхронизация с Google Calendar',
-                'Автоформирование договоров и актов + хранение счетов и чеков',
-                'Интеграция с Tilda и любыми сайтами: заявки сразу в ArtistCRM',
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="px-4 py-3 text-sm text-gray-700 bg-white border shadow-sm home-mini-card rounded-2xl border-gray-200/60"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="w-3 h-3 mt-1 rounded-full bg-general" />
-                    <span className="font-medium text-gray-900">{item}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="relative max-w-6xl px-6 pb-16 mx-auto lg:hidden">
-        <div className="p-8 shadow-lg home-panel landing-reveal rounded-3xl bg-white/70 backdrop-blur sm:p-10">
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div>
-              <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
-                Ключевые моменты
-              </p>
-              <h2 className="mt-4 text-3xl font-semibold text-black font-futuraPT">
-                Полный контроль над артистическим бизнесом
-              </h2>
-              <p className="mt-4 text-sm text-gray-600">
-                Данные по заявкам, доходам, клиентам и документам собираются в
-                единую понятную картину.
-              </p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-              {[
-                'Учет всех поступающих заявок',
-                'Контроль финансов и доходов',
-                'Ведение статистики по мероприятиям',
-                'Работа с клиентами и история общения',
-                'Синхронизация с Google календарем',
-                'Автоформирование договоров и актов + хранение счетов и чеков',
-                'Интеграция с Tilda и любыми сайтами: заявки приходят сразу в ArtistCRM',
-              ].map((item, index) => (
-                <div
-                  key={item}
-                  className="px-4 py-4 text-sm text-gray-700 bg-white border shadow-sm home-mini-card landing-stagger rounded-2xl border-gray-200/60"
-                  style={{ '--delay': `${index * 60 + 60}ms` }}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="w-3 h-3 mt-1 rounded-full bg-general" />
-                    <span className="font-medium text-gray-900">{item}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="relative max-w-6xl px-6 pb-16 mx-auto landing-section-below">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div className="p-8 border shadow-lg home-panel home-panel--light landing-reveal border-general/20 to-general/10 rounded-3xl bg-gradient-to-br from-white via-white">
-            <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
-              Как это работает
-            </p>
-            <h3 className="mt-4 text-2xl font-semibold text-black font-futuraPT">
-              Простая логика без перегруженного интерфейса
-            </h3>
-            <ol className="mt-6 space-y-4 text-sm text-gray-700">
-              {[
-                'Фиксируете входящие заявки в одном списке.',
-                'Система автоматически показывает финансовую картину.',
-                'Клиентская история собирается по каждому событию.',
-                'Договоры и акты формируются автоматически, счета и чеки сохраняются в карточке мероприятия.',
-              ].map((item) => (
-                <li key={item}>
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-6 h-6 text-xs font-semibold rounded-full bg-general/15 text-general min-w-6">
-                      ✓
-                    </span>
-                    <span className="font-medium text-gray-900">{item}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="p-8 border shadow-lg home-panel landing-reveal rounded-3xl border-white/70 bg-white/70 backdrop-blur">
-            <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
-              Работа с клиентами
-            </p>
-            <h3 className="mt-4 text-2xl font-semibold text-black font-futuraPT">
-              Звонки, мессенджеры и важные контакты — рядом с заявкой
-            </h3>
-            <p className="mt-4 text-sm text-gray-600">
-              Вы видите, кто и когда обращался, какое мероприятие обсуждалось, и
-              на каком этапе сейчас находится сделка.
-            </p>
-            <div className="px-4 py-4 mt-6 text-sm text-gray-700 bg-white border home-mini-card rounded-2xl border-gray-200/60">
-              <p className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
-                В планах
-              </p>
-              <p className="mt-2 text-base font-semibold text-black">
-                Контроль звонков и карточка клиента при входящем вызове
-              </p>
-              <p className="mt-2 text-sm text-gray-600">
-                Система подскажет ключевую информацию о клиенте прямо во время
-                разговора.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="pricing" className="relative max-w-6xl px-6 pb-20 mx-auto landing-section-below">
-        <div className="flex flex-col items-start gap-6 landing-reveal sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
-              Тарифы
-            </p>
-            <h2 className="mt-4 text-3xl font-semibold text-black font-futuraPT">
-              Выберите формат работы
-            </h2>
-            <p className="mt-3 text-sm text-gray-600">
-              Подберите вариант, который подходит по объему мероприятий и
-              доступным функциям.
-            </p>
-          </div>
-          <Link href="/login" className="cursor-pointer ui-btn ui-btn-primary">
-            Попробовать бесплатно
+      <header className="landing-header">
+        <div className="landing-container landing-header-inner">
+          <Link href="/" className="landing-logo" aria-label="ArtistCRM — главная">
+            <Image src="/img/logo-48.png" alt="" width={34} height={34} priority />
+            <span>Artist<strong>CRM</strong></span>
           </Link>
+          <nav className="landing-nav" aria-label="Основная навигация">
+            <Link href="#features">Возможности</Link>
+            <Link href="#workflow">Как работает</Link>
+            <Link href="#pricing">Тарифы</Link>
+          </nav>
+          <div className="landing-header-actions">
+            <Link href="/login" className="landing-login-link">Войти</Link>
+            <Link href="/login" className="landing-button landing-button-primary landing-header-cta">
+              <span className="landing-header-cta-full">Попробовать бесплатно</span>
+              <span className="landing-header-cta-short">Начать бесплатно</span>
+            </Link>
+          </div>
         </div>
+      </header>
 
-        <div className="grid gap-6 mt-8 lg:grid-cols-2">
-          {publicTariffs.length > 0 ? (
-            publicTariffs.map((tariff, index) => {
-              const isFree = Number(tariff?.price ?? 0) === 0
-              const features = isFree
-                ? [
-                    'Создание заявок без ограничений',
-                    'Ведение клиентов без ограничений',
-                    'Учет полученных оплат от клиентов',
-                  ]
-                : [
-                    'Все что в бесплатном тарифе',
-                    'Синхронизация с Google календарем',
-                    'Просмотр статистики',
-                    'Автоформирование договоров/актов и хранение счетов/чеков',
-                  ]
-              return (
-                <div
-                  key={tariff._id}
-                  className={`landing-reveal rounded-3xl border ${
-                    index % 2 === 0
-                      ? 'home-panel border-gray-200/70 bg-white'
-                      : 'home-panel border-general/30 from-general/10 bg-gradient-to-br via-white to-white'
-                  } p-8 shadow-lg`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-2xl font-semibold text-black font-futuraPT">
-                      {tariff.title || 'Тариф'}
-                    </h3>
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-general/15 text-general">
-                      {formatPrice(tariff.price)}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-gray-600">
-                    {formatEventsLimit(tariff.eventsPerMonth)}
-                  </p>
-                  <ul className="mt-6 space-y-3 text-sm text-gray-700">
-                    {features.map((name) => (
-                      <li key={name} className="flex items-start gap-3">
-                        <span className="w-2 h-2 mt-1 rounded-full bg-general" />
-                        <span className="font-medium text-gray-900">
-                          {name}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )
-            })
-          ) : (
-            <div className="p-8 text-sm text-gray-500 bg-white border shadow-lg home-panel rounded-3xl border-gray-200/70">
-              Тарифы пока не настроены. Скоро здесь появятся варианты подписки.
+      <section className="landing-hero">
+        <div className="landing-container landing-hero-grid">
+          <div className="landing-hero-copy">
+            <h1 className="landing-reveal">Заявки, деньги и клиенты — под вашим контролем</h1>
+            <p className="landing-hero-lead landing-reveal" style={{ '--delay': '60ms' }}>
+              ArtistCRM помогает артистам не терять обращения, вовремя
+              связываться с клиентами и видеть оплаты по каждому мероприятию.
+            </p>
+            <div className="landing-hero-actions landing-reveal" style={{ '--delay': '100ms' }}>
+              <Link href="/login" className="landing-button landing-button-primary">Попробовать бесплатно</Link>
+              <Link href="#features" className="landing-arrow-link">Посмотреть возможности <ArrowIcon /></Link>
             </div>
-          )}
+            <div className="landing-proof landing-reveal" style={{ '--delay': '140ms' }}>
+              {['Быстрый старт', 'Работает с телефона', 'Данные в облаке'].map((item) => (
+                <span key={item}><CheckIcon />{item}</span>
+              ))}
+            </div>
+          </div>
+          <ProductPreview />
         </div>
+        <div className="landing-hero-rule" aria-hidden="true"><span /></div>
       </section>
 
-      <section className="relative max-w-6xl px-6 pb-16 mx-auto landing-section-below">
-        <div className="p-8 border shadow-lg home-panel rounded-3xl border-white/70 bg-white/80 backdrop-blur">
-          <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
-            FAQ
-          </p>
-          <h2 className="mt-4 text-3xl font-semibold text-black font-futuraPT">
-            Частые вопросы об ArtistCRM
-          </h2>
-          <div className="mt-6 space-y-4">
-            {faqItems.map((item) => (
-              <article
-                key={item.question}
-                className="p-5 bg-white border rounded-2xl border-gray-200/70"
-              >
-                <h3 className="text-lg font-semibold text-black">
-                  {item.question}
-                </h3>
-                <p className="mt-2 text-sm text-gray-700">{item.answer}</p>
+      <section id="features" className="landing-section landing-features landing-section-below">
+        <div className="landing-container">
+          <div className="landing-section-head">
+            <h2>Всё важное — в одном месте</h2>
+            <p>Не нужно собирать работу по чатам, таблицам и заметкам.</p>
+          </div>
+          <div className="landing-benefits">
+            {benefits.map((benefit, index) => (
+              <article key={benefit.title} className="landing-benefit">
+                <div className="landing-benefit-top">
+                  <FeatureIcon type={benefit.icon} />
+                  {index < benefits.length - 1 && <ArrowIcon />}
+                </div>
+                <h3>{benefit.title}</h3>
+                <p>{benefit.text}</p>
               </article>
+            ))}
+          </div>
+          <div className="landing-system-line" aria-hidden="true">
+            {['Заявка создана', 'Контакт запланирован', 'Задаток получен', 'Мероприятие проведено'].map((item) => (
+              <span key={item}><i />{item}</span>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="relative max-w-6xl px-6 pb-16 mx-auto landing-section-below">
-        <div className="p-8 border shadow-lg home-panel rounded-3xl border-white/70 bg-white">
-          <p className="text-general text-sm font-semibold tracking-[0.3em] uppercase">
-            Сравнение
-          </p>
-          <h2 className="mt-4 text-3xl font-semibold text-black font-futuraPT">
-            Почему ArtistCRM удобнее таблиц и чатов
-          </h2>
-          <p className="mt-3 text-sm text-gray-600">
-            Когда заявки ведутся в заметках, мессенджерах и Excel, легко
-            пропустить клиента или платеж. В ArtistCRM все ключевые данные
-            хранятся в одной системе.
-          </p>
-          <div className="grid gap-4 mt-6 sm:grid-cols-2">
-            {[
-              {
-                title: 'Контроль заявок и сроков',
-                oldWay:
-                  'Статусы и перезвоны теряются в переписках и отдельных файлах.',
-                crmWay:
-                  'По каждой заявке видно этап, ближайший контакт и историю действий.',
-              },
-              {
-                title: 'Финансы по мероприятиям',
-                oldWay:
-                  'Сложно понять фактическую прибыль и состояние оплат в реальном времени.',
-                crmWay:
-                  'Доходы, расходы, задатки и комментарии по финансам собираются в карточке события.',
-              },
-              {
-                title: 'Документы и договоренности',
-                oldWay:
-                  'Шаблоны и финальные версии документов хранятся в разных местах.',
-                crmWay:
-                  'Договоры и акты формируются из данных мероприятия и остаются в едином контуре.',
-              },
-              {
-                title: 'Календарь и напоминания',
-                oldWay:
-                  'Напоминания создаются вручную и легко дублируются или пропадают.',
-                crmWay:
-                  'Синхронизация с Google Календарем и дополнительные события помогают не пропускать важное.',
-              },
-            ].map((item) => (
-              <article
-                key={item.title}
-                className="p-5 border rounded-2xl border-gray-200/70 bg-gray-50/50"
-              >
-                <h3 className="text-lg font-semibold text-black">{item.title}</h3>
-                <p className="mt-3 text-sm text-gray-600">
-                  <span className="font-semibold text-gray-800">
-                    Таблицы/чаты:
-                  </span>{' '}
-                  {item.oldWay}
-                </p>
-                <p className="mt-2 text-sm text-gray-700">
-                  <span className="font-semibold text-general">ArtistCRM:</span>{' '}
-                  {item.crmWay}
-                </p>
+      <section id="workflow" className="landing-section landing-workflow landing-section-below">
+        <div className="landing-container">
+          <div className="landing-section-head landing-section-head-wide">
+            <h2>От первого сообщения до закрытого мероприятия</h2>
+          </div>
+          <div className="landing-steps">
+            {steps.map(([title, text], index) => (
+              <article key={title} className="landing-step">
+                <span className="landing-step-number">{String(index + 1).padStart(2, '0')}</span>
+                <div className="landing-step-visual">
+                  <span>{['Новая заявка', 'Звонок · 14:00', 'Задаток · 30 000 ₽', 'Проведено и закрыто'][index]}</span>
+                  <CheckIcon />
+                </div>
+                <h3>{title}</h3>
+                <p>{text}</p>
               </article>
+            ))}
+          </div>
+          <blockquote>Система подсказывает, что требует внимания сегодня.</blockquote>
+        </div>
+      </section>
+
+      <section id="pricing" className="landing-section landing-pricing landing-section-below">
+        <div className="landing-container">
+          <div className="landing-section-head landing-section-head-centered">
+            <h2>Начните бесплатно. Расширяйтесь, когда понадобится.</h2>
+            <p>Базовые возможности доступны без оплаты — можно спокойно проверить систему на реальной работе.</p>
+          </div>
+          <div className="landing-pricing-grid">
+            {publicTariffs.length > 0 ? (
+              publicTariffs.map((tariff) => {
+                const isFree = Number(tariff?.price ?? 0) === 0
+                return (
+                  <article key={String(tariff._id)} className={`landing-tariff ${isFree ? 'is-free' : ''}`}>
+                    <h3>{tariff.title || (isFree ? 'Бесплатный' : 'Расширенный')}</h3>
+                    <strong>{formatPrice(tariff.price)}</strong>
+                    <p>{formatEventsLimit(tariff.eventsPerMonth)}</p>
+                    <Link href="/login" className={`landing-button ${isFree ? 'landing-button-secondary' : 'landing-button-primary'}`}>
+                      {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
+                    </Link>
+                    <TariffFeatures isFree={isFree} />
+                  </article>
+                )
+              })
+            ) : (
+              <>
+                <article className="landing-tariff is-free">
+                  <h3>Бесплатный</h3><strong>0 ₽</strong><p>Для старта и первых заявок</p>
+                  <Link href="/login" className="landing-button landing-button-secondary">Начать бесплатно</Link>
+                  <TariffFeatures isFree />
+                </article>
+                <article className="landing-tariff">
+                  <h3>Расширенный</h3><strong>По тарифу</strong><p>Для активной работы</p>
+                  <Link href="/login" className="landing-button landing-button-primary">Посмотреть тариф</Link>
+                  <TariffFeatures isFree={false} />
+                </article>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-section landing-faq landing-section-below">
+        <div className="landing-container landing-faq-inner">
+          <div className="landing-section-head"><h2>Коротко о главном</h2></div>
+          <div className="landing-faq-list">
+            {faqItems.map((item, index) => (
+              <details key={item.question} open={index === 0}>
+                <summary><span>{item.question}</span><i aria-hidden="true" /></summary>
+                <p>{item.answer}</p>
+              </details>
             ))}
           </div>
         </div>
       </section>
 
-      <footer className="border-t home-footer border-gray-200/70 bg-white/70 landing-section-below">
-        <div className="flex flex-col w-full max-w-6xl gap-4 px-6 py-8 mx-auto text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
-          <span>© {new Date().getFullYear()} ArtistCRM</span>
-          <div className="flex flex-wrap gap-4">
-            <Link
-              href="/privacy"
-              className="text-general"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Политика конфиденциальности
-            </Link>
-            <Link
-              href="/terms"
-              className="text-general"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Пользовательское соглашение
-            </Link>
-            <Link
-              href="/payment"
-              className="text-general"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Оплата и возвраты
-            </Link>
+      <section className="landing-cta landing-section-below">
+        <div className="landing-container landing-cta-inner">
+          <h2>Сосредоточьтесь на клиентах — порядок ArtistCRM возьмёт на себя.</h2>
+          <div>
+            <Link href="/login" className="landing-button landing-button-primary">Попробовать бесплатно</Link>
+            <Link href="/login" className="landing-cta-link">Войти в кабинет</Link>
           </div>
         </div>
+      </section>
+
+      <footer className="landing-footer landing-section-below">
+        <div className="landing-container landing-footer-grid">
+          <div>
+            <Link href="/" className="landing-logo"><span>Artist<strong>CRM</strong></span></Link>
+            <p>CRM для артистов и event-профессионалов</p>
+          </div>
+          <nav aria-label="Навигация в подвале">
+            <Link href="#features">Возможности</Link>
+            <Link href="#pricing">Тарифы</Link>
+            <Link href="/privacy">Политика конфиденциальности</Link>
+            <Link href="/terms">Пользовательское соглашение</Link>
+            <Link href="/payment">Оплата и возвраты</Link>
+          </nav>
+        </div>
+        <div className="landing-container landing-copyright">© {new Date().getFullYear()} ArtistCRM. Все права защищены.</div>
       </footer>
     </main>
   )
