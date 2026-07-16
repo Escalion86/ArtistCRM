@@ -1,0 +1,20 @@
+appId: ru.escalion.artistcrm
+name: Пользователь повторяет failed-операцию из очереди
+env:
+  EXPECTED_QUEUE_ITEM: "Maestro очередь"
+---
+- launchApp:
+    clearState: false
+- openLink: artistcrm://sync
+- assertVisible: "Синхронизация"
+- scrollUntilVisible:
+    element:
+      text: ${EXPECTED_QUEUE_ITEM}
+    direction: DOWN
+- assertVisible: ${EXPECTED_QUEUE_ITEM}
+- assertVisible:
+    id: "retry-sync-operation"
+- tapOn:
+    id: "retry-sync-operation"
+- assertNotVisible:
+    id: "retry-sync-operation"

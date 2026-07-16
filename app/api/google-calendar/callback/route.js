@@ -4,6 +4,8 @@ import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import { handleMobileGoogleCalendarCallback } from '@server/mobile/googleCalendarOAuth'
+import { isMobileOAuthState } from '@server/mobile/oauthState'
 import {
   getOAuthClient,
   normalizeCalendarReminders,
@@ -34,6 +36,13 @@ const normalizeBaseUrl = (value) => {
 }
 
 export const GET = async (req) => {
+  const { searchParams } = req.nextUrl
+  const code = searchParams.get('code')
+  const state = searchParams.get('state')
+  if (isMobileOAuthState(state)) {
+    return handleMobileGoogleCalendarCallback({ code, state })
+  }
+
   const { user } = await getTenantContext()
   if (!user?._id) {
     return NextResponse.json(
@@ -49,10 +58,6 @@ export const GET = async (req) => {
       { status: 500 }
     )
   }
-
-  const { searchParams } = req.nextUrl
-  const code = searchParams.get('code')
-  const state = searchParams.get('state')
   const cookieState = req.cookies.get('gc_oauth_state')?.value
 
   if (!code) {

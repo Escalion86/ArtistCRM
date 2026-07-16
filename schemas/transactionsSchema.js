@@ -1,6 +1,10 @@
 import { Schema } from 'mongoose'
 
 const transactionsSchema = {
+  syncVersion: {
+    type: Number,
+    default: 1,
+  },
   tenantId: {
     type: Schema.Types.ObjectId,
     ref: 'Users',

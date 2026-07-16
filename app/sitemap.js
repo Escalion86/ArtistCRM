@@ -36,5 +36,11 @@ export default function sitemap() {
       changeFrequency: 'yearly',
       priority: 0.4,
     },
+    {
+      url: `${normalizedSiteUrl}/account-deletion`,
+      lastModified: SEO_LAST_MODIFIED,
+      changeFrequency: 'yearly',
+      priority: 0.4,
+    },
   ]
 }

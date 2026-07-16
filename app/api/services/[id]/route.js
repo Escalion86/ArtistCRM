@@ -2,14 +2,18 @@ import { NextResponse } from 'next/server'
 import Services from '@models/Services'
 import Events from '@models/Events'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import { buildTenantSafeUpdate } from '@server/tenantSafeUpdate'
 import { buildServiceDeleteBlockedText } from '@helpers/serviceDeleteCheck'
+import {
+  recordSyncTombstone,
+  withSyncVersionIncrement,
+} from '@server/mobile/sync'
 
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -19,7 +23,7 @@ export const PUT = async (req, { params }) => {
   await dbConnect()
   const service = await Services.findOneAndUpdate(
     { _id: id, tenantId },
-    buildTenantSafeUpdate(body),
+    withSyncVersionIncrement(buildTenantSafeUpdate(body)),
     {
       returnDocument: 'after',
       runValidators: true,
@@ -35,7 +39,7 @@ export const PUT = async (req, { params }) => {
 
 export const DELETE = async (req, { params }) => {
   const { id } = await params
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -62,5 +66,11 @@ export const DELETE = async (req, { params }) => {
       { success: false, error: 'Услуга не найдена' },
       { status: 404 }
     )
+  await recordSyncTombstone({
+    tenantId,
+    entityType: 'services',
+    entityId: id,
+    version: deleted.syncVersion,
+  })
   return NextResponse.json({ success: true }, { status: 200 })
 }

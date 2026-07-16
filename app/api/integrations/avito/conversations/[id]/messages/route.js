@@ -21,7 +21,7 @@ const jsonError = (message, status = 400, code = 'avito_error') =>
   )
 
 export const GET = async (req, { params }) => {
-  const accessResult = await requireTenantIntegrationAccess('avito')
+  const accessResult = await requireTenantIntegrationAccess('avito', req)
   if (!accessResult.ok) {
     return jsonError(accessResult.error, accessResult.status, 'tariff_required')
   }
@@ -53,7 +53,7 @@ export const GET = async (req, { params }) => {
 }
 
 export const POST = async (req, { params }) => {
-  const accessResult = await requireTenantIntegrationAccess('avito')
+  const accessResult = await requireTenantIntegrationAccess('avito', req)
   if (!accessResult.ok) {
     return jsonError(accessResult.error, accessResult.status, 'tariff_required')
   }

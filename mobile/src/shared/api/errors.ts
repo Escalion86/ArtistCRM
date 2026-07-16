@@ -14,7 +14,14 @@ export class ApiError extends Error {
 }
 
 export const parseApiError = async (res: Response) => {
-  const fallback = new ApiError('Неизвестная ошибка API', res.status)
+  const contentType = res.headers?.get?.('content-type') || ''
+  const fallbackMessage =
+    res.status === 404 && !contentType.includes('application/json')
+      ? 'Мобильный API пока недоступен на сервере ArtistCRM. Обновите сервер и повторите вход.'
+      : res.status >= 500
+        ? 'Сервер ArtistCRM временно недоступен. Попробуйте ещё раз позже.'
+        : `Сервер вернул ошибку HTTP ${res.status}`
+  const fallback = new ApiError(fallbackMessage, res.status)
 
   try {
     const json = (await res.json()) as Partial<ApiErrorShape>

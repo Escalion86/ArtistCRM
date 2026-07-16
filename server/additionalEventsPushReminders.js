@@ -1,7 +1,8 @@
 ﻿import Events from '@models/Events'
 import SiteSettings from '@models/SiteSettings'
 import PushReminderLogs from '@models/PushReminderLogs'
-import { logPushDelivery, sendPushToTenant } from '@server/pushNotifications'
+import { logPushDelivery } from '@server/pushNotifications'
+import { sendMultiChannelPushToTenant } from '@server/multiChannelPush'
 import { shouldRunForTenantReminderTime } from '@server/additionalEventsReminderTime'
 
 const DEFAULT_TIME_ZONE = 'Asia/Krasnoyarsk'
@@ -416,7 +417,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
     const stats = getTenantStats(tenantId)
     stats.sentReminders += 1
 
-    const result = await sendPushToTenant({
+    const result = await sendMultiChannelPushToTenant({
       tenantId,
       payload,
       source: 'push_reminder_summary',

@@ -19,7 +19,8 @@ import {
   notifyApiLeadCreated,
 } from '@server/publicLeadPush'
 
-const AVITO_API_BASE_URL = 'https://api.avito.ru'
+const AVITO_API_BASE_URL =
+  process.env.AVITO_API_BASE_URL || 'https://api.avito.ru'
 
 const getFirstString = (...values) => {
   const value = values.find(

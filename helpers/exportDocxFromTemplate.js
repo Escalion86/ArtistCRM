@@ -270,12 +270,18 @@ const buildSignaturesTableNode = (doc, payload) => {
   return table
 }
 
-const replacePartiesTablesInXml = (documentXml) => {
-  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+const replacePartiesTablesInXml = (
+  documentXml,
+  {
+    DOMParserImpl = globalThis.DOMParser,
+    XMLSerializerImpl = globalThis.XMLSerializer,
+  } = {}
+) => {
+  if (!DOMParserImpl || !XMLSerializerImpl) {
     return documentXml
   }
 
-  const parser = new DOMParser()
+  const parser = new DOMParserImpl()
   const xmlDoc = parser.parseFromString(String(documentXml ?? ''), 'application/xml')
   if (xmlDoc.getElementsByTagName('parsererror').length > 0) return documentXml
 
@@ -315,7 +321,7 @@ const replacePartiesTablesInXml = (documentXml) => {
     paragraph.parentNode.replaceChild(tableNode, paragraph)
   })
 
-  return new XMLSerializer().serializeToString(xmlDoc)
+  return new XMLSerializerImpl().serializeToString(xmlDoc)
 }
 
 
@@ -365,3 +371,4 @@ const exportDocxFromTemplate = async ({
 }
 
 export default exportDocxFromTemplate
+export { replacePartiesTablesInXml, toDocxtemplaterData, toDocxTemplateKey }

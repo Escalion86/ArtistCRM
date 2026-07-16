@@ -1,255 +1,162 @@
-import { useEffect, useState } from 'react'
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
-import { useLocalSearchParams, router } from 'expo-router'
-import { getAuthToken } from '../../src/shared/auth/tokenStore'
-import { env } from '../../src/shared/config/env'
+import { useEffect, useMemo, useState } from 'react'
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
+import { router, useLocalSearchParams } from 'expo-router'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import type { Client, Event, Transaction } from '../../../src/shared/domain/types'
+import { getCachedEntity, listCachedEntities } from '../../../src/shared/storage/cache'
+import { Button, EmptyState, PageHeader, Screen, SectionTitle, StatusChip, Surface } from '../../../src/shared/ui/components'
+import { colors, radius, spacing } from '../../../src/shared/ui/theme'
 
-interface Client {
-  _id: string
-  firstName: string
-  secondName: string
-  thirdName: string
-  phone?: number
-  whatsapp?: number
-  telegram?: string
-  email?: string
-  vk?: string
-  instagram?: string
-  comment?: string
-  clientType?: string
-  town?: string
-  preferredContactChannel?: string
-  significantDates?: Array<{ title: string; date: string; comment?: string }>
+const open = (url: string) => Linking.openURL(url).catch(() => undefined)
+const money = (value: number) => `${new Intl.NumberFormat('ru-RU').format(value)} ₽`
+const clientTypeLabel: Record<string, string> = {
+  none: '', host: 'Ведущий', organizer: 'Организатор', colleague: 'Коллега',
+}
+const channelLabel: Record<string, string> = {
+  phone: 'Телефон', telegram: 'Telegram', whatsapp: 'WhatsApp', max: 'MAX',
+  vk: 'VK', other: 'Другой канал',
 }
 
 export default function ClientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const [client, setClient] = useState<Client | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [events, setEvents] = useState<Event[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
 
   useEffect(() => {
-    if (id) loadClient()
+    if (!id) return
+    Promise.all([
+      getCachedEntity<Client>('clients', id),
+      listCachedEntities<Event>('events'),
+      listCachedEntities<Transaction>('transactions'),
+    ]).then(([clientItem, eventItems, transactionItems]) => {
+      setClient(clientItem)
+      setEvents(eventItems)
+      setTransactions(transactionItems)
+    })
   }, [id])
 
-  const loadClient = async () => {
-    try {
-      const token = await getAuthToken()
-      if (!token) {
-        router.replace('/(auth)/login')
-        return
-      }
+  const relatedEvents = useMemo(() => events
+    .filter((event) => event.clientId === id || event.otherContacts?.some((contact) => contact.clientId === id))
+    .sort((a, b) => new Date(b.eventDate || 0).getTime() - new Date(a.eventDate || 0).getTime()), [events, id])
+  const relatedEventIds = useMemo(() => new Set(relatedEvents.map((event) => event._id)), [relatedEvents])
+  const relatedTransactions = useMemo(() => transactions
+    .filter((transaction) => transaction.clientId === id || Boolean(transaction.eventId && relatedEventIds.has(transaction.eventId)))
+    .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()), [id, relatedEventIds, transactions])
 
-      const response = await fetch(`${env.apiBaseUrl}/clients/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+  if (!client) return <Screen><PageHeader title="Клиент" /><EmptyState title="Клиент не найден" description="Возможно, запись удалена на другом устройстве." /></Screen>
 
-      if (!response.ok) {
-        throw new Error('Failed to load client')
-      }
-
-      const data = await response.json()
-      setClient(data.data)
-    } catch (err: any) {
-      setError(err.message || 'Ошибка загрузки')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#8a6f3b" />
-      </View>
-    )
-  }
-
-  if (error || !client) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.error}>{error || 'Клиент не найден'}</Text>
-        <Pressable style={styles.retryButton} onPress={loadClient}>
-          <Text style={styles.retryText}>Повторить</Text>
-        </Pressable>
-      </View>
-    )
-  }
-
-  const name = `${client.firstName || ''} ${client.secondName || ''} ${client.thirdName || ''}`.trim() || 'Без имени'
+  const name = [client.firstName, client.secondName, client.thirdName].filter(Boolean).join(' ') || 'Без имени'
+  const phone = String(client.phone || '').replace(/\D/g, '')
+  const whatsapp = String(client.whatsapp || client.phone || '').replace(/\D/g, '')
+  const telegram = (client.telegram || '').replace(/^@/, '')
+  const vkUrl = client.vk?.startsWith('http') ? client.vk : client.vk ? `https://vk.com/${client.vk.replace(/^@/, '')}` : ''
+  const income = relatedTransactions.filter((item) => item.type === 'income' && item.paymentMethod !== 'obligation').reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const expense = relatedTransactions.filter((item) => item.type === 'expense' && item.paymentMethod !== 'obligation').reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const obligations = relatedTransactions.filter((item) => item.paymentMethod === 'obligation').reduce((sum, item) => sum + Number(item.amount || 0), 0)
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>{name}</Text>
+    <Screen>
+      <PageHeader
+        title={name}
+        subtitle={[clientTypeLabel[client.clientType || 'none'] || client.clientType, client.town].filter(Boolean).join(' · ')}
+        action={<Pressable style={styles.edit} onPress={() => router.push(`/clients/edit/${client._id}` as never)}><MaterialCommunityIcons name="pencil-outline" size={21} color={colors.primary} /></Pressable>}
+      />
+      {client.syncStatus && client.syncStatus !== 'synced' ? <View style={styles.statusRow}><StatusChip label="Ожидает синхронизации" tone="warning" /></View> : null}
+      <View style={styles.actions}>
+        {phone ? <Action icon="phone-outline" label="Позвонить" onPress={() => open(`tel:${phone}`)} /> : null}
+        {whatsapp ? <Action icon="whatsapp" label="WhatsApp" onPress={() => open(`https://wa.me/${whatsapp}`)} /> : null}
+        {telegram ? <Action icon="send-outline" label="Telegram" onPress={() => open(client.telegram?.startsWith('http') ? client.telegram : `https://t.me/${telegram}`)} /> : null}
+        {vkUrl ? <Action icon="alpha-v-box" label="VK" onPress={() => open(vkUrl)} /> : null}
+        {client.town ? <Action icon="map-marker-outline" label="Карты" onPress={() => open(`geo:0,0?q=${encodeURIComponent(client.town || '')}`)} /> : null}
+      </View>
 
-      {client.phone ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>Телефон</Text>
-          <Text style={styles.value}>{String(client.phone)}</Text>
-        </View>
-      ) : null}
+      <Surface>
+        <SectionTitle>Контакты</SectionTitle>
+        <Info label="Телефон" value={String(client.phone || '')} />
+        <Info label="Email" value={client.email} />
+        <Info label="Telegram" value={client.telegram} />
+        <Info label="Instagram" value={client.instagram} />
+        <Info label="VK" value={client.vk} />
+        <Info label="Приоритетный канал" value={client.preferredContactChannel === 'other' ? client.preferredContactChannelOther : channelLabel[client.preferredContactChannel || '']} />
+      </Surface>
 
-      {client.email ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.value}>{client.email}</Text>
-        </View>
-      ) : null}
-
-      {client.telegram ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>Telegram</Text>
-          <Text style={styles.value}>{client.telegram}</Text>
-        </View>
-      ) : null}
-
-      {client.whatsapp ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>WhatsApp</Text>
-          <Text style={styles.value}>{String(client.whatsapp)}</Text>
-        </View>
-      ) : null}
-
-      {client.vk ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>VK</Text>
-          <Text style={styles.value}>{client.vk}</Text>
-        </View>
-      ) : null}
-
-      {client.instagram ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>Instagram</Text>
-          <Text style={styles.value}>{client.instagram}</Text>
-        </View>
-      ) : null}
-
-      {client.town ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>Город</Text>
-          <Text style={styles.value}>{client.town}</Text>
-        </View>
-      ) : null}
-
-      {client.clientType && client.clientType !== 'none' ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>Тип</Text>
-          <Text style={styles.value}>{client.clientType}</Text>
-        </View>
-      ) : null}
-
-      {client.preferredContactChannel ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>Предпочтительный канал</Text>
-          <Text style={styles.value}>{client.preferredContactChannel}</Text>
-        </View>
-      ) : null}
-
-      {client.comment ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>Комментарий</Text>
-          <Text style={styles.value}>{client.comment}</Text>
-        </View>
-      ) : null}
-
-      {client.significantDates && client.significantDates.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.label}>Важные даты</Text>
+      {client.comment ? <Surface><SectionTitle>Комментарий</SectionTitle><Text style={styles.comment}>{client.comment}</Text></Surface> : null}
+      {client.significantDates?.length ? (
+        <Surface>
+          <SectionTitle>Значимые даты</SectionTitle>
           {client.significantDates.map((date, index) => (
-            <View key={index} style={styles.dateItem}>
-              <Text style={styles.dateTitle}>{date.title}</Text>
-              <Text style={styles.dateValue}>
-                {date.date ? new Date(date.date).toLocaleDateString('ru-RU') : ''}
-              </Text>
-              {date.comment ? <Text style={styles.dateComment}>{date.comment}</Text> : null}
+            <View key={date._id || `${date.title}-${index}`} style={styles.significantDate}>
+              <View style={styles.dateIcon}><MaterialCommunityIcons name="calendar-heart" size={20} color={colors.primary} /></View>
+              <View style={styles.grow}>
+                <Text style={styles.dateName}>{date.title || 'Дата'}</Text>
+                <Text style={styles.dateValue}>{date.date ? new Date(date.date).toLocaleDateString('ru-RU') : 'Дата не указана'}</Text>
+                {date.comment ? <Text style={styles.muted}>{date.comment}</Text> : null}
+              </View>
             </View>
           ))}
-        </View>
+        </Surface>
       ) : null}
 
-      <View style={styles.spacer} />
-    </ScrollView>
+      <Surface>
+        <SectionTitle>Мероприятия · {relatedEvents.length}</SectionTitle>
+        {relatedEvents.length ? relatedEvents.map((event) => (
+          <Pressable key={event._id} style={styles.relatedRow} onPress={() => router.push(`/events/${event._id}` as never)}>
+            <View style={styles.grow}>
+              <Text style={styles.relatedTitle}>{event.eventType || 'Мероприятие'}</Text>
+              <Text style={styles.muted}>{event.eventDate ? new Date(event.eventDate).toLocaleString('ru-RU') : 'Дата не назначена'}</Text>
+            </View>
+            {event.contractSum ? <Text style={styles.relatedAmount}>{money(event.contractSum)}</Text> : null}
+            <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textMuted} />
+          </Pressable>
+        )) : <Text style={styles.emptyText}>Связанных мероприятий пока нет.</Text>}
+      </Surface>
+
+      <Surface>
+        <SectionTitle>Финансы · {relatedTransactions.length}</SectionTitle>
+        <View style={styles.financeSummary}>
+          <FinanceValue label="Доход" value={income} tone="success" />
+          <FinanceValue label="Расход" value={expense} tone="danger" />
+          <FinanceValue label="Обязательства" value={obligations} tone="warning" />
+        </View>
+        {relatedTransactions.map((transaction) => (
+          <Pressable key={transaction._id} style={styles.relatedRow} onPress={() => router.push(`/finance/edit/${transaction._id}` as never)}>
+            <View style={styles.grow}><Text style={styles.relatedTitle}>{transaction.category || 'Без категории'}</Text><Text style={styles.muted}>{transaction.date ? new Date(transaction.date).toLocaleDateString('ru-RU') : 'Без даты'}</Text></View>
+            <Text style={[styles.relatedAmount, transaction.type === 'income' ? styles.income : styles.expense]}>{transaction.type === 'income' ? '+' : '−'}{money(Number(transaction.amount || 0))}</Text>
+          </Pressable>
+        ))}
+        {!relatedTransactions.length ? <Text style={styles.emptyText}>Связанных транзакций пока нет.</Text> : null}
+      </Surface>
+
+      <Button title="Переписки Avito и VK" variant="secondary" onPress={() => router.push({ pathname: '/conversations', params: { clientId: client._id } } as never)} />
+      <Button title="Добавить транзакцию" variant="secondary" onPress={() => router.push({ pathname: '/finance/edit/new', params: { clientId: client._id } } as never)} />
+      <Button title="Новое мероприятие" onPress={() => router.push({ pathname: '/events/edit/new', params: { clientId: client._id } } as never)} />
+      <Button title="Объединить дубликат" variant="secondary" disabled={client._id.startsWith('local-') || Boolean(client.syncStatus && client.syncStatus !== 'synced')} onPress={() => router.push(`/clients/${client._id}/merge` as never)} />
+    </Screen>
   )
 }
 
+const Info = ({ label, value }: { label: string; value?: string }) => value ? <View style={styles.info}><Text style={styles.label}>{label}</Text><Text style={styles.value}>{value}</Text></View> : null
+const Action = ({ icon, label, onPress }: { icon: keyof typeof MaterialCommunityIcons.glyphMap; label: string; onPress: () => void }) => <Pressable accessibilityRole="button" style={styles.action} onPress={onPress}><View style={styles.actionIcon}><MaterialCommunityIcons name={icon} size={23} color={colors.primary} /></View><Text style={styles.actionLabel}>{label}</Text></Pressable>
+const FinanceValue = ({ label, value, tone }: { label: string; value: number; tone: 'success' | 'danger' | 'warning' }) => <View style={[styles.financeValue, tone === 'success' ? styles.financeSuccess : tone === 'danger' ? styles.financeDanger : styles.financeWarning]}><Text style={styles.financeLabel}>{label}</Text><Text style={styles.financeAmount}>{money(value)}</Text></View>
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#f5f6f8',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1c1d1f',
-    marginBottom: 20,
-  },
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginBottom: 4,
-    fontWeight: '500',
-  },
-  value: {
-    fontSize: 15,
-    color: '#1c1d1f',
-  },
-  dateItem: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-  },
-  dateTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1c1d1f',
-  },
-  dateValue: {
-    fontSize: 13,
-    color: '#8a6f3b',
-    marginTop: 2,
-  },
-  dateComment: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  error: {
-    fontSize: 14,
-    color: '#dc2626',
-    marginBottom: 12,
-  },
-  retryButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#8a6f3b',
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  spacer: {
-    height: 40,
-  },
+  edit: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  statusRow: { flexDirection: 'row' },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', gap: spacing.sm },
+  action: { width: 62, minHeight: 68, alignItems: 'center', gap: 6 },
+  actionIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  actionLabel: { color: colors.text, fontSize: 11, fontWeight: '700' },
+  info: { gap: 3, paddingVertical: 5 }, label: { color: colors.textMuted, fontSize: 11 }, value: { color: colors.text, fontSize: 15 },
+  comment: { color: colors.text, fontSize: 14, lineHeight: 21 }, grow: { flex: 1 }, muted: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
+  significantDate: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.xs },
+  dateIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  dateName: { color: colors.text, fontSize: 14, fontWeight: '700' }, dateValue: { color: colors.text, fontSize: 13, marginTop: 2 },
+  relatedRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  relatedTitle: { color: colors.text, fontSize: 14, fontWeight: '700' }, relatedAmount: { color: colors.text, fontSize: 12, fontWeight: '700' },
+  income: { color: colors.success }, expense: { color: colors.danger }, emptyText: { color: colors.textMuted, fontSize: 13 },
+  financeSummary: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  financeValue: { minWidth: 96, flex: 1, padding: spacing.sm, borderRadius: radius.md },
+  financeSuccess: { backgroundColor: colors.successSoft }, financeDanger: { backgroundColor: colors.dangerSoft }, financeWarning: { backgroundColor: colors.warningSoft },
+  financeLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '700' }, financeAmount: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 3 },
 })

@@ -103,6 +103,19 @@ const callsSchema = {
     type: Date,
     default: null,
   },
+  callResult: {
+    type: String,
+    enum: ['answered', 'no_answer', 'callback', 'follow_up', ''],
+    default: '',
+  },
+  callResultNote: {
+    type: String,
+    default: '',
+  },
+  callResultAt: {
+    type: Date,
+    default: null,
+  },
   recordingPushSentAt: {
     type: Date,
     default: null,

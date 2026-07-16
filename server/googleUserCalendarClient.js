@@ -39,7 +39,19 @@ const getOAuthClient = () => {
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET
   const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI
   if (!clientId || !clientSecret || !redirectUri) return null
-  return new google.auth.OAuth2(clientId, clientSecret, redirectUri)
+  const endpoints = {}
+  if (process.env.GOOGLE_OAUTH_AUTH_URL) {
+    endpoints.oauth2AuthBaseUrl = process.env.GOOGLE_OAUTH_AUTH_URL
+  }
+  if (process.env.GOOGLE_OAUTH_TOKEN_URL) {
+    endpoints.oauth2TokenUrl = process.env.GOOGLE_OAUTH_TOKEN_URL
+  }
+  return new google.auth.OAuth2({
+    clientId,
+    clientSecret,
+    redirectUri,
+    ...(Object.keys(endpoints).length ? { endpoints } : {}),
+  })
 }
 
 const normalizeCalendarReminders = (value) => {
@@ -163,7 +175,12 @@ const getUserOAuthClient = (user) => {
 const getUserCalendarClient = (user) => {
   const auth = getUserOAuthClient(user)
   if (!auth) return null
-  return google.calendar({ version: 'v3', auth })
+  const rootUrl = process.env.GOOGLE_CALENDAR_API_BASE_URL
+  return google.calendar({
+    version: 'v3',
+    auth,
+    ...(rootUrl ? { rootUrl: `${rootUrl.replace(/\/$/, '')}/` } : {}),
+  })
 }
 
 const listUserCalendars = async (user) => {

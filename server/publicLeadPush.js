@@ -1,8 +1,8 @@
 import {
   countActivePushSubscriptions,
   logPushDelivery,
-  sendPushToTenant,
 } from '@server/pushNotifications'
+import { sendMultiChannelPushToTenant } from '@server/multiChannelPush'
 
 const formatPhone = (value) => {
   const digits = String(value || '').replace(/\D/g, '')
@@ -43,7 +43,11 @@ const buildApiLeadPushPayload = ({ event, normalizedData }) => {
 const notifyApiLeadCreated = async ({ tenantId, event, normalizedData }) => {
   if (!tenantId || !event?._id) return null
   const payload = buildApiLeadPushPayload({ event, normalizedData })
-  return sendPushToTenant({ tenantId, payload, source: 'public_lead' })
+  return sendMultiChannelPushToTenant({
+    tenantId,
+    payload,
+    source: 'public_lead',
+  })
 }
 
 const getPublicLeadPushState = async ({ tenantId, configured }) => {

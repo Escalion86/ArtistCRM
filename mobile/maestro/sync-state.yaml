@@ -1,0 +1,19 @@
+appId: ru.escalion.artistcrm
+name: Состояние синхронизации переживает offline-перезапуск
+---
+- setAirplaneMode: enabled
+- launchApp:
+    clearState: false
+- openLink: artistcrm://sync
+- tapOn:
+    id: "sync-now"
+- assertVisible: "Нет сети"
+- killApp
+- launchApp:
+    stopApp: false
+- openLink: artistcrm://sync
+- assertVisible: "Нет сети"
+- setAirplaneMode: disabled
+- tapOn:
+    id: "sync-now"
+- assertVisible: "Всё синхронизировано"

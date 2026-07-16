@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import { getTenantAiSettings } from '@server/aiSettings'
 import { transcribeAudioBlob } from '@server/callTranscription'
 import getUserTariffAccess from '@server/getUserTariffAccess'
@@ -9,7 +9,7 @@ const MAX_AUDIO_BYTES = 25 * 1024 * 1024
 
 export async function POST(request) {
   try {
-    const { tenantId, user } = await getTenantContext()
+    const { tenantId, user } = await getRequestContext(request)
     if (!tenantId) {
       return NextResponse.json(
         { success: false, error: 'Неавторизованный доступ' },

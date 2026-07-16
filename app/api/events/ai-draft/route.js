@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import Clients from '@models/Clients'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 
@@ -16,7 +16,7 @@ import getUserTariffAccess from '@server/getUserTariffAccess'
 export async function POST(request) {
   try {
     // --- авторизация ---
-    const { tenantId, user } = await getTenantContext()
+    const { tenantId, user } = await getRequestContext(request)
     if (!tenantId) {
       return NextResponse.json(
         { error: 'Неавторизованный доступ', fields: null },

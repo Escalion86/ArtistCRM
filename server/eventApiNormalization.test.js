@@ -15,6 +15,7 @@ test('normalizes event document file metadata', () => {
       size: '2048',
       type: 'application/pdf',
       uploadedAt: '2026-06-24T05:00:00.000Z',
+      mobileUploadId: ' 123e4567-e89b-42d3-a456-426614174000 ',
     },
     {
       name: 'empty-url.pdf',
@@ -25,6 +26,7 @@ test('normalizes event document file metadata', () => {
 
   assert.deepEqual(files, [
     {
+      mobileUploadId: '123e4567-e89b-42d3-a456-426614174000',
       name: 'Договор.pdf',
       description: 'Подписанный договор',
       url: 'https://cloud.escalion.ru/uploads/artistcrm/events/1/contract.pdf',
@@ -33,6 +35,17 @@ test('normalizes event document file metadata', () => {
       uploadedAt: '2026-06-24T05:00:00.000Z',
     },
   ])
+})
+
+test('does not add an empty mobile upload id to legacy files', () => {
+  const [file] = normalizeEventDocumentFiles([
+    {
+      name: 'legacy.pdf',
+      url: 'https://cloud.escalion.ru/uploads/artistcrm/events/1/legacy.pdf',
+    },
+  ])
+
+  assert.equal(Object.hasOwn(file, 'mobileUploadId'), false)
 })
 
 test('detects document files as documents', () => {

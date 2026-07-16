@@ -66,7 +66,7 @@ export const POST = async (req, { params }) => {
   const { id } = await params
   const body = await req.json().catch(() => ({}))
   const decision = String(body?.decision || '').trim()
-  const accessResult = await requireTelephonyTariffAccess()
+  const accessResult = await requireTelephonyTariffAccess(req)
   if (!accessResult.ok) {
     return NextResponse.json(
       { success: false, error: accessResult.error },

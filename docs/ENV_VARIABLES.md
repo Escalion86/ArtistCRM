@@ -17,6 +17,8 @@ NEXTAUTH_SECRET=...
 - Биллинг Точка: `TOCHKA_*`
 - Push и cron: `BILLING_CRON_SECRET`, `PUSH_REMINDERS_CRON_SECRET`, `VAPID_*`
 - VK ID: `VK_*`, `NEXT_PUBLIC_VK_*`
+- Изолированные auth/integration tests: server-only overrides `VK_ID_BASE_URL`, `AVITO_API_BASE_URL`, `VK_API_BASE_URL`; в production оставлять незаданными, чтобы использовать официальные upstream.
+- Изолированные Google integration tests: `GOOGLE_OAUTH_AUTH_URL`, `GOOGLE_OAUTH_TOKEN_URL`, `GOOGLE_CALENDAR_API_BASE_URL`; в production не задавать.
 - Подтверждение телефона: `TELEFONIP`, `TELEFONIP_API_BASE_URL`, `PHONE_SMS_SEND_WEBHOOK`
 - Generic telephony webhook: `TELEPHONY_WEBHOOK_SECRET`, только если используется глобальный generic endpoint
 - Telegram: `TELEGRAM_TOKEN`, только если используется отправка сообщений через Telegram bot

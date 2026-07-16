@@ -8,7 +8,7 @@ import {
   deleteRelatedEventsFromCalendar,
   updateEventInCalendar,
 } from '@server/CRUD'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import createHistorySafely from '@server/historyAudit'
 import {
@@ -17,6 +17,7 @@ import {
   notifyTaskUpdated,
 } from '@server/taskPushNotifications'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
+import { recordSyncTombstone } from '@server/mobile/sync'
 import {
   hasDocuments,
   normalizeAdditionalEvents,
@@ -101,7 +102,7 @@ const getNextStatus = (current, body) => {
 
 export const GET = async (req, { params }) => {
   const { id } = await params
-  const { tenantId, user } = await getTenantContext()
+  const { tenantId, user } = await getRequestContext(req)
   if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -124,7 +125,7 @@ export const GET = async (req, { params }) => {
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const { tenantId, user } = await getTenantContext()
+  const { tenantId, user } = await getRequestContext(req)
   if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -210,6 +211,7 @@ export const PUT = async (req, { params }) => {
   }
 
   const update = {}
+  update.syncVersion = Number(oldEvent?.syncVersion || 1) + 1
   if (body.eventDate !== undefined)
     update.eventDate = body.eventDate ? new Date(body.eventDate) : null
   if (body.dateEnd !== undefined)
@@ -358,9 +360,9 @@ export const PUT = async (req, { params }) => {
       const newTask = newTasks[i]
       const oldTask = oldTasks[i]
 
-      if (!newTask || newTask.done) continue
+      if (!newTask) continue
 
-      if (!oldTask) {
+      if (!oldTask && !newTask.done) {
         // New task added
         notifyTaskCreated({
           tenantId,
@@ -369,11 +371,11 @@ export const PUT = async (req, { params }) => {
         }).catch((err) =>
           console.log('Push notification error (task created)', err)
         )
-      } else if (
+      } else if (!newTask.done && (
         oldTask.title !== newTask.title ||
         String(oldTask.date) !== String(newTask.date) ||
         oldTask.description !== newTask.description
-      ) {
+      )) {
         // Task updated
         notifyTaskUpdated({
           tenantId,
@@ -405,7 +407,7 @@ export const PUT = async (req, { params }) => {
 
 export const DELETE = async (req, { params }) => {
   const { id } = await params
-  const { tenantId, user } = await getTenantContext()
+  const { tenantId, user } = await getRequestContext(req)
   if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -441,6 +443,12 @@ export const DELETE = async (req, { params }) => {
     },
     'events.delete'
   )
+  await recordSyncTombstone({
+    tenantId,
+    entityType: 'events',
+    entityId: id,
+    version: deleted.syncVersion,
+  })
   const additionalCalendarEventIds = Array.isArray(deleted.additionalEvents)
     ? deleted.additionalEvents
         .map((item) =>

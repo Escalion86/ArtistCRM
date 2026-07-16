@@ -24,6 +24,7 @@ const formatTimeLabel = (date) => {
 
 const buildTaskPushPayload = ({ event, task, triggerType }) => {
   const eventId = String(event?._id || '')
+  const taskId = String(task?._id || '')
   const eventTitle = String(event?.eventType || 'Мероприятие').trim() || 'Мероприятие'
   const taskTitle = String(task?.title || 'Задача').trim() || 'Задача'
   const taskDate = toDate(task?.date)
@@ -89,12 +90,14 @@ const buildTaskPushPayload = ({ event, task, triggerType }) => {
     data: {
       url: deepLinkUrl,
       eventId,
+      taskId,
       type: `task_${triggerType}`,
       taskTitle,
       eventTitle,
     },
     priority,
     tag,
+    categoryId: triggerType === 'task_completed' ? undefined : 'task-actions',
   }
 }
 

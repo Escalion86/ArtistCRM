@@ -4,7 +4,7 @@ import Events from '@models/Events'
 import Services from '@models/Services'
 import Transactions from '@models/Transactions'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 
 const EVENT_STATUSES = new Set([
@@ -56,7 +56,7 @@ const buildEventQuery = ({ tenantId, year, town }) => {
 
 export const GET = async (req) => {
   try {
-    const { tenantId, user } = await getTenantContext()
+    const { tenantId, user } = await getRequestContext(req)
     if (!tenantId || !user?._id) {
       return NextResponse.json(
         { success: false, error: 'Не авторизован' },
@@ -64,7 +64,7 @@ export const GET = async (req) => {
       )
     }
 
-    const access = await getUserTariffAccess(user._id)
+    const access = await getUserTariffAccess(tenantId)
     if (!access?.allowStatistics) {
       return NextResponse.json(
         { success: false, error: 'Статистика недоступна на текущем тарифе' },

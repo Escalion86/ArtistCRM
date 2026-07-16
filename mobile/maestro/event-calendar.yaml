@@ -1,0 +1,17 @@
+appId: ru.escalion.artistcrm
+---
+- launchApp:
+    clearState: false
+- tapOn: "Мероприятия"
+- tapOn:
+    id: "events-view-calendar"
+- assertVisible:
+    id: "calendar-today"
+- tapOn: "Предыдущий месяц"
+- tapOn:
+    id: "calendar-today"
+- tapOn: "Следующий месяц"
+- tapOn: "Сегодня"
+- assertVisible:
+    id: "calendar-today"
+

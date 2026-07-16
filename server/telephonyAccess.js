@@ -1,5 +1,5 @@
 import Users from '@models/Users'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 
 const DEV_ONLY_ERROR = 'Функция IP-телефонии и AI-заявок доступна только разработчику'
@@ -8,8 +8,8 @@ const TARIFF_ERROR =
 const AI_TARIFF_ERROR =
   'ИИ-возможности доступны только на тарифе с включенной опцией ИИ-возможности'
 
-export const requireTelephonyDevAccess = async () => {
-  const { tenantId, user } = await getTenantContext()
+export const requireTelephonyDevAccess = async (req) => {
+  const { tenantId, user } = await getRequestContext(req)
   if (!tenantId || !user?._id) {
     return {
       ok: false,
@@ -45,8 +45,8 @@ export const isTelephonyTenantAllowed = async (tenantId) => {
   return owner?.role === 'dev'
 }
 
-export const requireTelephonyTariffAccess = async () => {
-  const { tenantId, user } = await getTenantContext()
+export const requireTelephonyTariffAccess = async (req) => {
+  const { tenantId, user } = await getRequestContext(req)
   if (!tenantId || !user?._id) {
     return {
       ok: false,
@@ -57,7 +57,7 @@ export const requireTelephonyTariffAccess = async () => {
     }
   }
 
-  const access = await getUserTariffAccess(user._id)
+  const access = await getUserTariffAccess(tenantId)
   if (!access?.allowTelephony) {
     return {
       ok: false,
@@ -78,8 +78,8 @@ export const requireTelephonyTariffAccess = async () => {
   }
 }
 
-export const requireAiTariffAccess = async () => {
-  const baseAccess = await requireTelephonyTariffAccess()
+export const requireAiTariffAccess = async (req) => {
+  const baseAccess = await requireTelephonyTariffAccess(req)
   if (!baseAccess.ok) return baseAccess
 
   if (!baseAccess.access?.allowAi) {

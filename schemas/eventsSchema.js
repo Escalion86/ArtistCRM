@@ -1,6 +1,14 @@
 import { Schema } from 'mongoose'
 
 const eventsSchema = {
+  syncVersion: {
+    type: Number,
+    default: 1,
+  },
+  isDemo: {
+    type: Boolean,
+    default: false,
+  },
   tenantId: {
     type: Schema.Types.ObjectId,
     ref: 'Users',
@@ -89,6 +97,7 @@ const eventsSchema = {
   documentFiles: {
     type: [
       {
+        mobileUploadId: { type: String, default: '' },
         name: { type: String, default: '' },
         description: { type: String, default: '' },
         url: { type: String, default: '' },

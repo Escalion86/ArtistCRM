@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import Services from '@models/Services'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 
-export const GET = async () => {
-  const { tenantId } = await getTenantContext()
+export const GET = async (req) => {
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -20,7 +20,7 @@ export const GET = async () => {
 
 export const POST = async (req) => {
   const body = await req.json()
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },

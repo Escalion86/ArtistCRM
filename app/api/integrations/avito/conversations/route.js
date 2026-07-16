@@ -8,7 +8,7 @@ const isObjectId = (value) =>
   Boolean(value && mongoose.Types.ObjectId.isValid(String(value)))
 
 export const GET = async (req) => {
-  const accessResult = await requireTenantIntegrationAccess('avito')
+  const accessResult = await requireTenantIntegrationAccess('avito', req)
   if (!accessResult.ok) {
     return NextResponse.json(
       {

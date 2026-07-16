@@ -2,8 +2,8 @@ import SiteSettings from '@models/SiteSettings'
 import {
   countActivePushSubscriptions,
   logPushDelivery,
-  sendPushToTenant,
 } from '@server/pushNotifications'
+import { sendMultiChannelPushToTenant } from '@server/multiChannelPush'
 import { getCallRecordingNotificationState } from '@helpers/callRecordingPrompt.mjs'
 
 const readCustomValue = (custom, key) =>
@@ -79,5 +79,9 @@ export const notifyCallRecordingReady = async ({
     },
   }
 
-  return sendPushToTenant({ tenantId, payload, source: 'novofon' })
+  return sendMultiChannelPushToTenant({
+    tenantId,
+    payload,
+    source: 'novofon',
+  })
 }

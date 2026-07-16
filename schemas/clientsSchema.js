@@ -2,6 +2,10 @@ import { DEFAULT_USERS_NOTIFICATIONS } from '@helpers/constants'
 import { Schema } from 'mongoose'
 
 const clientsSchema = {
+  syncVersion: {
+    type: Number,
+    default: 1,
+  },
   tenantId: {
     type: Schema.Types.ObjectId,
     ref: 'Users',

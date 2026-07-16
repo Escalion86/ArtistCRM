@@ -1,0 +1,18 @@
+appId: ru.escalion.artistcrm
+name: Новый DOCX-шаблон требует файл
+---
+- launchApp:
+    clearState: false
+- openLink: artistcrm://more/documents/template/new
+- assertVisible: "Новый DOCX-шаблон"
+- tapOn:
+    id: "template-name"
+- inputText: "Maestro шаблон без файла"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "save-template"
+    direction: DOWN
+- tapOn:
+    id: "save-template"
+- assertVisible: "Выберите DOCX-файл"

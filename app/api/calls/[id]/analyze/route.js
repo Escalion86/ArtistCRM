@@ -7,7 +7,7 @@ import { requireAiTariffAccess } from '@server/telephonyAccess'
 
 export const POST = async (req, { params }) => {
   const { id } = await params
-  const access = await requireAiTariffAccess()
+  const access = await requireAiTariffAccess(req)
   if (!access.ok) {
     return NextResponse.json(
       { success: false, error: access.error },

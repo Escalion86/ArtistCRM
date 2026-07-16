@@ -1,5 +1,7 @@
 import { Redirect } from 'expo-router'
+import { useAuth } from '../src/shared/auth/AuthProvider'
 
 export default function IndexScreen() {
-  return <Redirect href="/(auth)/login" />
+  const { authenticated } = useAuth()
+  return <Redirect href={authenticated ? '/(tabs)' : '/(auth)/login'} />
 }

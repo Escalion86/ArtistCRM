@@ -9,7 +9,8 @@ import Transactions from '@models/Transactions'
 import VkConversations from '@models/VkConversations'
 import VkMessages from '@models/VkMessages'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
+import { recordSyncTombstone } from '@server/mobile/sync'
 
 const isObjectId = (value) =>
   Boolean(value && mongoose.Types.ObjectId.isValid(String(value)))
@@ -98,6 +99,7 @@ const mergeMissingClientFields = (target, duplicate) => {
     'vk',
     'preferredContactChannel',
     'preferredContactChannelOther',
+    'clientType',
     'town',
     'legalName',
     'inn',
@@ -123,6 +125,21 @@ const mergeMissingClientFields = (target, duplicate) => {
     update.comment = [targetComment, duplicateComment].filter(Boolean).join('\n\n')
   }
 
+  const significantDates = []
+  const significantDateKeys = new Set()
+  for (const item of [...(target?.significantDates || []), ...(duplicate?.significantDates || [])]) {
+    const date = item?.date ? new Date(item.date).toISOString() : ''
+    const title = String(item?.title || '').trim()
+    const comment = String(item?.comment || '').trim()
+    const key = `${title.toLowerCase()}|${date}|${comment.toLowerCase()}`
+    if ((!title && !date && !comment) || significantDateKeys.has(key)) continue
+    significantDateKeys.add(key)
+    significantDates.push({ title, date: item?.date || null, comment })
+  }
+  if (significantDates.length !== (target?.significantDates || []).length) {
+    update.significantDates = significantDates
+  }
+
   return update
 }
 
@@ -138,7 +155,7 @@ const loadClients = async ({ tenantId, targetClientId, duplicateClientId }) => {
 }
 
 export const GET = async (req, { params }) => {
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
 
   const routeParams = await params
@@ -175,7 +192,7 @@ export const GET = async (req, { params }) => {
 }
 
 export const POST = async (req, { params }) => {
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
 
   const routeParams = await params
@@ -215,20 +232,23 @@ export const POST = async (req, { params }) => {
   ] = await Promise.all([
     Events.updateMany(
       { tenantId, clientId: duplicateObjectId },
-      { $set: { clientId: targetObjectId } }
+      { $set: { clientId: targetObjectId }, $inc: { syncVersion: 1 } }
     ),
     Events.updateMany(
       { tenantId, 'otherContacts.clientId': duplicateObjectId },
-      { $set: { 'otherContacts.$[contact].clientId': targetObjectId } },
+      {
+        $set: { 'otherContacts.$[contact].clientId': targetObjectId },
+        $inc: { syncVersion: 1 },
+      },
       { arrayFilters: [{ 'contact.clientId': duplicateObjectId }] }
     ),
     Events.updateMany(
       { tenantId, colleagueId: duplicateObjectId },
-      { $set: { colleagueId: targetObjectId } }
+      { $set: { colleagueId: targetObjectId }, $inc: { syncVersion: 1 } }
     ),
     Transactions.updateMany(
       { tenantId, clientId: duplicateObjectId },
-      { $set: { clientId: targetObjectId } }
+      { $set: { clientId: targetObjectId }, $inc: { syncVersion: 1 } }
     ),
     AvitoConversations.updateMany(
       { tenantId, clientId: duplicateObjectId },
@@ -250,13 +270,14 @@ export const POST = async (req, { params }) => {
       { tenantId, linkedClientId: duplicateObjectId },
       { $set: { linkedClientId: targetObjectId } }
     ),
-    Object.keys(clientUpdate).length
-      ? Clients.findOneAndUpdate(
-          { _id: targetObjectId, tenantId },
-          { $set: clientUpdate },
-          { returnDocument: 'after' }
-        )
-      : Clients.findOne({ _id: targetObjectId, tenantId }),
+    Clients.findOneAndUpdate(
+      { _id: targetObjectId, tenantId },
+      {
+        ...(Object.keys(clientUpdate).length ? { $set: clientUpdate } : {}),
+        $inc: { syncVersion: 1 },
+      },
+      { returnDocument: 'after', runValidators: true }
+    ),
   ])
 
   const deleted = await Clients.findOneAndDelete({
@@ -265,6 +286,16 @@ export const POST = async (req, { params }) => {
   }).lean()
   if (!deleted) {
     return jsonError('Клиент-дубль уже удален', 404, 'duplicate_not_found')
+  }
+  try {
+    await recordSyncTombstone({
+      tenantId,
+      entityType: 'clients',
+      entityId: duplicateClientId,
+      version: deleted.syncVersion || 1,
+    })
+  } catch (error) {
+    console.error('Не удалось записать tombstone объединённого клиента', error)
   }
 
   return NextResponse.json(

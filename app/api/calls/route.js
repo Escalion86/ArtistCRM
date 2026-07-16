@@ -11,7 +11,7 @@ const parsePositiveInt = (value, fallback) => {
 }
 
 export const GET = async (req) => {
-  const access = await requireTelephonyTariffAccess()
+  const access = await requireTelephonyTariffAccess(req)
   if (!access.ok) {
     return NextResponse.json(
       { success: false, error: access.error },
@@ -48,7 +48,7 @@ export const GET = async (req) => {
 
 export const POST = async (req) => {
   const body = await req.json()
-  const access = await requireTelephonyTariffAccess()
+  const access = await requireTelephonyTariffAccess(req)
   if (!access.ok) {
     return NextResponse.json(
       { success: false, error: access.error },

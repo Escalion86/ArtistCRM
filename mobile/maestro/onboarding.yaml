@@ -1,0 +1,76 @@
+appId: ru.escalion.artistcrm
+name: Новый пользователь завершает onboarding
+env:
+  TEST_ONBOARDING_PHONE: "+79990000001"
+  TEST_ONBOARDING_PASSWORD: "replace-in-ci"
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "auth-phone"
+- inputText: ${TEST_ONBOARDING_PHONE}
+- tapOn:
+    id: "auth-password"
+- inputText: ${TEST_ONBOARDING_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "submit-auth"
+- assertVisible: "Ваш профиль"
+- tapOn:
+    id: "onboarding-first-name"
+- inputText: "Маэстро"
+- tapOn:
+    id: "onboarding-last-name"
+- inputText: "Тестовый"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "onboarding-next"
+    direction: DOWN
+- tapOn:
+    id: "onboarding-next"
+- scrollUntilVisible:
+    element:
+      text: "Город и время"
+    direction: UP
+- assertVisible: "Город и время"
+- scrollUntilVisible:
+    element:
+      id: "onboarding-next"
+    direction: DOWN
+- tapOn:
+    id: "onboarding-next"
+- scrollUntilVisible:
+    element:
+      text: "Специализация"
+    direction: UP
+- assertVisible: "Специализация"
+- scrollUntilVisible:
+    element:
+      id: "onboarding-next"
+    direction: DOWN
+- tapOn:
+    id: "onboarding-next"
+- scrollUntilVisible:
+    element:
+      text: "Работа с коллегами"
+    direction: UP
+- assertVisible: "Работа с коллегами"
+- scrollUntilVisible:
+    element:
+      id: "onboarding-next"
+    direction: DOWN
+- tapOn:
+    id: "onboarding-next"
+- scrollUntilVisible:
+    element:
+      text: "Как устроена CRM"
+    direction: UP
+- assertVisible: "Как устроена CRM"
+- scrollUntilVisible:
+    element:
+      id: "onboarding-next"
+    direction: DOWN
+- tapOn:
+    id: "onboarding-next"
+- assertVisible: "Самое важное на сегодня"

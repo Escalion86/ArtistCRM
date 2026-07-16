@@ -1,0 +1,18 @@
+appId: ru.escalion.artistcrm
+name: Генерация DOCX из карточки мероприятия
+env:
+  TEST_DOCUMENT_EVENT_ID: "replace-in-ci"
+  TEST_TEMPLATE_NAME: "Maestro договор"
+  EXPECTED_DOCUMENT_FILE_NAME: "Maestro договор №1 от 15.07.2026.docx"
+---
+- launchApp:
+    clearState: false
+- openLink: artistcrm://events/${TEST_DOCUMENT_EVENT_ID}/documents
+- assertVisible: "Документы мероприятия"
+- assertVisible: ${TEST_TEMPLATE_NAME}
+- tapOn: ${TEST_TEMPLATE_NAME}
+- tapOn:
+    id: "generate-document"
+- extendedWaitUntil:
+    visible: ${EXPECTED_DOCUMENT_FILE_NAME}
+    timeout: 30000

@@ -17,7 +17,7 @@ const jsonError = (message, status = 400, code = 'vk_error') =>
   )
 
 export const GET = async (req) => {
-  const accessResult = await requireTenantIntegrationAccess('vk')
+  const accessResult = await requireTenantIntegrationAccess('vk', req)
   if (!accessResult.ok) {
     return jsonError(accessResult.error, accessResult.status, 'tariff_required')
   }
@@ -43,8 +43,8 @@ export const GET = async (req) => {
   )
 }
 
-export const POST = async () => {
-  const accessResult = await requireTenantIntegrationAccess('vk')
+export const POST = async (req) => {
+  const accessResult = await requireTenantIntegrationAccess('vk', req)
   if (!accessResult.ok) {
     return jsonError(accessResult.error, accessResult.status, 'tariff_required')
   }

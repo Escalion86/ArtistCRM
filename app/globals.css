@@ -2174,6 +2174,10 @@ body.theme-dark .statistics-tooltip {
   outline-offset: 4px;
 }
 
+.landing-tariff-mobile {
+  display: none;
+}
+
 .landing-tariff-table {
   width: 100%;
   min-width: 820px;
@@ -2714,38 +2718,121 @@ body.theme-dark .statistics-tooltip {
   }
 
   .landing-tariff-scroll {
-    width: calc(100vw - 16px);
-    margin-top: 46px;
-    margin-left: -8px;
-    border-radius: 14px 0 0 14px;
+    display: none;
   }
 
-  .landing-tariff-table {
-    min-width: 760px;
+  .landing-tariff-mobile {
+    display: grid;
+    gap: 12px;
+    margin-top: 42px;
   }
 
-  .landing-tariff-table th,
-  .landing-tariff-table td {
-    padding: 14px 12px;
+  .landing-tariff-mobile details {
+    overflow: hidden;
+    border: 1px solid var(--landing-line);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 12px 30px rgba(42, 38, 31, 0.06);
   }
 
-  .landing-tariff-table thead th:first-child,
-  .landing-tariff-table tbody th,
-  .landing-tariff-table tfoot th {
-    width: 190px;
-    box-shadow: 8px 0 18px rgba(42, 38, 31, 0.06);
+  .landing-tariff-mobile summary {
+    display: grid;
+    min-height: 76px;
+    grid-template-columns: minmax(0, 1fr) auto 12px;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+    cursor: pointer;
+    list-style: none;
   }
 
-  .landing-tariff-table thead th:not(:first-child) span {
-    font-size: 21px;
+  .landing-tariff-mobile summary::-webkit-details-marker {
+    display: none;
   }
 
-  .landing-tariff-table tbody th {
+  .landing-tariff-mobile summary i {
+    width: 9px;
+    height: 9px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    color: var(--landing-bronze-dark);
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 180ms ease;
+  }
+
+  .landing-tariff-mobile details[open] summary {
+    border-bottom: 1px solid var(--landing-line);
+    background: #faf7f1;
+  }
+
+  .landing-tariff-mobile details[open] summary i {
+    transform: rotate(225deg) translate(-1px, -1px);
+  }
+
+  .landing-tariff-mobile-title,
+  .landing-tariff-mobile-price {
+    font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
+    font-weight: 600;
+  }
+
+  .landing-tariff-mobile-title {
+    min-width: 0;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+  }
+
+  .landing-tariff-mobile-price {
+    color: #33332e;
+    font-size: 18px;
+    white-space: nowrap;
+  }
+
+  .landing-tariff-mobile-body {
+    padding: 4px 16px 18px;
+  }
+
+  .landing-tariff-mobile dl > div {
+    display: grid;
+    min-height: 52px;
+    grid-template-columns: minmax(0, 1fr) minmax(36px, auto);
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--landing-line);
+    padding: 10px 0;
+  }
+
+  .landing-tariff-mobile dt {
+    color: #393934;
     font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
   }
 
-  .landing-tariff-table tfoot td > strong {
-    font-size: 23px;
+  .landing-tariff-mobile dd {
+    justify-self: end;
+  }
+
+  .landing-tariff-mobile dd.is-limit {
+    max-width: 132px;
+    color: var(--landing-muted);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: right;
+  }
+
+  .landing-tariff-mobile .landing-tariff-available {
+    width: 26px;
+    height: 26px;
+  }
+
+  .landing-tariff-mobile .landing-tariff-unavailable {
+    padding-inline: 8px;
+  }
+
+  .landing-tariff-mobile .landing-button {
+    width: 100%;
+    margin-top: 18px;
   }
 
   .landing-pricing-empty {

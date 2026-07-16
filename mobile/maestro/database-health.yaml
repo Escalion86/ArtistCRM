@@ -1,0 +1,15 @@
+appId: ru.escalion.artistcrm
+name: Диагностика зашифрованной локальной базы
+---
+- launchApp:
+    clearState: false
+- openLink: artistcrm://sync
+- assertVisible: "Синхронизация"
+- scrollUntilVisible:
+    element:
+      id: "sync-database-diagnostics"
+    direction: DOWN
+- assertVisible:
+    id: "sync-database-diagnostics"
+- assertVisible: "SQLCipher активен"
+- assertVisible: "Схема: v.*"

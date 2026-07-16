@@ -1,0 +1,21 @@
+appId: ru.escalion.artistcrm
+name: AI-черновик мероприятия из текста
+---
+- launchApp:
+    clearState: false
+- tapOn: "Мероприятия"
+- tapOn:
+    id: "add-event"
+- tapOn:
+    id: "voice-draft-text"
+- inputText: "Свадьба 20.08.2026 в 18:00 город Красноярск бюджет 50000 рублей"
+- hideKeyboard
+- tapOn: "Разобрать текст"
+- extendedWaitUntil:
+    visible:
+      id: "voice-draft-apply"
+    timeout: 30000
+- tapOn:
+    id: "voice-draft-apply"
+- assertVisible: "Поля применены. Проверьте форму перед сохранением."
+

@@ -1,0 +1,20 @@
+appId: ru.escalion.artistcrm
+name: Пользователь принимает серверное значение конфликта
+env:
+  EXPECTED_LOCAL_VALUE: "Maestro локальное значение"
+  EXPECTED_REMOTE_VALUE: "Maestro серверное значение"
+---
+- launchApp:
+    clearState: false
+- openLink: artistcrm://sync
+- assertVisible: "Синхронизация"
+- scrollUntilVisible:
+    element:
+      text: "Требуют решения"
+    direction: DOWN
+- assertVisible: "Требуют решения"
+- assertVisible: ${EXPECTED_LOCAL_VALUE}
+- assertVisible: ${EXPECTED_REMOTE_VALUE}
+- tapOn:
+    id: "accept-server-conflict"
+- assertVisible: "Конфликтов нет"

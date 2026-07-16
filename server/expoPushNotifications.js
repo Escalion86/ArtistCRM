@@ -1,5 +1,10 @@
 import Expo from 'expo-server-sdk'
 import ExpoPushTokens from '@models/ExpoPushTokens'
+import {
+  buildPushTokenDeactivationFilter,
+  normalizePushDeviceId,
+  persistDevicePushToken,
+} from './mobile/pushTokens.js'
 
 let expo = null
 
@@ -32,28 +37,37 @@ const saveExpoPushToken = async ({
 }) => {
   const normalized = normalizePushToken(pushToken)
   if (!tenantId || !normalized) return null
-
-  return ExpoPushTokens.findOneAndUpdate(
-    { tenantId, pushToken: normalized },
-    {
-      $set: {
-        tenantId,
-        pushToken: normalized,
-        deviceId: String(deviceId || '').slice(0, 200),
-        platform: ['android', 'ios'].includes(platform) ? platform : '',
-        appVersion: String(appVersion || '').slice(0, 50),
-        isActive: true,
-      },
-    },
-    { upsert: true, returnDocument: 'after' }
-  )
+  return persistDevicePushToken({
+    model: ExpoPushTokens,
+    tenantId,
+    pushToken: normalized,
+    deviceId,
+    platform,
+    appVersion,
+  })
 }
 
-const deactivateExpoPushToken = async ({ tenantId, pushToken }) => {
+const deactivateExpoPushToken = async ({ tenantId, pushToken, deviceId }) => {
   const normalized = normalizePushToken(pushToken)
   if (!tenantId || !normalized) return 0
+  const filter = buildPushTokenDeactivationFilter({
+    tenantId,
+    pushToken: normalized,
+    deviceId,
+  })
+  if (!filter) return 0
   const result = await ExpoPushTokens.updateOne(
-    { tenantId, pushToken: normalized },
+    filter,
+    { $set: { isActive: false } }
+  )
+  return Number(result?.modifiedCount || 0)
+}
+
+const deactivateExpoPushTokenByDevice = async ({ tenantId, deviceId }) => {
+  const normalizedDeviceId = normalizePushDeviceId(deviceId)
+  if (!tenantId || !normalizedDeviceId) return 0
+  const result = await ExpoPushTokens.updateMany(
+    { tenantId, deviceId: normalizedDeviceId, isActive: true },
     { $set: { isActive: false } }
   )
   return Number(result?.modifiedCount || 0)
@@ -90,6 +104,7 @@ const sendExpoPushToTenant = async ({ tenantId, payload }) => {
     priority: payload?.priority || 'high',
     badge: payload?.badge,
     channelId: payload?.channelId || 'default',
+    categoryId: payload?.categoryId,
   }))
 
   const chunks = expoClient.chunkPushNotifications(messages)
@@ -146,6 +161,7 @@ export {
   normalizePushToken,
   saveExpoPushToken,
   deactivateExpoPushToken,
+  deactivateExpoPushTokenByDevice,
   getActiveTokensForTenant,
   sendExpoPushToTenant,
 }

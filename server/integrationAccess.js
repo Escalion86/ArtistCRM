@@ -1,4 +1,5 @@
 import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 
 const INTEGRATION_ACCESS = Object.freeze({
@@ -61,6 +62,16 @@ const INTEGRATION_ACCESS = Object.freeze({
       'aiAnalysisModel',
     ],
   },
+  'public-leads': {
+    flag: 'allowPublicLeadApi',
+    label: 'Входящие заявки API',
+    error: 'Подключение сайта по API недоступно на текущем тарифе',
+    customKeys: [
+      'publicLeadEnabled',
+      'publicLeadApiKey',
+      'publicLeadApiKeys',
+    ],
+  },
 })
 
 const readCustomValue = (custom, key) => {
@@ -97,8 +108,10 @@ export const hasIntegrationAccess = (access, integration) => {
 export const getIntegrationAccessError = (integration) =>
   INTEGRATION_ACCESS[integration]?.error || 'Интеграция недоступна по тарифу'
 
-export const requireTenantIntegrationAccess = async (integration) => {
-  const { tenantId, user } = await getTenantContext()
+export const requireTenantIntegrationAccess = async (integration, req = null) => {
+  const { tenantId, user } = req
+    ? await getRequestContext(req)
+    : await getTenantContext()
   if (!tenantId || !user?._id) {
     return {
       ok: false,

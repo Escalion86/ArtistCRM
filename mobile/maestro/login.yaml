@@ -1,0 +1,18 @@
+appId: ru.escalion.artistcrm
+name: Вход и открытие главной
+env:
+  TEST_PHONE: "+79990000000"
+  TEST_PASSWORD: "replace-in-ci"
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "auth-phone"
+- inputText: ${TEST_PHONE}
+- tapOn:
+    id: "auth-password"
+- inputText: ${TEST_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "submit-auth"
+- assertVisible: "Самое важное на сегодня"

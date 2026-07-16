@@ -3,7 +3,7 @@ import mongoose from 'mongoose'
 import Payments from '@models/Payments'
 import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import {
   buildAdminReferralGroups,
   buildReferralRows,
@@ -26,7 +26,7 @@ const rewardQueryByReferrer = (referrerId) => ({
 })
 
 export const GET = async (req) => {
-  const { user } = await getTenantContext()
+  const { user } = await getRequestContext(req)
   if (!user) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },

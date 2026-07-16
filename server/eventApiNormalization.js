@@ -66,7 +66,12 @@ const normalizeEventDocumentFiles = (items) => {
         typeof item.description === 'string' ? item.description.trim() : ''
       const size = Number(item.size)
       const uploadedAt = parseDateValue(item.uploadedAt) ?? new Date()
+      const mobileUploadId =
+        typeof item.mobileUploadId === 'string'
+          ? item.mobileUploadId.trim().slice(0, 80)
+          : ''
       return {
+        ...(mobileUploadId ? { mobileUploadId } : {}),
         name,
         description,
         url,

@@ -17,7 +17,8 @@ import {
   notifyApiLeadCreated,
 } from '@server/publicLeadPush'
 
-const VK_API_BASE_URL = 'https://api.vk.com/method'
+const VK_API_BASE_URL =
+  process.env.VK_API_BASE_URL || 'https://api.vk.com/method'
 const VK_API_VERSION = '5.199'
 
 const toObject = (value) =>

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import { normalizePushToken, saveExpoPushToken } from '@server/expoPushNotifications'
 
 export const POST = async (req) => {
   const body = await req.json().catch(() => ({}))
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -25,7 +25,7 @@ export const POST = async (req) => {
   await saveExpoPushToken({
     tenantId,
     pushToken,
-    deviceId: body?.deviceId,
+    deviceId: req.headers.get('x-device-id') || body?.deviceId,
     platform: body?.platform,
     appVersion: body?.appVersion,
   })

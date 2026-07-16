@@ -1,290 +1,100 @@
-import { useCallback, useEffect, useState } from 'react'
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  SectionList,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { useMemo, useState } from 'react'
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { createApiClient } from '../../src/shared/api/client'
-import type { EventItem } from '../../src/shared/api/tasks'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import type { Event } from '../../src/shared/domain/types'
+import { useCachedEntities } from '../../src/shared/hooks/useCachedEntities'
+import { EmptyState, ErrorNotice, PageHeader, Screen, StatusChip, Surface } from '../../src/shared/ui/components'
+import { colors, radius, spacing } from '../../src/shared/ui/theme'
+import { EventCalendar } from '../../src/features/events/EventCalendar'
+import { buildEventCalendarOccurrences, countOccurrencesByDate, startOfMonth, toDateKey, type EventCalendarOccurrence } from '../../src/features/events/calendar'
 
-const api = createApiClient()
-
-const statusLabels: Record<string, string> = {
-  draft: 'Черновик',
-  active: 'Активно',
-  canceled: 'Отменено',
-  closed: 'Закрыто',
-}
-
-const formatDate = (dateStr: string | null) => {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
+type Filter = 'requests' | 'upcoming' | 'past' | 'all'
+type ViewMode = 'list' | 'calendar'
+type EventRow = { key: string; event: Event; occurrence?: EventCalendarOccurrence }
+const filters: Array<[Filter, string]> = [['requests', 'Заявки'], ['upcoming', 'Предстоящие'], ['past', 'Прошедшие'], ['all', 'Все']]
+const statusLabel = { draft: 'Заявка', active: 'Подтверждено', canceled: 'Отменено', closed: 'Закрыто' }
 
 export default function EventsScreen() {
-  const [events, setEvents] = useState<EventItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState('')
-
-  const fetchEvents = useCallback(async () => {
-    try {
-      setError('')
-      const res = await api.get<{ success: boolean; data: EventItem[] }>(
-        '/mobile/events?scope=upcoming',
-      )
-      if (res?.success && Array.isArray(res.data)) {
-        setEvents(res.data)
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Не удалось загрузить мероприятия')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchEvents()
-  }, [fetchEvents])
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true)
-    fetchEvents()
-  }, [fetchEvents])
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#8a6f3b" />
-        <Text style={styles.loadingText}>Загрузка мероприятий...</Text>
-      </View>
-    )
-  }
-
-  const sections = [
-    {
-      title: `Предстоящие (${events.length})`,
-      data: events.length > 0 ? events : [{ _id: '__empty__', description: '', eventType: '', status: 'draft' as const, additionalEvents: [] }],
-    },
-  ]
+  const [filter, setFilter] = useState<Filter>('upcoming')
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [month, setMonth] = useState(() => startOfMonth(new Date()))
+  const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()) as string)
+  const query = useCachedEntities<Event>('events')
+  const events = useMemo(() => {
+    const now = Date.now()
+    return (query.data || []).filter((event) => {
+      const date = event.eventDate ? new Date(event.eventDate).getTime() : 0
+      if (filter === 'requests') return event.status === 'draft'
+      if (filter === 'upcoming') return event.status === 'active' && (!date || date >= now)
+      if (filter === 'past') return event.status === 'closed' || (date > 0 && date < now)
+      return true
+    }).sort((a, b) => new Date(a.eventDate || 0).getTime() - new Date(b.eventDate || 0).getTime())
+  }, [filter, query.data])
+  const occurrences = useMemo(() => buildEventCalendarOccurrences(events), [events])
+  const occurrenceCounts = useMemo(() => countOccurrencesByDate(occurrences), [occurrences])
+  const rows = useMemo<EventRow[]>(() => {
+    if (viewMode === 'list') return events.map((event) => ({ key: `event:${event._id}`, event }))
+    return occurrences
+      .filter((occurrence) => occurrence.dateKey === selectedDateKey)
+      .sort((a, b) => new Date(a.event.eventDate || 0).getTime() - new Date(b.event.eventDate || 0).getTime())
+      .map((occurrence) => ({ key: occurrence.key, event: occurrence.event, occurrence }))
+  }, [events, occurrences, selectedDateKey, viewMode])
+  const selectedDate = useMemo(() => {
+    const [year, monthValue, day] = selectedDateKey.split('-').map(Number)
+    return new Date(year, monthValue - 1, day)
+  }, [selectedDateKey])
+  const selectDate = (date: Date) => setSelectedDateKey(toDateKey(date) as string)
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Мероприятия</Text>
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <SectionList
-        sections={sections}
-        keyExtractor={(item, index) => item._id + index}
-        renderItem={({ item }) => {
-          if (item._id === '__empty__') {
-            return (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>Нет предстоящих мероприятий</Text>
-                <Text style={styles.emptySubtext}>
-                  Мероприятия появятся при создании в веб-версии CRM
-                </Text>
+    <Screen scroll={false}>
+      <PageHeader title="Мероприятия" subtitle="Заявки, календарь и контроль оплат" action={<Pressable testID="add-event" accessibilityRole="button" accessibilityLabel="Добавить мероприятие" style={styles.add} onPress={() => router.push('/events/edit/new' as never)}><MaterialCommunityIcons name="plus" size={26} color="#fff" /></Pressable>} />
+      <ScrollView horizontal style={styles.filterScroll} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>{filters.map(([value, label]) => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: filter === value }} style={[styles.filter, filter === value && styles.filterActive]} onPress={() => setFilter(value)}><Text style={[styles.filterText, filter === value && styles.filterTextActive]}>{label}</Text></Pressable>)}</ScrollView>
+      <View style={styles.viewSwitch}>
+        <Pressable testID="events-view-list" accessibilityRole="button" accessibilityState={{ selected: viewMode === 'list' }} style={[styles.viewButton, viewMode === 'list' && styles.viewButtonActive]} onPress={() => setViewMode('list')}><MaterialCommunityIcons name="format-list-bulleted" size={18} color={viewMode === 'list' ? colors.primary : colors.textMuted} /><Text style={[styles.viewText, viewMode === 'list' && styles.viewTextActive]}>Список</Text></Pressable>
+        <Pressable testID="events-view-calendar" accessibilityRole="button" accessibilityState={{ selected: viewMode === 'calendar' }} style={[styles.viewButton, viewMode === 'calendar' && styles.viewButtonActive]} onPress={() => setViewMode('calendar')}><MaterialCommunityIcons name="calendar-month-outline" size={18} color={viewMode === 'calendar' ? colors.primary : colors.textMuted} /><Text style={[styles.viewText, viewMode === 'calendar' && styles.viewTextActive]}>Календарь</Text></Pressable>
+      </View>
+      {query.error ? <ErrorNotice message="Не удалось прочитать локальный календарь" /> : null}
+      <FlatList
+        data={rows}
+        keyExtractor={(item) => item.key}
+        refreshing={query.isFetching}
+        onRefresh={query.refresh}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={rows.length || viewMode === 'calendar' ? styles.list : styles.emptyList}
+        ListHeaderComponent={viewMode === 'calendar' ? <View style={styles.calendarHeader}><EventCalendar month={month} selectedDateKey={selectedDateKey} counts={occurrenceCounts} undatedCount={events.filter((event) => !event.eventDate).length} onMonthChange={setMonth} onSelectDate={selectDate} /><Text style={styles.selectedDate}>{selectedDate.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}</Text></View> : null}
+        ListEmptyComponent={<EmptyState title={viewMode === 'calendar' ? 'На эту дату записей нет' : 'Здесь пока пусто'} description={viewMode === 'calendar' ? 'Выберите другой день или создайте мероприятие.' : 'Создайте новую заявку — изменения сохранятся даже без сети.'} />}
+        renderItem={({ item }) => (
+          <Pressable onPress={() => router.push(`/events/${item.event._id}` as never)}>
+            <Surface>
+              <View style={styles.cardHeader}><Text style={styles.title} numberOfLines={1}>{item.event.eventType || 'Мероприятие'}</Text><StatusChip label={statusLabel[item.event.status]} tone={item.event.status === 'active' ? 'success' : item.event.status === 'canceled' ? 'danger' : item.event.status === 'draft' ? 'warning' : 'neutral'} /></View>
+              {item.occurrence?.kind === 'contact' ? <View style={styles.contact}><MaterialCommunityIcons name={item.occurrence.done ? 'check-circle-outline' : 'phone-outline'} size={17} color={item.occurrence.done ? colors.success : colors.blue} /><Text style={[styles.contactText, item.occurrence.done && styles.contactDone]} numberOfLines={2}>{item.occurrence.title}</Text></View> : null}
+              <Text style={styles.description} numberOfLines={2}>{item.event.description || 'Без описания'}</Text>
+              <View style={styles.meta}>
+                <MaterialCommunityIcons name="calendar-outline" size={17} color={colors.textMuted} />
+                <Text style={styles.metaText}>{item.event.eventDate ? new Date(item.event.eventDate).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Дата не назначена'}</Text>
               </View>
-            )
-          }
-          return (
-            <Pressable
-              style={styles.card}
-              onPress={() => {
-                // TODO: navigate to event detail when implemented
-              }}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle} numberOfLines={1}>
-                  {item.eventType || 'Мероприятие'}
-                </Text>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    item.status === 'active' && styles.statusActive,
-                    item.status === 'canceled' && styles.statusCanceled,
-                    item.status === 'closed' && styles.statusClosed,
-                  ]}
-                >
-                  <Text style={styles.statusText}>
-                    {statusLabels[item.status] || item.status}
-                  </Text>
-                </View>
-              </View>
-              {item.description ? (
-                <Text style={styles.cardDescription} numberOfLines={2}>
-                  {item.description}
-                </Text>
-              ) : null}
-              <View style={styles.cardFooter}>
-                <Text style={styles.cardDate}>{formatDate(item.eventDate)}</Text>
-                {item.address?.town ? (
-                  <Text style={styles.cardLocation} numberOfLines={1}>
-                    {item.address.town}
-                  </Text>
-                ) : null}
-              </View>
-              {item.additionalEvents && item.additionalEvents.length > 0 ? (
-                <Text style={styles.cardTasks}>
-                  Задач: {item.additionalEvents.filter((t) => !t.done).length} активных
-                </Text>
-              ) : null}
-            </Pressable>
-          )
-        }}
-        renderSectionHeader={({ section }) => (
-          <Text style={styles.sectionTitle}>{section.title}</Text>
+              {item.event.address?.town ? <View style={styles.meta}><MaterialCommunityIcons name="map-marker-outline" size={17} color={colors.textMuted} /><Text style={styles.metaText} numberOfLines={1}>{[item.event.address.town, item.event.address.street, item.event.address.house].filter(Boolean).join(', ')}</Text></View> : null}
+              {item.event.waitDeposit ? <View style={styles.deposit}><MaterialCommunityIcons name="alert-circle-outline" size={17} color={colors.warning} /><Text style={styles.depositText}>Ожидается задаток{item.event.depositExpectedAmount ? ` ${item.event.depositExpectedAmount} ₽` : ''}</Text></View> : null}
+            </Surface>
+          </Pressable>
         )}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        contentContainerStyle={styles.listContent}
       />
-    </View>
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f6f8',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f6f8',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1c1d1f',
-    padding: 16,
-    paddingBottom: 8,
-  },
-  error: {
-    color: '#b91c1c',
-    fontSize: 14,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    padding: 12,
-    backgroundColor: '#fef2f2',
-    borderRadius: 8,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 80,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-    marginTop: 4,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1c1d1f',
-    flex: 1,
-    marginRight: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    backgroundColor: '#f3f4f6',
-  },
-  statusActive: {
-    backgroundColor: '#d1fae5',
-  },
-  statusCanceled: {
-    backgroundColor: '#fee2e2',
-  },
-  statusClosed: {
-    backgroundColor: '#f3f4f6',
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  cardDescription: {
-    fontSize: 13,
-    color: '#4b5563',
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  cardDate: {
-    fontSize: 12,
-    color: '#9ca3af',
-  },
-  cardLocation: {
-    fontSize: 12,
-    color: '#9ca3af',
-    flex: 1,
-    textAlign: 'right',
-  },
-  cardTasks: {
-    fontSize: 12,
-    color: '#8a6f3b',
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  empty: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  emptySubtext: {
-    fontSize: 13,
-    color: '#9ca3af',
-    textAlign: 'center',
-    marginTop: 8,
-    paddingHorizontal: 40,
-  },
+  add: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  filterScroll: { flexGrow: 0 }, filters: { flexDirection: 'row', gap: 6, paddingRight: spacing.lg }, filter: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted }, filterActive: { backgroundColor: colors.primary },
+  filterText: { color: colors.textMuted, fontSize: 12, fontWeight: '700' }, filterTextActive: { color: '#fff' },
+  viewSwitch: { flexDirection: 'row', alignSelf: 'flex-start', padding: 3, borderRadius: radius.md, backgroundColor: colors.surfaceMuted },
+  viewButton: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, borderRadius: radius.sm },
+  viewButtonActive: { backgroundColor: colors.surface }, viewText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' }, viewTextActive: { color: colors.primary },
+  list: { gap: spacing.sm, paddingBottom: 110 }, emptyList: { flexGrow: 1, justifyContent: 'center' },
+  calendarHeader: { gap: spacing.md, marginBottom: spacing.sm }, selectedDate: { color: colors.text, fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, title: { flex: 1, color: colors.text, fontSize: 17, fontWeight: '700' },
+  contact: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.blueSoft }, contactText: { flex: 1, color: colors.blue, fontSize: 13, fontWeight: '700' }, contactDone: { color: colors.success, textDecorationLine: 'line-through' },
+  description: { color: colors.textMuted, fontSize: 14, lineHeight: 20 }, meta: { flexDirection: 'row', alignItems: 'center', gap: 6 }, metaText: { flex: 1, color: colors.textMuted, fontSize: 13 },
+  deposit: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.warningSoft }, depositText: { color: colors.warning, fontSize: 12, fontWeight: '700' },
 })

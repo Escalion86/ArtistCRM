@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 
 export const runtime = 'nodejs'
 
-const ESCALIONCLOUD_API_URL = 'https://cloud.escalion.ru/api'
+const ESCALIONCLOUD_API_URL =
+  process.env.ESCALIONCLOUD_API_URL || 'https://cloud.escalion.ru/api'
 
 const buildError = (type, message) => ({
   success: false,
@@ -27,7 +28,7 @@ const normalizePathSegment = (value) =>
   typeof value === 'string' ? value.trim().replace(/^\/+|\/+$/g, '') : ''
 
 export async function POST(request) {
-  const { user } = await getTenantContext()
+  const { user } = await getRequestContext(request)
   if (!user?._id) {
     return NextResponse.json(buildError('UNAUTHORIZED', 'Unauthorized'), {
       status: 401,

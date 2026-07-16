@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server'
 import ServiceGroups from '@models/ServiceGroups'
 import Services from '@models/Services'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import { buildTenantSafeUpdate } from '@server/tenantSafeUpdate'
+import {
+  recordSyncTombstone,
+  withSyncVersionIncrement,
+} from '@server/mobile/sync'
 
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -18,7 +22,7 @@ export const PUT = async (req, { params }) => {
   await dbConnect()
   const group = await ServiceGroups.findOneAndUpdate(
     { _id: id, tenantId },
-    buildTenantSafeUpdate(body),
+    withSyncVersionIncrement(buildTenantSafeUpdate(body)),
     {
       returnDocument: 'after',
       runValidators: true,
@@ -34,7 +38,7 @@ export const PUT = async (req, { params }) => {
 
 export const DELETE = async (req, { params }) => {
   const { id } = await params
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -52,10 +56,17 @@ export const DELETE = async (req, { params }) => {
 
   const movedServices = await Services.updateMany(
     { tenantId, groupId: id },
-    { $set: { groupId: null } }
+    { $set: { groupId: null }, $inc: { syncVersion: 1 } }
   )
 
   await ServiceGroups.deleteOne({ _id: id, tenantId })
+
+  await recordSyncTombstone({
+    tenantId,
+    entityType: 'serviceGroups',
+    entityId: id,
+    version: group.syncVersion,
+  })
 
   return NextResponse.json(
     {

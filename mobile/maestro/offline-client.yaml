@@ -1,0 +1,34 @@
+appId: ru.escalion.artistcrm
+name: Offline-клиент переживает перезапуск приложения
+---
+- setAirplaneMode: enabled
+- launchApp:
+    clearState: false
+- tapOn: "Клиенты"
+- tapOn:
+    id: "add-client"
+- tapOn:
+    id: "client-first-name"
+- inputText: "Офлайн клиент"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "client-phone"
+    direction: DOWN
+- tapOn:
+    id: "client-phone"
+- inputText: "+79991112233"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "save-client"
+    direction: DOWN
+- tapOn:
+    id: "save-client"
+- assertVisible: "Офлайн клиент"
+- pressKey: Home
+- killApp
+- launchApp:
+    stopApp: false
+- assertVisible: "Офлайн клиент"
+- setAirplaneMode: disabled

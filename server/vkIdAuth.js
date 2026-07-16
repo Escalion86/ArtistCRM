@@ -2,7 +2,10 @@ import { isValidNormalizedPhone, normalizePhone } from '@server/phoneVerificatio
 
 const VK_ID_DOMAIN = process.env.VK_ID_DOMAIN || 'id.vk.ru'
 
-const getVkIdBaseUrl = () => `https://${VK_ID_DOMAIN.replace(/^https?:\/\//, '')}`
+const getVkIdBaseUrl = () => (
+  process.env.VK_ID_BASE_URL ||
+  `https://${VK_ID_DOMAIN.replace(/^https?:\/\//, '')}`
+).replace(/\/$/, '')
 
 const isVkDebugEnabled = () =>
   process.env.VK_DEBUG_LOGS === 'true' ||

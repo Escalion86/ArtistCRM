@@ -3,7 +3,7 @@ import Transactions from '@models/Transactions'
 import Events from '@models/Events'
 import Clients from '@models/Clients'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import { normalizeOptionalRelationId } from '@server/transactionsCore'
 import { OBLIGATION_PAYMENT_METHOD } from '@helpers/transactionObligation'
 
@@ -20,7 +20,7 @@ const normalizeCategory = (value) => {
 }
 
 export const GET = async (req) => {
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -48,7 +48,7 @@ export const GET = async (req) => {
 
 export const POST = async (req) => {
   const body = await req.json()
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },

@@ -3,12 +3,13 @@ import Transactions from '@models/Transactions'
 import Events from '@models/Events'
 import Clients from '@models/Clients'
 import dbConnect from '@server/dbConnect'
-import getTenantContext from '@server/getTenantContext'
+import getRequestContext from '@server/getRequestContext'
 import {
   getOptionalRelationUpdateValue,
   normalizeOptionalRelationId,
 } from '@server/transactionsCore'
 import { OBLIGATION_PAYMENT_METHOD } from '@helpers/transactionObligation'
+import { recordSyncTombstone } from '@server/mobile/sync'
 
 const TRANSACTION_TYPES = new Set(['income', 'expense'])
 const TRANSACTION_PAYMENT_METHODS = new Set([
@@ -33,7 +34,7 @@ const normalizeCategory = (value) => {
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -103,6 +104,7 @@ export const PUT = async (req, { params }) => {
 
   update.eventId = nextEventId
   update.clientId = nextClientId
+  update.syncVersion = Number(existing?.syncVersion || 1) + 1
 
   const transaction = await Transactions.findOneAndUpdate(
     { _id: id, tenantId },
@@ -117,7 +119,7 @@ export const PUT = async (req, { params }) => {
 
 export const DELETE = async (req, { params }) => {
   const { id } = await params
-  const { tenantId } = await getTenantContext()
+  const { tenantId } = await getRequestContext(req)
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -131,5 +133,11 @@ export const DELETE = async (req, { params }) => {
       { success: false, error: 'Транзакция не найдена' },
       { status: 404 }
     )
+  await recordSyncTombstone({
+    tenantId,
+    entityType: 'transactions',
+    entityId: id,
+    version: deleted.syncVersion,
+  })
   return NextResponse.json({ success: true }, { status: 200 })
 }

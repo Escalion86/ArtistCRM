@@ -1,0 +1,26 @@
+appId: ru.escalion.artistcrm
+name: Offline-заявка переживает перезапуск приложения
+---
+- setAirplaneMode: enabled
+- launchApp:
+    clearState: false
+- tapOn: "Мероприятия"
+- tapOn:
+    id: "add-event"
+- tapOn:
+    id: "event-type"
+- inputText: "Maestro офлайн заявка"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "save-event"
+    direction: DOWN
+- tapOn:
+    id: "save-event"
+- assertVisible: "Maestro офлайн заявка"
+- pressKey: Home
+- killApp
+- launchApp:
+    stopApp: false
+- assertVisible: "Maestro офлайн заявка"
+- setAirplaneMode: disabled

@@ -5,6 +5,7 @@ import { ensureVkUser } from '@server/ensureVkUser'
 import { exchangeVkCode, fetchVkUserInfo } from '@server/vkIdAuth'
 import { createVkIdAuthToken } from '@server/vkidAuthToken'
 import getAuthSecret from '@server/getAuthSecret'
+import { findUserByPhone } from '@server/phoneVerification'
 import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 
 const buildError = (code, status, message) =>
@@ -36,6 +37,11 @@ export const POST = async (req) => {
   ).trim()
   const state = String(body?.state || '').trim()
   const referrerId = normalizeReferrerId(body?.referrerId ?? body?.ref)
+  const mobileFlow = ['login', 'register'].includes(body?.mobileFlow)
+    ? body.mobileFlow
+    : ''
+  const consentPrivacyPolicy = body?.consentPrivacyPolicy === true
+  const consentPersonalData = body?.consentPersonalData === true
   const accessToken = String(
     body?.access_token || body?.accessToken || ''
   ).trim()
@@ -105,6 +111,30 @@ export const POST = async (req) => {
     }
 
     await dbConnect()
+    const existingUser = mobileFlow
+      ? await findUserByPhone(userInfoResult.data.phone)
+      : null
+
+    if (mobileFlow === 'login' && !existingUser) {
+      return buildError(
+        'VK_PROFILE_NOT_FOUND',
+        404,
+        'Аккаунт с номером VK ID не найден'
+      )
+    }
+
+    if (
+      mobileFlow === 'register' &&
+      !existingUser &&
+      (!consentPrivacyPolicy || !consentPersonalData)
+    ) {
+      return buildError(
+        'CONSENT_REQUIRED',
+        400,
+        'Для регистрации требуется принять юридические согласия'
+      )
+    }
+
     const user = await ensureVkUser({
       ...userInfoResult.data,
       referrerId,

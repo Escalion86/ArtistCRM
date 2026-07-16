@@ -1,0 +1,34 @@
+appId: ru.escalion.artistcrm
+name: Offline-транзакция переживает перезапуск приложения
+---
+- setAirplaneMode: enabled
+- launchApp:
+    clearState: false
+- tapOn: "Финансы"
+- tapOn:
+    id: "add-transaction"
+- tapOn:
+    id: "transaction-amount"
+- inputText: "1500"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "transaction-comment"
+    direction: DOWN
+- tapOn:
+    id: "transaction-comment"
+- inputText: "Maestro офлайн задаток"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "save-transaction"
+    direction: DOWN
+- tapOn:
+    id: "save-transaction"
+- assertVisible: "Maestro офлайн задаток"
+- pressKey: Home
+- killApp
+- launchApp:
+    stopApp: false
+- assertVisible: "Maestro офлайн задаток"
+- setAirplaneMode: disabled

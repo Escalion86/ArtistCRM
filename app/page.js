@@ -268,66 +268,115 @@ function TariffComparison({ tariffs }) {
   }
 
   return (
-    <div className="landing-tariff-scroll" tabIndex="0" aria-label="Сравнение тарифов">
-      <table
-        className="landing-tariff-table"
-        style={{ minWidth: `${280 + tariffs.length * 210}px` }}
-      >
-        <thead>
-          <tr>
-            <th scope="col">Возможности</th>
-            {tariffs.map((tariff) => (
-              <th scope="col" key={String(tariff._id)}>
-                <span>{tariff.title || 'Тариф'}</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {tariffFeatureRows.map((feature) => (
-            <tr key={feature.label}>
-              <th scope="row">{feature.label}</th>
-              {tariffs.map((tariff) => {
-                if (feature.type === 'eventsLimit') {
+    <>
+      <div className="landing-tariff-scroll" tabIndex="0" aria-label="Сравнение тарифов">
+        <table
+          className="landing-tariff-table"
+          style={{ minWidth: `${280 + tariffs.length * 210}px` }}
+        >
+          <thead>
+            <tr>
+              <th scope="col">Возможности</th>
+              {tariffs.map((tariff) => (
+                <th scope="col" key={String(tariff._id)}>
+                  <span>{tariff.title || 'Тариф'}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {tariffFeatureRows.map((feature) => (
+              <tr key={feature.label}>
+                <th scope="row">{feature.label}</th>
+                {tariffs.map((tariff) => {
+                  if (feature.type === 'eventsLimit') {
+                    return (
+                      <td key={String(tariff._id)} className="landing-tariff-limit">
+                        {formatEventsLimit(tariff.eventsPerMonth)}
+                      </td>
+                    )
+                  }
+                  const available = feature.included || Boolean(tariff?.[feature.key])
                   return (
-                    <td key={String(tariff._id)} className="landing-tariff-limit">
-                      {formatEventsLimit(tariff.eventsPerMonth)}
+                    <td key={String(tariff._id)}>
+                      <TariffAvailability available={available} />
                     </td>
                   )
-                }
-                const available = feature.included || Boolean(tariff?.[feature.key])
+                })}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">Стоимость в месяц</th>
+              {tariffs.map((tariff) => {
+                const isFree = Number(tariff?.price ?? 0) === 0
                 return (
                   <td key={String(tariff._id)}>
-                    <TariffAvailability available={available} />
+                    <strong>{formatPrice(tariff.price)}</strong>
+                    <Link
+                      href="/login?callbackUrl=%2Fcabinet%2Ftariff-select"
+                      className={`landing-button ${
+                        isFree ? 'landing-button-secondary' : 'landing-button-primary'
+                      }`}
+                    >
+                      {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
+                    </Link>
                   </td>
                 )
               })}
             </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <th scope="row">Стоимость в месяц</th>
-            {tariffs.map((tariff) => {
-              const isFree = Number(tariff?.price ?? 0) === 0
-              return (
-                <td key={String(tariff._id)}>
-                  <strong>{formatPrice(tariff.price)}</strong>
-                  <Link
-                    href="/login?callbackUrl=%2Fcabinet%2Ftariff-select"
-                    className={`landing-button ${
-                      isFree ? 'landing-button-secondary' : 'landing-button-primary'
-                    }`}
-                  >
-                    {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
-                  </Link>
-                </td>
-              )
-            })}
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+          </tfoot>
+        </table>
+      </div>
+
+      <div className="landing-tariff-mobile" aria-label="Тарифы">
+        {tariffs.map((tariff, index) => {
+          const isFree = Number(tariff?.price ?? 0) === 0
+          return (
+            <details key={String(tariff._id)} open={index === 0}>
+              <summary>
+                <span className="landing-tariff-mobile-title">
+                  {tariff.title || 'Тариф'}
+                </span>
+                <span className="landing-tariff-mobile-price">
+                  {formatPrice(tariff.price)}
+                </span>
+                <i aria-hidden="true" />
+              </summary>
+              <div className="landing-tariff-mobile-body">
+                <dl>
+                  {tariffFeatureRows.map((feature) => {
+                    const available =
+                      feature.included || Boolean(tariff?.[feature.key])
+                    return (
+                      <div key={feature.label}>
+                        <dt>{feature.label}</dt>
+                        <dd className={feature.type === 'eventsLimit' ? 'is-limit' : undefined}>
+                          {feature.type === 'eventsLimit' ? (
+                            formatEventsLimit(tariff.eventsPerMonth)
+                          ) : (
+                            <TariffAvailability available={available} />
+                          )}
+                        </dd>
+                      </div>
+                    )
+                  })}
+                </dl>
+                <Link
+                  href="/login?callbackUrl=%2Fcabinet%2Ftariff-select"
+                  className={`landing-button ${
+                    isFree ? 'landing-button-secondary' : 'landing-button-primary'
+                  }`}
+                >
+                  {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
+                </Link>
+              </div>
+            </details>
+          )
+        })}
+      </div>
+    </>
   )
 }
 
