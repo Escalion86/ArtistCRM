@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useCallback, useState } from 'react'
@@ -57,7 +57,7 @@ export default function MoreScreen() {
           style={styles.profile}
           onPress={() => router.push('/(tabs)/profile')}
         >
-          <View style={styles.avatar}><Text style={styles.avatarText}>{(user?.firstName || user?.phone || '?').slice(0, 1).toUpperCase()}</Text></View><View style={styles.profileText}><Text style={styles.profileName}>{[user?.firstName, user?.secondName].filter(Boolean).join(' ') || 'Профиль'}</Text><Text style={styles.profileSubtitle}>Профиль, реквизиты, активность</Text></View><MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} />
+          <View style={styles.avatar}>{user?.images?.[0] ? <Image accessibilityLabel="Аватар профиля" source={{ uri: user.images[0] }} style={styles.avatarImage} /> : <Text style={styles.avatarText}>{(user?.firstName || user?.phone || '?').slice(0, 1).toUpperCase()}</Text>}</View><View style={styles.profileText}><Text style={styles.profileName}>{[user?.firstName, user?.secondName].filter(Boolean).join(' ') || 'Профиль'}</Text><Text style={styles.profileSubtitle}>Профиль, реквизиты, активность</Text></View><MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -76,7 +76,7 @@ export default function MoreScreen() {
 
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: 0 },
-  profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingBottom: spacing.md }, avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }, avatarText: { color: colors.primary, fontSize: 21, fontWeight: '800' }, profileText: { flex: 1 }, profileName: { color: colors.text, fontSize: 17, fontWeight: '700' }, profileSubtitle: { color: colors.textMuted, fontSize: 13, marginTop: 3 },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingBottom: spacing.md }, avatar: { width: 52, height: 52, borderRadius: 26, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }, avatarImage: { width: 52, height: 52 }, avatarText: { color: colors.primary, fontSize: 21, fontWeight: '800' }, profileText: { flex: 1 }, profileName: { color: colors.text, fontSize: 17, fontWeight: '700' }, profileSubtitle: { color: colors.textMuted, fontSize: 13, marginTop: 3 },
   tariffAction: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: spacing.md }, tariffIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }, tariffActionTitle: { color: colors.text, fontSize: 14, fontWeight: '700' }, tariffActionSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
   section: { gap: spacing.sm }, row: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: spacing.md }, rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, icon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }, rowText: { flex: 1 }, rowTitle: { color: colors.text, fontSize: 14, fontWeight: '700' }, rowSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
 })

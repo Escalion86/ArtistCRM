@@ -1,5 +1,5 @@
 import React from 'react'
-import { act, fireEvent, render, waitFor } from '@testing-library/react-native'
+import { fireEvent, render, waitFor } from '@testing-library/react-native'
 import MoreScreen from '../../../app/(tabs)/more'
 
 const mockRefreshUser = jest.fn(() => Promise.resolve())
@@ -38,7 +38,10 @@ const mockApiGet = jest.fn(() =>
 
 jest.mock('expo-router', () => ({
   router: { push: (href: unknown) => mockRouterPush(href) },
-  useFocusEffect: (callback: () => void) => callback(),
+  useFocusEffect: (callback: () => void | (() => void)) => {
+    const ReactModule = require('react') as typeof React
+    ReactModule.useEffect(callback, [callback])
+  },
 }))
 
 jest.mock('@expo/vector-icons', () => ({
@@ -75,9 +78,6 @@ describe('MoreScreen tariff card', () => {
 
   it('разделяет профиль и тариф с прогнозом баланса', async () => {
     const screen = render(<MoreScreen />)
-    await act(async () => {
-      await Promise.resolve()
-    })
 
     expect(screen.getByText('Профиль, реквизиты, активность')).toBeTruthy()
     expect(screen.queryByText('79000000000')).toBeNull()

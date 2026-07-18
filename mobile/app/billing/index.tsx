@@ -208,7 +208,7 @@ export default function BillingScreen() {
             <Field label="Сумма, ₽" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
             <Button title="Перейти к оплате" onPress={topUp} loading={busy} />
             {pendingPaymentId ? <Button title="Проверить последний платёж" variant="secondary" onPress={() => syncPayment()} loading={busy} /> : null}
-            <Text style={styles.muted}>Оплата проходит на защищённой странице ЮKassa. После подтверждения вернитесь в приложение.</Text>
+            <Text style={styles.muted}>Оплата проходит через СБП на защищённой странице Точки. После подтверждения вернитесь в приложение.</Text>
           </Surface>
 
           <Surface>

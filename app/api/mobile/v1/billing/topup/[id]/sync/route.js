@@ -4,7 +4,7 @@ import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import { loadMobileBilling } from '@server/mobile/billingStore'
 import { mobileError, mobileSuccess } from '@server/mobile/routeHelpers'
-import { syncYookassaPayment } from '@server/yookassaPaymentProcessing'
+import { syncTochkaPayment } from '@server/tochkaPaymentProcessing'
 
 export const POST = async (req, { params }) => {
   const context = await getRequestContext(req)
@@ -20,11 +20,11 @@ export const POST = async (req, { params }) => {
     _id: id,
     userId: context.user._id,
     tenantId: context.tenantId,
-    provider: 'yookassa',
+    provider: 'tochka',
     purpose: 'balance',
   }).lean()
   if (!payment) return mobileError('PAYMENT_NOT_FOUND', 'Платёж не найден', 404)
-  const sync = await syncYookassaPayment({ paymentId: id })
+  const sync = await syncTochkaPayment({ paymentId: id })
   if (!sync.ok) {
     return mobileError(
       'PAYMENT_SYNC_FAILED',

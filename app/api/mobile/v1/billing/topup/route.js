@@ -6,10 +6,12 @@ import getRequestContext from '@server/getRequestContext'
 import { getMobileBillingUserFilter } from '@server/mobile/billingStore'
 import { mobileError, mobileSuccess } from '@server/mobile/routeHelpers'
 import {
-  createYookassaPayment,
-  isYookassaConfigured,
+  createTochkaPayment,
+  getTochkaOperationId,
+  getTochkaPaymentUrl,
+  isTochkaConfigured,
   normalizeAmount,
-} from '@server/yookassa'
+} from '@server/tochka'
 
 const MIN_AMOUNT = 100
 const MAX_AMOUNT = 300000
@@ -37,8 +39,8 @@ export const POST = async (req) => {
       'amount'
     )
   }
-  if (!isYookassaConfigured()) {
-    return mobileError('PAYMENT_UNAVAILABLE', 'ЮKassa не настроена', 503)
+  if (!isTochkaConfigured()) {
+    return mobileError('PAYMENT_UNAVAILABLE', 'Точка не настроена', 503)
   }
   await dbConnect()
   const user = await Users.findOne(
@@ -56,15 +58,15 @@ export const POST = async (req) => {
     tariffId: null,
     amount,
     type: 'topup',
-    source: 'yookassa',
+    source: 'tochka',
     status: 'pending',
     purpose: 'balance',
-    provider: 'yookassa',
+    provider: 'tochka',
     idempotenceKey,
     comment: 'Пополнение баланса ArtistCRM из Android',
   })
   try {
-    const providerPayment = await createYookassaPayment({
+    const providerPayment = await createTochkaPayment({
       amount,
       description: 'Пополнение баланса ArtistCRM',
       idempotenceKey,
@@ -77,15 +79,18 @@ export const POST = async (req) => {
         purpose: 'balance',
       },
     })
-    payment.providerPaymentId = providerPayment.id || ''
-    payment.rawProviderStatus = providerPayment.status || ''
+    const operationId = getTochkaOperationId(providerPayment)
+    const confirmationUrl = getTochkaPaymentUrl(providerPayment)
+    payment.providerPaymentId = operationId
+    payment.rawProviderStatus = 'CREATED'
     await payment.save()
-    const confirmationUrl = providerPayment?.confirmation?.confirmation_url || ''
-    if (!confirmationUrl) throw new Error('ЮKassa не вернула ссылку на оплату')
+    if (!operationId || !confirmationUrl) {
+      throw new Error('Точка не вернула ссылку на оплату')
+    }
     return mobileSuccess(
       {
         paymentId: String(payment._id),
-        status: providerPayment.status || 'pending',
+        status: 'CREATED',
         amount: normalizeAmount(amount),
         confirmationUrl,
       },

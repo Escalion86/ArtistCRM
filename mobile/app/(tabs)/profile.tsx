@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
+import * as DocumentPicker from 'expo-document-picker'
 import { api } from '../../src/shared/api/client'
 import { useAuth } from '../../src/shared/auth/AuthProvider'
 import { getRefreshToken } from '../../src/shared/auth/tokenStore'
@@ -39,6 +40,19 @@ const formatSessionDate = (value?: string) =>
       })
     : 'нет данных'
 
+const avatarMimeTypes = ['image/jpeg', 'image/png', 'image/webp']
+
+const getAvatarMimeType = (name: string, mimeType?: string | null) => {
+  if (mimeType && avatarMimeTypes.includes(mimeType.toLowerCase())) {
+    return mimeType.toLowerCase()
+  }
+  const extension = name.split('.').pop()?.toLowerCase()
+  if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg'
+  if (extension === 'png') return 'image/png'
+  if (extension === 'webp') return 'image/webp'
+  return ''
+}
+
 export default function ProfileScreen() {
   const { user, signOut, refreshUser, completeSignIn } = useAuth()
   const [firstName, setFirstName] = useState(user?.firstName || '')
@@ -57,6 +71,7 @@ export default function ProfileScreen() {
   const [sessionsError, setSessionsError] = useState('')
   const [revokingSessionId, setRevokingSessionId] = useState('')
   const [loading, setLoading] = useState(false)
+  const [avatarLoading, setAvatarLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -122,6 +137,70 @@ export default function ProfileScreen() {
       setLoading(false)
     }
   }
+  const pickAvatar = async () => {
+    setError('')
+    setMessage('')
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: avatarMimeTypes,
+        copyToCacheDirectory: true,
+        multiple: false,
+      })
+      if (result.canceled) return
+      const asset = result.assets[0]
+      const mimeType = getAvatarMimeType(asset.name, asset.mimeType)
+      if (!mimeType) {
+        setError('Выберите изображение JPEG, PNG или WebP')
+        return
+      }
+      if (Number(asset.size || 0) > 5 * 1024 * 1024) {
+        setError('Аватар не должен превышать 5 МБ')
+        return
+      }
+      setAvatarLoading(true)
+      const form = new FormData()
+      form.append('files', {
+        uri: asset.uri,
+        name: asset.name,
+        type: mimeType,
+      } as unknown as Blob)
+      await api.upload('/mobile/v1/profile/avatar', form)
+      await refreshUser()
+      setMessage('Аватар обновлён')
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : 'Не удалось загрузить аватар'
+      )
+    } finally {
+      setAvatarLoading(false)
+    }
+  }
+  const removeAvatar = () =>
+    Alert.alert('Удалить аватар?', 'В профиле снова будут показаны инициалы.', [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Удалить',
+        style: 'destructive',
+        onPress: async () => {
+          setAvatarLoading(true)
+          setError('')
+          setMessage('')
+          try {
+            await api.delete('/mobile/v1/profile/avatar')
+            await refreshUser()
+            setMessage('Аватар удалён')
+          } catch (reason) {
+            setError(
+              reason instanceof Error
+                ? reason.message
+                : 'Не удалось удалить аватар'
+            )
+          } finally {
+            setAvatarLoading(false)
+          }
+        },
+      },
+    ])
   const changePassword = async () => {
     setLoading(true)
     setError('')
@@ -221,6 +300,45 @@ export default function ProfileScreen() {
   return (
     <Screen contentStyle={styles.screenContent}>
       <PageHeader title="Профиль" subtitle={user?.phone || ''} />
+      <Surface>
+        <SectionTitle>Аватар</SectionTitle>
+        <View style={styles.avatarRow}>
+          <View style={styles.avatar}>
+            {user?.images?.[0] ? (
+              <Image
+                accessibilityLabel="Аватар профиля"
+                source={{ uri: user.images[0] }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <Text style={styles.avatarText}>
+                {(user?.firstName || user?.phone || '?')
+                  .slice(0, 1)
+                  .toUpperCase()}
+              </Text>
+            )}
+          </View>
+          <View style={styles.avatarActions}>
+            <Button
+              title="Выбрать фото"
+              variant="secondary"
+              onPress={pickAvatar}
+              loading={avatarLoading}
+            />
+            {user?.images?.[0] ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Удалить аватар"
+                disabled={avatarLoading}
+                onPress={removeAvatar}
+              >
+                <Text style={styles.removeAvatar}>Удалить аватар</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+        <Text style={styles.muted}>JPEG, PNG или WebP, не более 5 МБ.</Text>
+      </Surface>
       <Surface>
         <SectionTitle>Личные данные</SectionTitle>
         <Field label="Имя" value={firstName} onChangeText={setFirstName} />
@@ -372,6 +490,20 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: 0 },
+  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primarySoft,
+  },
+  avatarImage: { width: 80, height: 80 },
+  avatarText: { color: colors.primary, fontSize: 30, fontWeight: '800' },
+  avatarActions: { flex: 1, gap: 10 },
+  removeAvatar: { color: colors.danger, fontSize: 13, fontWeight: '700' },
   device: {
     flexDirection: 'row',
     alignItems: 'center',

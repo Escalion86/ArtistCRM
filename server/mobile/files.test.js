@@ -3,7 +3,10 @@ import assert from 'node:assert/strict'
 import {
   getMobileUploadDirectory,
   MOBILE_FILE_MAX_SIZE,
+  extractMobileUploadUrl,
+  normalizeMobileCloudUrl,
   sanitizeMobileFileName,
+  validateMobileAvatarFiles,
   validateMobileUploadFiles,
 } from './files.js'
 
@@ -37,4 +40,31 @@ test('mobile upload принимает ровно один непустой фа
   )
   const file = { kind: 'file', size: MOBILE_FILE_MAX_SIZE }
   assert.equal(validateMobileUploadFiles([file], isFile).file, file)
+})
+
+test('аватар принимает только JPEG, PNG или WebP', () => {
+  const image = { kind: 'file', size: 100, type: 'image/webp' }
+  assert.equal(validateMobileAvatarFiles([image], isFile).file, image)
+  assert.equal(
+    validateMobileAvatarFiles(
+      [{ kind: 'file', size: 100, type: 'image/svg+xml' }],
+      isFile
+    ).code,
+    'AVATAR_TYPE_INVALID'
+  )
+})
+
+test('URL загруженного файла извлекается из ответа cloud', () => {
+  assert.equal(
+    extractMobileUploadUrl([{ fileUrl: 'https://cloud.escalion.ru/avatar.webp' }]),
+    'https://cloud.escalion.ru/avatar.webp'
+  )
+  assert.equal(extractMobileUploadUrl({ path: '/avatar.png' }), '/avatar.png')
+  assert.equal(extractMobileUploadUrl(null), '')
+  assert.equal(
+    normalizeMobileCloudUrl('/tenant/avatar.png'),
+    'https://cloud.escalion.ru/tenant/avatar.png'
+  )
+  assert.equal(normalizeMobileCloudUrl(''), '')
+  assert.equal(normalizeMobileCloudUrl('javascript:alert(1)'), '')
 })
