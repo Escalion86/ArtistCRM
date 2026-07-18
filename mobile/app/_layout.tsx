@@ -17,8 +17,7 @@ import { flushPendingLogout } from '../src/shared/auth/pendingLogout'
 import { colors } from '../src/shared/ui/theme'
 
 const RootNavigator = () => {
-  const { authenticated, loading, onboardingLoading, onboardingRequired } =
-    useAuth()
+  const { authenticated, loading, onboardingRequired } = useAuth()
   const router = useRouter()
   const segments = useSegments()
   useExpoPushNotifications(authenticated)
@@ -67,13 +66,12 @@ const RootNavigator = () => {
   }, [
     authenticated,
     loading,
-    onboardingLoading,
     onboardingRequired,
     router,
     segments,
   ])
 
-  if (loading || (authenticated && onboardingLoading)) {
+  if (loading) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.primary} />

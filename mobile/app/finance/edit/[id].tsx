@@ -8,6 +8,7 @@ import {
   parseTransactionDateInput,
 } from '../../../src/shared/domain/finance'
 import type { Client, Event, Transaction } from '../../../src/shared/domain/types'
+import { formatPhoneForDisplay } from '../../../src/shared/format/phone'
 import { getCachedEntity, listCachedEntities } from '../../../src/shared/storage/cache'
 import { deleteLocalEntity, saveLocalEntity } from '../../../src/shared/storage/mutations'
 import { Button, ErrorNotice, Field, PageHeader, Screen, SectionTitle, Surface } from '../../../src/shared/ui/components'
@@ -19,7 +20,7 @@ const PAYMENT_METHODS = [
 ] as const
 
 const personName = (client?: Client) => client
-  ? [client.firstName, client.secondName].filter(Boolean).join(' ') || String(client.phone || 'Клиент')
+  ? [client.firstName, client.secondName].filter(Boolean).join(' ') || formatPhoneForDisplay(client.phone) || 'Клиент'
   : 'Клиент'
 
 export default function TransactionEditScreen() {

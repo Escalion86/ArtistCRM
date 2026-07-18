@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../src/shared/api/client'
 import type { Client } from '../../../src/shared/domain/types'
+import { formatPhoneForDisplay } from '../../../src/shared/format/phone'
 import { useCachedEntities } from '../../../src/shared/hooks/useCachedEntities'
 import { removeCachedEntity, upsertEntities } from '../../../src/shared/storage/cache'
 import { runSync } from '../../../src/shared/sync/syncEngine'
@@ -31,7 +32,7 @@ type MergePreview = {
 }
 
 const name = (client?: Client | null) => client
-  ? [client.firstName, client.secondName, client.thirdName].filter(Boolean).join(' ') || String(client.phone || 'Без имени')
+  ? [client.firstName, client.secondName, client.thirdName].filter(Boolean).join(' ') || formatPhoneForDisplay(client.phone) || 'Без имени'
   : 'Клиент'
 
 export default function ClientMergeScreen() {
@@ -130,7 +131,7 @@ export default function ClientMergeScreen() {
             style={[styles.candidate, duplicateId === client._id && styles.candidateActive]}
             onPress={() => { setDuplicateId(client._id); setPreview(null); setError('') }}
           >
-            <View style={styles.grow}><Text style={styles.candidateName}>{name(client)}</Text><Text style={styles.muted}>{client.phone || client.email || 'Контакты не указаны'}</Text></View>
+            <View style={styles.grow}><Text style={styles.candidateName}>{name(client)}</Text><Text style={styles.muted}>{formatPhoneForDisplay(client.phone) || client.email || 'Контакты не указаны'}</Text></View>
             <MaterialCommunityIcons name={duplicateId === client._id ? 'radiobox-marked' : 'radiobox-blank'} size={23} color={duplicateId === client._id ? colors.primary : colors.textMuted} />
           </Pressable>
         ))}

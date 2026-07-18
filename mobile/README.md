@@ -1,6 +1,6 @@
 # ArtistCRM Android
 
-Полноценный пользовательский Android-клиент ArtistCRM на Expo SDK 55 и React Native. Управление тарифами, ролями, публичным сайтом и dev-инструменты в приложение не переносятся.
+Полноценный пользовательский Android-клиент ArtistCRM на Expo SDK 55 и React Native. Приложение показывает текущий тариф и открывает его выбор в защищённом web-кабинете; управление ролями, публичным сайтом и dev-инструменты не переносятся.
 
 ## Возможности версии 1.0
 
@@ -14,7 +14,31 @@
 
 Caller ID через Android `CallScreeningService`, виджеты и Share Target относятся к версии 1.1+.
 
-## Локальный запуск
+## Разработка на физическом Android-устройстве
+
+Для ежедневной разработки используется отдельное приложение `ArtistCRM Dev` с package ID `ru.escalion.artistcrm.dev`. Оно устанавливается рядом с обычным `ArtistCRM`, поэтому production-версия и её данные не затрагиваются.
+
+Однократная подготовка после подключения телефона по USB с включённой отладкой:
+
+```bash
+cd mobile
+npm ci
+npm run prebuild:dev
+npm run android:dev
+```
+
+После установки нативного dev-клиента для обычной работы достаточно одной команды:
+
+```bash
+cd mobile
+npm run dev:android
+```
+
+Команда настраивает USB-подключение к Metro, открывает `ArtistCRM Dev` и включает Fast Refresh. Изменения TypeScript, экранов и стилей появляются на телефоне без APK/EAS-сборки. Повторять `prebuild:dev` и `android:dev` нужно только после изменения нативных модулей, Android-конфигурации, иконки или splash screen.
+
+Android Studio для ежедневных правок не требуется. Она нужна только для работы с Kotlin-модулями, системными разрешениями и нативной отладки Android 1.1.
+
+## Остальные варианты локального запуска
 
 ```bash
 cd mobile
@@ -23,7 +47,7 @@ copy .env.example .env
 npm run start
 ```
 
-Для Android development build используйте EAS или локальный prebuild. Expo Go не поддерживает SQLCipher-конфигурацию production-клиента.
+Expo Go не поддерживает SQLCipher и другие нативные возможности проекта, поэтому для Android используется development build.
 
 Переменные `.env`:
 
@@ -49,6 +73,8 @@ npm run release:validate
 ## Нативный проект и сборка
 
 Каталоги `android/` и `ios/` являются генерируемыми и не коммитятся. Конфигурация хранится в `app.json`; это исключает расхождение native-проекта и EAS Build. Мобильный клиент привязан к отдельному EAS-проекту `@escalion/artistcrm`.
+
+Корневой `.easignore` исключает локальные native/build-каталоги и зависимости из архива монорепозитория; `mobile/.easignore` сохраняет те же правила для автономного checkout приложения. Перед отправкой новой сборки размер архива можно проверить через `eas build:inspect --platform android --stage archive`.
 
 ```bash
 npm run release:prebuild

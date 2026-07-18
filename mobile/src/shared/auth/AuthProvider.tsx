@@ -69,7 +69,16 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         return getAuthSession()
       })
       .then((session) => {
-        if (active) setUser(session?.user || null)
+        if (active) {
+          const sessionUser = session?.user || null
+          setUser(sessionUser)
+          setOnboardingRequired(
+            Boolean(
+              sessionUser &&
+                (!sessionUser.firstName || !sessionUser.secondName)
+            )
+          )
+        }
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -125,6 +134,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     }
     await setAuthSession(session)
     setUser(session.user)
+    setOnboardingRequired(
+      !session.user.firstName || !session.user.secondName
+    )
   }, [queryClient])
 
   const signOut = useCallback(async () => {

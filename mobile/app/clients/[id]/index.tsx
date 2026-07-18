@@ -3,6 +3,7 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { Client, Event, Transaction } from '../../../src/shared/domain/types'
+import { formatPhoneForDisplay } from '../../../src/shared/format/phone'
 import { getCachedEntity, listCachedEntities } from '../../../src/shared/storage/cache'
 import { Button, EmptyState, PageHeader, Screen, SectionTitle, StatusChip, Surface } from '../../../src/shared/ui/components'
 import { colors, radius, spacing } from '../../../src/shared/ui/theme'
@@ -73,7 +74,7 @@ export default function ClientDetailScreen() {
 
       <Surface>
         <SectionTitle>Контакты</SectionTitle>
-        <Info label="Телефон" value={String(client.phone || '')} />
+        <Info label="Телефон" value={formatPhoneForDisplay(client.phone)} />
         <Info label="Email" value={client.email} />
         <Info label="Telegram" value={client.telegram} />
         <Info label="Instagram" value={client.instagram} />

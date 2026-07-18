@@ -43,10 +43,11 @@ export const normalizeMobileProfilePatch = (body = {}) => {
   return { update, error: '' }
 }
 
-export const serializeMobileProfile = (user) => {
+export const serializeMobileProfile = (user, tariff = null) => {
   if (!user) return null
   const data = typeof user.toObject === 'function' ? user.toObject() : user
   const tenantId = data.tenantId || data._id
+  const tariffId = tariff?._id || data.tariffId?._id || data.tariffId
   return {
     _id: String(data._id),
     tenantId: String(tenantId),
@@ -64,7 +65,8 @@ export const serializeMobileProfile = (user) => {
       ? data.images.filter((item) => typeof item === 'string').slice(0, 10)
       : [],
     role: data.role || 'user',
-    tariffId: data.tariffId ? String(data.tariffId) : null,
+    tariffId: tariffId ? String(tariffId) : null,
+    tariffTitle: typeof tariff?.title === 'string' ? tariff.title.trim() : '',
     registrationType: data.registrationType || 'phone',
     consentPrivacyPolicyAccepted: Boolean(data.consentPrivacyPolicyAccepted),
     consentPersonalDataAccepted: Boolean(data.consentPersonalDataAccepted),

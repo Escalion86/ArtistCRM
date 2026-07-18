@@ -9,6 +9,7 @@ import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import { mobileError, mobileSuccess } from '@server/mobile/routeHelpers'
 import { sanitizeMobileAccess } from '@server/mobile/access'
+import { serializeMobileProfile } from '@server/mobile/profile'
 import { sanitizeMobileSettings } from '@server/mobile/settings'
 
 export const GET = async (req) => {
@@ -32,7 +33,7 @@ export const GET = async (req) => {
 
   return mobileSuccess({
     serverTime: new Date().toISOString(),
-    user: context.user,
+    user: serializeMobileProfile(context.user, access?.tariff),
     access: sanitizeMobileAccess(access),
     entities: {
       events,

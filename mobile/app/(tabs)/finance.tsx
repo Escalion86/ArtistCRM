@@ -8,6 +8,7 @@ import {
   summarizeTransactions,
 } from '../../src/shared/domain/finance'
 import type { Client, Event, Transaction } from '../../src/shared/domain/types'
+import { formatPhoneForDisplay } from '../../src/shared/format/phone'
 import { useCachedEntities } from '../../src/shared/hooks/useCachedEntities'
 import { EmptyState, PageHeader, Screen, SectionTitle, Surface } from '../../src/shared/ui/components'
 import { colors, radius, spacing } from '../../src/shared/ui/theme'
@@ -19,7 +20,7 @@ const paymentMethodLabel: Record<string, string> = {
   barter: 'Бартер', obligation: 'Обязательство',
 }
 const personName = (client?: Client) => client
-  ? [client.firstName, client.secondName].filter(Boolean).join(' ') || String(client.phone || 'Клиент')
+  ? [client.firstName, client.secondName].filter(Boolean).join(' ') || formatPhoneForDisplay(client.phone) || 'Клиент'
   : ''
 
 export default function FinanceScreen() {
@@ -77,9 +78,10 @@ export default function FinanceScreen() {
   )
 
   return (
-    <Screen scroll={false}>
+    <Screen scroll={false} contentStyle={styles.screenContent}>
       <PageHeader title="Финансы" subtitle="Оплаты, расходы и обязательства" action={<Pressable testID="add-transaction" accessibilityRole="button" accessibilityLabel="Добавить транзакцию" style={styles.add} onPress={() => router.push('/finance/edit/new' as never)}><MaterialCommunityIcons name="plus" size={26} color="#fff" /></Pressable>} />
       <FlatList
+        style={styles.listView}
         data={transactions}
         keyExtractor={(item) => item._id}
         refreshing={query.isFetching || eventsQuery.isFetching}
@@ -116,6 +118,7 @@ const PaymentRow = ({ row, kind }: { row: ReturnType<typeof buildEventPaymentCon
 )
 
 const styles = StyleSheet.create({
+  screenContent: { paddingBottom: 0 },
   add: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   headerContent: { gap: spacing.lg, marginBottom: spacing.lg },
   summary: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
@@ -125,7 +128,8 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md }, sectionTitleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, sectionAmount: { color: colors.warning, fontSize: 13, fontWeight: '800' }, blue: { color: colors.blue, fontWeight: '800' },
   paymentRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }, paymentAmounts: { alignItems: 'flex-end', gap: 2 }, paid: { color: colors.textMuted, fontSize: 10 },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 }, filter: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 11, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted }, filterActive: { backgroundColor: colors.primary }, filterText: { color: colors.textMuted, fontSize: 11, fontWeight: '700' }, filterTextActive: { color: '#fff' },
-  list: { gap: spacing.sm, paddingBottom: 110 }, emptyList: { flexGrow: 1, paddingBottom: 110 },
+  listView: { flex: 1, minHeight: 0 },
+  list: { gap: spacing.sm, paddingBottom: spacing.lg }, emptyList: { flexGrow: 1, paddingBottom: spacing.lg },
   transaction: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   transactionIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' }, incomeIcon: { backgroundColor: colors.successSoft }, expenseIcon: { backgroundColor: colors.dangerSoft }, obligationIcon: { backgroundColor: colors.warningSoft },
   transactionInfo: { flex: 1 }, transactionTitle: { color: colors.text, fontSize: 14, fontWeight: '700' }, muted: { color: colors.textMuted, fontSize: 12, marginTop: 3 }, relation: { color: colors.blue, fontSize: 11, marginTop: 3 },

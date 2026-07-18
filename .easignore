@@ -1,0 +1,46 @@
+# Dependencies and build outputs
+node_modules
+**/node_modules
+.next
+**/.next
+out
+build
+coverage
+**/coverage
+
+# Generated mobile native projects and bundles
+mobile/android
+mobile/ios
+mobile/.expo
+mobile/dist
+mobile/dist-android
+
+# Local tools and temporary files
+.git
+.agents
+.codex
+.kilo
+.roo
+.superpowers
+.tmp
+.vscode
+*.log
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+!.env.deploy.example
+google_calendar_token.json
+mobile/google-play-service-account.json
+
+# Generated PWA artifacts
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+public/worker-*.js
+public/worker-*.js.map
+
+# Generated Expo typing
+mobile/expo-env.d.ts

@@ -1,62 +1,39 @@
-# Release Notes — v0.1.0 (Beta)
+# ArtistCRM Android 1.0.0 — release candidate
 
-## What's New
-Initial beta build for iOS (TestFlight) — ArtistCRM mobile app (Expo SDK 55, React Native 0.84.1).
+## Что нового
 
-## Features
+- задачи и следующие контакты с быстрыми действиями;
+- offline CRUD клиентов, мероприятий, финансов, услуг и групп услуг;
+- календарь мероприятий, карточки клиентов и звонков;
+- DOCX-шаблоны, договоры, акты, вложения и Android share sheet;
+- Expo push, deep links и интерактивные действия из уведомлений;
+- интеграции Google Calendar, Avito, VK, Novofon, AITunnel и Public Leads API;
+- защищённые mobile-сессии, управление устройствами и удаление аккаунта;
+- SQLCipher cache, outbox, tombstones, конфликты и фоновая синхронизация.
 
-| ID | Feature | Status |
-|----|---------|--------|
-| M1 | App launch and navigation | ✅ |
-| M2 | Authentication (phone/password) | ✅ |
-| M3 | Tasks screen (overdue/today/tomorrow) | ✅ |
-| M4 | Push notification registration | ✅ |
-| M5 | Events screen (upcoming events list) | ✅ |
-| M6 | Finance screen (stub) | 🚧 |
-| M7 | Profile screen (push prefs + logout) | ✅ |
-| M8 | Beta release | ✅ (this build) |
+## Выпускной статус
 
-## Known Issues
-- Finance screen is a stub — no real data yet
-- Events screen shows list but no detail view yet
-- Push notifications require a physical device (won't work on emulators)
-- API server must be accessible from the device (configure EXPO_PUBLIC_API_BASE_URL)
-- Some features require the web CRM to create data first (events, tasks)
-- Deep links from notifications not yet implemented (M1-T5)
-- Home screen widgets not yet implemented (M1-T6)
-- Call intents not yet implemented (M1-T7)
+- версия приложения: `1.0.0`;
+- APK-кандидат: `versionCode 14` (`71aa1deb-dc0b-4a12-a9b2-d74c033cabd7`);
+- Android package: `ru.escalion.artistcrm`;
+- Expo SDK: `55`;
+- React Native: `0.83.6`;
+- минимальная версия: Android 10 / API 29;
+- compile/target SDK: API 36;
+- production API: `https://artistcrm.ru/api`;
+- формат Google Play: Android App Bundle (`.aab`), track `internal`.
 
-## Testing Instructions
+## Что проверить на Internal Testing
 
-### iOS (TestFlight)
-1. Accept the TestFlight invitation email on your iOS device
-2. Open the TestFlight app and install ArtistCRM
-3. Launch the app
-4. Log in with your phone number and password
-5. Verify the tasks screen loads and displays tasks from the API
-6. Test pull-to-refresh on the tasks screen
-7. Check the Events tab for upcoming events
-8. Verify push notification permission prompt appears
-9. Test logout from Profile screen
-10. Report any crashes or unexpected behavior via TestFlight feedback
+1. Авторизацию, регистрацию, восстановление, VK ID, onboarding и удаление аккаунта.
+2. Offline CRUD, перезапуск с outbox, разрешение конфликтов и отсутствие дублей.
+3. Push-разрешение, deep links и действия «Выполнено / На завтра / Через 3 дня».
+4. Document Picker, загрузку и открытие DOCX, генерацию договора/акта и share sheet.
+5. Голосовой AI-черновик, отказ в доступе к микрофону и очистку временного аудио.
+6. Background sync и ограничения энергосбережения на Pixel, Samsung и Xiaomi.
 
-### Android (Internal Testing)
-1. Install the AAB on your Android device
-2. Launch the app
-3. Log in with your phone number and password
-4. Verify the tasks screen loads and displays tasks from the API
-5. Test pull-to-refresh on the tasks screen
-6. Check the Events tab for upcoming events
-7. Verify push notification permission prompt appears
-8. Test logout from Profile screen
-9. Report any crashes or unexpected behavior
+## Не входит в Android 1.0
 
-## Build Info
-- Expo SDK: 55
-- React Native: 0.84.1
-- iOS Bundle ID: ru.escalion.artistcrm
-- Android Package: ru.escalion.artistcrm
-- Version: 0.1.0 (build 1)
-- Build Type: IPA (iOS) / App Bundle (Android)
-- Track: TestFlight (iOS) / Internal Testing (Android)
-- CI/CD: GitHub Actions + EAS Build
+- системный Caller ID через `CallScreeningService`;
+- home widgets, Share Target, сканирование документов и App Shortcuts;
+- биометрическая блокировка приложения.

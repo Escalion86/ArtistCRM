@@ -1,7 +1,12 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { useCallback, useState } from 'react'
 import { useAuth } from '../../src/shared/auth/AuthProvider'
+import { api } from '../../src/shared/api/client'
+import { getTariffDisplayName } from '../../src/shared/domain/tariff'
+import { formatBalanceRunway } from '../../src/features/billing/format'
+import type { MobileBilling } from '../../src/features/billing/types'
 import { PageHeader, Screen, SectionTitle, Surface } from '../../src/shared/ui/components'
 import { colors, spacing } from '../../src/shared/ui/theme'
 
@@ -22,21 +27,56 @@ const sections = [
 ] as const
 
 export default function MoreScreen() {
-  const { user } = useAuth()
+  const { refreshUser, user } = useAuth()
+  const [billing, setBilling] = useState<MobileBilling | null>(null)
+  const tariffName = billing?.currentTariff?.title || getTariffDisplayName(user)
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true
+      refreshUser().catch(() => undefined)
+      api
+        .get<{ success: true; data: MobileBilling }>('/mobile/v1/billing')
+        .then((response) => {
+          if (active) setBilling(response.data)
+        })
+        .catch(() => undefined)
+      return () => {
+        active = false
+      }
+    }, [refreshUser])
+  )
+
   return (
-    <Screen>
+    <Screen contentStyle={styles.screenContent}>
       <PageHeader title="Ещё" subtitle="Рабочие инструменты и личные настройки" />
-      <Pressable onPress={() => router.push('/(tabs)/profile')}>
-        <Surface>
-          <View style={styles.profile}><View style={styles.avatar}><Text style={styles.avatarText}>{(user?.firstName || user?.phone || '?').slice(0, 1).toUpperCase()}</Text></View><View style={styles.profileText}><Text style={styles.profileName}>{[user?.firstName, user?.secondName].filter(Boolean).join(' ') || 'Профиль'}</Text><Text style={styles.profilePhone}>{user?.phone}</Text></View><MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} /></View>
-        </Surface>
-      </Pressable>
+      <Surface>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Открыть профиль"
+          style={styles.profile}
+          onPress={() => router.push('/(tabs)/profile')}
+        >
+          <View style={styles.avatar}><Text style={styles.avatarText}>{(user?.firstName || user?.phone || '?').slice(0, 1).toUpperCase()}</Text></View><View style={styles.profileText}><Text style={styles.profileName}>{[user?.firstName, user?.secondName].filter(Boolean).join(' ') || 'Профиль'}</Text><Text style={styles.profileSubtitle}>Профиль, реквизиты, активность</Text></View><MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Открыть тариф и баланс"
+          testID="more-change-tariff"
+          style={styles.tariffAction}
+          onPress={() => router.push('/billing' as never)}
+        >
+          <View style={styles.tariffIcon}><MaterialCommunityIcons name="credit-card-outline" size={20} color={colors.primary} /></View><View style={styles.profileText}><Text style={styles.tariffActionTitle}>Тариф: {tariffName}</Text><Text style={styles.tariffActionSubtitle}>{formatBalanceRunway(billing)}</Text></View><MaterialCommunityIcons name="chevron-right" size={22} color={colors.textMuted} />
+        </Pressable>
+      </Surface>
       {sections.map((section) => <View key={section.title} style={styles.section}><SectionTitle>{section.title}</SectionTitle><Surface>{section.items.map(([iconName, title, subtitle, href], index) => <Pressable key={href} style={[styles.row, index > 0 && styles.rowBorder]} onPress={() => router.push(href as never)}><View style={styles.icon}><MaterialCommunityIcons name={iconName} size={22} color={colors.primary} /></View><View style={styles.rowText}><Text style={styles.rowTitle}>{title}</Text><Text style={styles.rowSubtitle}>{subtitle}</Text></View><MaterialCommunityIcons name="chevron-right" size={22} color={colors.textMuted} /></Pressable>)}</Surface></View>)}
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md }, avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }, avatarText: { color: colors.primary, fontSize: 21, fontWeight: '800' }, profileText: { flex: 1 }, profileName: { color: colors.text, fontSize: 17, fontWeight: '700' }, profilePhone: { color: colors.textMuted, fontSize: 13, marginTop: 3 },
+  screenContent: { paddingBottom: 0 },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingBottom: spacing.md }, avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft }, avatarText: { color: colors.primary, fontSize: 21, fontWeight: '800' }, profileText: { flex: 1 }, profileName: { color: colors.text, fontSize: 17, fontWeight: '700' }, profileSubtitle: { color: colors.textMuted, fontSize: 13, marginTop: 3 },
+  tariffAction: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: spacing.md }, tariffIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }, tariffActionTitle: { color: colors.text, fontSize: 14, fontWeight: '700' }, tariffActionSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
   section: { gap: spacing.sm }, row: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: spacing.md }, rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, icon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }, rowText: { flex: 1 }, rowTitle: { color: colors.text, fontSize: 14, fontWeight: '700' }, rowSubtitle: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
 })

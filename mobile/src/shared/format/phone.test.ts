@@ -1,4 +1,8 @@
-import { formatRussianPhone, normalizeRussianPhone } from './phone'
+import {
+  formatPhoneForDisplay,
+  formatRussianPhone,
+  normalizeRussianPhone,
+} from './phone'
 
 describe('маска российского телефона', () => {
   it.each([
@@ -24,5 +28,14 @@ describe('маска российского телефона', () => {
 
   it('не принимает неполный номер', () => {
     expect(normalizeRussianPhone('+7 (913) 837')).toBe('')
+  })
+
+  it.each([
+    ['79659103040', '+79659103040'],
+    ['89659103040', '+79659103040'],
+    ['9659103040', '+79659103040'],
+    ['+79659103040', '+79659103040'],
+  ])('добавляет плюс к отображаемому номеру %s', (source, expected) => {
+    expect(formatPhoneForDisplay(source)).toBe(expected)
   })
 })

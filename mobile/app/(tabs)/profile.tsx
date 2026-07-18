@@ -219,7 +219,7 @@ export default function ProfileScreen() {
     )
 
   return (
-    <Screen>
+    <Screen contentStyle={styles.screenContent}>
       <PageHeader title="Профиль" subtitle={user?.phone || ''} />
       <Surface>
         <SectionTitle>Личные данные</SectionTitle>
@@ -371,6 +371,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  screenContent: { paddingBottom: 0 },
   device: {
     flexDirection: 'row',
     alignItems: 'center',

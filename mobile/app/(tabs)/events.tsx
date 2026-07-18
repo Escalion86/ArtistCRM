@@ -47,7 +47,7 @@ export default function EventsScreen() {
   const selectDate = (date: Date) => setSelectedDateKey(toDateKey(date) as string)
 
   return (
-    <Screen scroll={false}>
+    <Screen scroll={false} contentStyle={styles.screenContent}>
       <PageHeader title="Мероприятия" subtitle="Заявки, календарь и контроль оплат" action={<Pressable testID="add-event" accessibilityRole="button" accessibilityLabel="Добавить мероприятие" style={styles.add} onPress={() => router.push('/events/edit/new' as never)}><MaterialCommunityIcons name="plus" size={26} color="#fff" /></Pressable>} />
       <ScrollView horizontal style={styles.filterScroll} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>{filters.map(([value, label]) => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: filter === value }} style={[styles.filter, filter === value && styles.filterActive]} onPress={() => setFilter(value)}><Text style={[styles.filterText, filter === value && styles.filterTextActive]}>{label}</Text></Pressable>)}</ScrollView>
       <View style={styles.viewSwitch}>
@@ -56,8 +56,11 @@ export default function EventsScreen() {
       </View>
       {query.error ? <ErrorNotice message="Не удалось прочитать локальный календарь" /> : null}
       <FlatList
+        key={viewMode}
+        style={styles.eventList}
         data={rows}
         keyExtractor={(item) => item.key}
+        removeClippedSubviews={viewMode === 'list'}
         refreshing={query.isFetching}
         onRefresh={query.refresh}
         showsVerticalScrollIndicator={false}
@@ -65,7 +68,7 @@ export default function EventsScreen() {
         ListHeaderComponent={viewMode === 'calendar' ? <View style={styles.calendarHeader}><EventCalendar month={month} selectedDateKey={selectedDateKey} counts={occurrenceCounts} undatedCount={events.filter((event) => !event.eventDate).length} onMonthChange={setMonth} onSelectDate={selectDate} /><Text style={styles.selectedDate}>{selectedDate.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}</Text></View> : null}
         ListEmptyComponent={<EmptyState title={viewMode === 'calendar' ? 'На эту дату записей нет' : 'Здесь пока пусто'} description={viewMode === 'calendar' ? 'Выберите другой день или создайте мероприятие.' : 'Создайте новую заявку — изменения сохранятся даже без сети.'} />}
         renderItem={({ item }) => (
-          <Pressable onPress={() => router.push(`/events/${item.event._id}` as never)}>
+          <Pressable testID={`event-row-${item.key}`} style={styles.eventRow} onPress={() => router.push(`/events/${item.event._id}` as never)}>
             <Surface>
               <View style={styles.cardHeader}><Text style={styles.title} numberOfLines={1}>{item.event.eventType || 'Мероприятие'}</Text><StatusChip label={statusLabel[item.event.status]} tone={item.event.status === 'active' ? 'success' : item.event.status === 'canceled' ? 'danger' : item.event.status === 'draft' ? 'warning' : 'neutral'} /></View>
               {item.occurrence?.kind === 'contact' ? <View style={styles.contact}><MaterialCommunityIcons name={item.occurrence.done ? 'check-circle-outline' : 'phone-outline'} size={17} color={item.occurrence.done ? colors.success : colors.blue} /><Text style={[styles.contactText, item.occurrence.done && styles.contactDone]} numberOfLines={2}>{item.occurrence.title}</Text></View> : null}
@@ -85,14 +88,17 @@ export default function EventsScreen() {
 }
 
 const styles = StyleSheet.create({
+  screenContent: { paddingBottom: 0 },
   add: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  filterScroll: { flexGrow: 0 }, filters: { flexDirection: 'row', gap: 6, paddingRight: spacing.lg }, filter: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted }, filterActive: { backgroundColor: colors.primary },
+  filterScroll: { flexGrow: 0, flexShrink: 0, minHeight: 42 }, filters: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: spacing.lg }, filter: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted }, filterActive: { backgroundColor: colors.primary },
   filterText: { color: colors.textMuted, fontSize: 12, fontWeight: '700' }, filterTextActive: { color: '#fff' },
-  viewSwitch: { flexDirection: 'row', alignSelf: 'flex-start', padding: 3, borderRadius: radius.md, backgroundColor: colors.surfaceMuted },
-  viewButton: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, borderRadius: radius.sm },
+  viewSwitch: { flexDirection: 'row', flexShrink: 0, alignSelf: 'flex-start', padding: 3, borderRadius: radius.md, backgroundColor: colors.surfaceMuted },
+  viewButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, borderRadius: radius.sm },
   viewButtonActive: { backgroundColor: colors.surface }, viewText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' }, viewTextActive: { color: colors.primary },
-  list: { gap: spacing.sm, paddingBottom: 110 }, emptyList: { flexGrow: 1, justifyContent: 'center' },
+  eventList: { flex: 1, minHeight: 0 },
+  list: { flexGrow: 1, gap: spacing.sm, paddingBottom: spacing.xl }, emptyList: { flexGrow: 1, justifyContent: 'center' },
   calendarHeader: { gap: spacing.md, marginBottom: spacing.sm }, selectedDate: { color: colors.text, fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
+  eventRow: { width: '100%' },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, title: { flex: 1, color: colors.text, fontSize: 17, fontWeight: '700' },
   contact: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.blueSoft }, contactText: { flex: 1, color: colors.blue, fontSize: 13, fontWeight: '700' }, contactDone: { color: colors.success, textDecorationLine: 'line-through' },
   description: { color: colors.textMuted, fontSize: 14, lineHeight: 20 }, meta: { flexDirection: 'row', alignItems: 'center', gap: 6 }, metaText: { flex: 1, color: colors.textMuted, fontSize: 13 },

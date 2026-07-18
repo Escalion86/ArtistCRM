@@ -34,7 +34,7 @@
         {
           "android": {
             "compileSdkVersion": 36,
-            "targetSdkVersion": 35,
+            "targetSdkVersion": 36,
             "minSdkVersion": 29,
             "usesCleartextTraffic": false
           }
@@ -71,7 +71,7 @@
         "backgroundColor": "#f7efe1"
       },
       "package": "ru.escalion.artistcrm",
-      "versionCode": 9,
+      "versionCode": 14,
       "allowBackup": false,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",

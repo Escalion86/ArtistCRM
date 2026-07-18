@@ -14,6 +14,7 @@ export type MobileUser = {
   images?: string[]
   role: string
   tariffId: string | null
+  tariffTitle?: string
   registrationType?: string
 }
 

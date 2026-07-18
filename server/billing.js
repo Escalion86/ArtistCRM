@@ -1,16 +1,7 @@
 import Payments from '@models/Payments'
 import Tariffs from '@models/Tariffs'
 import Users from '@models/Users'
-
-const addMonths = (date, count) => {
-  const next = new Date(date)
-  const day = next.getDate()
-  next.setMonth(next.getMonth() + count)
-  if (next.getDate() < day) {
-    next.setDate(0)
-  }
-  return next
-}
+import { addMonths, calculateTariffCredit } from './billingCalculations.js'
 
 const applyTariffPurchase = async ({ userId, tariffId, skipCompensation = false }) => {
   if (!userId || !tariffId) {
@@ -29,24 +20,13 @@ const applyTariffPurchase = async ({ userId, tariffId, skipCompensation = false 
       ? await Tariffs.findById(user.tariffId).lean()
       : null
 
-  let creditAmount = 0
-  if (
-    !skipCompensation &&
-    currentTariff &&
-    Number(currentTariff.price ?? 0) > 0
-  ) {
-    const activeUntil = new Date(user.tariffActiveUntil)
-    if (!Number.isNaN(activeUntil.getTime()) && activeUntil > now) {
-      const periodStart = addMonths(activeUntil, -1)
-      const periodMs = activeUntil.getTime() - periodStart.getTime()
-      const remainingMs = activeUntil.getTime() - now.getTime()
-      if (periodMs > 0 && remainingMs > 0) {
-        creditAmount = Math.floor(
-          (Number(currentTariff.price ?? 0) * remainingMs) / periodMs
-        )
-      }
-    }
-  }
+  const creditAmount = skipCompensation
+    ? 0
+    : calculateTariffCredit({
+        currentTariff,
+        tariffActiveUntil: user.tariffActiveUntil,
+        now,
+      })
 
   const price = Number(tariff.price ?? 0)
   const balance = Number(user.balance ?? 0)

@@ -1,9 +1,9 @@
 import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
-import { sanitizeMobileUser } from '@server/mobile/sessions'
 import { normalizeMobileProfilePatch } from '@server/mobile/profile'
 import { mobileError, mobileSuccess } from '@server/mobile/routeHelpers'
+import { serializeMobileUserWithTariff } from '@server/mobile/tariff'
 
 export const GET = async (req) => {
   const context = await getRequestContext(req)
@@ -11,7 +11,7 @@ export const GET = async (req) => {
   await dbConnect()
   const user = await Users.findById(context.user._id)
   if (!user) return mobileError('USER_NOT_FOUND', 'Пользователь не найден', 404)
-  return mobileSuccess(sanitizeMobileUser(user))
+  return mobileSuccess(await serializeMobileUserWithTariff(user))
 }
 
 export const PATCH = async (req) => {
@@ -30,5 +30,5 @@ export const PATCH = async (req) => {
     { returnDocument: 'after', runValidators: true }
   )
   if (!user) return mobileError('USER_NOT_FOUND', 'Пользователь не найден', 404)
-  return mobileSuccess(sanitizeMobileUser(user))
+  return mobileSuccess(await serializeMobileUserWithTariff(user))
 }

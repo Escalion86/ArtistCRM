@@ -34,3 +34,19 @@ export const normalizeRussianPhone = (value: string) => {
   const digits = nationalDigits(value)
   return digits.length === 10 ? `7${digits}` : ''
 }
+
+export const formatPhoneForDisplay = (
+  value: string | number | null | undefined
+) => {
+  const source = String(value ?? '').trim()
+  if (!source || source.startsWith('+')) return source
+
+  const digits = source.replace(/\D/g, '')
+  if (digits.length === 10) return `+7${digits}`
+  if (digits.length === 11 && digits.startsWith('8')) return `+7${digits.slice(1)}`
+  if (digits.length === 11 && digits.startsWith('7')) {
+    return source.startsWith('7') ? `+${source}` : `+${digits}`
+  }
+
+  return source
+}

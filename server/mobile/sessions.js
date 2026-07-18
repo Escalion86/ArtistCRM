@@ -16,6 +16,7 @@ import {
   rotateMobileSessionToken,
 } from './sessionStore.js'
 import { serializeMobileProfile } from './profile.js'
+import { serializeMobileUserWithTariff } from './tariff.js'
 
 const REFRESH_TOKEN_TTL_MS = Math.max(
   24 * 60 * 60 * 1000,
@@ -24,8 +25,8 @@ const REFRESH_TOKEN_TTL_MS = Math.max(
 
 export const sanitizeMobileUser = serializeMobileProfile
 
-const buildSessionResponse = (user, session, refreshToken) => {
-  const safeUser = sanitizeMobileUser(user)
+const buildSessionResponse = async (user, session, refreshToken) => {
+  const safeUser = await serializeMobileUserWithTariff(user)
   const access = createMobileAccessToken({
     user,
     tenantId: safeUser.tenantId,

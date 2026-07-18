@@ -11,6 +11,7 @@ import {
   type EventTaskDraft,
 } from '../../../src/shared/domain/eventForm'
 import type { Client, Event, MobileSettings, Service } from '../../../src/shared/domain/types'
+import { formatPhoneForDisplay } from '../../../src/shared/format/phone'
 import { getCachedEntity, listCachedEntities } from '../../../src/shared/storage/cache'
 import { deleteLocalEntity, saveLocalEntity } from '../../../src/shared/storage/mutations'
 import {
@@ -54,7 +55,7 @@ const emptyValues = {
 
 const localKey = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`
 const clientName = (client: Client) =>
-  [client.firstName, client.secondName].filter(Boolean).join(' ') || String(client.phone || 'Клиент')
+  [client.firstName, client.secondName].filter(Boolean).join(' ') || formatPhoneForDisplay(client.phone) || 'Клиент'
 
 const eventTasksToDrafts = (event: Event, cloning: boolean): EventTaskDraft[] =>
   (event.additionalEvents || []).map((task) => ({

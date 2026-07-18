@@ -27,19 +27,9 @@
 10. Name: `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
 11. Value: paste the entire JSON key
 
-### 3. EXPO_PUBLIC_API_BASE_URL
+Production API URL and scheme are defined in the EAS `production` profile. Public VK ID is stored in the EAS `production` environment; all three values are validated during the build.
 
-The mobile app needs to know the API endpoint at build time.
-
-1. Determine your production API URL (e.g., `https://artistcrm.ru/api`)
-2. Go to GitHub repo → Settings → Secrets and variables → Actions
-3. Click "New repository secret"
-4. Name: `EXPO_PUBLIC_API_BASE_URL`
-5. Value: your API base URL (e.g., `https://artistcrm.ru/api`)
-
-**Important**: This URL must be accessible from the mobile device. Ensure your API server is deployed and the domain resolves correctly.
-
-### 4. Apple App Store Connect API Key (for TestFlight)
+### 3. Apple App Store Connect API Key (for TestFlight)
 
 Required for iOS TestFlight uploads.
 
@@ -76,9 +66,9 @@ Or manually dispatch from GitHub Actions tab.
 
 ## EAS Project
 
-- Project ID: 7676a13a-3d4a-4da0-ad23-5b4df7b3bb38
-- Build profile: `internal` (IPA for iOS, AAB for Play Store)
-- Submit profile: `internal` (TestFlight for iOS, Internal Testing for Android)
+- Project ID: `7772a8bd-ffb8-4ee9-b4d6-53019cc3994f`
+- Android build profile: `production` (AAB for Play Store)
+- Android submit profile: `production` (Google Play track `internal`)
 
 ## App Store Connect Setup (First Time)
 

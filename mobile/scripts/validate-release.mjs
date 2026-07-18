@@ -46,9 +46,9 @@ requireValue(
 requireValue(app.android?.allowBackup === false, 'Android backup CRM должен быть отключён')
 requireValue(
   buildProperties?.compileSdkVersion === 36 &&
-    buildProperties?.targetSdkVersion === 35 &&
+    buildProperties?.targetSdkVersion === 36 &&
     buildProperties?.minSdkVersion === 29,
-  'Ожидаются Android compileSdk 36, targetSdk 35 и minSdk 29'
+  'Ожидаются Android compileSdk 36, targetSdk 36 и minSdk 29'
 )
 requireValue(
   buildProperties?.usesCleartextTraffic === false,

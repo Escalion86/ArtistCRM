@@ -8,7 +8,9 @@ import {
   TextInput,
   View,
   type PressableProps,
+  type StyleProp,
   type TextInputProps,
+  type ViewStyle,
   type ViewProps,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -17,8 +19,9 @@ import { colors, radius, spacing } from './theme'
 export const Screen = ({
   children,
   scroll = true,
-}: PropsWithChildren<{ scroll?: boolean }>) => {
-  const content = <View style={styles.screenContent}>{children}</View>
+  contentStyle,
+}: PropsWithChildren<{ scroll?: boolean; contentStyle?: StyleProp<ViewStyle> }>) => {
+  const content = <View style={[styles.screenContent, contentStyle]}>{children}</View>
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {scroll ? (

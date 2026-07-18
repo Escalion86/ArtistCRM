@@ -97,7 +97,7 @@ export default function DashboardScreen() {
   }
 
   return (
-    <Screen>
+    <Screen contentStyle={styles.screenContent}>
       <PageHeader
         title={`Здравствуйте${user?.firstName ? `, ${user.firstName}` : ''}`}
         subtitle="Самое важное на сегодня"
@@ -256,6 +256,7 @@ const Metric = ({
 )
 
 const styles = StyleSheet.create({
+  screenContent: { paddingBottom: 0 },
   iconButton: {
     width: 44,
     height: 44,

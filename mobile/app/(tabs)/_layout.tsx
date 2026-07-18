@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Tabs } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '../../src/shared/ui/theme'
 
 const icon = (name: keyof typeof MaterialCommunityIcons.glyphMap) =>
@@ -8,13 +9,20 @@ const icon = (name: keyof typeof MaterialCommunityIcons.glyphMap) =>
   )
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets()
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { height: 66, paddingTop: 7, paddingBottom: 8, borderTopColor: colors.border },
+        tabBarStyle: {
+          height: 58 + insets.bottom,
+          paddingTop: 7,
+          paddingBottom: Math.max(insets.bottom, 8),
+          borderTopColor: colors.border,
+        },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
