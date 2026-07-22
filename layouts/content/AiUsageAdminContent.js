@@ -29,7 +29,7 @@ const Metric = ({ label, value, hint }) => (
 const AiUsageAdminContent = () => {
   const snackbar = useSnackbar()
   const [settings, setSettings] = useState(null)
-  const [coefficient, setCoefficient] = useState(1.5)
+  const [coefficient, setCoefficient] = useState('1.5')
   const [initialCoefficient, setInitialCoefficient] = useState(1.5)
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -58,7 +58,7 @@ const AiUsageAdminContent = () => {
         settingsResult?.data?.markupCoefficient ?? 1.5
       )
       setSettings(settingsResult.data)
-      setCoefficient(nextCoefficient)
+      setCoefficient(String(nextCoefficient))
       setInitialCoefficient(nextCoefficient)
       setReport(reportResult.data)
     } catch (loadError) {
@@ -73,13 +73,22 @@ const AiUsageAdminContent = () => {
   }, [])
 
   const save = async () => {
+    const coefficientValue = Number(String(coefficient).replace(',', '.'))
+    if (
+      !Number.isFinite(coefficientValue) ||
+      coefficientValue < 1 ||
+      coefficientValue > 10
+    ) {
+      setError('Коэффициент должен быть от 1 до 10')
+      return
+    }
     setSaving(true)
     setError('')
     try {
       const response = await fetch('/api/ai/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ markupCoefficient: Number(coefficient) }),
+        body: JSON.stringify({ markupCoefficient: coefficientValue }),
       })
       const result = await response.json().catch(() => ({}))
       if (!response.ok) {
@@ -87,7 +96,7 @@ const AiUsageAdminContent = () => {
       }
       const nextCoefficient = Number(result.data.markupCoefficient)
       setSettings(result.data)
-      setCoefficient(nextCoefficient)
+      setCoefficient(String(nextCoefficient))
       setInitialCoefficient(nextCoefficient)
       snackbar.success('Коэффициент наценки сохранён')
     } catch (saveError) {
@@ -108,6 +117,11 @@ const AiUsageAdminContent = () => {
   }
 
   const summary = report?.summary || {}
+  const coefficientValue = Number(String(coefficient).replace(',', '.'))
+  const coefficientIsValid =
+    Number.isFinite(coefficientValue) &&
+    coefficientValue >= 1 &&
+    coefficientValue <= 10
 
   return (
     <div className="flex h-full flex-col">
@@ -146,6 +160,7 @@ const AiUsageAdminContent = () => {
             min={1}
             max={10}
             step={0.01}
+            decimalScale={2}
             value={coefficient}
             onChange={setCoefficient}
             noMargin
@@ -156,7 +171,11 @@ const AiUsageAdminContent = () => {
             <Button
               name="Сохранить"
               onClick={save}
-              disabled={Number(coefficient) === initialCoefficient || saving}
+              disabled={
+                !coefficientIsValid ||
+                coefficientValue === initialCoefficient ||
+                saving
+              }
               loading={saving}
             />
           </div>

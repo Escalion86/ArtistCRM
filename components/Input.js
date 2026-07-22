@@ -7,6 +7,8 @@ import cn from 'classnames'
 import { forwardRef } from 'react'
 import { MaskedInput } from '@thaborach/react-text-mask'
 import {
+  adjustNumberByStep,
+  normalizeDecimalInputString,
   normalizeNumberInputString,
   toNormalizedNumber,
 } from '@helpers/numberInput'
@@ -63,6 +65,7 @@ const Input = forwardRef(
       copyPasteButtons = false,
       normalizePastedValue,
       tone = 'default',
+      decimalScale,
     },
     ref
   ) => {
@@ -92,6 +95,8 @@ const Input = forwardRef(
       return normalizePhoneDigits(value)
     })()
     const placeholderValue = floatingLabel ? ' ' : label
+    const isDecimalNumber =
+      type === 'number' && Number.isInteger(decimalScale) && decimalScale > 0
     const resolvedStep =
       step ??
       (type === 'number'
@@ -104,6 +109,16 @@ const Input = forwardRef(
             ? 5
             : 1
         : 1)
+    const changeNumberByStep = (direction) => {
+      const nextValue = adjustNumberByStep(value, {
+        step: resolvedStep,
+        direction,
+        min,
+        max,
+        fractionDigits: isDecimalNumber ? decimalScale : undefined,
+      })
+      onChange(isDecimalNumber ? String(nextValue) : nextValue)
+    }
 
     // Определяем цвета для стрелочек в зависимости от темы
     const arrowTextColor = isParty ? 'text-blue-500' : 'text-general'
@@ -153,11 +168,7 @@ const Input = forwardRef(
                 ? 'text-disabled cursor-not-allowed'
                 : `${arrowTextColor} ${arrowHoverColor} cursor-pointer`
             )}
-            onClick={() => {
-              if (typeof min !== 'number')
-                onChange(Number(value) - Number(resolvedStep))
-              else onChange(Math.max(Number(value) - Number(resolvedStep), min))
-            }}
+            onClick={() => changeNumberByStep(-1)}
           >
             <FontAwesomeIcon icon={faArrowDown} className="w-4 h-4 min-h-4" />
           </div>
@@ -202,7 +213,8 @@ const Input = forwardRef(
           />
         ) : (
           <input
-            type={type}
+            type={isDecimalNumber ? 'text' : type}
+            inputMode={isDecimalNumber ? 'decimal' : undefined}
             step={resolvedStep}
             className={cn(
               'peer h-7 flex-1 bg-transparent px-1 text-black placeholder-transparent focus:outline-none',
@@ -217,18 +229,28 @@ const Input = forwardRef(
             max={max}
             disabled={disabled}
             value={
-              value === null || !value
-                ? type === 'number'
-                  ? 0
-                  : ''
-                : typeof value === 'number'
-                  ? String(value)
-                  : value
+              isDecimalNumber
+                ? (value ?? '')
+                : value === null || !value
+                  ? type === 'number'
+                    ? 0
+                    : ''
+                  : typeof value === 'number'
+                    ? String(value)
+                    : value
             }
             defaultValue={defaultValue}
             onChange={(e) => {
               const { value } = e.target
               if (type === 'number') {
+                if (isDecimalNumber) {
+                  onChange(
+                    normalizeDecimalInputString(value, {
+                      maxFractionDigits: decimalScale,
+                    })
+                  )
+                  return
+                }
                 if (value === '') {
                   onChange(0)
                   return
@@ -243,6 +265,24 @@ const Input = forwardRef(
             }}
             onBlur={(e) => {
               if (type !== 'number') return
+              if (isDecimalNumber) {
+                const normalized = normalizeDecimalInputString(e.target.value, {
+                  maxFractionDigits: decimalScale,
+                })
+                const parsed = Number(normalized)
+                if (!Number.isFinite(parsed)) return
+                const clamped = Math.min(
+                  typeof max === 'number' ? max : parsed,
+                  Math.max(typeof min === 'number' ? min : parsed, parsed)
+                )
+                onChange(
+                  String(
+                    Math.round(clamped * 10 ** decimalScale) /
+                      10 ** decimalScale
+                  )
+                )
+                return
+              }
               const normalized = normalizeNumberInputString(e.target.value)
               if (!normalized || normalized === e.target.value) return
               onChange(
@@ -300,11 +340,7 @@ const Input = forwardRef(
                 ? 'text-disabled cursor-not-allowed'
                 : `${arrowTextColor} ${arrowHoverColor} cursor-pointer`
             )}
-            onClick={() => {
-              if (typeof max !== 'number')
-                onChange(Number(value) + Number(resolvedStep))
-              else onChange(Math.min(Number(value) + Number(resolvedStep), max))
-            }}
+            onClick={() => changeNumberByStep(1)}
           >
             <FontAwesomeIcon icon={faArrowUp} className="w-4 h-4 min-h-4" />
           </div>
