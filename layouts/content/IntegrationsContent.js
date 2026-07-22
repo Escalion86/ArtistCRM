@@ -1693,8 +1693,8 @@ const IntegrationsContent = () => {
                         </div>
                       </div>
                       <div className="ai-billing-card__description text-xs text-blue-800">
-                        Ориентир рассчитан по последним операциям с текущей
-                        наценкой. Длинные записи могут стоить дороже.
+                        Ориентир рассчитан по последним операциям. Длинные
+                        записи могут стоить дороже.
                       </div>
                       {!aiUsage?.platformConfigured ? (
                         <div className="ai-billing-card__danger rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
