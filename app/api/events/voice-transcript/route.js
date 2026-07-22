@@ -4,6 +4,10 @@ import getRequestContext from '@server/getRequestContext'
 import { getTenantAiSettings } from '@server/aiSettings'
 import { transcribeAudioBlob } from '@server/callTranscription'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import {
+  getAiBalanceErrorMessage,
+  isAiBalanceError,
+} from '@server/aiBilling'
 
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024
 
@@ -47,13 +51,16 @@ export async function POST(request) {
     const transcript = await transcribeAudioBlob(
       audioFile,
       audioFile.name || 'voice-draft.webm',
-      aiSettings
+      aiSettings,
+      { feature: 'voice_transcription' }
     )
 
     return NextResponse.json({ success: true, transcript })
   } catch (error) {
     const message =
-      error?.message === 'TRANSCRIPTION_API_KEY_REQUIRED'
+      isAiBalanceError(error)
+        ? getAiBalanceErrorMessage(error)
+        : error?.message === 'TRANSCRIPTION_API_KEY_REQUIRED'
         ? 'Не настроен провайдер распознавания аудио'
         : error?.message === 'TRANSCRIPTION_EMPTY'
           ? 'Не удалось распознать речь'
@@ -65,7 +72,7 @@ export async function POST(request) {
 
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 }
+      { status: isAiBalanceError(error) ? 402 : 500 }
     )
   }
 }

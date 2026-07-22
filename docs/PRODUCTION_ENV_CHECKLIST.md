@@ -146,9 +146,19 @@ PHONE_SMS_SEND_WEBHOOK=...
 
 `TELEFONIP` используется для подтверждения телефона при регистрации и восстановлении доступа. `PHONE_SMS_SEND_WEBHOOK` нужен только для SMS fallback.
 
-## Novofon, AITunnel и AI
+## Novofon и AI
 
-Не добавлять в production `.env`, если пользователи подключают сервисы индивидуально:
+Общий ИИ ArtistCRM, оплачиваемый из баланса пользователя:
+
+```env
+AITUNNEL_KEY=...
+AITUNNEL_CALL_ANALYSIS_MODEL=gpt-4o-mini
+AITUNNEL_TRANSCRIPTION_MODEL=whisper-1
+```
+
+`AITUNNEL_KEY` обязателен для сервисного режима. Наценка задаётся developer-пользователем на странице `Настройки сайта -> ИИ и расходы` и не хранится в env.
+
+Следующие глобальные fallback-переменные не добавлять, если они не нужны для developer-сценариев:
 
 ```env
 NOVOFON_WEBHOOK_SECRET
@@ -156,16 +166,13 @@ AI_ANALYSIS_PROVIDER
 AI_TRANSCRIPTION_PROVIDER
 DEEPSEEK_API_KEY
 DEEPSEEK_CALL_ANALYSIS_MODEL
-AITUNNEL_KEY
-AITUNNEL_CALL_ANALYSIS_MODEL
-AITUNNEL_TRANSCRIPTION_MODEL
 OPENAI_CALL_ANALYSIS_MODEL
 OPENAI_TRANSCRIPTION_MODEL
 ```
 
-Код поддерживает эти env как глобальные fallback'и, но для текущей модели ArtistCRM они не нужны: Novofon/AITunnel ключи и модели хранятся в `SiteSettings.custom` конкретного пользователя.
+Пользователь может подключить собственный AITunnel key в `SiteSettings.custom`. В этом режиме ArtistCRM не списывает стоимость запросов. DeepSeek оставлен только для developer-роли и работает с готовым текстом, без speech-to-text.
 
-Оставить глобальный OpenAI-совместимый ключ только если используется общая функция голосового создания мероприятия `/api/events/ai-draft`:
+Глобальный OpenAI-совместимый ключ можно оставить только как developer fallback:
 
 ```env
 OPENAI_API_KEY=...
@@ -173,7 +180,7 @@ OPENAI_MODEL=gpt-4o-mini
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
-Если голосовой AI-черновик тоже должен работать только через пользовательский AITunnel/AI-ключ, глобальные `OPENAI_*` не нужны, но endpoint `/api/events/ai-draft` нужно дополнительно адаптировать под пользовательские настройки.
+Если глобальный fallback не нужен, переменные `OPENAI_*` можно не задавать.
 
 ## Почта и файлы
 

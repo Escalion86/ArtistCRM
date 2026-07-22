@@ -5,6 +5,10 @@ import Calls from '@models/Calls'
 import SiteSettings from '@models/SiteSettings'
 import { analyzeCallTranscript } from '@server/callAiAnalysis'
 import { transcribeCallRecording } from '@server/callTranscription'
+import {
+  getAiBalanceErrorMessage,
+  isAiBalanceError,
+} from '@server/aiBilling'
 import { getTenantAiSettings } from '@server/aiSettings'
 
 const DEFAULT_CALL_ADDRESS = Object.freeze({
@@ -252,8 +256,20 @@ export const processCallRecording = async (callId, tenantId) => {
 
   try {
     const aiSettings = await getTenantAiSettings(tenantId)
-    const transcript = await transcribeCallRecording(call.recordingUrl, aiSettings)
-    const analysis = await analyzeCallTranscript(transcript, aiSettings)
+    const groupId = `call:${callId}`
+    const transcript = await transcribeCallRecording(
+      call.recordingUrl,
+      aiSettings,
+      { feature: 'call_transcription', groupId }
+    )
+    await Calls.findOneAndUpdate(
+      { _id: callId, tenantId },
+      { transcript, status: 'processing', processingError: '' }
+    )
+    const analysis = await analyzeCallTranscript(transcript, aiSettings, {
+      feature: 'call_analysis',
+      groupId,
+    })
     return Calls.findOneAndUpdate(
       { _id: callId, tenantId },
       {
@@ -271,7 +287,9 @@ export const processCallRecording = async (callId, tenantId) => {
       {
         status: 'failed',
         processingError:
-          error?.message === 'TRANSCRIPTION_API_KEY_REQUIRED'
+          isAiBalanceError(error)
+            ? getAiBalanceErrorMessage(error)
+            : error?.message === 'TRANSCRIPTION_API_KEY_REQUIRED'
             ? 'Не настроен провайдер распознавания аудио'
             : 'Не удалось распознать запись звонка',
       }

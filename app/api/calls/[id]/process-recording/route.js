@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
 import { processCallRecording } from '@server/calls'
 import { requireAiTariffAccess } from '@server/telephonyAccess'
+import {
+  getAiBalanceErrorMessage,
+  isAiBalanceError,
+} from '@server/aiBilling'
 
 export const POST = async (req, { params }) => {
   const { id } = await params
@@ -19,7 +23,9 @@ export const POST = async (req, { params }) => {
     return NextResponse.json({ success: true, data: call }, { status: 200 })
   } catch (error) {
     const message =
-      error?.message === 'TRANSCRIPTION_API_KEY_REQUIRED'
+      isAiBalanceError(error)
+        ? getAiBalanceErrorMessage(error)
+        : error?.message === 'TRANSCRIPTION_API_KEY_REQUIRED'
         ? 'Не настроен провайдер распознавания аудио'
         : 'Не удалось распознать запись звонка'
     console.error('[calls/process-recording] failed', {
@@ -28,7 +34,7 @@ export const POST = async (req, { params }) => {
     })
     return NextResponse.json(
       { success: false, error: message },
-      { status: 502 }
+      { status: isAiBalanceError(error) ? 402 : 502 }
     )
   }
 }

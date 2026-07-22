@@ -78,6 +78,15 @@ const usersSchema = {
     type: String,
     default: 'phone',
   },
+  registrationSource: {
+    type: String,
+    maxlength: 64,
+    default: '',
+  },
+  registrationSourceCapturedAt: {
+    type: Date,
+    default: null,
+  },
   whatsapp: {
     type: Number,
     default: null,

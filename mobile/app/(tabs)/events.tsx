@@ -2,25 +2,27 @@ import { useMemo, useState } from 'react'
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import type { Event } from '../../src/shared/domain/types'
+import type { Client, Event, Service, Transaction } from '../../src/shared/domain/types'
 import { useCachedEntities } from '../../src/shared/hooks/useCachedEntities'
-import { EmptyState, ErrorNotice, PageHeader, Screen, StatusChip, Surface } from '../../src/shared/ui/components'
+import { EmptyState, ErrorNotice, PageHeader, Screen } from '../../src/shared/ui/components'
 import { colors, radius, spacing } from '../../src/shared/ui/theme'
 import { EventCalendar } from '../../src/features/events/EventCalendar'
+import { MobileEventCard } from '../../src/features/events/MobileEventCard'
 import { buildEventCalendarOccurrences, countOccurrencesByDate, startOfMonth, toDateKey, type EventCalendarOccurrence } from '../../src/features/events/calendar'
 
 type Filter = 'requests' | 'upcoming' | 'past' | 'all'
 type ViewMode = 'list' | 'calendar'
 type EventRow = { key: string; event: Event; occurrence?: EventCalendarOccurrence }
 const filters: Array<[Filter, string]> = [['requests', 'Заявки'], ['upcoming', 'Предстоящие'], ['past', 'Прошедшие'], ['all', 'Все']]
-const statusLabel = { draft: 'Заявка', active: 'Подтверждено', canceled: 'Отменено', closed: 'Закрыто' }
-
 export default function EventsScreen() {
   const [filter, setFilter] = useState<Filter>('upcoming')
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()) as string)
   const query = useCachedEntities<Event>('events')
+  const clientsQuery = useCachedEntities<Client>('clients')
+  const servicesQuery = useCachedEntities<Service>('services')
+  const transactionsQuery = useCachedEntities<Transaction>('transactions')
   const events = useMemo(() => {
     const now = Date.now()
     return (query.data || []).filter((event) => {
@@ -32,6 +34,24 @@ export default function EventsScreen() {
     }).sort((a, b) => new Date(a.eventDate || 0).getTime() - new Date(b.eventDate || 0).getTime())
   }, [filter, query.data])
   const occurrences = useMemo(() => buildEventCalendarOccurrences(events), [events])
+  const clientsById = useMemo(
+    () => new Map((clientsQuery.data || []).map((client) => [client._id, client])),
+    [clientsQuery.data]
+  )
+  const servicesById = useMemo(
+    () => new Map((servicesQuery.data || []).map((service) => [service._id, service])),
+    [servicesQuery.data]
+  )
+  const transactionsByEvent = useMemo(() => {
+    const grouped = new Map<string, Transaction[]>()
+    ;(transactionsQuery.data || []).forEach((transaction) => {
+      if (!transaction.eventId) return
+      const items = grouped.get(transaction.eventId) || []
+      items.push(transaction)
+      grouped.set(transaction.eventId, items)
+    })
+    return grouped
+  }, [transactionsQuery.data])
   const occurrenceCounts = useMemo(() => countOccurrencesByDate(occurrences), [occurrences])
   const rows = useMemo<EventRow[]>(() => {
     if (viewMode === 'list') return events.map((event) => ({ key: `event:${event._id}`, event }))
@@ -45,6 +65,14 @@ export default function EventsScreen() {
     return new Date(year, monthValue - 1, day)
   }, [selectedDateKey])
   const selectDate = (date: Date) => setSelectedDateKey(toDateKey(date) as string)
+  const refresh = async () => {
+    await query.refresh()
+    await Promise.all([
+      clientsQuery.refetch(),
+      servicesQuery.refetch(),
+      transactionsQuery.refetch(),
+    ])
+  }
 
   return (
     <Screen scroll={false} contentStyle={styles.screenContent}>
@@ -61,27 +89,33 @@ export default function EventsScreen() {
         data={rows}
         keyExtractor={(item) => item.key}
         removeClippedSubviews={viewMode === 'list'}
-        refreshing={query.isFetching}
-        onRefresh={query.refresh}
+        refreshing={
+          query.isFetching ||
+          clientsQuery.isFetching ||
+          servicesQuery.isFetching ||
+          transactionsQuery.isFetching
+        }
+        onRefresh={refresh}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={rows.length || viewMode === 'calendar' ? styles.list : styles.emptyList}
         ListHeaderComponent={viewMode === 'calendar' ? <View style={styles.calendarHeader}><EventCalendar month={month} selectedDateKey={selectedDateKey} counts={occurrenceCounts} undatedCount={events.filter((event) => !event.eventDate).length} onMonthChange={setMonth} onSelectDate={selectDate} /><Text style={styles.selectedDate}>{selectedDate.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}</Text></View> : null}
         ListEmptyComponent={<EmptyState title={viewMode === 'calendar' ? 'На эту дату записей нет' : 'Здесь пока пусто'} description={viewMode === 'calendar' ? 'Выберите другой день или создайте мероприятие.' : 'Создайте новую заявку — изменения сохранятся даже без сети.'} />}
-        renderItem={({ item }) => (
-          <Pressable testID={`event-row-${item.key}`} style={styles.eventRow} onPress={() => router.push(`/events/${item.event._id}` as never)}>
-            <Surface>
-              <View style={styles.cardHeader}><Text style={styles.title} numberOfLines={1}>{item.event.eventType || 'Мероприятие'}</Text><StatusChip label={statusLabel[item.event.status]} tone={item.event.status === 'active' ? 'success' : item.event.status === 'canceled' ? 'danger' : item.event.status === 'draft' ? 'warning' : 'neutral'} /></View>
-              {item.occurrence?.kind === 'contact' ? <View style={styles.contact}><MaterialCommunityIcons name={item.occurrence.done ? 'check-circle-outline' : 'phone-outline'} size={17} color={item.occurrence.done ? colors.success : colors.blue} /><Text style={[styles.contactText, item.occurrence.done && styles.contactDone]} numberOfLines={2}>{item.occurrence.title}</Text></View> : null}
-              <Text style={styles.description} numberOfLines={2}>{item.event.description || 'Без описания'}</Text>
-              <View style={styles.meta}>
-                <MaterialCommunityIcons name="calendar-outline" size={17} color={colors.textMuted} />
-                <Text style={styles.metaText}>{item.event.eventDate ? new Date(item.event.eventDate).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Дата не назначена'}</Text>
-              </View>
-              {item.event.address?.town ? <View style={styles.meta}><MaterialCommunityIcons name="map-marker-outline" size={17} color={colors.textMuted} /><Text style={styles.metaText} numberOfLines={1}>{[item.event.address.town, item.event.address.street, item.event.address.house].filter(Boolean).join(', ')}</Text></View> : null}
-              {item.event.waitDeposit ? <View style={styles.deposit}><MaterialCommunityIcons name="alert-circle-outline" size={17} color={colors.warning} /><Text style={styles.depositText}>Ожидается задаток{item.event.depositExpectedAmount ? ` ${item.event.depositExpectedAmount} ₽` : ''}</Text></View> : null}
-            </Surface>
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const eventServices = (item.event.servicesIds || [])
+            .map((serviceId) => servicesById.get(serviceId))
+            .filter((service): service is Service => Boolean(service))
+          return (
+            <MobileEventCard
+              event={item.event}
+              client={item.event.clientId ? clientsById.get(item.event.clientId) : undefined}
+              services={eventServices}
+              transactions={transactionsByEvent.get(item.event._id) || []}
+              occurrence={item.occurrence}
+              testID={`event-row-${item.key}`}
+              onPress={() => router.push(`/events/${item.event._id}` as never)}
+            />
+          )
+        }}
       />
     </Screen>
   )
@@ -98,9 +132,4 @@ const styles = StyleSheet.create({
   eventList: { flex: 1, minHeight: 0 },
   list: { flexGrow: 1, gap: spacing.sm, paddingBottom: spacing.xl }, emptyList: { flexGrow: 1, justifyContent: 'center' },
   calendarHeader: { gap: spacing.md, marginBottom: spacing.sm }, selectedDate: { color: colors.text, fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
-  eventRow: { width: '100%' },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, title: { flex: 1, color: colors.text, fontSize: 17, fontWeight: '700' },
-  contact: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.blueSoft }, contactText: { flex: 1, color: colors.blue, fontSize: 13, fontWeight: '700' }, contactDone: { color: colors.success, textDecorationLine: 'line-through' },
-  description: { color: colors.textMuted, fontSize: 14, lineHeight: 20 }, meta: { flexDirection: 'row', alignItems: 'center', gap: 6 }, metaText: { flex: 1, color: colors.textMuted, fontSize: 13 },
-  deposit: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: spacing.sm, borderRadius: radius.sm, backgroundColor: colors.warningSoft }, depositText: { color: colors.warning, fontSize: 12, fontWeight: '700' },
 })

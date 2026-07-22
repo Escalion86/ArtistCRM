@@ -43,6 +43,8 @@ export type Event = {
   dateEnd?: string | null
   status: 'draft' | 'active' | 'canceled' | 'closed'
   contractSum?: number
+  isByContract?: boolean
+  isTransferred?: boolean
   waitDeposit?: boolean
   depositDueAt?: string | null
   depositExpectedAmount?: number | null
@@ -72,6 +74,10 @@ export type Event = {
     done?: boolean
     doneAt?: string | null
   }>
+  calendarImportChecked?: boolean
+  calendarSyncError?: string
+  requestCreatedAt?: string
+  createdAt?: string
   documents?: Array<{
     id: string
     type: DocumentTemplate['type']

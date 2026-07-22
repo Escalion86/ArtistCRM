@@ -47,11 +47,12 @@ export const serializeMobileProviderIntegration = ({
     }
   }
   if (provider === 'ai') {
-    const enabled = Boolean(
-      settings.enabled ||
-      settings.transcriptionProvider === 'aitunnel' ||
-      settings.analysisProvider === 'aitunnel'
-    )
+    const enabled = typeof settings.enabled === 'boolean'
+      ? settings.enabled
+      : Boolean(
+          settings.transcriptionProvider === 'aitunnel' ||
+          settings.analysisProvider
+        )
     return {
       provider,
       available: Boolean(available),
@@ -62,8 +63,16 @@ export const serializeMobileProviderIntegration = ({
         : enabled
           ? 'key_required'
           : 'disabled',
+      analysisProvider: settings.analysisProvider || 'artistcrm',
+      transcriptionProvider: settings.transcriptionProvider || '',
+      hasTranscriptionKey: Boolean(settings.hasTranscriptionKey),
+      canUseDeepseek: Boolean(settings.canUseDeepseek),
+      platformConfigured: Boolean(settings.platformConfigured),
       transcriptionModel: settings.transcriptionModel || 'whisper-1',
-      analysisModel: settings.analysisModel || 'gpt-4o-mini',
+      analysisModel: settings.analysisModel ||
+        (settings.analysisProvider === 'deepseek'
+          ? 'deepseek-v4-flash'
+          : 'gpt-4o-mini'),
     }
   }
   if (provider === 'public-leads') {

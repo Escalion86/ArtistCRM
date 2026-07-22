@@ -14,6 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Input from '@components/Input'
+import Select from '@components/Select'
 import IconCheckBox from '@components/IconCheckBox'
 import IconActionButton from '@components/IconActionButton'
 import GoogleCalendarSettings from '@components/GoogleCalendarSettings'
@@ -24,6 +25,7 @@ import { modalsFuncAtom } from '@state/atoms'
 import { postData } from '@helpers/CRUD'
 import useSnackbar from '@helpers/useSnackbar'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
+import { formatMoney } from '@helpers/formatMoney'
 import ReactMarkdown from 'react-markdown'
 
 const getCustomValue = (custom, key) => {
@@ -369,26 +371,22 @@ const NovofonGuide = () => (
   </div>
 )
 
-const AITunnelGuide = () => (
+const AIProviderGuide = () => (
   <div className="flex flex-col gap-3 text-sm leading-6 text-gray-700">
     <p>
-      AITunnel нужен для распознавания записей звонков и подготовки текста
-      заявки. Без него звонки можно видеть в CRM, но автоматический разбор
-      разговора работать не будет.
+      Можно использовать общий ИИ ArtistCRM с оплатой из баланса или подключить
+      собственный ключ AITunnel. Собственный ключ сохраняется отдельно для
+      вашего аккаунта, а ArtistCRM не списывает деньги за такие запросы.
     </p>
     <ol className="list-decimal space-y-2 pl-5">
-      <li>Зарегистрируйтесь или войдите в AITunnel.</li>
-      <li>Создайте ключ доступа в личном кабинете AITunnel.</li>
-      <li>Вставьте ключ в поле Ключ AITunnel в ArtistCRM.</li>
-      <li>
-        Оставьте модель распознавания whisper-1, если не планируете менять ее
-        специально.
-      </li>
-      <li>Нажмите Использовать AITunnel.</li>
+      <li>Для простого старта выберите «ИИ ArtistCRM» — ключ не нужен.</li>
+      <li>Запросы будут списываться из текущего баланса по фактической стоимости.</li>
+      <li>Либо зарегистрируйтесь в AITunnel и вставьте собственный API-ключ.</li>
+      <li>Включите ИИ-интеграцию.</li>
     </ol>
     <p>
-      После этого в разделе Звонки можно будет распознавать записи и создавать
-      черновики заявок на основе разговора.
+      DeepSeek пока доступен только разработчику: он обрабатывает готовый текст,
+      но не распознаёт аудиофайлы.
     </p>
   </div>
 )
@@ -542,6 +540,8 @@ const IntegrationsContent = () => {
   const [vkLoading, setVkLoading] = useState(false)
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false)
   const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false)
+  const [aiUsage, setAiUsage] = useState(null)
+  const [aiUsageLoading, setAiUsageLoading] = useState(false)
 
   const customSettings = useMemo(
     () => siteSettings?.custom ?? {},
@@ -561,6 +561,7 @@ const IntegrationsContent = () => {
   const canUseAvito = Boolean(tariffAccess?.allowAvitoIntegration)
   const canUseVk = Boolean(tariffAccess?.allowVkIntegration)
   const canUsePublicLeadApi = Boolean(tariffAccess?.allowPublicLeadApi)
+  const isDeveloper = loggedUser?.role === 'dev'
   const isEnabled = getCustomValue(customSettings, 'publicLeadEnabled') === true
   const endpointUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/api/public/lead'
@@ -572,24 +573,53 @@ const IntegrationsContent = () => {
     getCustomValue(customSettings, 'novofonWebhookSecret') || ''
   )
   const aitunnelKey = String(getCustomValue(customSettings, 'aitunnelKey') || '')
+  const deepseekKey = String(getCustomValue(customSettings, 'deepseekKey') || '')
   const aiTranscriptionModel = String(
     getCustomValue(customSettings, 'aiTranscriptionModel') || 'whisper-1'
-  )
-  const aiAnalysisModel = String(
-    getCustomValue(customSettings, 'aiAnalysisModel') || 'gpt-4o-mini'
   )
   const aiTranscriptionProvider = String(
     getCustomValue(customSettings, 'aiTranscriptionProvider') || ''
   )
-  const aiAnalysisProvider = String(
+  const savedAiAnalysisProvider = String(
     getCustomValue(customSettings, 'aiAnalysisProvider') || ''
+  )
+  const aiAnalysisProvider =
+    savedAiAnalysisProvider === 'deepseek' && !isDeveloper
+      ? aitunnelKey
+        ? 'aitunnel'
+        : 'artistcrm'
+      : savedAiAnalysisProvider ||
+        (isDeveloper && deepseekKey
+          ? 'deepseek'
+          : aitunnelKey
+            ? 'aitunnel'
+            : 'artistcrm')
+  const aiAnalysisModel = String(
+    getCustomValue(customSettings, 'aiAnalysisModel') ||
+      (aiAnalysisProvider === 'deepseek' ? 'deepseek-v4-flash' : 'gpt-4o-mini')
   )
   const aitunnelEnabled =
     getCustomValue(customSettings, 'aitunnelEnabled') === true ||
-    aiTranscriptionProvider === 'aitunnel' ||
-    aiAnalysisProvider === 'aitunnel'
-  const isAITunnelConnected =
-    Boolean(aitunnelKey) && aitunnelEnabled
+    aiTranscriptionProvider === 'aitunnel'
+  const savedAiIntegrationEnabled = getCustomValue(
+    customSettings,
+    'aiIntegrationEnabled'
+  )
+  const aiIntegrationEnabled =
+    typeof savedAiIntegrationEnabled === 'boolean'
+      ? savedAiIntegrationEnabled
+      : aiAnalysisProvider === 'artistcrm'
+        ? true
+        : aiAnalysisProvider === 'aitunnel'
+        ? getCustomValue(customSettings, 'aitunnelEnabled') === true
+        : Boolean(aiAnalysisProvider)
+  const selectedAiKey =
+    aiAnalysisProvider === 'deepseek' ? deepseekKey : aitunnelKey
+  const isAiProviderConfigured =
+    aiAnalysisProvider === 'artistcrm'
+      ? Boolean(aiUsage?.platformConfigured)
+      : Boolean(selectedAiKey)
+  const isAiProviderConnected = aiIntegrationEnabled && isAiProviderConfigured
   const avitoEnabled = getCustomValue(customSettings, 'avitoEnabled') === true
   const avitoClientId = String(getCustomValue(customSettings, 'avitoClientId') || '')
   const avitoClientSecret = String(
@@ -700,6 +730,27 @@ const IntegrationsContent = () => {
     }
   }, [canUseCalendar])
 
+  useEffect(() => {
+    let active = true
+    const loadAiUsage = async () => {
+      setAiUsageLoading(true)
+      try {
+        const response = await fetch('/api/ai/usage', { cache: 'no-store' })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(result?.error || 'AI usage failed')
+        if (active) setAiUsage(result?.data || null)
+      } catch (error) {
+        if (active) setAiUsage(null)
+      } finally {
+        if (active) setAiUsageLoading(false)
+      }
+    }
+    if (canUseAi) loadAiUsage()
+    return () => {
+      active = false
+    }
+  }, [canUseAi])
+
   const saveCustom = async (patch, options = {}) => {
     let saved = false
     setIsSaving(true)
@@ -727,6 +778,41 @@ const IntegrationsContent = () => {
       setIsSaving(false)
     }
     return saved
+  }
+
+  const selectAiProvider = (provider) => {
+    const isDeepseek = provider === 'deepseek'
+    const isPlatform = provider === 'artistcrm'
+    return saveCustom(
+      {
+        aiIntegrationEnabled: true,
+        aiAnalysisProvider: provider,
+        aiAnalysisModel: isDeepseek
+          ? aiAnalysisProvider === 'deepseek' && aiAnalysisModel
+            ? aiAnalysisModel
+            : 'deepseek-v4-flash'
+          : !isPlatform && aiAnalysisProvider === 'aitunnel' && aiAnalysisModel
+            ? aiAnalysisModel
+            : 'gpt-4o-mini',
+        ...(isDeepseek
+          ? {}
+          : isPlatform
+            ? {
+                aiTranscriptionProvider: 'artistcrm',
+                aiTranscriptionModel: 'whisper-1',
+              }
+          : {
+              aitunnelEnabled: true,
+              aiTranscriptionProvider: 'aitunnel',
+              aiTranscriptionModel: aiTranscriptionModel || 'whisper-1',
+            }),
+      },
+      {
+        successMessage: `Выбран провайдер ${
+          isDeepseek ? 'DeepSeek' : isPlatform ? 'ИИ ArtistCRM' : 'AITunnel'
+        }`,
+      }
+    )
   }
 
   const saveApiKeys = (nextApiKeys) => {
@@ -1445,16 +1531,21 @@ const IntegrationsContent = () => {
 
         {canUseAi ? (
           <IntegrationAccordion
-            title="AITunnel для AI и распознавания речи"
-            description="Распознавание записей звонков и AI-черновики заявок."
-            connected={isAITunnelConnected}
-            warning={aitunnelEnabled && !aitunnelKey}
+            title="ИИ-провайдер"
+            description="ИИ ArtistCRM с оплатой из баланса или ваш собственный AITunnel."
+            connected={isAiProviderConnected}
+            warning={
+              aiIntegrationEnabled &&
+              (!isAiProviderConfigured ||
+                (aiAnalysisProvider === 'artistcrm' && !aiUsage?.available))
+            }
           >
             <div className="flex flex-col gap-3">
               <div className="text-sm text-gray-600">
-                Подключите AITunnel, чтобы CRM могла распознавать записи звонков
-                и готовить черновик заявки по разговору. Ключ хранится в ваших
-                настройках и используется только для обработки ваших звонков.
+                Выберите сервис, который будет анализировать текст и заполнять
+                черновики мероприятий. Общий ИИ не требует ключа и оплачивается
+                из баланса. При собственном ключе списаний со стороны ArtistCRM
+                нет.
               </div>
               {!canUseTelephony && (
                 <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -1463,39 +1554,129 @@ const IntegrationsContent = () => {
                 </div>
               )}
               <IconCheckBox
-                label="Включить интеграцию AITunnel"
-                checked={aitunnelEnabled}
+                label="Включить ИИ-интеграцию"
+                checked={aiIntegrationEnabled}
                 onClick={() =>
                   saveCustom(
                     {
-                      aitunnelEnabled: !aitunnelEnabled,
-                      aiTranscriptionProvider: !aitunnelEnabled
-                        ? 'aitunnel'
-                        : '',
-                      aiAnalysisProvider: !aitunnelEnabled ? 'aitunnel' : '',
-                      aiTranscriptionModel:
-                        aiTranscriptionModel || 'whisper-1',
-                      aiAnalysisModel: aiAnalysisModel || 'gpt-4o-mini',
+                      aiIntegrationEnabled: !aiIntegrationEnabled,
+                      aiAnalysisProvider,
                     },
                     {
-                      successMessage: !aitunnelEnabled
-                        ? 'AITunnel включен'
-                        : 'AITunnel отключен',
+                      successMessage: !aiIntegrationEnabled
+                        ? 'ИИ-интеграция включена'
+                        : 'ИИ-интеграция приостановлена',
                     }
                   )
                 }
                 noMargin
               />
-              <Input
-                label="Ключ AITunnel"
-                value={aitunnelKey}
-                onChange={(value) => saveCustom({ aitunnelKey: value })}
+              <Select
+                label="Провайдер AI-анализа"
+                value={aiAnalysisProvider}
+                onChange={selectAiProvider}
+                options={[
+                  { value: 'artistcrm', label: 'ИИ ArtistCRM' },
+                  { value: 'aitunnel', label: 'Свой AITunnel' },
+                  ...(isDeveloper
+                    ? [{ value: 'deepseek', label: 'DeepSeek (разработчик)' }]
+                    : []),
+                ]}
                 noMargin
                 fullWidth
               />
-              <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+              {aiAnalysisProvider === 'artistcrm' ? (
+                <div className="flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  {aiUsageLoading ? (
+                    <div className="text-sm text-blue-800">
+                      Загружаем баланс и расходы...
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 gap-2 tablet:grid-cols-3">
+                        <div>
+                          <div className="text-xs text-blue-700">Баланс</div>
+                          <div className="font-semibold text-blue-950">
+                            {formatMoney(aiUsage?.balance || 0)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-blue-700">Макс. текущий порог</div>
+                          <div className="font-semibold text-blue-950">
+                            больше {formatMoney(aiUsage?.requiredBalance || 0)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-blue-700">Всего списано</div>
+                          <div className="font-semibold text-blue-950">
+                            {formatMoney(aiUsage?.summary?.charged || 0)} ·{' '}
+                            {aiUsage?.summary?.operations || 0} операций
+                          </div>
+                        </div>
+                      </div>
+                      {!aiUsage?.platformConfigured ? (
+                        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                          Общий ИИ временно не настроен администратором.
+                        </div>
+                      ) : !aiUsage?.available ? (
+                        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                          Для части ИИ-операций недостаточно средств. Пополните
+                          баланс так, чтобы он был больше средней стоимости
+                          нужной операции, или подключите свой AITunnel.
+                        </div>
+                      ) : (
+                        <div className="text-sm text-blue-900">
+                          Доступно. Итоговая сумма рассчитывается по фактической
+                          стоимости AITunnel с наценкой сервиса.
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+                  {aiAnalysisProvider === 'deepseek' ? (
+                  <Input
+                    label="API-ключ DeepSeek"
+                    type="password"
+                    value={deepseekKey}
+                    onChange={(value) => saveCustom({ deepseekKey: value })}
+                    noMargin
+                    fullWidth
+                  />
+                  ) : (
+                  <Input
+                    label="Ключ AITunnel"
+                    type="password"
+                    value={aitunnelKey}
+                    onChange={(value) =>
+                      saveCustom({
+                        aitunnelKey: value,
+                        aitunnelEnabled: Boolean(value),
+                        aiTranscriptionProvider: value ? 'aitunnel' : '',
+                      })
+                    }
+                    noMargin
+                    fullWidth
+                  />
+                  )}
+                  <Input
+                  label="Модель AI-анализа"
+                  value={aiAnalysisModel}
+                  onChange={(value) =>
+                    saveCustom({
+                      aiAnalysisProvider,
+                      aiAnalysisModel: value,
+                    })
+                  }
+                  noMargin
+                  fullWidth
+                  />
+                </div>
+              )}
+              {aiAnalysisProvider === 'aitunnel' ? (
                 <Input
-                  label="Модель распознавания"
+                  label="Модель распознавания записей звонков"
                   value={aiTranscriptionModel}
                   onChange={(value) =>
                     saveCustom({
@@ -1506,26 +1687,85 @@ const IntegrationsContent = () => {
                   noMargin
                   fullWidth
                 />
-                <Input
-                  label="Модель AI-анализа"
-                  value={aiAnalysisModel}
-                  onChange={(value) =>
-                    saveCustom({
-                      aiAnalysisProvider: 'aitunnel',
-                      aiAnalysisModel: value,
-                    })
-                  }
-                  noMargin
-                  fullWidth
-                />
-              </div>
+              ) : aiAnalysisProvider === 'deepseek' ? (
+                <div className="flex flex-col gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-3">
+                  <div className="text-sm text-blue-900">
+                    DeepSeek доступен только разработчику и анализирует готовый
+                    текст. Для расшифровки аудиозаписей звонков нужен отдельный
+                    ключ AITunnel.
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+                    <Input
+                      label="Ключ AITunnel для распознавания (необязательно)"
+                      type="password"
+                      value={aitunnelKey}
+                      onChange={(value) =>
+                        saveCustom({
+                          aitunnelKey: value,
+                          aitunnelEnabled: Boolean(value),
+                          aiTranscriptionProvider: value ? 'aitunnel' : '',
+                        })
+                      }
+                      noMargin
+                      fullWidth
+                    />
+                    <Input
+                      label="Модель распознавания"
+                      value={aiTranscriptionModel}
+                      onChange={(value) =>
+                        saveCustom({
+                          aiTranscriptionProvider: 'aitunnel',
+                          aiTranscriptionModel: value,
+                        })
+                      }
+                      disabled={!aitunnelKey}
+                      noMargin
+                      fullWidth
+                    />
+                  </div>
+                </div>
+              ) : null}
+              {aiUsage?.recent?.length > 0 ? (
+                <div className="rounded-lg border border-gray-200 bg-white p-3">
+                  <div className="mb-2 font-semibold text-gray-900">
+                    Последние расходы ИИ ArtistCRM
+                  </div>
+                  <div className="flex flex-col divide-y divide-gray-100 text-sm">
+                    {aiUsage.recent.slice(0, 5).map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between gap-3 py-2"
+                      >
+                        <div>
+                          <div className="text-gray-800">
+                            {{
+                              call_transcription: 'Расшифровка звонка',
+                              call_analysis: 'Анализ звонка',
+                              voice_transcription: 'Голосовой ввод',
+                              event_draft: 'Черновик мероприятия',
+                            }[item.feature] || item.feature}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(item.createdAt).toLocaleString('ru-RU')}
+                          </div>
+                        </div>
+                        <div className="font-semibold text-gray-900">
+                          {item.status === 'succeeded'
+                            ? formatMoney(item.charged || 0)
+                            : 'Без списания'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <InstructionButton
                 onClick={() =>
                   modalsFunc.add({
-                    title: 'Как подключить AITunnel',
+                    title: 'Как подключить ИИ-провайдера',
                     showDecline: true,
                     declineButtonName: 'Закрыть',
-                    Children: AITunnelGuide,
+                    Children: AIProviderGuide,
                   })
                 }
               >

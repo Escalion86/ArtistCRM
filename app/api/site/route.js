@@ -31,6 +31,9 @@ const normalizeAddress = (address) => {
   }
 }
 
+const readCustom = (custom, key) =>
+  typeof custom?.get === 'function' ? custom.get(key) : custom?.[key]
+
 export const GET = async () => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) {
@@ -49,7 +52,7 @@ export const GET = async () => {
 
 export const POST = async (req) => {
   const body = await req.json().catch(() => ({}))
-  const { tenantId } = await getTenantContext()
+  const { tenantId, user } = await getTenantContext()
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -63,6 +66,35 @@ export const POST = async (req) => {
       ? await SiteSettings.findOne({ tenantId }).lean()
       : null
   if (body.custom !== undefined) {
+    const nextProvider = String(
+      readCustom(body.custom, 'aiAnalysisProvider') || ''
+    )
+      .trim()
+      .toLowerCase()
+    const previousProvider = String(
+      readCustom(existingSiteSettings?.custom, 'aiAnalysisProvider') || ''
+    )
+      .trim()
+      .toLowerCase()
+    const previousDeepseekKey = String(
+      readCustom(existingSiteSettings?.custom, 'deepseekKey') || ''
+    )
+    const nextDeepseekKey = String(
+      readCustom(body.custom, 'deepseekKey') || ''
+    )
+    if (
+      user?.role !== 'dev' &&
+      ((nextProvider === 'deepseek' && previousProvider !== 'deepseek') ||
+        nextDeepseekKey !== previousDeepseekKey)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Интеграция DeepSeek пока доступна только разработчику',
+        },
+        { status: 403 }
+      )
+    }
     const access = await getUserTariffAccess(tenantId)
     const failures = getProtectedCustomAccessFailures({
       existingCustom: existingSiteSettings?.custom,

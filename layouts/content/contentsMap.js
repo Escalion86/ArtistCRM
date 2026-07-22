@@ -11,6 +11,7 @@ import ListsContent from './ListsContent'
 import NotificationsContent from './NotificationsContent'
 import ReferralsContent from './ReferralsContent'
 import SiteReferralSettingsContent from './SiteReferralSettingsContent'
+import AiUsageAdminContent from './AiUsageAdminContent'
 import StatisticsContent from './StatisticsContent'
 import ServicesContent from './ServicesContent'
 import UsersContent from './UsersContent'
@@ -83,6 +84,10 @@ export const CONTENTS = Object.freeze({
   'site-referrals': {
     Component: SiteReferralSettingsContent,
     name: 'Настройки сайта / Реферальная система',
+  },
+  'ai-usage': {
+    Component: AiUsageAdminContent,
+    name: 'Настройки сайта / ИИ и расходы',
   },
   tariffs: {
     Component: TariffsContent,

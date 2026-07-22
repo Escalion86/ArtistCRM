@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import SiteSettings from '@models/SiteSettings'
+import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
@@ -23,6 +24,7 @@ import { POST as connectVk } from '../../../../integrations/vk/connect/route'
 import { POST as checkVk } from '../../../../integrations/vk/status/route'
 
 const providers = new Set(['avito', 'vk', 'telephony', 'ai', 'public-leads'])
+const aiProviders = new Set(['artistcrm', 'aitunnel', 'deepseek'])
 
 const readCustom = (custom, key) =>
   typeof custom?.get === 'function' ? custom.get(key) : custom?.[key]
@@ -62,7 +64,10 @@ const resolveProvider = async (params) => {
 
 const getState = async ({ provider, tenantId, access, req }) => {
   await dbConnect()
-  const siteSettings = await SiteSettings.findOne({ tenantId }).lean()
+  const [siteSettings, owner] = await Promise.all([
+    SiteSettings.findOne({ tenantId }).lean(),
+    Users.findById(tenantId).select('role').lean(),
+  ])
   const custom = siteSettings?.custom
   let settings = {}
   if (provider === 'avito') settings = normalizeAvitoSettings(custom)
@@ -75,13 +80,36 @@ const getState = async ({ provider, tenantId, access, req }) => {
     }
   }
   if (provider === 'ai') {
+    const savedProvider = normalizeText(
+      readCustom(custom, 'aiAnalysisProvider')
+    ).toLowerCase()
+    const isDeveloper = owner?.role === 'dev'
+    const analysisProvider =
+      savedProvider === 'deepseek' && !isDeveloper
+        ? readCustom(custom, 'aitunnelKey')
+          ? 'aitunnel'
+          : 'artistcrm'
+        : savedProvider ||
+          (readCustom(custom, 'aitunnelKey') ? 'aitunnel' : 'artistcrm')
+    const key = analysisProvider === 'deepseek'
+      ? normalizeText(readCustom(custom, 'deepseekKey'))
+      : analysisProvider === 'artistcrm'
+        ? String(process.env.AITUNNEL_KEY || '').trim()
+        : normalizeText(readCustom(custom, 'aitunnelKey'))
+    const savedEnabled = readCustom(custom, 'aiIntegrationEnabled')
     settings = {
-      enabled: readCustom(custom, 'aitunnelEnabled') === true,
-      key: normalizeText(readCustom(custom, 'aitunnelKey')),
+      enabled: typeof savedEnabled === 'boolean'
+        ? savedEnabled
+        : analysisProvider === 'artistcrm' ||
+          readCustom(custom, 'aitunnelEnabled') === true,
+      key,
       transcriptionProvider: normalizeText(readCustom(custom, 'aiTranscriptionProvider')),
       transcriptionModel: normalizeText(readCustom(custom, 'aiTranscriptionModel'), 120),
-      analysisProvider: normalizeText(readCustom(custom, 'aiAnalysisProvider')),
+      analysisProvider,
       analysisModel: normalizeText(readCustom(custom, 'aiAnalysisModel'), 120),
+      hasTranscriptionKey: Boolean(readCustom(custom, 'aitunnelKey')),
+      canUseDeepseek: isDeveloper,
+      platformConfigured: Boolean(String(process.env.AITUNNEL_KEY || '').trim()),
     }
   }
   if (provider === 'public-leads') {
@@ -198,17 +226,51 @@ export const POST = async (req, { params }) => {
     })
   }
   if (provider === 'ai') {
+    const aiProvider = normalizeText(body?.provider || 'artistcrm', 40).toLowerCase()
+    if (!aiProviders.has(aiProvider)) {
+      return mobileError('AI_PROVIDER_INVALID', 'Неизвестный ИИ-провайдер', 400)
+    }
+    if (aiProvider === 'deepseek' && context.user?.role !== 'dev') {
+      return mobileError(
+        'AI_PROVIDER_FORBIDDEN',
+        'Интеграция DeepSeek пока доступна только разработчику',
+        403
+      )
+    }
     const key = normalizeText(body?.key)
-    if (!key) return mobileError('MISSING_CREDENTIALS', 'Укажите ключ AITunnel', 400)
+    if (aiProvider !== 'artistcrm' && !key) {
+      return mobileError(
+        'MISSING_CREDENTIALS',
+        `Укажите ключ ${aiProvider === 'deepseek' ? 'DeepSeek' : 'AITunnel'}`,
+        400
+      )
+    }
+    const isAitunnel = aiProvider === 'aitunnel'
+    const isPlatform = aiProvider === 'artistcrm'
     await updateCustom({
       tenantId: context.tenantId,
       patch: {
-        aitunnelEnabled: true,
-        aitunnelKey: key,
-        aiTranscriptionProvider: 'aitunnel',
-        aiTranscriptionModel: normalizeText(body?.transcriptionModel, 120) || 'whisper-1',
-        aiAnalysisProvider: 'aitunnel',
-        aiAnalysisModel: normalizeText(body?.analysisModel, 120) || 'gpt-4o-mini',
+        aiIntegrationEnabled: true,
+        aiAnalysisProvider: aiProvider,
+        aiAnalysisModel: normalizeText(body?.analysisModel, 120) ||
+          (aiProvider === 'deepseek' ? 'deepseek-v4-flash' : 'gpt-4o-mini'),
+        ...(isPlatform
+          ? {
+              aiTranscriptionProvider: 'artistcrm',
+              aiTranscriptionModel: 'whisper-1',
+            }
+          : {}),
+        ...(isAitunnel
+          ? {
+              aitunnelEnabled: true,
+              aitunnelKey: key,
+              aiTranscriptionProvider: 'aitunnel',
+              aiTranscriptionModel:
+                normalizeText(body?.transcriptionModel, 120) || 'whisper-1',
+            }
+          : aiProvider === 'deepseek'
+            ? { deepseekKey: key }
+            : {}),
       },
     })
     return mobileSuccess(await getState({
@@ -284,23 +346,55 @@ export const PATCH = async (req, { params }) => {
   }
   if (provider === 'ai') {
     const custom = await getSiteCustom(context.tenantId)
-    const key = normalizeText(readCustom(custom, 'aitunnelKey'))
+    const aiProvider = normalizeText(
+      body?.provider || readCustom(custom, 'aiAnalysisProvider') || 'artistcrm',
+      40
+    ).toLowerCase()
+    if (!aiProviders.has(aiProvider)) {
+      return mobileError('AI_PROVIDER_INVALID', 'Неизвестный ИИ-провайдер', 400)
+    }
+    if (aiProvider === 'deepseek' && context.user?.role !== 'dev') {
+      return mobileError(
+        'AI_PROVIDER_FORBIDDEN',
+        'Интеграция DeepSeek пока доступна только разработчику',
+        403
+      )
+    }
+    const key = aiProvider === 'deepseek'
+      ? normalizeText(readCustom(custom, 'deepseekKey'))
+      : aiProvider === 'artistcrm'
+        ? String(process.env.AITUNNEL_KEY || '').trim()
+        : normalizeText(readCustom(custom, 'aitunnelKey'))
     const enabled = body?.enabled === undefined
-      ? readCustom(custom, 'aitunnelEnabled') === true
+      ? readCustom(custom, 'aiIntegrationEnabled') !== false
       : body.enabled === true
     if (enabled && !key) {
-      return mobileError('MISSING_CREDENTIALS', 'Сначала укажите ключ AITunnel', 400)
+      return mobileError(
+        'MISSING_CREDENTIALS',
+        aiProvider === 'artistcrm'
+          ? 'Общий ИИ временно не настроен администратором'
+          : `Сначала укажите ключ ${aiProvider === 'deepseek' ? 'DeepSeek' : 'AITunnel'}`,
+        400
+      )
     }
     await updateCustom({
       tenantId: context.tenantId,
       patch: {
-        aitunnelEnabled: enabled,
-        aiTranscriptionProvider: enabled ? 'aitunnel' : '',
+        aiIntegrationEnabled: enabled,
+        aiAnalysisProvider: aiProvider,
         aiTranscriptionModel: normalizeText(body?.transcriptionModel, 120) ||
           normalizeText(readCustom(custom, 'aiTranscriptionModel'), 120) || 'whisper-1',
-        aiAnalysisProvider: enabled ? 'aitunnel' : '',
         aiAnalysisModel: normalizeText(body?.analysisModel, 120) ||
-          normalizeText(readCustom(custom, 'aiAnalysisModel'), 120) || 'gpt-4o-mini',
+          normalizeText(readCustom(custom, 'aiAnalysisModel'), 120) ||
+          (aiProvider === 'deepseek' ? 'deepseek-v4-flash' : 'gpt-4o-mini'),
+        ...(aiProvider === 'aitunnel'
+          ? {
+              aitunnelEnabled: true,
+              aiTranscriptionProvider: 'aitunnel',
+            }
+          : aiProvider === 'artistcrm'
+            ? { aiTranscriptionProvider: 'artistcrm' }
+            : {}),
       },
     })
     return mobileSuccess(await getState({
@@ -418,8 +512,10 @@ export const DELETE = async (req, { params }) => {
     await updateCustom({
       tenantId: context.tenantId,
       patch: {
+        aiIntegrationEnabled: false,
         aitunnelEnabled: false,
         aitunnelKey: '',
+        deepseekKey: '',
         aiTranscriptionProvider: '',
         aiTranscriptionModel: 'whisper-1',
         aiAnalysisProvider: '',

@@ -7,6 +7,10 @@ import { createVkIdAuthToken } from '@server/vkidAuthToken'
 import getAuthSecret from '@server/getAuthSecret'
 import { findUserByPhone } from '@server/phoneVerification'
 import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
+import {
+  REGISTRATION_SOURCE_COOKIE,
+  getRegistrationSourceFromRequest,
+} from '@helpers/registrationSource.mjs'
 
 const buildError = (code, status, message) =>
   NextResponse.json(
@@ -42,6 +46,7 @@ export const POST = async (req) => {
     : ''
   const consentPrivacyPolicy = body?.consentPrivacyPolicy === true
   const consentPersonalData = body?.consentPersonalData === true
+  const registrationSource = getRegistrationSourceFromRequest(req)
   const accessToken = String(
     body?.access_token || body?.accessToken || ''
   ).trim()
@@ -138,6 +143,7 @@ export const POST = async (req) => {
     const user = await ensureVkUser({
       ...userInfoResult.data,
       referrerId,
+      registrationSource,
     })
     if (!user?._id) {
       console.error('[vk-id/auth] ensureVkUser returned empty user', {
@@ -153,7 +159,7 @@ export const POST = async (req) => {
     const authSecret = getAuthSecret()
 
     const authToken = createVkIdAuthToken(user._id, authSecret)
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: true,
         data: {
@@ -162,6 +168,10 @@ export const POST = async (req) => {
       },
       { status: 200 }
     )
+    if (registrationSource) {
+      response.cookies.delete(REGISTRATION_SOURCE_COOKIE)
+    }
+    return response
   } catch (error) {
     const errorCode =
       error?.code === 11000

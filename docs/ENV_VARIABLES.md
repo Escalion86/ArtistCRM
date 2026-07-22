@@ -22,10 +22,10 @@ NEXTAUTH_SECRET=...
 - Подтверждение телефона: `TELEFONIP`, `TELEFONIP_API_BASE_URL`, `PHONE_SMS_SEND_WEBHOOK`
 - Generic telephony webhook: `TELEPHONY_WEBHOOK_SECRET`, только если используется глобальный generic endpoint
 - Telegram: `TELEGRAM_TOKEN`, только если используется отправка сообщений через Telegram bot
-- Голосовой AI-черновик `/api/events/ai-draft`: `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL`, только если функция работает через общий ключ сервиса
+- Общий ИИ ArtistCRM с оплатой из баланса: `AITUNNEL_KEY`; модели можно переопределить через `AITUNNEL_CALL_ANALYSIS_MODEL` и `AITUNNEL_TRANSCRIPTION_MODEL`
 - Облачные файлы: `ESCALIONCLOUD_PASSWORD`
 
-Novofon, AITunnel и AI-анализ/транскрибация звонков в текущей модели ArtistCRM настраиваются каждым пользователем индивидуально в `Настройки -> Интеграции` и хранятся в `SiteSettings.custom`. Поэтому `NOVOFON_WEBHOOK_SECRET`, `AI_ANALYSIS_PROVIDER`, `AI_TRANSCRIPTION_PROVIDER`, `DEEPSEEK_*`, `AITUNNEL_*`, `OPENAI_CALL_ANALYSIS_MODEL` и `OPENAI_TRANSCRIPTION_MODEL` не нужны в production `.env`, если не нужен глобальный fallback для всех пользователей.
+`AITUNNEL_KEY` в production является общим серверным ключом ArtistCRM. Он никогда не возвращается клиенту: фактическая стоимость запроса берётся из `usage.cost_rub`, умножается на developer-коэффициент и списывается из существующего баланса пользователя. Пользователь по-прежнему может сохранить собственный AITunnel key в `Настройки -> Интеграции`; такие запросы не тарифицируются ArtistCRM. DeepSeek доступен только developer-роли.
 
 ## Что убрать из ArtistCRM
 
@@ -49,7 +49,7 @@ SECRET
 NEXTAUTH_SITE
 ```
 
-Глобальные fallback-переменные, которые не нужны при пользовательских настройках Novofon/AITunnel:
+Неиспользуемые глобальные fallback-переменные можно убрать, если они не нужны для developer-сценариев:
 
 ```env
 NOVOFON_WEBHOOK_SECRET
@@ -57,9 +57,6 @@ AI_ANALYSIS_PROVIDER
 AI_TRANSCRIPTION_PROVIDER
 DEEPSEEK_API_KEY
 DEEPSEEK_CALL_ANALYSIS_MODEL
-AITUNNEL_KEY
-AITUNNEL_CALL_ANALYSIS_MODEL
-AITUNNEL_TRANSCRIPTION_MODEL
 OPENAI_CALL_ANALYSIS_MODEL
 OPENAI_TRANSCRIPTION_MODEL
 ```

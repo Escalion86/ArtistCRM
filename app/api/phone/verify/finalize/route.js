@@ -13,6 +13,10 @@ import {
   validateFlow,
 } from '@server/phoneVerification'
 import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
+import {
+  REGISTRATION_SOURCE_COOKIE,
+  getRegistrationSourceFromRequest,
+} from '@helpers/registrationSource.mjs'
 
 const isExpired = (expiresAt) =>
   !expiresAt || new Date(expiresAt).getTime() <= Date.now()
@@ -50,6 +54,7 @@ const createRegisterUser = async (
     consentPrivacyPolicy = false,
     consentPersonalData = false,
     referrerId = null,
+    registrationSource = '',
   } = {}
 ) => {
   const cheapestTariff = await Tariffs.findOne({
@@ -68,6 +73,8 @@ const createRegisterUser = async (
     tenantId: null,
     tariffId: cheapestTariff?._id ?? null,
     referrerId: referrerId ?? null,
+    registrationSource,
+    registrationSourceCapturedAt: registrationSource ? now : null,
     trialActivatedAt: now,
     trialEndsAt,
     trialUsed: true,
@@ -96,6 +103,7 @@ export const POST = async (req) => {
     const consentPersonalData =
       body?.consentPersonalData === true || legacyTermsAccepted
     const rawReferrerId = body?.referrerId ?? body?.ref ?? null
+    const registrationSource = getRegistrationSourceFromRequest(req)
 
     if (!validateFlow(flow)) {
       return NextResponse.json(
@@ -171,6 +179,10 @@ export const POST = async (req) => {
         user.password = hashedPassword
         if (!user.tenantId) user.tenantId = user._id
         if (!user.referrerId && referrerId) user.referrerId = referrerId
+        if (!user.registrationSource && registrationSource) {
+          user.registrationSource = registrationSource
+          user.registrationSourceCapturedAt = now
+        }
         user.consentPrivacyPolicyAccepted = true
         user.consentPersonalDataAccepted = true
         user.privacyPolicyAcceptedAt = now
@@ -182,6 +194,7 @@ export const POST = async (req) => {
           consentPrivacyPolicy,
           consentPersonalData,
           referrerId,
+          registrationSource,
         })
       }
     }
@@ -200,7 +213,11 @@ export const POST = async (req) => {
 
     await PhoneConfirms.deleteMany({ phone })
 
-    return NextResponse.json({ success: true }, { status: 200 })
+    const response = NextResponse.json({ success: true }, { status: 200 })
+    if (flow === 'register' && registrationSource) {
+      response.cookies.delete(REGISTRATION_SOURCE_COOKIE)
+    }
+    return response
   } catch (error) {
     if (error?.code === 11000) {
       const duplicateField = getDuplicateKeyField(error)

@@ -92,6 +92,19 @@ const siteSettingsSchema = {
       percent: 5,
     },
   },
+  aiBilling: {
+    type: {
+      markupCoefficient: {
+        type: Number,
+        default: 1.5,
+        min: 1,
+        max: 10,
+      },
+    },
+    default: {
+      markupCoefficient: 1.5,
+    },
+  },
   custom: {
     type: Map,
     of: Schema.Types.Mixed,

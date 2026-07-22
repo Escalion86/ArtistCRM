@@ -188,6 +188,8 @@ export const DEFAULT_USER = Object.freeze({
   password: '',
   email: '',
   phone: null,
+  registrationSource: '',
+  registrationSourceCapturedAt: null,
   whatsapp: null,
   viber: null,
   telegram: '',
@@ -678,6 +680,14 @@ export const pages = [
     name: 'Реферальная система',
     href: 'site-referrals',
     icon: faMoneyBill,
+    accessRoles: ['dev'],
+  },
+  {
+    id: 28,
+    group: 10,
+    name: 'ИИ и расходы',
+    href: 'ai-usage',
+    icon: faChartLine,
     accessRoles: ['dev'],
   },
   {

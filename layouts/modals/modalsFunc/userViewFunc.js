@@ -11,6 +11,7 @@ import userSelector from '@state/selectors/userSelector'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
+import { formatRegistrationSource } from '@helpers/registrationSource.mjs'
 
 const CardButtonsComponent = ({ user }) => (
   <CardButtons
@@ -119,6 +120,9 @@ const userViewFunc = (userId, params = {}) => {
           />
           <TextLine label="Дата регистрации">
             {formatDate(user.createdAt)}
+          </TextLine>
+          <TextLine label="Источник регистрации">
+            {formatRegistrationSource(user.registrationSource)}
           </TextLine>
         </div>
 

@@ -3,6 +3,12 @@ import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import Clients from '@models/Clients'
 import getUserTariffAccess from '@server/getUserTariffAccess'
+import { getTenantAiSettings } from '@server/aiSettings'
+import { requestAiChatCompletion } from '@server/aiChatCompletion'
+import {
+  getAiBalanceErrorMessage,
+  isAiBalanceError,
+} from '@server/aiBilling'
 
 /**
  * POST /api/events/ai-draft
@@ -43,9 +49,12 @@ export async function POST(request) {
 
     // --- получаем список клиентов для матчинга имён ---
     await dbConnect()
-    const clients = await Clients.find({ tenantId })
-      .select('_id firstName secondName thirdName')
-      .lean()
+    const [clients, aiSettings] = await Promise.all([
+      Clients.find({ tenantId })
+        .select('_id firstName secondName thirdName')
+        .lean(),
+      getTenantAiSettings(tenantId),
+    ])
 
     const clientNames = clients.map((c) => ({
       id: String(c._id),
@@ -94,47 +103,35 @@ ${clientNames.map((c) => `- ${c.id}: "${c.name}"`).join('\n')}
 - Суммы возвращай как числа (не строки).
 - Даты в ISO 8601.`
 
-    // --- LLM: используем OpenAI-совместимый API ---
-    const apiKey = process.env.OPENAI_API_KEY
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini'
-    const baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1'
-
-    if (!apiKey) {
-      // Если ключа нет — возвращаем заглушку с извлечением по регуляркам
-      console.warn('[ai-draft] OPENAI_API_KEY не задан, использую regex-заглушку')
-      const fields = extractFieldsFallback(text, clientNames, todayStr)
-      return NextResponse.json({ fields })
-    }
-
-    const llmResponse = await fetch(`${baseURL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
+    // --- LLM: выбранный пользователем OpenAI-совместимый провайдер ---
+    let completion = null
+    try {
+      completion = await requestAiChatCompletion({
+        settings: aiSettings,
+        feature: 'event_draft',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: text },
         ],
         temperature: 0.2,
-        max_tokens: 800,
-      }),
-    })
+        maxTokens: 800,
+      })
+    } catch (error) {
+      if (isAiBalanceError(error)) {
+        return NextResponse.json(
+          { error: getAiBalanceErrorMessage(error), fields: null },
+          { status: 402 }
+        )
+      }
+      console.error('[ai-draft] LLM API error:', error?.message)
+    }
 
-    if (!llmResponse.ok) {
-      const errorBody = await llmResponse.text().catch(() => '')
-      console.error(
-        `[ai-draft] LLM API error ${llmResponse.status}: ${errorBody.slice(0, 300)}`
-      )
-      // fallback на regex
+    if (!completion) {
+      console.warn('[ai-draft] AI provider не настроен, использую regex-заглушку')
       const fields = extractFieldsFallback(text, clientNames, todayStr)
       return NextResponse.json({ fields })
     }
-
-    const data = await llmResponse.json()
-    const content = data?.choices?.[0]?.message?.content ?? ''
+    const content = completion.content
 
     // Парсим LLM-ответ (может быть с markdown-блоком или без)
     let parsed = null

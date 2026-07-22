@@ -39,7 +39,7 @@ const paymentsSchema = {
   purpose: {
     type: String,
     default: 'balance',
-    enum: ['balance', 'tariff', 'system'],
+    enum: ['balance', 'tariff', 'system', 'ai'],
   },
   provider: {
     type: String,

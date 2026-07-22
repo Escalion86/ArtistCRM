@@ -1,4 +1,5 @@
 import SiteSettings from '@models/SiteSettings'
+import Users from '@models/Users'
 
 const getCustomValue = (custom, key) => {
   if (!custom) return undefined
@@ -15,22 +16,59 @@ const normalizeStringList = (items) =>
 
 export const getTenantAiSettings = async (tenantId) => {
   if (!tenantId) return {}
-  const siteSettings = await SiteSettings.findOne({ tenantId }).lean()
+  const [siteSettings, owner] = await Promise.all([
+    SiteSettings.findOne({ tenantId }).lean(),
+    Users.findById(tenantId).select('_id role').lean(),
+  ])
   const custom = siteSettings?.custom ?? {}
   const aitunnelKey = String(getCustomValue(custom, 'aitunnelKey') || '').trim()
-  const defaultProvider = aitunnelKey ? 'aitunnel' : ''
+  const deepseekKey = String(getCustomValue(custom, 'deepseekKey') || '').trim()
+  const isDeveloper = owner?.role === 'dev'
+  const savedAnalysisProvider = String(
+    getCustomValue(custom, 'aiAnalysisProvider') || ''
+  )
+    .trim()
+    .toLowerCase()
+  const aiAnalysisProvider =
+    savedAnalysisProvider === 'deepseek' && !isDeveloper
+      ? aitunnelKey
+        ? 'aitunnel'
+        : 'artistcrm'
+      : ['artistcrm', 'aitunnel', 'deepseek'].includes(savedAnalysisProvider)
+        ? savedAnalysisProvider
+        : aitunnelKey
+          ? 'aitunnel'
+          : 'artistcrm'
+  const savedEnabled = getCustomValue(custom, 'aiIntegrationEnabled')
   return {
+    tenantId: String(tenantId),
+    userId: String(owner?._id || tenantId),
+    isDeveloper,
     aitunnelKey,
-    aiAnalysisProvider: String(
-      getCustomValue(custom, 'aiAnalysisProvider') || defaultProvider
-    ).trim(),
-    aiAnalysisModel: String(getCustomValue(custom, 'aiAnalysisModel') || '').trim(),
+    deepseekKey: isDeveloper ? deepseekKey : '',
+    aiIntegrationEnabled:
+      typeof savedEnabled === 'boolean' ? savedEnabled : true,
+    aiAnalysisProvider,
+    aiAnalysisModel:
+      aiAnalysisProvider === 'artistcrm'
+        ? String(
+            process.env.AITUNNEL_CALL_ANALYSIS_MODEL || 'gpt-4o-mini'
+          ).trim()
+        : String(getCustomValue(custom, 'aiAnalysisModel') || '').trim(),
     aiTranscriptionProvider: String(
-      getCustomValue(custom, 'aiTranscriptionProvider') || defaultProvider
+      aiAnalysisProvider === 'artistcrm'
+        ? 'artistcrm'
+        : getCustomValue(custom, 'aiTranscriptionProvider') ||
+            (aitunnelKey ? 'aitunnel' : '')
     ).trim(),
-    aiTranscriptionModel: String(
-      getCustomValue(custom, 'aiTranscriptionModel') || ''
-    ).trim(),
+    aiTranscriptionModel:
+      aiAnalysisProvider === 'artistcrm'
+        ? String(
+            process.env.AITUNNEL_TRANSCRIPTION_MODEL || 'whisper-1'
+          ).trim()
+        : String(
+            getCustomValue(custom, 'aiTranscriptionModel') || ''
+          ).trim(),
     eventTypes: normalizeStringList(getCustomValue(custom, 'eventTypes')),
   }
 }

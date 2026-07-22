@@ -1,3 +1,5 @@
+import { requestAiChatCompletion } from '@server/aiChatCompletion'
+
 const EVENT_TYPES = new Set([
   'kids',
   'birthday',
@@ -7,27 +9,6 @@ const EVENT_TYPES = new Set([
   'opening',
   'club',
 ])
-
-const AI_PROVIDERS = Object.freeze({
-  openai: {
-    apiUrl: 'https://api.openai.com/v1/chat/completions',
-    apiKeyEnv: 'OPENAI_API_KEY',
-    modelEnv: 'OPENAI_CALL_ANALYSIS_MODEL',
-    defaultModel: 'gpt-4o-mini',
-  },
-  deepseek: {
-    apiUrl: 'https://api.deepseek.com/chat/completions',
-    apiKeyEnv: 'DEEPSEEK_API_KEY',
-    modelEnv: 'DEEPSEEK_CALL_ANALYSIS_MODEL',
-    defaultModel: 'deepseek-v4-flash',
-  },
-  aitunnel: {
-    apiUrl: 'https://api.aitunnel.ru/v1/chat/completions',
-    apiKeyEnv: 'AITUNNEL_KEY',
-    modelEnv: 'AITUNNEL_CALL_ANALYSIS_MODEL',
-    defaultModel: 'gpt-4o-mini',
-  },
-})
 
 const trimText = (value, maxLength = 12000) =>
   String(value ?? '').trim().slice(0, maxLength)
@@ -118,56 +99,6 @@ const buildFallbackAnalysis = (transcript, settings = {}) => {
   )
 }
 
-const getAiProviderConfig = (settings = {}) => {
-  const providerName = String(
-    settings.aiAnalysisProvider || process.env.AI_ANALYSIS_PROVIDER || 'deepseek'
-  )
-    .trim()
-    .toLowerCase()
-  const provider = AI_PROVIDERS[providerName] || AI_PROVIDERS.deepseek
-  const normalizedProviderName = AI_PROVIDERS[providerName]
-    ? providerName
-    : 'deepseek'
-  return {
-    name: normalizedProviderName,
-    apiUrl:
-      process.env.AI_ANALYSIS_API_URL ||
-      process.env[`${normalizedProviderName.toUpperCase()}_API_URL`] ||
-      provider.apiUrl,
-    apiKey:
-      normalizedProviderName === 'aitunnel'
-        ? settings.aitunnelKey || process.env[provider.apiKeyEnv]
-        : process.env[provider.apiKeyEnv],
-    model:
-      settings.aiAnalysisModel ||
-      process.env[provider.modelEnv] ||
-      provider.defaultModel,
-  }
-}
-
-const buildProviderRequestBody = (provider, cleanTranscript, settings = {}) => {
-  const body = {
-    model: provider.model,
-    temperature: 0.1,
-    max_tokens: 2000,
-    response_format: { type: 'json_object' },
-    messages: [
-      {
-        role: 'system',
-        content:
-          'Ты аккуратный CRM-ассистент. Извлекаешь только явно подтвержденные данные и возвращаешь строгий JSON.',
-      },
-      { role: 'user', content: buildPrompt(cleanTranscript, settings) },
-    ],
-  }
-
-  if (provider.name === 'deepseek' && provider.model.startsWith('deepseek-v4')) {
-    body.thinking = { type: 'disabled' }
-  }
-
-  return body
-}
-
 const buildEventTypeInstruction = (settings = {}) => {
   const eventTypes = normalizeStringList(settings.eventTypes)
   if (!eventTypes.length) {
@@ -202,36 +133,33 @@ Transcript:
 ${transcript}
 `
 
-export const analyzeCallTranscript = async (transcript, settings = {}) => {
+export const analyzeCallTranscript = async (
+  transcript,
+  settings = {},
+  options = {}
+) => {
   const cleanTranscript = trimText(transcript)
   if (!cleanTranscript) {
     return buildFallbackAnalysis('', settings)
   }
 
-  const provider = getAiProviderConfig(settings)
-  if (!provider.apiKey) return buildFallbackAnalysis(cleanTranscript, settings)
-
-  const response = await fetch(provider.apiUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${provider.apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(
-      buildProviderRequestBody(provider, cleanTranscript, settings)
-    ),
+  const completion = await requestAiChatCompletion({
+    settings,
+    feature: options.feature || 'call_analysis',
+    operationId: options.operationId,
+    groupId: options.groupId || '',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'Ты аккуратный CRM-ассистент. Извлекаешь только явно подтвержденные данные и возвращаешь строгий JSON.',
+      },
+      { role: 'user', content: buildPrompt(cleanTranscript, settings) },
+    ],
   })
+  if (!completion) return buildFallbackAnalysis(cleanTranscript, settings)
 
-  const payload = await response.json().catch(() => null)
-  if (!response.ok) {
-    const message =
-      payload?.error?.message ||
-      `${provider.name} request failed: ${response.status}`
-    throw new Error(message)
-  }
-
-  const content = payload?.choices?.[0]?.message?.content
-  const json = parseJsonObject(content)
+  const json = parseJsonObject(completion.content)
   if (!json) throw new Error('AI вернул некорректный JSON')
 
   return normalizeAiCallAnalysis(json, settings)

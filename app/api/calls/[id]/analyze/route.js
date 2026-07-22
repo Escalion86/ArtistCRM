@@ -4,6 +4,10 @@ import dbConnect from '@server/dbConnect'
 import { analyzeCallTranscript } from '@server/callAiAnalysis'
 import { getTenantAiSettings } from '@server/aiSettings'
 import { requireAiTariffAccess } from '@server/telephonyAccess'
+import {
+  getAiBalanceErrorMessage,
+  isAiBalanceError,
+} from '@server/aiBilling'
 
 export const POST = async (req, { params }) => {
   const { id } = await params
@@ -32,7 +36,10 @@ export const POST = async (req, { params }) => {
 
   try {
     const aiSettings = await getTenantAiSettings(access.tenantId)
-    const analysis = await analyzeCallTranscript(call.transcript, aiSettings)
+    const analysis = await analyzeCallTranscript(call.transcript, aiSettings, {
+      feature: 'call_analysis',
+      groupId: `call:${id}`,
+    })
     const updatedCall = await Calls.findOneAndUpdate(
       { _id: id, tenantId },
       {
@@ -49,11 +56,14 @@ export const POST = async (req, { params }) => {
       { status: 200 }
     )
   } catch (error) {
+    const processingError = isAiBalanceError(error)
+      ? getAiBalanceErrorMessage(error)
+      : 'AI-анализ временно недоступен'
     const updatedCall = await Calls.findOneAndUpdate(
       { _id: id, tenantId },
       {
         status: 'failed',
-        processingError: 'AI-анализ временно недоступен',
+        processingError,
       },
       { returnDocument: 'after' }
     ).lean()
@@ -64,10 +74,10 @@ export const POST = async (req, { params }) => {
     return NextResponse.json(
       {
         success: false,
-        error: 'AI-анализ временно недоступен',
+        error: processingError,
         data: updatedCall,
       },
-      { status: 502 }
+      { status: isAiBalanceError(error) ? 402 : 502 }
     )
   }
 }

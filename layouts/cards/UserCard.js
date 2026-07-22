@@ -15,6 +15,7 @@ import { useAtomValue } from 'jotai'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import formatDate from '@helpers/formatDate'
 import CardWrapper from '@components/CardWrapper'
+import { formatRegistrationSource } from '@helpers/registrationSource.mjs'
 
 const UserCard = ({ userId, user: userProp, hidden = false, style }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -104,6 +105,9 @@ const UserCard = ({ userId, user: userProp, hidden = false, style }) => {
           </div>
           <div className="card-meta text-xs font-semibold">
             Дата регистрации: {registrationLabel}
+          </div>
+          <div className="card-meta text-xs font-semibold">
+            Источник: {formatRegistrationSource(user.registrationSource)}
           </div>
           <div className="mt-auto flex justify-end sm:absolute sm:right-0 sm:bottom-0">
             <ContactsIconsButtons user={user} className="justify-end" />

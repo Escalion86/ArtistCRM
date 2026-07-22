@@ -54,6 +54,7 @@ export const ensureVkUser = async ({
   secondName = '',
   image = '',
   referrerId = null,
+  registrationSource = '',
 }) => {
   const normalizedVkId = String(vkId || '').trim()
   const normalizedPhone = normalizePhone(phone)
@@ -89,6 +90,8 @@ export const ensureVkUser = async ({
         role: 'user',
         tenantId: null,
         referrerId: resolvedReferrerId,
+        registrationSource,
+        registrationSourceCapturedAt: registrationSource ? now : null,
         tariffId: cheapestTariff?._id ?? null,
         trialActivatedAt: now,
         trialEndsAt,

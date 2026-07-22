@@ -56,6 +56,8 @@ const INTEGRATION_ACCESS = Object.freeze({
     customKeys: [
       'aitunnelEnabled',
       'aitunnelKey',
+      'deepseekKey',
+      'aiIntegrationEnabled',
       'aiTranscriptionProvider',
       'aiTranscriptionModel',
       'aiAnalysisProvider',

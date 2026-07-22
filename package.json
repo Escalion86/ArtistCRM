@@ -1,13 +1,13 @@
 {
   "name": "ArtistCRM",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test:mobile-server": "node --test server/mobile/*.test.js server/documentGeneration.test.js server/eventApiNormalization.test.js",
+    "test:mobile-server": "node --test server/mobile/*.test.js server/aiChatCompletion.test.js server/documentGeneration.test.js server/eventApiNormalization.test.js",
     "test:mobile-http": "npm run build && node --test tests/mobile/http.integration.test.js",
     "tochka:discover": "node scripts/tochkaDiscover.js",
     "postinstall": "node scripts/postinstall.js"

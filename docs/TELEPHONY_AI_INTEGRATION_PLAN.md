@@ -282,7 +282,8 @@ Mobile-first:
 - экран кабинета `Звонки` для журнала звонков пользователя;
 - ручное добавление звонка/transcript;
 - ручной запуск распознавания записи из карточки звонка;
-- AI-анализ transcript через AITunnel/DeepSeek/OpenAI-compatible adapter;
+- AI-анализ transcript через общий AITunnel ArtistCRM или собственный AITunnel пользователя;
+- единый пользовательский выбор провайдера применяется также к `/api/events/ai-draft`;
 - fallback-черновик без внешнего AI, если ключ не настроен;
 - создание клиента и подтверждаемой заявки из звонка.
 - push по записи Novofon с действиями `Да`/`Нет`: `Нет` помечает звонок как не требующий заявки, `Да` связывает/создает клиента, распознает запись и создает draft-мероприятие;
@@ -292,8 +293,8 @@ Mobile-first:
 
 - `TELEPHONY_WEBHOOK_SECRET` — секрет generic webhook;
 - `NOVOFON_WEBHOOK_SECRET` — fallback-секрет Novofon webhook для dev-тестов, необязательно;
-- `AITUNNEL_KEY` — fallback-ключ AITunnel для dev/default сценариев;
-- `AI_ANALYSIS_PROVIDER=deepseek` — fallback-провайдер AI-анализа, если у tenant не задан AITunnel key;
+- `AITUNNEL_KEY` — общий серверный ключ для тарифицируемого ИИ ArtistCRM;
+- `AI_ANALYSIS_PROVIDER=deepseek` — fallback-провайдер AI-анализа, если у tenant не выбран пользовательский провайдер;
 - `DEEPSEEK_API_KEY` — ключ DeepSeek для AI-анализа transcript;
 - `DEEPSEEK_CALL_ANALYSIS_MODEL=deepseek-v4-flash` — модель DeepSeek, необязательно;
 - `AI_ANALYSIS_API_URL` — кастомный endpoint OpenAI-compatible API, необязательно.
@@ -301,7 +302,9 @@ Mobile-first:
 - `OPENAI_API_KEY` — ключ для speech-to-text, если выбран OpenAI;
 - `OPENAI_TRANSCRIPTION_MODEL=whisper-1` — модель speech-to-text, необязательно.
 
-В пользовательском сценарии AITunnel key хранится индивидуально в `SiteSettings.custom.aitunnelKey`. Если ключ задан у tenant, распознавание и AI-анализ по умолчанию используют AITunnel.
+Активный режим задаётся через `aiAnalysisProvider`: `artistcrm` использует общий `AITUNNEL_KEY` и списывает средства из баланса, `aitunnel` использует личный ключ без списания ArtistCRM. Перед общим запросом резервируется динамическая средняя стоимость последних успешных операций; после ответа резерв корректируется по `usage.cost_rub` с учётом наценки.
+
+DeepSeek временно доступен только developer-роли. Он не используется для speech-to-text: для расшифровки требуется AITunnel/Whisper.
 
 Для fallback на OpenAI можно использовать:
 
