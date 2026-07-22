@@ -2,11 +2,25 @@
 
 export const YANDEX_METRIKA_ID = 108801563
 
+const METRIKA_QUEUE_KEY = '__artistcrmMetrikaGoalQueue'
+
 const canSendMetrikaGoal = () =>
   typeof window !== 'undefined' && typeof window.ym === 'function'
 
+const queueMetrikaGoal = (goalName, params) => {
+  const queue = Array.isArray(window[METRIKA_QUEUE_KEY])
+    ? window[METRIKA_QUEUE_KEY]
+    : []
+  queue.push({ goalName, params })
+  window[METRIKA_QUEUE_KEY] = queue.slice(-50)
+}
+
 export const reachGoal = (goalName, params) => {
-  if (!goalName || !canSendMetrikaGoal()) return false
+  if (!goalName || typeof window === 'undefined') return false
+  if (!canSendMetrikaGoal()) {
+    queueMetrikaGoal(goalName, params)
+    return true
+  }
   window.ym(YANDEX_METRIKA_ID, 'reachGoal', goalName, params)
   return true
 }
@@ -14,8 +28,18 @@ export const reachGoal = (goalName, params) => {
 export const reachGoalOnce = (goalName, params) => {
   if (typeof window === 'undefined') return false
   const key = `artistcrm:metrika-goal:${goalName}`
-  if (window.localStorage.getItem(key) === '1') return false
+  try {
+    if (window.localStorage.getItem(key) === '1') return false
+  } catch {
+    // Метрика должна работать и при недоступном localStorage.
+  }
   const sent = reachGoal(goalName, params)
-  if (sent) window.localStorage.setItem(key, '1')
+  if (sent) {
+    try {
+      window.localStorage.setItem(key, '1')
+    } catch {
+      // Событие уже отправлено или поставлено в очередь.
+    }
+  }
   return sent
 }

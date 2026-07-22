@@ -187,6 +187,11 @@ const LoginInputs = ({
     [registerPhone]
   )
 
+  useEffect(() => {
+    if (initialMode !== 'register') return
+    reachGoal('registration_page_open', { entry: 'landing' })
+  }, [initialMode])
+
   const startVerification = async ({
     flow,
     phone,
@@ -196,6 +201,10 @@ const LoginInputs = ({
     if (String(phone).length !== 11) {
       setPhoneHint(true)
       return
+    }
+
+    if (flow === 'register') {
+      reachGoalOnce('registration_start', { method: 'phone' })
     }
 
     setVerifyState((prev) => ({
@@ -265,6 +274,10 @@ const LoginInputs = ({
       const status = json?.data?.status || 'pending'
       const confirmed = Boolean(json?.data?.confirmed)
 
+      if (flow === 'register' && confirmed) {
+        reachGoalOnce('registration_phone_verified', { method: 'call' })
+      }
+
       setVerifyState((prev) => ({
         ...prev,
         status,
@@ -329,6 +342,10 @@ const LoginInputs = ({
       if (!res.ok || json?.success === false) {
         alert(getErrorMessage(json, 'Неверный код'))
         return
+      }
+
+      if (flow === 'register') {
+        reachGoalOnce('registration_phone_verified', { method: 'sms' })
       }
 
       setVerifyState((prev) => ({
@@ -780,7 +797,9 @@ const LoginInputs = ({
                   state: payload?.state || '',
                   mode,
                   referrerId:
-                    mode === 'register' ? initialReferrerId || undefined : undefined,
+                    mode === 'register'
+                      ? initialReferrerId || undefined
+                      : undefined,
                 }),
               })
               const authJson = await authResponse.json().catch(() => ({}))
@@ -798,7 +817,11 @@ const LoginInputs = ({
                 redirect: false,
               })
               if (result?.error) throw new Error(result.error)
-              reachGoal('login_success', { method: 'vkid' })
+              if (mode === 'register') {
+                reachGoalOnce('registration_success', { method: 'vkid' })
+              } else {
+                reachGoal('login_success', { method: 'vkid' })
+              }
               window.location.replace(callbackUrl)
             } catch (error) {
               console.error('[VK One Tap] auth error', error)
@@ -1152,7 +1175,7 @@ const LoginInputs = ({
               type="button"
               className="text-general w-full cursor-pointer text-center text-sm font-medium transition hover:text-[#6f582f]"
               onClick={() => {
-                reachGoal('registration_start')
+                reachGoal('registration_page_open', { entry: 'login' })
                 setMode('register')
               }}
             >

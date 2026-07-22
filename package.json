@@ -10,6 +10,8 @@
     "test:mobile-server": "node --test server/mobile/*.test.js server/aiChatCompletion.test.js server/documentGeneration.test.js server/eventApiNormalization.test.js",
     "test:mobile-http": "npm run build && node --test tests/mobile/http.integration.test.js",
     "tochka:discover": "node scripts/tochkaDiscover.js",
+    "seo:check": "node scripts/seoPostDeployCheck.mjs",
+    "seo:indexnow": "node scripts/submitIndexNow.mjs",
     "postinstall": "node scripts/postinstall.js"
   },
   "devDependencies": {

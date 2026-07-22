@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import MetrikaLink from '@components/MetrikaLink'
 import {
   seoLandingPages,
   seoLandingSlugs,
@@ -121,12 +122,14 @@ const SeoLandingPage = ({ page }) => {
             ))}
           </div>
           <div className="mt-8 flex flex-wrap gap-4">
-            <Link
+            <MetrikaLink
               href={registerUrl}
               className="ui-btn ui-btn-primary cursor-pointer"
+              goalName="landing_cta_click"
+              goalParams={{ page: page.slug, placement: 'hero' }}
             >
               Начать работу
-            </Link>
+            </MetrikaLink>
             <Link
               href="/#pricing"
               className="ui-btn ui-btn-secondary cursor-pointer"
@@ -214,12 +217,14 @@ const SeoLandingPage = ({ page }) => {
                 Начните с клиентов, ближайших мероприятий и контроля оплат.
               </p>
             </div>
-            <Link
+            <MetrikaLink
               href={registerUrl}
               className="ui-btn ui-btn-primary cursor-pointer"
+              goalName="landing_cta_click"
+              goalParams={{ page: page.slug, placement: 'final' }}
             >
               Создать кабинет бесплатно
-            </Link>
+            </MetrikaLink>
           </div>
         </div>
       </section>

@@ -181,6 +181,9 @@ export const useEventActions = () => {
       setEvents((prev) => replaceEventById(prev, event))
       const isCreate = !variables?.item?._id || variables?.clone
       if (!isCreate) return
+      reachGoalOnce('first_crm_item_created', {
+        itemType: event?.status === 'draft' ? 'request' : 'event',
+      })
       if (event?.status === 'draft') {
         reachGoalOnce('first_request_created', { eventId: event._id })
       } else {

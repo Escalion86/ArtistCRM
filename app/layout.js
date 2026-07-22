@@ -90,6 +90,14 @@ export default function RootLayout({ children }) {
           accurateTrackBounce:true,
           trackLinks:true
         });
+
+        var queuedGoals = window.__artistcrmMetrikaGoalQueue || [];
+        window.__artistcrmMetrikaGoalQueue = [];
+        queuedGoals.forEach(function(goal) {
+          if (goal && goal.goalName) {
+            ym(${YANDEX_METRIKA_ID}, 'reachGoal', goal.goalName, goal.params);
+          }
+        });
       `}
               </Script>
               <noscript>

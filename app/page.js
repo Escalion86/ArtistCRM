@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import MetrikaLink from '@components/MetrikaLink'
 import dbConnect from '@server/dbConnect'
 import Tariffs from '@models/Tariffs'
 import { getServerSession } from 'next-auth'
@@ -332,12 +333,14 @@ function TariffComparison({ tariffs }) {
     return (
       <div className="landing-pricing-empty">
         <p>Тарифы временно недоступны. Попробуйте открыть страницу позже.</p>
-        <Link
+        <MetrikaLink
           href={registerUrl}
           className="landing-button landing-button-primary"
+          goalName="landing_cta_click"
+          goalParams={{ page: 'home', placement: 'pricing_unavailable' }}
         >
           Перейти в кабинет
-        </Link>
+        </MetrikaLink>
       </div>
     )
   }
@@ -397,16 +400,22 @@ function TariffComparison({ tariffs }) {
                 return (
                   <td key={String(tariff._id)}>
                     <strong>{formatPrice(tariff.price)}</strong>
-                    <Link
+                    <MetrikaLink
                       href={tariffRegisterUrl}
                       className={`landing-button ${
                         isFree
                           ? 'landing-button-secondary'
                           : 'landing-button-primary'
                       }`}
+                      goalName="landing_cta_click"
+                      goalParams={{
+                        page: 'home',
+                        placement: 'pricing_desktop',
+                        tariff: tariff.title || 'unknown',
+                      }}
                     >
                       {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
-                    </Link>
+                    </MetrikaLink>
                   </td>
                 )
               })}
@@ -454,16 +463,22 @@ function TariffComparison({ tariffs }) {
                     )
                   })}
                 </dl>
-                <Link
+                <MetrikaLink
                   href={tariffRegisterUrl}
                   className={`landing-button ${
                     isFree
                       ? 'landing-button-secondary'
                       : 'landing-button-primary'
                   }`}
+                  goalName="landing_cta_click"
+                  goalParams={{
+                    page: 'home',
+                    placement: 'pricing_mobile',
+                    tariff: tariff.title || 'unknown',
+                  }}
                 >
                   {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
-                </Link>
+                </MetrikaLink>
               </div>
             </details>
           )
@@ -584,15 +599,17 @@ export default async function HomePage() {
             <Link href="/login" className="landing-login-link">
               Войти
             </Link>
-            <Link
+            <MetrikaLink
               href={registerUrl}
               className="landing-button landing-button-primary landing-header-cta"
+              goalName="landing_cta_click"
+              goalParams={{ page: 'home', placement: 'header' }}
             >
               <span className="landing-header-cta-full">
                 Попробовать бесплатно
               </span>
               <span className="landing-header-cta-short">Начать бесплатно</span>
-            </Link>
+            </MetrikaLink>
           </div>
         </div>
       </header>
@@ -614,12 +631,14 @@ export default async function HomePage() {
               className="landing-hero-actions landing-reveal"
               style={{ '--delay': '100ms' }}
             >
-              <Link
+              <MetrikaLink
                 href={registerUrl}
                 className="landing-button landing-button-primary"
+                goalName="landing_cta_click"
+                goalParams={{ page: 'home', placement: 'hero' }}
               >
                 Попробовать бесплатно
-              </Link>
+              </MetrikaLink>
               <Link href="#features" className="landing-arrow-link">
                 Посмотреть возможности <ArrowIcon />
               </Link>
@@ -795,12 +814,14 @@ export default async function HomePage() {
             Сосредоточьтесь на клиентах — порядок ArtistCRM возьмёт на себя.
           </h2>
           <div>
-            <Link
+            <MetrikaLink
               href={registerUrl}
               className="landing-button landing-button-primary"
+              goalName="landing_cta_click"
+              goalParams={{ page: 'home', placement: 'final' }}
             >
               Создать кабинет бесплатно
-            </Link>
+            </MetrikaLink>
             <Link href="/login" className="landing-cta-link">
               Войти в кабинет
             </Link>
