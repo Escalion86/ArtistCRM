@@ -7,10 +7,15 @@ import authOptions from './api/auth/[...nextauth]/_options'
 import { redirect } from 'next/navigation'
 
 const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
-const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
+const siteUrl = rawDomain.startsWith('http')
+  ? rawDomain
+  : `https://${rawDomain}`
 const normalizedSiteUrl = siteUrl.replace(/\/$/, '')
 const homeUrl = `${normalizedSiteUrl}/`
 const ogImageUrl = `${normalizedSiteUrl}/opengraph-image`
+const registerUrl = '/login?mode=register'
+const tariffRegisterUrl =
+  '/login?mode=register&callbackUrl=%2Fcabinet%2Ftariff-select'
 
 export const metadata = {
   title: 'ArtistCRM - CRM для артистов, ведущих и музыкантов',
@@ -80,7 +85,7 @@ const faqItems = [
   {
     question: 'Подойдёт ли ArtistCRM, если у меня немного мероприятий?',
     answer:
-      'Да. Бесплатный тариф позволяет вести заявки, клиентов и оплаты без ограничений — можно начать в комфортном темпе.',
+      'Да. На бесплатном тарифе можно вести заявки, клиентов и оплаты без оплаты сервиса. Актуальный лимит мероприятий указан в таблице тарифов.',
   },
   {
     question: 'Нужно ли устанавливать программу?',
@@ -129,6 +134,24 @@ const steps = [
   ['Событие', 'Проводите и закрываете мероприятие'],
 ]
 
+const audiencePages = [
+  {
+    href: '/crm-dlya-artistov',
+    title: 'Для соло-артистов',
+    text: 'Заявки, выступления, оплаты и документы в одном рабочем контуре.',
+  },
+  {
+    href: '/crm-dlya-vedushchih',
+    title: 'Для ведущих',
+    text: 'Даты, договорённости, задатки и подготовка к каждому мероприятию.',
+  },
+  {
+    href: '/crm-dlya-muzykantov',
+    title: 'Для музыкантов',
+    text: 'Календарь выступлений, гонорары, расходы и организационные задачи.',
+  },
+]
+
 const tariffFeatureRows = [
   { label: 'Работа с заявками и мероприятиями', included: true },
   { label: 'Клиентская база', included: true },
@@ -168,7 +191,11 @@ function FeatureIcon({ type }) {
     document: <path d="M6 3h9l4 4v13H6V3Zm9 0v5h4M9 13h7m-7 3h5" />,
   }
   return (
-    <svg className="landing-feature-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <svg
+      className="landing-feature-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
       {paths[type]}
     </svg>
   )
@@ -176,7 +203,11 @@ function FeatureIcon({ type }) {
 
 function ProductPreview() {
   return (
-    <div className="landing-product-wrap landing-reveal" style={{ '--delay': '120ms' }}>
+    <div
+      className="landing-product-wrap landing-reveal"
+      style={{ '--delay': '120ms' }}
+      aria-hidden="true"
+    >
       <div className="landing-product-outline" />
       <div className="landing-product">
         <aside className="landing-product-nav">
@@ -205,22 +236,38 @@ function ProductPreview() {
           </div>
           <div className="landing-agenda-item is-done">
             <time>10:00</time>
-            <div><strong>Созвон с клиентом</strong><span>Обсудить программу</span></div>
-            <i><CheckIcon /></i>
+            <div>
+              <strong>Созвон с клиентом</strong>
+              <span>Обсудить программу</span>
+            </div>
+            <i>
+              <CheckIcon />
+            </i>
           </div>
           <div className="landing-agenda-item is-done">
             <time>12:30</time>
-            <div><strong>Проверить оплату</strong><span>Банк, мероприятие 17 мая</span></div>
-            <i><CheckIcon /></i>
+            <div>
+              <strong>Проверить оплату</strong>
+              <span>Банк, мероприятие 17 мая</span>
+            </div>
+            <i>
+              <CheckIcon />
+            </i>
           </div>
           <div className="landing-agenda-item is-current">
             <time>15:00</time>
-            <div><strong>Позвонить Анне</strong><span>Свадьба · 24 августа</span></div>
+            <div>
+              <strong>Позвонить Анне</strong>
+              <span>Свадьба · 24 августа</span>
+            </div>
             <b>☎</b>
           </div>
           <div className="landing-agenda-item">
             <time>18:00</time>
-            <div><strong>Репетиция</strong><span>Студия SoundHall</span></div>
+            <div>
+              <strong>Репетиция</strong>
+              <span>Студия SoundHall</span>
+            </div>
             <i />
           </div>
         </div>
@@ -229,14 +276,31 @@ function ProductPreview() {
             <strong>Свадьба · 24 августа</strong>
             <span>•••</span>
           </div>
-          <div className="landing-payment-status"><CheckIcon /> Задаток получен</div>
+          <div className="landing-payment-status">
+            <CheckIcon /> Задаток получен
+          </div>
           <dl>
-            <div><dt>Дата</dt><dd>24 августа, 17:00</dd></div>
-            <div><dt>Клиент</dt><dd>Анна Смирнова</dd></div>
-            <div><dt>Бюджет</dt><dd>150 000 ₽</dd></div>
+            <div>
+              <dt>Дата</dt>
+              <dd>24 августа, 17:00</dd>
+            </div>
+            <div>
+              <dt>Клиент</dt>
+              <dd>Анна Смирнова</dd>
+            </div>
+            <div>
+              <dt>Бюджет</dt>
+              <dd>150 000 ₽</dd>
+            </div>
           </dl>
-          <div className="landing-payment-row"><span>Задаток</span><strong>45 000 ₽</strong></div>
-          <div className="landing-payment-row is-muted"><span>Остаток</span><strong>105 000 ₽</strong></div>
+          <div className="landing-payment-row">
+            <span>Задаток</span>
+            <strong>45 000 ₽</strong>
+          </div>
+          <div className="landing-payment-row is-muted">
+            <span>Остаток</span>
+            <strong>105 000 ₽</strong>
+          </div>
           <div className="landing-product-open">Открыть мероприятие</div>
         </div>
       </div>
@@ -246,10 +310,18 @@ function ProductPreview() {
 
 function TariffAvailability({ available }) {
   if (!available) {
-    return <span className="landing-tariff-unavailable" aria-label="Недоступно">—</span>
+    return (
+      <span
+        className="landing-tariff-unavailable"
+        role="img"
+        aria-label="Недоступно"
+      >
+        —
+      </span>
+    )
   }
   return (
-    <span className="landing-tariff-available" aria-label="Доступно">
+    <span className="landing-tariff-available" role="img" aria-label="Доступно">
       <CheckIcon />
     </span>
   )
@@ -260,7 +332,10 @@ function TariffComparison({ tariffs }) {
     return (
       <div className="landing-pricing-empty">
         <p>Тарифы временно недоступны. Попробуйте открыть страницу позже.</p>
-        <Link href="/login" className="landing-button landing-button-primary">
+        <Link
+          href={registerUrl}
+          className="landing-button landing-button-primary"
+        >
           Перейти в кабинет
         </Link>
       </div>
@@ -269,7 +344,11 @@ function TariffComparison({ tariffs }) {
 
   return (
     <>
-      <div className="landing-tariff-scroll" tabIndex="0" aria-label="Сравнение тарифов">
+      <div
+        className="landing-tariff-scroll"
+        tabIndex="0"
+        aria-label="Сравнение тарифов"
+      >
         <table
           className="landing-tariff-table"
           style={{ minWidth: `${280 + tariffs.length * 210}px` }}
@@ -291,12 +370,16 @@ function TariffComparison({ tariffs }) {
                 {tariffs.map((tariff) => {
                   if (feature.type === 'eventsLimit') {
                     return (
-                      <td key={String(tariff._id)} className="landing-tariff-limit">
+                      <td
+                        key={String(tariff._id)}
+                        className="landing-tariff-limit"
+                      >
                         {formatEventsLimit(tariff.eventsPerMonth)}
                       </td>
                     )
                   }
-                  const available = feature.included || Boolean(tariff?.[feature.key])
+                  const available =
+                    feature.included || Boolean(tariff?.[feature.key])
                   return (
                     <td key={String(tariff._id)}>
                       <TariffAvailability available={available} />
@@ -315,9 +398,11 @@ function TariffComparison({ tariffs }) {
                   <td key={String(tariff._id)}>
                     <strong>{formatPrice(tariff.price)}</strong>
                     <Link
-                      href="/login?callbackUrl=%2Fcabinet%2Ftariff-select"
+                      href={tariffRegisterUrl}
                       className={`landing-button ${
-                        isFree ? 'landing-button-secondary' : 'landing-button-primary'
+                        isFree
+                          ? 'landing-button-secondary'
+                          : 'landing-button-primary'
                       }`}
                     >
                       {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
@@ -352,7 +437,13 @@ function TariffComparison({ tariffs }) {
                     return (
                       <div key={feature.label}>
                         <dt>{feature.label}</dt>
-                        <dd className={feature.type === 'eventsLimit' ? 'is-limit' : undefined}>
+                        <dd
+                          className={
+                            feature.type === 'eventsLimit'
+                              ? 'is-limit'
+                              : undefined
+                          }
+                        >
                           {feature.type === 'eventsLimit' ? (
                             formatEventsLimit(tariff.eventsPerMonth)
                           ) : (
@@ -364,9 +455,11 @@ function TariffComparison({ tariffs }) {
                   })}
                 </dl>
                 <Link
-                  href="/login?callbackUrl=%2Fcabinet%2Ftariff-select"
+                  href={tariffRegisterUrl}
                   className={`landing-button ${
-                    isFree ? 'landing-button-secondary' : 'landing-button-primary'
+                    isFree
+                      ? 'landing-button-secondary'
+                      : 'landing-button-primary'
                   }`}
                 >
                   {isFree ? 'Начать бесплатно' : 'Выбрать тариф'}
@@ -400,11 +493,14 @@ export default async function HomePage() {
     '@type': 'SoftwareApplication',
     name: 'ArtistCRM',
     applicationCategory: 'BusinessApplication',
+    applicationSubCategory: 'CRM для артистов',
     operatingSystem: 'Web',
     inLanguage: 'ru-RU',
     url: homeUrl,
     description:
       'CRM-система для артистов: управление заявками, клиентами, финансами, календарем и документами.',
+    featureList: benefits.map((benefit) => benefit.title),
+    image: ogImageUrl,
     offers:
       publicTariffs.length > 0
         ? publicTariffs.map((tariff) => ({
@@ -413,7 +509,14 @@ export default async function HomePage() {
             price: Number(tariff?.price ?? 0),
             priceCurrency: 'RUB',
           }))
-        : [{ '@type': 'Offer', price: 0, priceCurrency: 'RUB', name: 'Бесплатный тариф' }],
+        : [
+            {
+              '@type': 'Offer',
+              price: 0,
+              priceCurrency: 'RUB',
+              name: 'Бесплатный тариф',
+            },
+          ],
   }
   const organizationSchema = {
     '@context': 'https://schema.org',
@@ -421,6 +524,14 @@ export default async function HomePage() {
     name: 'ArtistCRM',
     url: homeUrl,
     logo: `${normalizedSiteUrl}/img/logo-96.webp`,
+  }
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'ArtistCRM',
+    alternateName: 'Artist CRM',
+    url: homeUrl,
+    inLanguage: 'ru-RU',
   }
   const faqSchema = {
     '@context': 'https://schema.org',
@@ -438,6 +549,7 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify([
+            websiteSchema,
             organizationSchema,
             softwareApplicationSchema,
             faqSchema,
@@ -447,9 +559,21 @@ export default async function HomePage() {
 
       <header className="landing-header">
         <div className="landing-container landing-header-inner">
-          <Link href="/" className="landing-logo" aria-label="ArtistCRM — главная">
-            <Image src="/img/logo-48.png" alt="" width={34} height={34} priority />
-            <span>Artist<strong>CRM</strong></span>
+          <Link
+            href="/"
+            className="landing-logo"
+            aria-label="ArtistCRM — главная"
+          >
+            <Image
+              src="/img/logo-48.png"
+              alt=""
+              width={34}
+              height={34}
+              priority
+            />
+            <span>
+              Artist<strong>CRM</strong>
+            </span>
           </Link>
           <nav className="landing-nav" aria-label="Основная навигация">
             <Link href="#features">Возможности</Link>
@@ -457,9 +581,16 @@ export default async function HomePage() {
             <Link href="#pricing">Тарифы</Link>
           </nav>
           <div className="landing-header-actions">
-            <Link href="/login" className="landing-login-link">Войти</Link>
-            <Link href="/login" className="landing-button landing-button-primary landing-header-cta">
-              <span className="landing-header-cta-full">Попробовать бесплатно</span>
+            <Link href="/login" className="landing-login-link">
+              Войти
+            </Link>
+            <Link
+              href={registerUrl}
+              className="landing-button landing-button-primary landing-header-cta"
+            >
+              <span className="landing-header-cta-full">
+                Попробовать бесплатно
+              </span>
               <span className="landing-header-cta-short">Начать бесплатно</span>
             </Link>
           </div>
@@ -469,27 +600,57 @@ export default async function HomePage() {
       <section className="landing-hero">
         <div className="landing-container landing-hero-grid">
           <div className="landing-hero-copy">
-            <h1 className="landing-reveal">Заявки, деньги и клиенты — под вашим контролем</h1>
-            <p className="landing-hero-lead landing-reveal" style={{ '--delay': '60ms' }}>
+            <h1 className="landing-reveal">
+              CRM для артистов: заявки, деньги и клиенты под контролем
+            </h1>
+            <p
+              className="landing-hero-lead landing-reveal"
+              style={{ '--delay': '60ms' }}
+            >
               ArtistCRM помогает артистам не терять обращения, вовремя
               связываться с клиентами и видеть оплаты по каждому мероприятию.
             </p>
-            <div className="landing-hero-actions landing-reveal" style={{ '--delay': '100ms' }}>
-              <Link href="/login" className="landing-button landing-button-primary">Попробовать бесплатно</Link>
-              <Link href="#features" className="landing-arrow-link">Посмотреть возможности <ArrowIcon /></Link>
+            <div
+              className="landing-hero-actions landing-reveal"
+              style={{ '--delay': '100ms' }}
+            >
+              <Link
+                href={registerUrl}
+                className="landing-button landing-button-primary"
+              >
+                Попробовать бесплатно
+              </Link>
+              <Link href="#features" className="landing-arrow-link">
+                Посмотреть возможности <ArrowIcon />
+              </Link>
             </div>
-            <div className="landing-proof landing-reveal" style={{ '--delay': '140ms' }}>
-              {['Быстрый старт', 'Работает с телефона', 'Данные в облаке'].map((item) => (
-                <span key={item}><CheckIcon />{item}</span>
+            <div
+              className="landing-proof landing-reveal"
+              style={{ '--delay': '140ms' }}
+            >
+              {[
+                'Есть бесплатный тариф',
+                'Работает с телефона',
+                'Без установки',
+              ].map((item) => (
+                <span key={item}>
+                  <CheckIcon />
+                  {item}
+                </span>
               ))}
             </div>
           </div>
           <ProductPreview />
         </div>
-        <div className="landing-hero-rule" aria-hidden="true"><span /></div>
+        <div className="landing-hero-rule" aria-hidden="true">
+          <span />
+        </div>
       </section>
 
-      <section id="features" className="landing-section landing-features landing-section-below">
+      <section
+        id="features"
+        className="landing-section landing-features landing-section-below"
+      >
         <div className="landing-container">
           <div className="landing-section-head">
             <h2>Всё важное — в одном месте</h2>
@@ -508,14 +669,57 @@ export default async function HomePage() {
             ))}
           </div>
           <div className="landing-system-line" aria-hidden="true">
-            {['Заявка создана', 'Контакт запланирован', 'Задаток получен', 'Мероприятие проведено'].map((item) => (
-              <span key={item}><i />{item}</span>
+            {[
+              'Заявка создана',
+              'Контакт запланирован',
+              'Задаток получен',
+              'Мероприятие проведено',
+            ].map((item) => (
+              <span key={item}>
+                <i />
+                {item}
+              </span>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="workflow" className="landing-section landing-workflow landing-section-below">
+      <section
+        className="landing-audiences landing-section-below"
+        aria-labelledby="audiences-title"
+      >
+        <div className="landing-container landing-audiences-inner">
+          <div className="landing-section-head">
+            <h2 id="audiences-title">
+              Создано для тех, кто работает на мероприятиях
+            </h2>
+            <p>
+              Выберите свой сценарий и посмотрите, как ArtistCRM помогает именно
+              в вашей работе.
+            </p>
+          </div>
+          <div className="landing-audience-grid">
+            {audiencePages.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="landing-audience-card"
+              >
+                <strong>{item.title}</strong>
+                <span>{item.text}</span>
+                <i>
+                  Подробнее <ArrowIcon />
+                </i>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="workflow"
+        className="landing-section landing-workflow landing-section-below"
+      >
         <div className="landing-container">
           <div className="landing-section-head landing-section-head-wide">
             <h2>От первого сообщения до закрытого мероприятия</h2>
@@ -523,9 +727,20 @@ export default async function HomePage() {
           <div className="landing-steps">
             {steps.map(([title, text], index) => (
               <article key={title} className="landing-step">
-                <span className="landing-step-number">{String(index + 1).padStart(2, '0')}</span>
+                <span className="landing-step-number">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
                 <div className="landing-step-visual">
-                  <span>{['Новая заявка', 'Звонок · 14:00', 'Задаток · 30 000 ₽', 'Проведено и закрыто'][index]}</span>
+                  <span>
+                    {
+                      [
+                        'Новая заявка',
+                        'Звонок · 14:00',
+                        'Задаток · 30 000 ₽',
+                        'Проведено и закрыто',
+                      ][index]
+                    }
+                  </span>
                   <CheckIcon />
                 </div>
                 <h3>{title}</h3>
@@ -533,15 +748,23 @@ export default async function HomePage() {
               </article>
             ))}
           </div>
-          <blockquote>Система подсказывает, что требует внимания сегодня.</blockquote>
+          <blockquote>
+            Система подсказывает, что требует внимания сегодня.
+          </blockquote>
         </div>
       </section>
 
-      <section id="pricing" className="landing-section landing-pricing landing-section-below">
+      <section
+        id="pricing"
+        className="landing-section landing-pricing landing-section-below"
+      >
         <div className="landing-container">
           <div className="landing-section-head landing-section-head-centered">
             <h2>Начните бесплатно. Расширяйтесь, когда понадобится.</h2>
-            <p>Базовые возможности доступны без оплаты — можно спокойно проверить систему на реальной работе.</p>
+            <p>
+              Базовые возможности доступны без оплаты — можно спокойно проверить
+              систему на реальной работе.
+            </p>
           </div>
           <TariffComparison tariffs={publicTariffs} />
         </div>
@@ -549,11 +772,16 @@ export default async function HomePage() {
 
       <section className="landing-section landing-faq landing-section-below">
         <div className="landing-container landing-faq-inner">
-          <div className="landing-section-head"><h2>Коротко о главном</h2></div>
+          <div className="landing-section-head">
+            <h2>Коротко о главном</h2>
+          </div>
           <div className="landing-faq-list">
             {faqItems.map((item, index) => (
               <details key={item.question} open={index === 0}>
-                <summary><span>{item.question}</span><i aria-hidden="true" /></summary>
+                <summary>
+                  <span>{item.question}</span>
+                  <i aria-hidden="true" />
+                </summary>
                 <p>{item.answer}</p>
               </details>
             ))}
@@ -563,10 +791,19 @@ export default async function HomePage() {
 
       <section className="landing-cta landing-section-below">
         <div className="landing-container landing-cta-inner">
-          <h2>Сосредоточьтесь на клиентах — порядок ArtistCRM возьмёт на себя.</h2>
+          <h2>
+            Сосредоточьтесь на клиентах — порядок ArtistCRM возьмёт на себя.
+          </h2>
           <div>
-            <Link href="/login" className="landing-button landing-button-primary">Попробовать бесплатно</Link>
-            <Link href="/login" className="landing-cta-link">Войти в кабинет</Link>
+            <Link
+              href={registerUrl}
+              className="landing-button landing-button-primary"
+            >
+              Создать кабинет бесплатно
+            </Link>
+            <Link href="/login" className="landing-cta-link">
+              Войти в кабинет
+            </Link>
           </div>
         </div>
       </section>
@@ -574,18 +811,29 @@ export default async function HomePage() {
       <footer className="landing-footer landing-section-below">
         <div className="landing-container landing-footer-grid">
           <div>
-            <Link href="/" className="landing-logo"><span>Artist<strong>CRM</strong></span></Link>
-            <p>CRM для артистов и event-профессионалов</p>
+            <Link href="/" className="landing-logo">
+              <span>
+                Artist<strong>CRM</strong>
+              </span>
+            </Link>
+            <p>CRM для артистов и специалистов индустрии мероприятий</p>
           </div>
           <nav aria-label="Навигация в подвале">
             <Link href="#features">Возможности</Link>
             <Link href="#pricing">Тарифы</Link>
+            <Link href="/crm-dlya-artistov">CRM для артистов</Link>
+            <Link href="/crm-dlya-vedushchih">CRM для ведущих</Link>
+            <Link href="/crm-dlya-muzykantov">CRM для музыкантов</Link>
+            <Link href="/crm-dlya-tilda-zayavok">Заявки с Tilda</Link>
+            <Link href="/crm-s-google-calendar">CRM с Google Календарём</Link>
             <Link href="/privacy">Политика конфиденциальности</Link>
             <Link href="/terms">Пользовательское соглашение</Link>
             <Link href="/payment">Оплата и возвраты</Link>
           </nav>
         </div>
-        <div className="landing-container landing-copyright">© {new Date().getFullYear()} ArtistCRM. Все права защищены.</div>
+        <div className="landing-container landing-copyright">
+          © {new Date().getFullYear()} ArtistCRM. Все права защищены.
+        </div>
       </footer>
     </main>
   )

@@ -12,7 +12,9 @@ import AppQueryProvider from '@components/AppQueryProvider'
 import Script from 'next/script'
 
 const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
-const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`
+const siteUrl = rawDomain.startsWith('http')
+  ? rawDomain
+  : `https://${rawDomain}`
 const normalizedSiteUrl = siteUrl.replace(/\/$/, '')
 
 export const metadata = {
@@ -44,7 +46,11 @@ export const metadata = {
       },
     ],
     apple: [
-      { url: '/icons/AppImages/ios/180.png', sizes: '180x180', type: 'image/png' },
+      {
+        url: '/icons/AppImages/ios/180.png',
+        sizes: '180x180',
+        type: 'image/png',
+      },
     ],
   },
 }
@@ -66,7 +72,7 @@ export default function RootLayout({ children }) {
           {isProduction && <ServiceWorkerRegistration />}
           {isProduction && (
             <>
-              <Script id="yandex-metrika" strategy="afterInteractive">
+              <Script id="yandex-metrika" strategy="lazyOnload">
                 {`
         (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
         m[i].l=1*new Date();

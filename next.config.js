@@ -36,15 +36,6 @@ const nextConfig = {
           },
         ],
       },
-      {
-        source: '/',
-        headers: [
-          {
-            key: 'Link',
-            value: '</fonts/FuturaPT-Heavy.woff2>; rel=preload; as=font; type=font/woff2; crossorigin=anonymous'
-          },
-        ],
-      },
     ]
   },
   productionBrowserSourceMaps:

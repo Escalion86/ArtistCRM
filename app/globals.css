@@ -1,10 +1,10 @@
-@config "../tailwind.config.js";
-@source "../app/**/*.{js,jsx}";
-@source "../pages/**/*.{js,jsx}";
-@source "../components/**/*.{js,jsx}";
-@source "../helpers/**/*.{js,jsx}";
-@source "../layouts/**/*.{js,jsx}";
-@source "../blocks/**/*.{js,jsx}";
+@config '../tailwind.config.js';
+@source '../app/**/*.{js,jsx}';
+@source '../pages/**/*.{js,jsx}';
+@source '../components/**/*.{js,jsx}';
+@source '../helpers/**/*.{js,jsx}';
+@source '../layouts/**/*.{js,jsx}';
+@source '../blocks/**/*.{js,jsx}';
 @layer theme, base, mui, components, utilities;
 @import 'tailwindcss';
 
@@ -30,11 +30,13 @@
 } */
 
 body {
-  background: #F5F6F8;
-  color: #1C1D1F;
-  --surface-card-bg: linear-gradient(135deg,
-      rgba(255, 255, 255, 0.96) 0%,
-      rgba(248, 244, 236, 0.94) 100%);
+  background: #f5f6f8;
+  color: #1c1d1f;
+  --surface-card-bg: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(248, 244, 236, 0.94) 100%
+  );
   --surface-card-border: rgba(138, 111, 59, 0.22);
   --surface-card-shadow: 0 10px 24px rgba(33, 29, 22, 0.08);
   --surface-card-hover-shadow: 0 14px 30px rgba(33, 29, 22, 0.14);
@@ -51,7 +53,7 @@ body {
   --ui-secondary-hover-border: rgba(138, 111, 59, 0.7);
   --ui-secondary-hover-text: #7d6435;
   --sidebar-bg: #7d6435;
-  --sidebar-text: #1C1D1F;
+  --sidebar-text: #1c1d1f;
   --tx-income: #22c55e;
   --tx-income-hover: #16a34a;
   --tx-income-hover-bg: rgba(34, 197, 94, 0.08);
@@ -88,7 +90,7 @@ body {
   opacity: 1;
 }
 
-.contact-button>* {
+.contact-button > * {
   position: relative;
   z-index: 1;
 }
@@ -96,9 +98,11 @@ body {
 body.theme-dark {
   background: #0f0c09;
   color: #e2e8f0;
-  --surface-card-bg: linear-gradient(145deg,
-      rgba(24, 19, 13, 0.96) 0%,
-      rgba(30, 23, 14, 0.94) 100%);
+  --surface-card-bg: linear-gradient(
+    145deg,
+    rgba(24, 19, 13, 0.96) 0%,
+    rgba(30, 23, 14, 0.94) 100%
+  );
   --surface-card-border: rgba(201, 168, 106, 0.28);
   --surface-card-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
   --surface-card-hover-shadow: 0 16px 34px rgba(0, 0, 0, 0.46);
@@ -199,7 +203,7 @@ body.theme-dark .border-input {
 
 body.theme-dark .border-input:hover,
 body.theme-dark .border-input:focus-within {
-  border-color: #C9A86A;
+  border-color: #c9a86a;
 }
 
 body.theme-dark .border-gray-200 {
@@ -258,7 +262,7 @@ body.theme-dark .sidebar-root .hover\:text-white:hover {
 }
 
 body.theme-dark .sidebar-root .hover\:bg-white:hover {
-  background-color: #EBD3A5;
+  background-color: #ebd3a5;
 }
 
 body.theme-dark .sidebar-root .hover\:bg-general:hover,
@@ -397,11 +401,11 @@ body.theme-dark .action-icon-button:hover {
 }
 
 body.theme-dark .modal-action-button.bg-general {
-  background-color: #C9A86A !important;
+  background-color: #c9a86a !important;
 }
 
 body.theme-dark .modal-action-button.bg-general:hover {
-  background-color: #B88F52 !important;
+  background-color: #b88f52 !important;
 }
 
 body.theme-dark .modal-action-button.bg-danger {
@@ -427,8 +431,12 @@ body.theme-dark .modal-action-button:disabled:hover {
 
 .home-page,
 .home-page * {
-  transition: background-color 260ms ease, color 260ms ease, border-color 260ms ease,
-    box-shadow 260ms ease, opacity 260ms ease;
+  transition:
+    background-color 260ms ease,
+    color 260ms ease,
+    border-color 260ms ease,
+    box-shadow 260ms ease,
+    opacity 260ms ease;
 }
 
 body.theme-dark .home-hero-bg {
@@ -576,7 +584,7 @@ body.theme-dark .hover\:shadow-card:hover {
 }
 
 .bg-general.text-white {
-  color: #1C1D1F;
+  color: #1c1d1f;
 }
 
 .text-general {
@@ -584,7 +592,7 @@ body.theme-dark .hover\:shadow-card:hover {
 }
 
 body.theme-dark .text-general {
-  color: #EBD3A5;
+  color: #ebd3a5;
 }
 
 body.theme-dark .text-black {
@@ -854,9 +862,8 @@ body.theme-dark .MuiTabs-indicator {
 }
 
 @layer base {
-
   button:not(:disabled),
-  [role="button"]:not(:disabled) {
+  [role='button']:not(:disabled) {
     cursor: pointer;
   }
 }
@@ -924,8 +931,14 @@ body.theme-dark .MuiTabs-indicator {
 }
 
 .mask-bottom {
-  -webkit-wask-image: linear-gradient(rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0));
-  mask-image: linear-gradient(rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0));
+  -webkit-wask-image: linear-gradient(
+    rgba(255, 255, 255, 1) 80%,
+    rgba(255, 255, 255, 0)
+  );
+  mask-image: linear-gradient(
+    rgba(255, 255, 255, 1) 80%,
+    rgba(255, 255, 255, 0)
+  );
 }
 
 .profile-sticky-bar {
@@ -946,25 +959,33 @@ body.theme-dark .surface-card {
 
 .cabinet-canvas {
   background:
-    radial-gradient(130% 85% at 100% 0%,
+    radial-gradient(
+      130% 85% at 100% 0%,
       rgba(138, 111, 59, 0.12) 0%,
       rgba(138, 111, 59, 0.04) 35%,
-      transparent 72%),
-    radial-gradient(95% 64% at 0% 100%,
+      transparent 72%
+    ),
+    radial-gradient(
+      95% 64% at 0% 100%,
       rgba(115, 120, 132, 0.12) 0%,
-      transparent 70%),
+      transparent 70%
+    ),
     #f5f6f8;
 }
 
 body.theme-dark .cabinet-canvas {
   background:
-    radial-gradient(130% 85% at 100% 0%,
+    radial-gradient(
+      130% 85% at 100% 0%,
       rgba(201, 168, 106, 0.14) 0%,
       rgba(201, 168, 106, 0.05) 34%,
-      transparent 75%),
-    radial-gradient(95% 64% at 0% 100%,
+      transparent 75%
+    ),
+    radial-gradient(
+      95% 64% at 0% 100%,
       rgba(76, 65, 45, 0.26) 0%,
-      transparent 72%),
+      transparent 72%
+    ),
     #100d0a;
 }
 
@@ -984,13 +1005,15 @@ body.theme-dark .cabinet-canvas {
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    background: linear-gradient(165deg,
-        var(--surface-card-highlight) 0%,
-        transparent 48%);
+    background: linear-gradient(
+      165deg,
+      var(--surface-card-highlight) 0%,
+      transparent 48%
+    );
     opacity: 0.8;
   }
 
-  .ui-surface-card>* {
+  .ui-surface-card > * {
     position: relative;
     z-index: 1;
   }
@@ -1418,7 +1441,9 @@ body.theme-dark .statistics-tooltip {
 
 /* Prevent font swap layout shift */
 .font-futuraPT {
-  font-family: 'Futura PT', 'Futura PT Fallback', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+  font-family:
+    'Futura PT', 'Futura PT Fallback', 'Arial Narrow', 'Helvetica Neue',
+    sans-serif;
   size-adjust: 100%;
   ascent-override: 95%;
   descent-override: 25%;
@@ -1493,7 +1518,7 @@ body.theme-dark .statistics-tooltip {
   color: var(--landing-ink);
   font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
   font-size: 25px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.035em;
 }
 
@@ -1565,9 +1590,12 @@ body.theme-dark .statistics-tooltip {
   padding: 12px 22px;
   cursor: pointer;
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.1;
-  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease,
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease,
     border-color 180ms ease;
 }
 
@@ -1648,9 +1676,10 @@ body.theme-dark .statistics-tooltip {
 
 .landing-hero h1,
 .landing-section h2,
+.landing-audiences h2,
 .landing-cta h2 {
   font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.045em;
 }
 
@@ -1681,7 +1710,7 @@ body.theme-dark .statistics-tooltip {
   gap: 10px;
   color: var(--landing-bronze-dark);
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .landing-arrow-link svg,
@@ -1782,7 +1811,7 @@ body.theme-dark .statistics-tooltip {
   margin: 0 9px 30px;
   font-family: 'Futura PT', sans-serif;
   font-size: 19px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 
@@ -1800,7 +1829,7 @@ body.theme-dark .statistics-tooltip {
   border-left-color: var(--landing-bronze);
   background: #f7f2e9;
   color: #25241f;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .landing-product-nav-dot {
@@ -1886,7 +1915,7 @@ body.theme-dark .statistics-tooltip {
 .landing-agenda-item div span {
   overflow: hidden;
   margin-top: 4px;
-  color: #7a7972;
+  color: #5f5e58;
   font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1913,6 +1942,7 @@ body.theme-dark .statistics-tooltip {
   background: var(--landing-bronze-soft);
   color: var(--landing-bronze-dark);
   font-size: 13px;
+  font-weight: 600;
 }
 
 .landing-product-event {
@@ -1973,6 +2003,10 @@ body.theme-dark .statistics-tooltip {
   font-weight: 600;
 }
 
+.landing-product strong {
+  font-weight: 600;
+}
+
 .landing-hero-rule {
   display: flex;
   align-items: center;
@@ -2005,6 +2039,7 @@ body.theme-dark .statistics-tooltip {
 }
 
 .landing-section-head h2,
+.landing-audiences h2,
 .landing-cta h2 {
   font-size: clamp(2.25rem, 3.6vw, 3.5rem);
   line-height: 1.06;
@@ -2050,7 +2085,7 @@ body.theme-dark .statistics-tooltip {
   margin-top: 26px;
   font-family: 'Futura PT', sans-serif;
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.025em;
 }
 
@@ -2100,6 +2135,87 @@ body.theme-dark .statistics-tooltip {
   background: var(--landing-bg);
 }
 
+.landing-audiences {
+  border-top: 1px solid var(--landing-line);
+  background: #f8f3e9;
+  padding: 88px 0;
+}
+
+.landing-audiences-inner {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.7fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: 72px;
+}
+
+.landing-audience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.landing-audience-card {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  border: 1px solid var(--landing-line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(42, 38, 31, 0.05);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.landing-audience-card:hover {
+  border-color: rgba(154, 107, 39, 0.55);
+  box-shadow: 0 16px 34px rgba(42, 38, 31, 0.09);
+  transform: translateY(-3px);
+}
+
+.landing-audience-card:focus-visible {
+  outline: 3px solid rgba(154, 107, 39, 0.28);
+  outline-offset: 4px;
+}
+
+.landing-audience-card strong {
+  font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.landing-audience-card > span {
+  margin-top: 14px;
+  color: var(--landing-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.landing-audience-card i {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 24px;
+  color: var(--landing-bronze-dark);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.landing-audience-card svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
 .landing-workflow {
   border-top: 1px solid var(--landing-line);
   background: #fff;
@@ -2143,7 +2259,7 @@ body.theme-dark .statistics-tooltip {
   background: #fff;
   color: var(--landing-bronze-dark);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .landing-step-visual {
@@ -2236,6 +2352,7 @@ body.theme-dark .statistics-tooltip {
 .landing-tariff-table thead th {
   height: 92px;
   background: #faf7f1;
+  font-weight: 600;
   text-align: center;
 }
 
@@ -2253,7 +2370,7 @@ body.theme-dark .statistics-tooltip {
   z-index: 3;
   color: var(--landing-muted);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2262,7 +2379,7 @@ body.theme-dark .statistics-tooltip {
   display: block;
   font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
   font-size: 25px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.025em;
 }
 
@@ -2317,7 +2434,7 @@ body.theme-dark .statistics-tooltip {
 .landing-tariff-table tfoot th {
   font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
   font-size: 21px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .landing-tariff-table tfoot td {
@@ -2330,7 +2447,7 @@ body.theme-dark .statistics-tooltip {
   min-height: 32px;
   font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
   font-size: 27px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.025em;
 }
 
@@ -2486,7 +2603,7 @@ body.theme-dark .statistics-tooltip {
   margin-top: 42px;
   border-top: 1px solid var(--landing-line);
   padding-top: 24px;
-  color: #88867f;
+  color: #66645e;
   font-size: 12px;
 }
 
@@ -2539,6 +2656,15 @@ body.theme-dark .statistics-tooltip {
   .landing-benefits {
     grid-template-columns: repeat(2, 1fr);
     gap: 48px;
+  }
+
+  .landing-audiences-inner {
+    grid-template-columns: 1fr;
+    gap: 42px;
+  }
+
+  .landing-audience-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .landing-benefit-top > svg:last-child {
@@ -2693,6 +2819,7 @@ body.theme-dark .statistics-tooltip {
   }
 
   .landing-section-head h2,
+  .landing-audiences h2,
   .landing-cta h2 {
     font-size: 2.55rem;
   }
@@ -2706,6 +2833,18 @@ body.theme-dark .statistics-tooltip {
     grid-template-columns: 1fr;
     gap: 42px;
     margin-top: 50px;
+  }
+
+  .landing-audiences {
+    padding: 72px 0;
+  }
+
+  .landing-audience-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-audience-card {
+    min-height: 0;
   }
 
   .landing-benefit {
@@ -2807,7 +2946,7 @@ body.theme-dark .statistics-tooltip {
   .landing-tariff-mobile-title,
   .landing-tariff-mobile-price {
     font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .landing-tariff-mobile-title {
