@@ -314,8 +314,8 @@ const NovofonGuide = () => (
   <div className="flex flex-col gap-3 text-sm leading-6 text-gray-700">
     <p>
       Эта интеграция принимает HTTP-уведомления Novofon о звонках. После
-      завершения разговора звонок появится в разделе Звонки, где можно
-      сохранить заметку, распознать запись и подготовить черновик заявки.
+      завершения разговора звонок появится в разделе Звонки, где можно сохранить
+      заметку, распознать запись и подготовить черновик заявки.
     </p>
     <ol className="list-decimal space-y-2 pl-5">
       <li>
@@ -323,12 +323,12 @@ const NovofonGuide = () => (
         создан, он появится автоматически.
       </li>
       <li>
-        Скопируйте поле Адрес для уведомлений Novofon. В адрес уже добавлены
-        ваш tenantId и секрет, отдельно их вводить в Novofon не нужно.
+        Скопируйте поле Адрес для уведомлений Novofon. В адрес уже добавлены ваш
+        tenantId и секрет, отдельно их вводить в Novofon не нужно.
       </li>
       <li>
-        В личном кабинете Novofon откройте интеграцию Уведомления о событиях
-        или раздел Настройки → Уведомления и добавьте HTTP-уведомление.
+        В личном кабинете Novofon откройте интеграцию Уведомления о событиях или
+        раздел Настройки → Уведомления и добавьте HTTP-уведомление.
       </li>
       <li>
         Вставьте скопированный адрес в поле URL для уведомлений о звонках в АТС.
@@ -380,8 +380,12 @@ const AIProviderGuide = () => (
     </p>
     <ol className="list-decimal space-y-2 pl-5">
       <li>Для простого старта выберите «ИИ ArtistCRM» — ключ не нужен.</li>
-      <li>Запросы будут списываться из текущего баланса по фактической стоимости.</li>
-      <li>Либо зарегистрируйтесь в AITunnel и вставьте собственный API-ключ.</li>
+      <li>
+        Запросы будут списываться из текущего баланса по фактической стоимости.
+      </li>
+      <li>
+        Либо зарегистрируйтесь в AITunnel и вставьте собственный API-ключ.
+      </li>
       <li>Включите ИИ-интеграцию.</li>
     </ol>
     <p>
@@ -419,7 +423,9 @@ const AvitoGuide = () => (
         Если ArtistCRM покажет, что webhook нужно подключить вручную, скопируйте
         Адрес webhook и вставьте его в настройках Avito API.
       </li>
-      <li>Напишите тестовое сообщение по своему объявлению с другого аккаунта.</li>
+      <li>
+        Напишите тестовое сообщение по своему объявлению с другого аккаунта.
+      </li>
     </ol>
     <p>
       Если сообщение пришло, ArtistCRM создаст заявку со статусом Черновик и
@@ -582,13 +588,20 @@ const IntegrationsContent = () => {
     if (typeof window === 'undefined') return '/api/public/lead'
     return `${window.location.origin}/api/public/lead`
   }, [])
-  const novofonEnabled = getCustomValue(customSettings, 'novofonEnabled') === true
-  const novofonApiKey = String(getCustomValue(customSettings, 'novofonApiKey') || '')
+  const novofonEnabled =
+    getCustomValue(customSettings, 'novofonEnabled') === true
+  const novofonApiKey = String(
+    getCustomValue(customSettings, 'novofonApiKey') || ''
+  )
   const novofonWebhookSecret = String(
     getCustomValue(customSettings, 'novofonWebhookSecret') || ''
   )
-  const aitunnelKey = String(getCustomValue(customSettings, 'aitunnelKey') || '')
-  const deepseekKey = String(getCustomValue(customSettings, 'deepseekKey') || '')
+  const aitunnelKey = String(
+    getCustomValue(customSettings, 'aitunnelKey') || ''
+  )
+  const deepseekKey = String(
+    getCustomValue(customSettings, 'deepseekKey') || ''
+  )
   const aiTranscriptionModel = String(
     getCustomValue(customSettings, 'aiTranscriptionModel') || 'whisper-1'
   )
@@ -626,8 +639,8 @@ const IntegrationsContent = () => {
       : aiAnalysisProvider === 'artistcrm'
         ? true
         : aiAnalysisProvider === 'aitunnel'
-        ? getCustomValue(customSettings, 'aitunnelEnabled') === true
-        : Boolean(aiAnalysisProvider)
+          ? getCustomValue(customSettings, 'aitunnelEnabled') === true
+          : Boolean(aiAnalysisProvider)
   const selectedAiKey =
     aiAnalysisProvider === 'deepseek' ? deepseekKey : aitunnelKey
   const isAiProviderConfigured =
@@ -636,15 +649,21 @@ const IntegrationsContent = () => {
       : Boolean(selectedAiKey)
   const isAiProviderConnected = aiIntegrationEnabled && isAiProviderConfigured
   const avitoEnabled = getCustomValue(customSettings, 'avitoEnabled') === true
-  const avitoClientId = String(getCustomValue(customSettings, 'avitoClientId') || '')
+  const avitoClientId = String(
+    getCustomValue(customSettings, 'avitoClientId') || ''
+  )
   const avitoClientSecret = String(
     getCustomValue(customSettings, 'avitoClientSecret') || ''
   )
-  const avitoUserId = String(getCustomValue(customSettings, 'avitoUserId') || '')
+  const avitoUserId = String(
+    getCustomValue(customSettings, 'avitoUserId') || ''
+  )
   const avitoWebhookToken = String(
     getCustomValue(customSettings, 'avitoWebhookToken') || ''
   )
-  const avitoStatus = String(getCustomValue(customSettings, 'avitoStatus') || '')
+  const avitoStatus = String(
+    getCustomValue(customSettings, 'avitoStatus') || ''
+  )
   const avitoLastError = String(
     getCustomValue(customSettings, 'avitoLastError') || ''
   )
@@ -652,7 +671,9 @@ const IntegrationsContent = () => {
     getCustomValue(customSettings, 'avitoLastWebhookAt') || ''
   )
   const avitoWebhookUrl = useMemo(() => {
-    const saved = String(getCustomValue(customSettings, 'avitoWebhookUrl') || '')
+    const saved = String(
+      getCustomValue(customSettings, 'avitoWebhookUrl') || ''
+    )
     if (saved) return saved
     const token = avitoWebhookToken || generateAvitoSecret()
     const relative = `/api/integrations/avito/webhook/${token}`
@@ -689,7 +710,9 @@ const IntegrationsContent = () => {
     getCustomValue(customSettings, 'vkGroupLastWebhookAt') || ''
   )
   const vkWebhookUrl = useMemo(() => {
-    const saved = String(getCustomValue(customSettings, 'vkGroupWebhookUrl') || '')
+    const saved = String(
+      getCustomValue(customSettings, 'vkGroupWebhookUrl') || ''
+    )
     if (saved) return saved
     const token = vkWebhookToken || generateVkSecret()
     const relative = `/api/integrations/vk/webhook/${token}`
@@ -816,11 +839,11 @@ const IntegrationsContent = () => {
                 aiTranscriptionProvider: 'artistcrm',
                 aiTranscriptionModel: 'whisper-1',
               }
-          : {
-              aitunnelEnabled: true,
-              aiTranscriptionProvider: 'aitunnel',
-              aiTranscriptionModel: aiTranscriptionModel || 'whisper-1',
-            }),
+            : {
+                aitunnelEnabled: true,
+                aiTranscriptionProvider: 'aitunnel',
+                aiTranscriptionModel: aiTranscriptionModel || 'whisper-1',
+              }),
       },
       {
         successMessage: `Выбран провайдер ${
@@ -896,9 +919,7 @@ const IntegrationsContent = () => {
       const result = await response.json().catch(() => ({}))
       if (result?.data?.siteSettings) setSiteSettings(result.data.siteSettings)
       if (!response.ok || result?.success === false) {
-        snackbar.error(
-          result?.error?.message || 'Не удалось подключить Avito'
-        )
+        snackbar.error(result?.error?.message || 'Не удалось подключить Avito')
         return
       }
       if (result?.data?.avito?.webhookRegistered) {
@@ -1041,106 +1062,106 @@ const IntegrationsContent = () => {
             description="Ключи для сайта, Tilda и других источников заявок."
             connected={isEnabled && apiKeys.some((item) => item.enabled)}
           >
-          <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-600">
-              Создайте отдельный ключ для каждого источника заявок. Название
-              ключа будет показано на карточке заявки/мероприятия
-            </div>
+            <div className="flex flex-col gap-3">
+              <div className="text-sm text-gray-600">
+                Создайте отдельный ключ для каждого источника заявок. Название
+                ключа будет показано на карточке заявки/мероприятия
+              </div>
 
-            <IconCheckBox
-              label="Принимать заявки через API"
-              checked={isEnabled}
-              onClick={() => saveCustom({ publicLeadEnabled: !isEnabled })}
-              noMargin
-            />
+              <IconCheckBox
+                label="Принимать заявки через API"
+                checked={isEnabled}
+                onClick={() => saveCustom({ publicLeadEnabled: !isEnabled })}
+                noMargin
+              />
 
-            <Input
-              label="Endpoint"
-              value={endpointUrl}
-              onChange={() => {}}
-              disabled
-              noMargin
-              fullWidth
-            />
+              <Input
+                label="Endpoint"
+                value={endpointUrl}
+                onChange={() => {}}
+                disabled
+                noMargin
+                fullWidth
+              />
 
-            <div className="tablet:grid-cols-2 grid grid-cols-1 gap-2">
-              {apiKeys.length === 0 ? (
-                <div className="tablet:col-span-2 rounded border border-dashed border-gray-300 bg-gray-50 px-3 py-3 text-sm text-gray-600">
-                  Ключей пока нет. Создайте первый ключ для сайта, Tilda или
-                  другого источника заявок.
-                </div>
-              ) : (
-                apiKeys.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex w-full justify-between gap-2 rounded border border-gray-200 bg-white p-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-gray-900">
-                        {item.name}
-                      </div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        {item.key
-                          ? `...${item.key.slice(-8)}`
-                          : 'Ключ не задан'}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <span
-                        className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
-                          item.enabled
-                            ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                            : 'border-gray-300 bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        {item.enabled ? 'Активен' : 'Отключен'}
-                      </span>
-                      <div className="flex shrink-0 justify-end gap-2">
-                        <IconActionButton
-                          icon={faPencilAlt}
-                          size="sm"
-                          variant="warning"
-                          title="Настроить ключ"
-                          onClick={() => openApiKeyEditor(item)}
-                        />
-                        <IconActionButton
-                          icon={faTrash}
-                          size="sm"
-                          variant="danger"
-                          title="Удалить ключ"
-                          onClick={() => deleteApiKey(item)}
-                          disabled={isSaving}
-                        />
-                      </div>
-                    </div>
+              <div className="tablet:grid-cols-2 grid grid-cols-1 gap-2">
+                {apiKeys.length === 0 ? (
+                  <div className="tablet:col-span-2 rounded border border-dashed border-gray-300 bg-gray-50 px-3 py-3 text-sm text-gray-600">
+                    Ключей пока нет. Создайте первый ключ для сайта, Tilda или
+                    другого источника заявок.
                   </div>
-                ))
-              )}
-            </div>
+                ) : (
+                  apiKeys.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex w-full justify-between gap-2 rounded border border-gray-200 bg-white p-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-gray-900">
+                          {item.name}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          {item.key
+                            ? `...${item.key.slice(-8)}`
+                            : 'Ключ не задан'}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        <span
+                          className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                            item.enabled
+                              ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                              : 'border-gray-300 bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {item.enabled ? 'Активен' : 'Отключен'}
+                        </span>
+                        <div className="flex shrink-0 justify-end gap-2">
+                          <IconActionButton
+                            icon={faPencilAlt}
+                            size="sm"
+                            variant="warning"
+                            title="Настроить ключ"
+                            onClick={() => openApiKeyEditor(item)}
+                          />
+                          <IconActionButton
+                            icon={faTrash}
+                            size="sm"
+                            variant="danger"
+                            title="Удалить ключ"
+                            onClick={() => deleteApiKey(item)}
+                            disabled={isSaving}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
 
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
-                onClick={() => openApiKeyEditor()}
-                disabled={isSaving}
-              >
-                Добавить ключ
-              </button>
-              <InstructionButton
-                onClick={() =>
-                  modalsFunc.add({
-                    title: 'Инструкция API',
-                    showDecline: true,
-                    declineButtonName: 'Закрыть',
-                    Children: IntegrationsApiGuide,
-                  })
-                }
-              >
-                Открыть инструкцию API
-              </InstructionButton>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+                  onClick={() => openApiKeyEditor()}
+                  disabled={isSaving}
+                >
+                  Добавить ключ
+                </button>
+                <InstructionButton
+                  onClick={() =>
+                    modalsFunc.add({
+                      title: 'Инструкция API',
+                      showDecline: true,
+                      declineButtonName: 'Закрыть',
+                      Children: IntegrationsApiGuide,
+                    })
+                  }
+                >
+                  Открыть инструкцию API
+                </InstructionButton>
+              </div>
             </div>
-          </div>
           </IntegrationAccordion>
         ) : null}
 
@@ -1152,192 +1173,66 @@ const IntegrationsContent = () => {
             warning={avitoEnabled && avitoStatus !== 'connected'}
             loading={avitoLoading}
           >
-          <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-600">
-              Подключение выполняется отдельно для вашего аккаунта Avito.
-              Сообщения из новых чатов будут попадать в CRM как заявки со
-              статусом Черновик.
-            </div>
+            <div className="flex flex-col gap-3">
+              <div className="text-sm text-gray-600">
+                Подключение выполняется отдельно для вашего аккаунта Avito.
+                Сообщения из новых чатов будут попадать в CRM как заявки со
+                статусом Черновик.
+              </div>
 
-            <div
-              className={`rounded border px-3 py-2 text-sm ${
-                avitoEnabled && avitoStatus !== 'auth_error'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                  : avitoStatus === 'auth_error'
-                    ? 'border-red-200 bg-red-50 text-red-700'
-                    : 'border-gray-200 bg-gray-50 text-gray-700'
-              }`}
-            >
-              Статус: {avitoStatusText}
-              {avitoLastWebhookAt ? (
-                <span className="block text-xs">
-                  Последнее событие: {new Date(avitoLastWebhookAt).toLocaleString()}
-                </span>
-              ) : null}
-              {avitoLastError ? (
-                <span className="block text-xs">Ошибка: {avitoLastError}</span>
-              ) : null}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
-              <Input
-                label="Avito Client ID"
-                value={avitoClientId}
-                onChange={(value) => saveCustom({ avitoClientId: value })}
-                noMargin
-                fullWidth
-              />
-              <Input
-                label="Avito User ID"
-                value={avitoUserId}
-                onChange={(value) => saveCustom({ avitoUserId: value })}
-                noMargin
-                fullWidth
-              />
-            </div>
-
-            <Input
-              label="Avito Client Secret"
-              value={avitoClientSecret}
-              onChange={(value) => saveCustom({ avitoClientSecret: value })}
-              type="password"
-              noMargin
-              fullWidth
-            />
-
-            <div className="flex items-start gap-2">
-              <Input
-                label="Адрес webhook Avito"
-                value={avitoWebhookUrl}
-                onChange={() => {}}
-                disabled
-                noMargin
-                fullWidth
-              />
-              <IconActionButton
-                icon={faCopy}
-                size="md"
-                variant="success"
-                title="Скопировать webhook"
-                className="shrink-0"
-                onClick={async () => {
-                  if (!avitoWebhookUrl || !navigator?.clipboard) return
-                  await navigator.clipboard.writeText(avitoWebhookUrl)
-                  snackbar.success('Webhook скопирован')
-                }}
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={connectAvito}
-                disabled={avitoLoading || !avitoClientId || !avitoClientSecret}
+              <div
+                className={`rounded border px-3 py-2 text-sm ${
+                  avitoEnabled && avitoStatus !== 'auth_error'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : avitoStatus === 'auth_error'
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : 'border-gray-200 bg-gray-50 text-gray-700'
+                }`}
               >
-                {avitoEnabled ? 'Переподключить' : 'Подключить'}
-              </button>
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={checkAvito}
-                disabled={avitoLoading || !avitoClientId || !avitoClientSecret}
-              >
-                Проверить
-              </button>
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--danger tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={disconnectAvito}
-                disabled={avitoLoading || !avitoEnabled}
-              >
-                Отключить
-              </button>
-              <InstructionButton
-                onClick={() =>
-                  modalsFunc.add({
-                    title: 'Как подключить Avito',
-                    showDecline: true,
-                    declineButtonName: 'Закрыть',
-                    Children: AvitoGuide,
-                  })
-                }
-              >
-                Как подключить
-              </InstructionButton>
-            </div>
-          </div>
-          </IntegrationAccordion>
-        ) : null}
+                Статус: {avitoStatusText}
+                {avitoLastWebhookAt ? (
+                  <span className="block text-xs">
+                    Последнее событие:{' '}
+                    {new Date(avitoLastWebhookAt).toLocaleString()}
+                  </span>
+                ) : null}
+                {avitoLastError ? (
+                  <span className="block text-xs">
+                    Ошибка: {avitoLastError}
+                  </span>
+                ) : null}
+              </div>
 
-        {canUseVk ? (
-          <IntegrationAccordion
-            title="VK"
-            description="Персональная интеграция сообщений группы VK в заявки CRM."
-            connected={vkEnabled && vkStatus !== 'auth_error'}
-            warning={vkEnabled && vkStatus !== 'connected'}
-            loading={vkLoading}
-          >
-          <div className="flex flex-col gap-3">
-            <div className="text-sm text-gray-600">
-              Подключение выполняется отдельно для вашей группы VK. Сообщения из
-              новых диалогов будут попадать в CRM как заявки со статусом
-              Черновик.
-            </div>
+              <div className="tablet:grid-cols-2 grid grid-cols-1 gap-3">
+                <Input
+                  label="Avito Client ID"
+                  value={avitoClientId}
+                  onChange={(value) => saveCustom({ avitoClientId: value })}
+                  noMargin
+                  fullWidth
+                />
+                <Input
+                  label="Avito User ID"
+                  value={avitoUserId}
+                  onChange={(value) => saveCustom({ avitoUserId: value })}
+                  noMargin
+                  fullWidth
+                />
+              </div>
 
-            <div
-              className={`rounded border px-3 py-2 text-sm ${
-                vkEnabled && vkStatus !== 'auth_error'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                  : vkStatus === 'auth_error'
-                    ? 'border-red-200 bg-red-50 text-red-700'
-                    : 'border-gray-200 bg-gray-50 text-gray-700'
-              }`}
-            >
-              Статус: {vkStatusText}
-              {vkLastWebhookAt ? (
-                <span className="block text-xs">
-                  Последнее событие: {new Date(vkLastWebhookAt).toLocaleString()}
-                </span>
-              ) : null}
-              {vkLastError ? (
-                <span className="block text-xs">Ошибка: {vkLastError}</span>
-              ) : null}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
               <Input
-                label="VK Group ID"
-                value={vkGroupId}
-                onChange={(value) => saveCustom({ vkGroupId: value })}
+                label="Avito Client Secret"
+                value={avitoClientSecret}
+                onChange={(value) => saveCustom({ avitoClientSecret: value })}
+                type="password"
                 noMargin
                 fullWidth
               />
-              <Input
-                label="Строка подтверждения Callback API"
-                value={vkConfirmationCode}
-                onChange={(value) =>
-                  saveCustom({ vkGroupConfirmationCode: value })
-                }
-                noMargin
-                fullWidth
-              />
-            </div>
 
-            <Input
-              label="Токен сообщества VK"
-              value={vkAccessToken}
-              onChange={(value) => saveCustom({ vkGroupAccessToken: value })}
-              type="password"
-              noMargin
-              fullWidth
-            />
-
-            <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
               <div className="flex items-start gap-2">
                 <Input
-                  label="Адрес webhook VK"
-                  value={vkWebhookUrl}
+                  label="Адрес webhook Avito"
+                  value={avitoWebhookUrl}
                   onChange={() => {}}
                   disabled
                   noMargin
@@ -1350,88 +1245,224 @@ const IntegrationsContent = () => {
                   title="Скопировать webhook"
                   className="shrink-0"
                   onClick={async () => {
-                    if (!vkWebhookUrl || !navigator?.clipboard) return
-                    if (!vkWebhookToken && vkDisplayedWebhookToken) {
-                      await saveCustom({ vkGroupWebhookToken: vkDisplayedWebhookToken })
-                    }
-                    await navigator.clipboard.writeText(vkWebhookUrl)
+                    if (!avitoWebhookUrl || !navigator?.clipboard) return
+                    await navigator.clipboard.writeText(avitoWebhookUrl)
                     snackbar.success('Webhook скопирован')
                   }}
                 />
               </div>
-              <div className="flex items-start gap-2">
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={connectAvito}
+                  disabled={
+                    avitoLoading || !avitoClientId || !avitoClientSecret
+                  }
+                >
+                  {avitoEnabled ? 'Переподключить' : 'Подключить'}
+                </button>
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={checkAvito}
+                  disabled={
+                    avitoLoading || !avitoClientId || !avitoClientSecret
+                  }
+                >
+                  Проверить
+                </button>
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--danger tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={disconnectAvito}
+                  disabled={avitoLoading || !avitoEnabled}
+                >
+                  Отключить
+                </button>
+                <InstructionButton
+                  onClick={() =>
+                    modalsFunc.add({
+                      title: 'Как подключить Avito',
+                      showDecline: true,
+                      declineButtonName: 'Закрыть',
+                      Children: AvitoGuide,
+                    })
+                  }
+                >
+                  Как подключить
+                </InstructionButton>
+              </div>
+            </div>
+          </IntegrationAccordion>
+        ) : null}
+
+        {canUseVk ? (
+          <IntegrationAccordion
+            title="VK"
+            description="Персональная интеграция сообщений группы VK в заявки CRM."
+            connected={vkEnabled && vkStatus !== 'auth_error'}
+            warning={vkEnabled && vkStatus !== 'connected'}
+            loading={vkLoading}
+          >
+            <div className="flex flex-col gap-3">
+              <div className="text-sm text-gray-600">
+                Подключение выполняется отдельно для вашей группы VK. Сообщения
+                из новых диалогов будут попадать в CRM как заявки со статусом
+                Черновик.
+              </div>
+
+              <div
+                className={`rounded border px-3 py-2 text-sm ${
+                  vkEnabled && vkStatus !== 'auth_error'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : vkStatus === 'auth_error'
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : 'border-gray-200 bg-gray-50 text-gray-700'
+                }`}
+              >
+                Статус: {vkStatusText}
+                {vkLastWebhookAt ? (
+                  <span className="block text-xs">
+                    Последнее событие:{' '}
+                    {new Date(vkLastWebhookAt).toLocaleString()}
+                  </span>
+                ) : null}
+                {vkLastError ? (
+                  <span className="block text-xs">Ошибка: {vkLastError}</span>
+                ) : null}
+              </div>
+
+              <div className="tablet:grid-cols-2 grid grid-cols-1 gap-3">
                 <Input
-                  label="Secret key Callback API"
-                  value={vkDisplayedWebhookSecret}
+                  label="VK Group ID"
+                  value={vkGroupId}
+                  onChange={(value) => saveCustom({ vkGroupId: value })}
+                  noMargin
+                  fullWidth
+                />
+                <Input
+                  label="Строка подтверждения Callback API"
+                  value={vkConfirmationCode}
                   onChange={(value) =>
-                    saveCustom({ vkGroupWebhookSecret: value })
+                    saveCustom({ vkGroupConfirmationCode: value })
                   }
                   noMargin
                   fullWidth
                 />
-                <IconActionButton
-                  icon={faCopy}
-                  size="md"
-                  variant="success"
-                  title="Скопировать secret key"
-                  className="shrink-0"
-                  onClick={async () => {
-                    const secret = vkDisplayedWebhookSecret
-                    if (!secret || !navigator?.clipboard) return
-                    if (!vkWebhookSecret) {
-                      await saveCustom({ vkGroupWebhookSecret: secret })
+              </div>
+
+              <Input
+                label="Токен сообщества VK"
+                value={vkAccessToken}
+                onChange={(value) => saveCustom({ vkGroupAccessToken: value })}
+                type="password"
+                noMargin
+                fullWidth
+              />
+
+              <div className="tablet:grid-cols-2 grid grid-cols-1 gap-3">
+                <div className="flex items-start gap-2">
+                  <Input
+                    label="Адрес webhook VK"
+                    value={vkWebhookUrl}
+                    onChange={() => {}}
+                    disabled
+                    noMargin
+                    fullWidth
+                  />
+                  <IconActionButton
+                    icon={faCopy}
+                    size="md"
+                    variant="success"
+                    title="Скопировать webhook"
+                    className="shrink-0"
+                    onClick={async () => {
+                      if (!vkWebhookUrl || !navigator?.clipboard) return
+                      if (!vkWebhookToken && vkDisplayedWebhookToken) {
+                        await saveCustom({
+                          vkGroupWebhookToken: vkDisplayedWebhookToken,
+                        })
+                      }
+                      await navigator.clipboard.writeText(vkWebhookUrl)
+                      snackbar.success('Webhook скопирован')
+                    }}
+                  />
+                </div>
+                <div className="flex items-start gap-2">
+                  <Input
+                    label="Secret key Callback API"
+                    value={vkDisplayedWebhookSecret}
+                    onChange={(value) =>
+                      saveCustom({ vkGroupWebhookSecret: value })
                     }
-                    await navigator.clipboard.writeText(secret)
-                    snackbar.success('Secret key скопирован')
-                  }}
-                />
+                    noMargin
+                    fullWidth
+                  />
+                  <IconActionButton
+                    icon={faCopy}
+                    size="md"
+                    variant="success"
+                    title="Скопировать secret key"
+                    className="shrink-0"
+                    onClick={async () => {
+                      const secret = vkDisplayedWebhookSecret
+                      if (!secret || !navigator?.clipboard) return
+                      if (!vkWebhookSecret) {
+                        await saveCustom({ vkGroupWebhookSecret: secret })
+                      }
+                      await navigator.clipboard.writeText(secret)
+                      snackbar.success('Secret key скопирован')
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={connectVk}
+                  disabled={
+                    vkLoading ||
+                    !vkGroupId ||
+                    !vkAccessToken ||
+                    !vkConfirmationCode
+                  }
+                >
+                  {vkEnabled ? 'Переподключить' : 'Подключить'}
+                </button>
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={checkVk}
+                  disabled={vkLoading || !vkGroupId || !vkAccessToken}
+                >
+                  Проверить
+                </button>
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--danger tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={disconnectVk}
+                  disabled={vkLoading || !vkEnabled}
+                >
+                  Отключить
+                </button>
+                <InstructionButton
+                  onClick={() =>
+                    modalsFunc.add({
+                      title: 'Как подключить VK',
+                      showDecline: true,
+                      declineButtonName: 'Закрыть',
+                      Children: VkGuide,
+                    })
+                  }
+                >
+                  Как подключить
+                </InstructionButton>
               </div>
             </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={connectVk}
-                disabled={
-                  vkLoading ||
-                  !vkGroupId ||
-                  !vkAccessToken ||
-                  !vkConfirmationCode
-                }
-              >
-                {vkEnabled ? 'Переподключить' : 'Подключить'}
-              </button>
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={checkVk}
-                disabled={vkLoading || !vkGroupId || !vkAccessToken}
-              >
-                Проверить
-              </button>
-              <button
-                type="button"
-                className="action-icon-button action-icon-button--danger tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={disconnectVk}
-                disabled={vkLoading || !vkEnabled}
-              >
-                Отключить
-              </button>
-              <InstructionButton
-                onClick={() =>
-                  modalsFunc.add({
-                    title: 'Как подключить VK',
-                    showDecline: true,
-                    declineButtonName: 'Закрыть',
-                    Children: VkGuide,
-                  })
-                }
-              >
-                Как подключить
-              </InstructionButton>
-            </div>
-          </div>
           </IntegrationAccordion>
         ) : null}
 
@@ -1521,7 +1552,9 @@ const IntegrationsContent = () => {
                   type="button"
                   className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
                   onClick={() =>
-                    saveCustom({ novofonWebhookSecret: generateNovofonSecret() })
+                    saveCustom({
+                      novofonWebhookSecret: generateNovofonSecret(),
+                    })
                   }
                   disabled={isSaving}
                 >
@@ -1608,7 +1641,7 @@ const IntegrationsContent = () => {
                     </div>
                   ) : (
                     <>
-                      <div className="grid grid-cols-1 gap-2 tablet:grid-cols-3">
+                      <div className="tablet:grid-cols-3 grid grid-cols-1 gap-2">
                         <div>
                           <div className="ai-billing-card__label text-xs text-blue-700">
                             Баланс
@@ -1635,7 +1668,7 @@ const IntegrationsContent = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2">
+                      <div className="tablet:grid-cols-2 grid grid-cols-1 gap-2">
                         <div className="ai-billing-estimate rounded-md border border-blue-100 bg-white/60 px-3 py-2">
                           <div className="ai-billing-card__label text-xs text-blue-700">
                             Голосовое сообщение
@@ -1673,53 +1706,48 @@ const IntegrationsContent = () => {
                           баланс так, чтобы он был больше средней стоимости
                           нужной операции, или подключите свой AITunnel.
                         </div>
-                      ) : (
-                        <div className="ai-billing-card__description text-sm text-blue-900">
-                          Доступно. Итоговая сумма рассчитывается по фактической
-                          стоимости AITunnel с наценкой сервиса.
-                        </div>
-                      )}
+                      ) : null}
                     </>
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+                <div className="tablet:grid-cols-2 grid grid-cols-1 gap-3">
                   {aiAnalysisProvider === 'deepseek' ? (
-                  <Input
-                    label="API-ключ DeepSeek"
-                    type="password"
-                    value={deepseekKey}
-                    onChange={(value) => saveCustom({ deepseekKey: value })}
-                    noMargin
-                    fullWidth
-                  />
+                    <Input
+                      label="API-ключ DeepSeek"
+                      type="password"
+                      value={deepseekKey}
+                      onChange={(value) => saveCustom({ deepseekKey: value })}
+                      noMargin
+                      fullWidth
+                    />
                   ) : (
+                    <Input
+                      label="Ключ AITunnel"
+                      type="password"
+                      value={aitunnelKey}
+                      onChange={(value) =>
+                        saveCustom({
+                          aitunnelKey: value,
+                          aitunnelEnabled: Boolean(value),
+                          aiTranscriptionProvider: value ? 'aitunnel' : '',
+                        })
+                      }
+                      noMargin
+                      fullWidth
+                    />
+                  )}
                   <Input
-                    label="Ключ AITunnel"
-                    type="password"
-                    value={aitunnelKey}
+                    label="Модель AI-анализа"
+                    value={aiAnalysisModel}
                     onChange={(value) =>
                       saveCustom({
-                        aitunnelKey: value,
-                        aitunnelEnabled: Boolean(value),
-                        aiTranscriptionProvider: value ? 'aitunnel' : '',
+                        aiAnalysisProvider,
+                        aiAnalysisModel: value,
                       })
                     }
                     noMargin
                     fullWidth
-                  />
-                  )}
-                  <Input
-                  label="Модель AI-анализа"
-                  value={aiAnalysisModel}
-                  onChange={(value) =>
-                    saveCustom({
-                      aiAnalysisProvider,
-                      aiAnalysisModel: value,
-                    })
-                  }
-                  noMargin
-                  fullWidth
                   />
                 </div>
               )}
@@ -1743,7 +1771,7 @@ const IntegrationsContent = () => {
                     текст. Для расшифровки аудиозаписей звонков нужен отдельный
                     ключ AITunnel.
                   </div>
-                  <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+                  <div className="tablet:grid-cols-2 grid grid-cols-1 gap-3">
                     <Input
                       label="Ключ AITunnel для распознавания (необязательно)"
                       type="password"
