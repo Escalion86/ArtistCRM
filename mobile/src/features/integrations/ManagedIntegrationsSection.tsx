@@ -12,6 +12,7 @@ import {
   Surface,
 } from '../../shared/ui/components'
 import { colors, radius, spacing } from '../../shared/ui/theme'
+import { AiUsagePanel } from './AiUsagePanel'
 
 type Provider = 'telephony' | 'ai' | 'public-leads'
 type AiProvider = 'artistcrm' | 'aitunnel' | 'deepseek'
@@ -472,6 +473,12 @@ export function ManagedIntegrationsSection({
             disabled={loading}
           />
         </> : null}
+        {details ? (
+          <AiUsagePanel
+            activeProvider={aiProvider}
+            isDeveloper={Boolean(details.canUseDeepseek)}
+          />
+        ) : null}
       </> : null}
 
       {selected === 'public-leads' ? <>

@@ -542,6 +542,21 @@ const IntegrationsContent = () => {
   const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false)
   const [aiUsage, setAiUsage] = useState(null)
   const [aiUsageLoading, setAiUsageLoading] = useState(false)
+  const aiAverageCosts = useMemo(() => {
+    const quotes = new Map(
+      (aiUsage?.quotes || []).map((quote) => [
+        quote.feature,
+        Number(quote.requiredBalance || 0),
+      ])
+    )
+
+    return {
+      voiceMessage: quotes.get('voice_transcription') || 0,
+      phoneCall:
+        (quotes.get('call_transcription') || 0) +
+        (quotes.get('call_analysis') || 0),
+    }
+  }, [aiUsage?.quotes])
 
   const customSettings = useMemo(
     () => siteSettings?.custom ?? {},
@@ -1586,46 +1601,80 @@ const IntegrationsContent = () => {
                 fullWidth
               />
               {aiAnalysisProvider === 'artistcrm' ? (
-                <div className="flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                <div className="ai-billing-card flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
                   {aiUsageLoading ? (
-                    <div className="text-sm text-blue-800">
+                    <div className="ai-billing-card__description text-sm text-blue-800">
                       Загружаем баланс и расходы...
                     </div>
                   ) : (
                     <>
                       <div className="grid grid-cols-1 gap-2 tablet:grid-cols-3">
                         <div>
-                          <div className="text-xs text-blue-700">Баланс</div>
-                          <div className="font-semibold text-blue-950">
+                          <div className="ai-billing-card__label text-xs text-blue-700">
+                            Баланс
+                          </div>
+                          <div className="ai-billing-card__value font-semibold text-blue-950">
                             {formatMoney(aiUsage?.balance || 0)}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-blue-700">Макс. текущий порог</div>
-                          <div className="font-semibold text-blue-950">
+                          <div className="ai-billing-card__label text-xs text-blue-700">
+                            Макс. текущий порог
+                          </div>
+                          <div className="ai-billing-card__value font-semibold text-blue-950">
                             больше {formatMoney(aiUsage?.requiredBalance || 0)}
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs text-blue-700">Всего списано</div>
-                          <div className="font-semibold text-blue-950">
+                          <div className="ai-billing-card__label text-xs text-blue-700">
+                            Всего списано
+                          </div>
+                          <div className="ai-billing-card__value font-semibold text-blue-950">
                             {formatMoney(aiUsage?.summary?.charged || 0)} ·{' '}
                             {aiUsage?.summary?.operations || 0} операций
                           </div>
                         </div>
                       </div>
+                      <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2">
+                        <div className="ai-billing-estimate rounded-md border border-blue-100 bg-white/60 px-3 py-2">
+                          <div className="ai-billing-card__label text-xs text-blue-700">
+                            Голосовое сообщение
+                          </div>
+                          <div className="ai-billing-card__value font-semibold text-blue-950">
+                            ≈ {formatMoney(aiAverageCosts.voiceMessage)}
+                          </div>
+                          <div className="ai-billing-card__description text-xs text-blue-800">
+                            Распознавание речи
+                          </div>
+                        </div>
+                        <div className="ai-billing-estimate rounded-md border border-blue-100 bg-white/60 px-3 py-2">
+                          <div className="ai-billing-card__label text-xs text-blue-700">
+                            Звонок из телефонии
+                          </div>
+                          <div className="ai-billing-card__value font-semibold text-blue-950">
+                            ≈ {formatMoney(aiAverageCosts.phoneCall)}
+                          </div>
+                          <div className="ai-billing-card__description text-xs text-blue-800">
+                            Расшифровка и анализ звонка
+                          </div>
+                        </div>
+                      </div>
+                      <div className="ai-billing-card__description text-xs text-blue-800">
+                        Ориентир рассчитан по последним операциям с текущей
+                        наценкой. Длинные записи могут стоить дороже.
+                      </div>
                       {!aiUsage?.platformConfigured ? (
-                        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        <div className="ai-billing-card__danger rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                           Общий ИИ временно не настроен администратором.
                         </div>
                       ) : !aiUsage?.available ? (
-                        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        <div className="ai-billing-card__warning rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                           Для части ИИ-операций недостаточно средств. Пополните
                           баланс так, чтобы он был больше средней стоимости
                           нужной операции, или подключите свой AITunnel.
                         </div>
                       ) : (
-                        <div className="text-sm text-blue-900">
+                        <div className="ai-billing-card__description text-sm text-blue-900">
                           Доступно. Итоговая сумма рассчитывается по фактической
                           стоимости AITunnel с наценкой сервиса.
                         </div>
@@ -1759,18 +1808,20 @@ const IntegrationsContent = () => {
                   </div>
                 </div>
               ) : null}
-              <InstructionButton
-                onClick={() =>
-                  modalsFunc.add({
-                    title: 'Как подключить ИИ-провайдера',
-                    showDecline: true,
-                    declineButtonName: 'Закрыть',
-                    Children: AIProviderGuide,
-                  })
-                }
-              >
-                Как подключить
-              </InstructionButton>
+              {aiAnalysisProvider !== 'artistcrm' ? (
+                <InstructionButton
+                  onClick={() =>
+                    modalsFunc.add({
+                      title: 'Как подключить ИИ-провайдера',
+                      showDecline: true,
+                      declineButtonName: 'Закрыть',
+                      Children: AIProviderGuide,
+                    })
+                  }
+                >
+                  Как подключить
+                </InstructionButton>
+              ) : null}
             </div>
           </IntegrationAccordion>
         ) : null}
