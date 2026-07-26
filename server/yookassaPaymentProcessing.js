@@ -5,6 +5,7 @@ import { applyTariffPurchase } from '@server/billing'
 import { SBP_BONUS_RATE, getSbpBonusAmount } from '@server/billingConfig'
 import { createReferralRewardForBalanceTopup } from '@server/referralRewards'
 import { getYookassaPayment, normalizeAmount } from '@server/yookassa'
+import { recordPaymentSucceeded } from '@server/acquisitionFunnel'
 
 const getPaymentMethodInfo = (providerPayment) => {
   const method = providerPayment?.payment_method || {}
@@ -111,6 +112,12 @@ const processSucceededYookassaPayment = async ({ payment, providerPayment }) => 
     ? new Date(providerPayment.captured_at)
     : new Date()
   await payment.save()
+  recordPaymentSucceeded(payment.userId, payment.paidAt).catch((error) =>
+    console.error('[acquisition] yookassa payment funnel update failed', {
+      paymentId: String(payment._id),
+      message: error?.message,
+    })
+  )
 
   if (bonusAmount > 0) {
     await Payments.create({

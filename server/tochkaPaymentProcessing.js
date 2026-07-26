@@ -11,6 +11,7 @@ import {
   getTochkaPayment,
   normalizeAmount,
 } from '@server/tochka'
+import { recordPaymentSucceeded } from '@server/acquisitionFunnel'
 
 const base64UrlDecode = (value) =>
   Buffer.from(
@@ -143,6 +144,12 @@ const processSucceededTochkaPayment = async ({ payment, providerPayment }) => {
     ? new Date(providerPayment.date)
     : new Date()
   await payment.save()
+  recordPaymentSucceeded(payment.userId, payment.paidAt).catch((error) =>
+    console.error('[acquisition] tochka payment funnel update failed', {
+      paymentId: String(payment._id),
+      message: error?.message,
+    })
+  )
 
   if (bonusAmount > 0) {
     await Payments.create({

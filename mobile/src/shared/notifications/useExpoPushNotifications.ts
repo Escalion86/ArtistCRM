@@ -102,6 +102,18 @@ const getExpoToken = async (requestPermission: boolean) => {
   return { token: tokenData.data, permission: finalStatus }
 }
 
+const getPushSetupError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || '')
+  if (
+    /Default FirebaseApp is not initialized|FCM credentials|google-services/i.test(
+      message
+    )
+  ) {
+    return 'Push не настроен в этой сборке ArtistCRM. Установите обновлённую версию приложения.'
+  }
+  return 'Не удалось подключить push-уведомления. Проверьте интернет и повторите попытку.'
+}
+
 export const getExpoPushDeviceState = async () => {
   const [{ status }, enabled, token] = await Promise.all([
     Notifications.getPermissionsAsync(),
@@ -112,14 +124,21 @@ export const getExpoPushDeviceState = async () => {
 }
 
 export const enableExpoPushNotifications = async () => {
-  await flushPendingPushUnsubscribe()
-  await registerNotificationCategories()
-  const { token, permission } = await getExpoToken(true)
-  if (!token) return { ok: false, permission, error: 'Разрешение на уведомления не выдано' }
-  const registered = await registerPushTokenOnServer(token)
-  if (!registered) return { ok: false, permission, error: 'Не удалось зарегистрировать устройство' }
-  await Promise.all([setStoredPushToken(token), setPushEnabledPreference(true)])
-  return { ok: true, permission, token }
+  try {
+    await flushPendingPushUnsubscribe()
+    await registerNotificationCategories()
+    const { token, permission } = await getExpoToken(true)
+    if (!token) return { ok: false, permission, error: 'Разрешение на уведомления не выдано' }
+    const registered = await registerPushTokenOnServer(token)
+    if (!registered) return { ok: false, permission, error: 'Не удалось зарегистрировать устройство' }
+    await Promise.all([setStoredPushToken(token), setPushEnabledPreference(true)])
+    return { ok: true, permission, token }
+  } catch (error) {
+    const { status } = await Notifications.getPermissionsAsync().catch(
+      () => ({ status: 'undetermined' as Notifications.PermissionStatus })
+    )
+    return { ok: false, permission: status, error: getPushSetupError(error) }
+  }
 }
 
 export const disableExpoPushNotifications = async () => {

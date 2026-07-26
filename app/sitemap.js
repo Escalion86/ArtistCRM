@@ -3,6 +3,7 @@ import {
   normalizedSiteUrl,
   seoLandingSlugs,
 } from '@helpers/seoLandingPages'
+import { seoGuideSlugs } from '@helpers/seoGuidePages'
 
 export default function sitemap() {
   return [
@@ -17,6 +18,12 @@ export default function sitemap() {
       lastModified: SEO_LAST_MODIFIED,
       changeFrequency: 'monthly',
       priority: 0.85,
+    })),
+    ...seoGuideSlugs.map((slug) => ({
+      url: `${normalizedSiteUrl}/${slug}`,
+      lastModified: SEO_LAST_MODIFIED,
+      changeFrequency: 'monthly',
+      priority: 0.75,
     })),
     {
       url: `${normalizedSiteUrl}/privacy`,

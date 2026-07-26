@@ -22,4 +22,5 @@ build
 .env
 .env*.local
 google-play-service-account.json
+google-services.json
 expo-env.d.ts

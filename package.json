@@ -1,6 +1,6 @@
 {
   "name": "ArtistCRM",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
@@ -12,6 +12,7 @@
     "tochka:discover": "node scripts/tochkaDiscover.js",
     "seo:check": "node scripts/seoPostDeployCheck.mjs",
     "seo:indexnow": "node scripts/submitIndexNow.mjs",
+    "marketing:assets": "node scripts/buildMarketingComicAssets.mjs",
     "postinstall": "node scripts/postinstall.js"
   },
   "devDependencies": {

@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  buildAcquisitionFromSearchParams,
   formatRegistrationSource,
+  getAcquisitionFromRequest,
   getRegistrationSourceFromRequest,
   normalizeRegistrationSource,
+  parseAcquisitionCookie,
+  serializeAcquisitionCookie,
 } from './registrationSource.mjs'
 
 test('normalizeRegistrationSource accepts safe source slugs', () => {
@@ -31,4 +35,42 @@ test('getRegistrationSourceFromRequest reads and validates the attribution cooki
     },
   }
   assert.equal(getRegistrationSourceFromRequest(request), 'magic_chat')
+})
+
+test('acquisition cookie keeps only whitelisted bounded attribution fields', () => {
+  const searchParams = new URLSearchParams({
+    utm_source: 'Yandex',
+    utm_medium: 'CPC',
+    utm_campaign: 'magicians_launch',
+    utm_content: '<script>creative-a',
+    utm_term: 'crm для фокусников',
+    yclid: '12345',
+    ignored: 'secret',
+  })
+  const acquisition = buildAcquisitionFromSearchParams({
+    searchParams,
+    landingPath: '/crm-dlya-fokusnikov',
+  })
+  assert.deepEqual(acquisition, {
+    source: 'yandex',
+    medium: 'cpc',
+    campaign: 'magicians_launch',
+    content: 'scriptcreative-a',
+    term: 'crm для фокусников',
+    yclid: '12345',
+    landingPath: '/crm-dlya-fokusnikov',
+  })
+  assert.deepEqual(parseAcquisitionCookie(serializeAcquisitionCookie(acquisition)), acquisition)
+})
+
+test('getAcquisitionFromRequest safely ignores malformed cookies', () => {
+  const valid = serializeAcquisitionCookie({ source: 'telegram', medium: 'community' })
+  assert.equal(
+    getAcquisitionFromRequest({ cookies: { get: () => ({ value: valid }) } })?.source,
+    'telegram'
+  )
+  assert.equal(
+    getAcquisitionFromRequest({ cookies: { get: () => ({ value: '%broken' }) } }),
+    null
+  )
 })

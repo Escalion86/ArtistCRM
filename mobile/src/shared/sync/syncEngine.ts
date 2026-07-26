@@ -49,6 +49,11 @@ type PullPayload = {
 }
 
 let activeSync: ReturnType<typeof getOutboxSummary> | null = null
+let activeSyncIsFullPull = false
+
+type SyncOptions = {
+  fullPull?: boolean
+}
 
 const saveConflicts = async (result: PushResult) => {
   const database = await getDatabase()
@@ -143,8 +148,8 @@ const pushOutbox = async () => {
   }
 }
 
-const pullChanges = async () => {
-  let cursor = await getSyncCursor()
+const pullChanges = async (fullPull = false) => {
+  let cursor = fullPull ? '' : await getSyncCursor()
   const tombstones: PullPayload['tombstones'] = []
   for (let page = 0; page < 100; page += 1) {
     const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
@@ -167,8 +172,16 @@ const pullChanges = async () => {
   throw new Error('Превышен лимит страниц синхронизации')
 }
 
-export const runSync = async () => {
-  if (activeSync) return activeSync
+export const runSync = (
+  { fullPull = false }: SyncOptions = {}
+): ReturnType<typeof getOutboxSummary> => {
+  if (activeSync) {
+    if (fullPull && !activeSyncIsFullPull) {
+      return activeSync.then(() => runSync({ fullPull: true }))
+    }
+    return activeSync
+  }
+  activeSyncIsFullPull = fullPull
   activeSync = (async () => {
     await markSyncStarted()
     try {
@@ -179,7 +192,7 @@ export const runSync = async () => {
       }
       await pushOutbox()
       await syncFileQueue()
-      await pullChanges()
+      await pullChanges(fullPull)
       const summary = await getOutboxSummary()
       await markSyncCompleted()
       return summary
@@ -189,6 +202,7 @@ export const runSync = async () => {
     }
   })().finally(() => {
     activeSync = null
+    activeSyncIsFullPull = false
   })
   return activeSync
 }

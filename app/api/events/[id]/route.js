@@ -18,6 +18,7 @@ import {
 } from '@server/taskPushNotifications'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 import { recordSyncTombstone } from '@server/mobile/sync'
+import { recordCrmItemCreated } from '@server/acquisitionFunnel'
 import {
   hasDocuments,
   normalizeAdditionalEvents,
@@ -345,6 +346,13 @@ export const PUT = async (req, { params }) => {
       )
     }
   }
+
+  await recordCrmItemCreated({
+    userId: user._id,
+    hasNextAction: responseEvent?.additionalEvents?.some(
+      (item) => item && !item.done
+    ),
+  })
 
   // Send push notifications for task changes
   if (responseEvent) {

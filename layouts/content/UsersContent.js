@@ -23,6 +23,19 @@ import { formatRegistrationSource } from '@helpers/registrationSource.mjs'
 const ALL_SOURCES = '__all__'
 const EMPTY_SOURCE = '__empty__'
 
+const formatPercent = (value, total) =>
+  total > 0 ? `${Math.round((value / total) * 100)}%` : '—'
+
+const funnelSteps = [
+  ['Регистрации', 'registered'],
+  ['Запрос демо', 'demoRequested'],
+  ['Onboarding', 'onboarding'],
+  ['Первая заявка', 'firstItem'],
+  ['Возврат W1', 'returned'],
+  ['Активированы', 'activated'],
+  ['Оплатили', 'paid'],
+]
+
 const UsersContent = () => {
   const { data: users = [] } = useUsersQuery()
   const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -33,19 +46,60 @@ const UsersContent = () => {
   const sourceStats = useMemo(() => {
     const counts = new Map()
     users.forEach((user) => {
-      const source = user.registrationSource || EMPTY_SOURCE
-      counts.set(source, (counts.get(source) ?? 0) + 1)
+      const source =
+        user.registrationSource || user.acquisition?.source || EMPTY_SOURCE
+      const current = counts.get(source) ?? {
+        source,
+        registered: 0,
+        demoRequested: 0,
+        onboarding: 0,
+        firstItem: 0,
+        returned: 0,
+        activated: 0,
+        paid: 0,
+      }
+      current.registered += 1
+      if (user.acquisitionFunnel?.pilotDemoRequestedAt) current.demoRequested += 1
+      if (user.acquisitionFunnel?.onboardingCompletedAt) current.onboarding += 1
+      if (user.acquisitionFunnel?.firstCrmItemCreatedAt) current.firstItem += 1
+      if (user.acquisitionFunnel?.returnedWithin7DaysAt) current.returned += 1
+      if (user.acquisitionFunnel?.activatedAt) current.activated += 1
+      if (user.acquisitionFunnel?.paymentSucceededAt) current.paid += 1
+      counts.set(source, current)
     })
-    return Array.from(counts, ([source, count]) => ({ source, count })).sort(
-      (left, right) => right.count - left.count
+    return Array.from(counts.values()).sort(
+      (left, right) => right.registered - left.registered
     )
   }, [users])
+
+  const funnelTotals = useMemo(
+    () =>
+      sourceStats.reduce(
+        (totals, source) => {
+          funnelSteps.forEach(([, key]) => {
+            totals[key] += source[key]
+          })
+          return totals
+        },
+        {
+          registered: 0,
+          demoRequested: 0,
+          onboarding: 0,
+          firstItem: 0,
+          returned: 0,
+          activated: 0,
+          paid: 0,
+        }
+      ),
+    [sourceStats]
+  )
 
   const filteredUsers = useMemo(() => {
     const lowerSearch = search.trim().toLowerCase()
     return sortUsers(
       users.filter((user) => {
-        const userSource = user.registrationSource || EMPTY_SOURCE
+        const userSource =
+          user.registrationSource || user.acquisition?.source || EMPTY_SOURCE
         if (sourceFilter !== ALL_SOURCES && userSource !== sourceFilter) {
           return false
         }
@@ -58,6 +112,8 @@ const UsersContent = () => {
           user.telegram ? `@${user.telegram}` : '',
           user.email,
           user.registrationSource,
+          user.acquisition?.source,
+          user.acquisition?.campaign,
         ]
           .join(' ')
           .toLowerCase()
@@ -103,11 +159,11 @@ const UsersContent = () => {
             arrowClassName="right-3"
           >
             <option value={ALL_SOURCES}>Все источники ({users.length})</option>
-            {sourceStats.map(({ source, count }) => (
+            {sourceStats.map(({ source, registered }) => (
               <option key={source} value={source}>
                 {source === EMPTY_SOURCE
-                  ? `Без метки (${count})`
-                  : `${formatRegistrationSource(source)} (${count})`}
+                  ? `Без метки (${registered})`
+                  : `${formatRegistrationSource(source)} (${registered})`}
               </option>
             ))}
           </NativeSelect>
@@ -129,15 +185,53 @@ const UsersContent = () => {
         </label>
       </div>
       {sourceStats.length > 0 ? (
-        <div className="flex flex-wrap gap-2 px-2 pb-2 text-xs text-gray-600">
-          <span className="font-semibold">По источникам:</span>
-          {sourceStats.map(({ source, count }) => (
-            <span key={source}>
-              {source === EMPTY_SOURCE
-                ? `Без метки — ${count}`
-                : `${formatRegistrationSource(source)} — ${count}`}
-            </span>
-          ))}
+        <div className="grid gap-3 px-2 pb-2">
+          <div className="grid grid-cols-2 gap-2 tablet:grid-cols-3 desktop:grid-cols-7">
+            {funnelSteps.map(([label, key]) => (
+              <div
+                key={key}
+                className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
+              >
+                <div className="text-xs font-semibold text-gray-500">{label}</div>
+                <div className="mt-1 text-xl font-semibold text-gray-900">
+                  {funnelTotals[key]}
+                </div>
+                {key !== 'registered' ? (
+                  <div className="text-xs text-gray-500">
+                    {formatPercent(funnelTotals[key], funnelTotals.registered)}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+            <table className="min-w-[720px] w-full text-left text-xs">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="px-3 py-2">Источник</th>
+                  {funnelSteps.map(([label, key]) => (
+                    <th key={key} className="px-3 py-2">{label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sourceStats.map((source) => (
+                  <tr key={source.source} className="border-t border-gray-100">
+                    <td className="px-3 py-2 font-semibold text-gray-800">
+                      {source.source === EMPTY_SOURCE
+                        ? 'Без метки'
+                        : formatRegistrationSource(source.source)}
+                    </td>
+                    {funnelSteps.map(([, key]) => (
+                      <td key={key} className="px-3 py-2 text-gray-700">
+                        {source[key]}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : null}
       <SectionCard className="flex-1 min-h-0 overflow-hidden">

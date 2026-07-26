@@ -28,6 +28,7 @@ import useCabinetPerformanceMetrics from '@helpers/useCabinetPerformanceMetrics'
 import { shouldOpenFirstRunWizard } from '@helpers/firstRunWizard.mjs'
 import useCabinetStateHydration from '@helpers/useCabinetStateHydration'
 import useServerSync from '@helpers/useServerSync'
+import { reachGoalOnce } from '@helpers/metrikaGoals'
 
 const StateLoader = (props) => {
   if (props.error && Object.keys(props.error).length > 0)
@@ -105,6 +106,27 @@ const StateLoader = (props) => {
     setModalsFunc,
     snackbar,
   ])
+
+  useEffect(() => {
+    if (!loggedUser?._id) return
+    fetch('/api/acquisition/activity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'cabinet_visit' }),
+      keepalive: true,
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((result) => {
+        if (result?.activatedNow) reachGoalOnce('activation_complete')
+      })
+      .catch(() => null)
+  }, [loggedUser?._id, props.page])
+
+  useEffect(() => {
+    if (loggedUser?.acquisitionFunnel?.paymentSucceededAt) {
+      reachGoalOnce('payment_success')
+    }
+  }, [loggedUser?.acquisitionFunnel?.paymentSucceededAt])
 
   useEffect(() => {
     if (!loggedUser?._id) return

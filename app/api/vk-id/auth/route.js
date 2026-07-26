@@ -8,7 +8,9 @@ import getAuthSecret from '@server/getAuthSecret'
 import { findUserByPhone } from '@server/phoneVerification'
 import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 import {
+  ACQUISITION_COOKIE,
   REGISTRATION_SOURCE_COOKIE,
+  getAcquisitionFromRequest,
   getRegistrationSourceFromRequest,
 } from '@helpers/registrationSource.mjs'
 
@@ -47,6 +49,7 @@ export const POST = async (req) => {
   const consentPrivacyPolicy = body?.consentPrivacyPolicy === true
   const consentPersonalData = body?.consentPersonalData === true
   const registrationSource = getRegistrationSourceFromRequest(req)
+  const acquisition = getAcquisitionFromRequest(req)
   const accessToken = String(
     body?.access_token || body?.accessToken || ''
   ).trim()
@@ -144,6 +147,7 @@ export const POST = async (req) => {
       ...userInfoResult.data,
       referrerId,
       registrationSource,
+      acquisition,
     })
     if (!user?._id) {
       console.error('[vk-id/auth] ensureVkUser returned empty user', {
@@ -171,6 +175,7 @@ export const POST = async (req) => {
     if (registrationSource) {
       response.cookies.delete(REGISTRATION_SOURCE_COOKIE)
     }
+    if (acquisition) response.cookies.delete(ACQUISITION_COOKIE)
     return response
   } catch (error) {
     const errorCode =

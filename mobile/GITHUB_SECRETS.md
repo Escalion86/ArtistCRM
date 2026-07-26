@@ -27,9 +27,18 @@
 10. Name: `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
 11. Value: paste the entire JSON key
 
-Production API URL and scheme are defined in the EAS `production` profile. Public VK ID is stored in the EAS `production` environment; all three values are validated during the build.
+### 3. GOOGLE_SERVICES_JSON
 
-### 3. Apple App Store Connect API Key (for TestFlight)
+Android push требует Firebase-конфигурацию внутри APK/AAB:
+
+1. Откройте Firebase Console и зарегистрируйте Android-приложение с package `ru.escalion.artistcrm`.
+2. Скачайте `google-services.json`.
+3. В EAS environments `production` и `preview` создайте переменную `GOOGLE_SERVICES_JSON` типа **File** и загрузите этот файл.
+4. Для локальной development-сборки положите файл в `mobile/google-services.json` (он исключён из Git).
+
+Production API URL and scheme are defined in the EAS `production` profile. Public VK ID and Firebase config are stored in EAS environments and validated during the build.
+
+### 4. Apple App Store Connect API Key (for TestFlight)
 
 Required for iOS TestFlight uploads.
 

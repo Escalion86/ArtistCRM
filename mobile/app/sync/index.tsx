@@ -163,7 +163,7 @@ export default function SyncScreen() {
     setLoading(true)
     setError('')
     try {
-      await runSync()
+      await runSync({ fullPull: true })
       await queryClient.invalidateQueries({ queryKey: ['cached-entities'] })
       await load()
     } catch (reason) {

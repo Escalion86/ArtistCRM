@@ -10,6 +10,7 @@ import ServiceWorkerRegistration from '@components/ServiceWorkerRegistration'
 import AppSnackbarProvider from '@components/AppSnackbarProvider'
 import AppQueryProvider from '@components/AppQueryProvider'
 import Script from 'next/script'
+import AcquisitionTracker from '@components/AcquisitionTracker'
 
 const rawDomain = process.env.DOMAIN || 'https://artistcrm.ru'
 const siteUrl = rawDomain.startsWith('http')
@@ -66,6 +67,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ru" className="scroll-smooth" data-scroll-behavior="smooth">
       <body>
+        <AcquisitionTracker />
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <ClientErrorLogger enabled={isProduction} />
           {!isProduction && <DevelopmentServiceWorkerCleanup />}

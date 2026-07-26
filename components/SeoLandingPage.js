@@ -122,6 +122,16 @@ const SeoLandingPage = ({ page }) => {
             ))}
           </div>
           <div className="mt-8 flex flex-wrap gap-4">
+            {page.demoUrl ? (
+              <MetrikaLink
+                href={page.demoUrl}
+                className="ui-btn ui-btn-primary cursor-pointer"
+                goalName="pilot_demo_requested"
+                goalParams={{ page: page.slug, placement: 'hero' }}
+              >
+                Написать «CRM» и получить демонстрацию
+              </MetrikaLink>
+            ) : null}
             <MetrikaLink
               href={registerUrl}
               className="ui-btn ui-btn-primary cursor-pointer"
@@ -160,6 +170,60 @@ const SeoLandingPage = ({ page }) => {
           </div>
         </aside>
       </section>
+
+      {page.founderStory ? (
+        <section className="mx-auto w-full max-w-6xl px-6 py-12">
+          <div className="grid gap-8 rounded-2xl bg-[#101214] p-6 text-white shadow-xl lg:grid-cols-2 lg:p-10">
+            <div>
+              <p className="text-sm font-semibold tracking-[0.2em] text-amber-400 uppercase">
+                Сделано артистом для артистов
+              </p>
+              <h2 className="font-futuraPT mt-3 text-3xl font-semibold">
+                Опыт из реальных выступлений
+              </h2>
+              <p className="mt-4 leading-7 text-gray-200">{page.founderStory}</p>
+              <div className="mt-6 rounded-xl border border-amber-400/30 bg-white/5 p-5">
+                <p className="font-semibold text-amber-300">Пилот для коллег</p>
+                <p className="mt-2 text-sm leading-6 text-gray-200">
+                  {page.pilotOffer}
+                </p>
+              </div>
+            </div>
+            <Image
+              src={page.poster}
+              alt="Как ArtistCRM помогает фокуснику вести заявки"
+              width={1024}
+              height={1536}
+              className="mx-auto h-auto w-full max-w-sm rounded-xl"
+              sizes="(max-width: 1024px) 90vw, 384px"
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {page.gallery ? (
+        <section className="mx-auto w-full max-w-6xl px-6 py-12">
+          <h2 className="font-futuraPT text-3xl font-semibold text-black">
+            Весь путь заявки — на реальных экранах
+          </h2>
+          <p className="mt-3 max-w-2xl leading-7 text-gray-700">
+            Листайте: от первого обращения до календаря, задач и закрытой оплаты.
+          </p>
+          <div className="mt-6 flex snap-x gap-4 overflow-x-auto pb-4">
+            {page.gallery.map((src, index) => (
+              <Image
+                key={src}
+                src={src}
+                alt={`Сценарий ArtistCRM для фокусника, шаг ${index + 1}`}
+                width={348}
+                height={735}
+                className="h-auto w-[78vw] max-w-[348px] shrink-0 snap-center rounded-xl shadow-lg"
+                sizes="(max-width: 640px) 78vw, 348px"
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mx-auto w-full max-w-6xl px-6 py-12">
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
@@ -218,12 +282,14 @@ const SeoLandingPage = ({ page }) => {
               </p>
             </div>
             <MetrikaLink
-              href={registerUrl}
+              href={page.demoUrl || registerUrl}
               className="ui-btn ui-btn-primary cursor-pointer"
-              goalName="landing_cta_click"
+              goalName={page.demoUrl ? 'pilot_demo_requested' : 'landing_cta_click'}
               goalParams={{ page: page.slug, placement: 'final' }}
             >
-              Создать кабинет бесплатно
+              {page.demoUrl
+                ? 'Написать «CRM» и получить демонстрацию'
+                : 'Создать кабинет бесплатно'}
             </MetrikaLink>
           </div>
         </div>

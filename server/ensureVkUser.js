@@ -55,6 +55,7 @@ export const ensureVkUser = async ({
   image = '',
   referrerId = null,
   registrationSource = '',
+  acquisition = null,
 }) => {
   const normalizedVkId = String(vkId || '').trim()
   const normalizedPhone = normalizePhone(phone)
@@ -92,6 +93,7 @@ export const ensureVkUser = async ({
         referrerId: resolvedReferrerId,
         registrationSource,
         registrationSourceCapturedAt: registrationSource ? now : null,
+        acquisition: acquisition ? { ...acquisition, capturedAt: now } : null,
         tariffId: cheapestTariff?._id ?? null,
         trialActivatedAt: now,
         trialEndsAt,
@@ -129,6 +131,13 @@ export const ensureVkUser = async ({
     if (!user.referrerId) {
       const resolvedReferrerId = await resolveReferrerId(referrerId, user._id)
       if (resolvedReferrerId) patch.referrerId = resolvedReferrerId
+    }
+    if (!user.registrationSource && registrationSource) {
+      patch.registrationSource = registrationSource
+      patch.registrationSourceCapturedAt = new Date()
+    }
+    if (!user.acquisition && acquisition) {
+      patch.acquisition = { ...acquisition, capturedAt: new Date() }
     }
 
     if (Object.keys(patch).length > 0) {

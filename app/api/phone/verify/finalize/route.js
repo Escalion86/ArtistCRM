@@ -14,7 +14,9 @@ import {
 } from '@server/phoneVerification'
 import { checkRateLimit, rateLimitResponse } from '@server/rateLimit'
 import {
+  ACQUISITION_COOKIE,
   REGISTRATION_SOURCE_COOKIE,
+  getAcquisitionFromRequest,
   getRegistrationSourceFromRequest,
 } from '@helpers/registrationSource.mjs'
 
@@ -55,6 +57,7 @@ const createRegisterUser = async (
     consentPersonalData = false,
     referrerId = null,
     registrationSource = '',
+    acquisition = null,
   } = {}
 ) => {
   const cheapestTariff = await Tariffs.findOne({
@@ -75,6 +78,7 @@ const createRegisterUser = async (
     referrerId: referrerId ?? null,
     registrationSource,
     registrationSourceCapturedAt: registrationSource ? now : null,
+    acquisition: acquisition ? { ...acquisition, capturedAt: now } : null,
     trialActivatedAt: now,
     trialEndsAt,
     trialUsed: true,
@@ -104,6 +108,7 @@ export const POST = async (req) => {
       body?.consentPersonalData === true || legacyTermsAccepted
     const rawReferrerId = body?.referrerId ?? body?.ref ?? null
     const registrationSource = getRegistrationSourceFromRequest(req)
+    const acquisition = getAcquisitionFromRequest(req)
 
     if (!validateFlow(flow)) {
       return NextResponse.json(
@@ -183,6 +188,9 @@ export const POST = async (req) => {
           user.registrationSource = registrationSource
           user.registrationSourceCapturedAt = now
         }
+        if (!user.acquisition && acquisition) {
+          user.acquisition = { ...acquisition, capturedAt: now }
+        }
         user.consentPrivacyPolicyAccepted = true
         user.consentPersonalDataAccepted = true
         user.privacyPolicyAcceptedAt = now
@@ -195,6 +203,7 @@ export const POST = async (req) => {
           consentPersonalData,
           referrerId,
           registrationSource,
+          acquisition,
         })
       }
     }
@@ -217,6 +226,7 @@ export const POST = async (req) => {
     if (flow === 'register' && registrationSource) {
       response.cookies.delete(REGISTRATION_SOURCE_COOKIE)
     }
+    if (flow === 'register' && acquisition) response.cookies.delete(ACQUISITION_COOKIE)
     return response
   } catch (error) {
     if (error?.code === 11000) {

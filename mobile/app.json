@@ -71,7 +71,7 @@
         "backgroundColor": "#f7efe1"
       },
       "package": "ru.escalion.artistcrm",
-      "versionCode": 15,
+      "versionCode": 16,
       "allowBackup": false,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",

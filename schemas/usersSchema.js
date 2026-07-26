@@ -87,6 +87,32 @@ const usersSchema = {
     type: Date,
     default: null,
   },
+  acquisition: {
+    type: {
+      source: { type: String, maxlength: 160, default: '' },
+      medium: { type: String, maxlength: 160, default: '' },
+      campaign: { type: String, maxlength: 160, default: '' },
+      content: { type: String, maxlength: 160, default: '' },
+      term: { type: String, maxlength: 160, default: '' },
+      yclid: { type: String, maxlength: 160, default: '' },
+      landingPath: { type: String, maxlength: 240, default: '' },
+      capturedAt: { type: Date, default: null },
+    },
+    default: null,
+  },
+  acquisitionFunnel: {
+    type: {
+      onboardingCompletedAt: { type: Date, default: null },
+      firstCrmItemCreatedAt: { type: Date, default: null },
+      firstNextActionAt: { type: Date, default: null },
+      lastTrackedVisitAt: { type: Date, default: null },
+      returnedWithin7DaysAt: { type: Date, default: null },
+      activatedAt: { type: Date, default: null },
+      paymentSucceededAt: { type: Date, default: null },
+      pilotDemoRequestedAt: { type: Date, default: null },
+    },
+    default: () => ({}),
+  },
   whatsapp: {
     type: Number,
     default: null,

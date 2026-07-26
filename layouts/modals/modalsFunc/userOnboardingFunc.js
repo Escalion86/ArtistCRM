@@ -16,6 +16,7 @@ import {
   buildFirstRunCompletionCustomPatch,
   getFirstRunStatusEducationItems,
 } from '@helpers/firstRunWizard.mjs'
+import { reachGoalOnce } from '@helpers/metrikaGoals'
 import { normalizeTelegramInput } from '@helpers/socialInput'
 import useSnackbar from '@helpers/useSnackbar'
 import eventsAtom from '@state/atoms/eventsAtom'
@@ -306,6 +307,13 @@ const userOnboardingFunc = () => {
         false,
         null
       )
+      fetch('/api/acquisition/activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'onboarding_complete' }),
+        keepalive: true,
+      }).catch(() => null)
+      reachGoalOnce('onboarding_complete')
 
       const themeValue = isDarkTheme ? 'dark' : 'light'
       localStorage.setItem('theme', themeValue)

@@ -137,6 +137,11 @@ const steps = [
 
 const audiencePages = [
   {
+    href: '/crm-dlya-fokusnikov',
+    title: 'Для фокусников',
+    text: 'Заявки из мессенджеров, свободные даты, задатки и личная настройка пилота.',
+  },
+  {
     href: '/crm-dlya-artistov',
     title: 'Для соло-артистов',
     text: 'Заявки, выступления, оплаты и документы в одном рабочем контуре.',
@@ -843,6 +848,7 @@ export default async function HomePage() {
             <Link href="#features">Возможности</Link>
             <Link href="#pricing">Тарифы</Link>
             <Link href="/crm-dlya-artistov">CRM для артистов</Link>
+            <Link href="/crm-dlya-fokusnikov">CRM для фокусников</Link>
             <Link href="/crm-dlya-vedushchih">CRM для ведущих</Link>
             <Link href="/crm-dlya-muzykantov">CRM для музыкантов</Link>
             <Link href="/crm-dlya-tilda-zayavok">Заявки с Tilda</Link>

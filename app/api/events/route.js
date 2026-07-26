@@ -20,6 +20,7 @@ import {
   normalizeWaitDeposit,
   parseDateValue,
 } from '@server/eventApiNormalization'
+import { recordCrmItemCreated } from '@server/acquisitionFunnel'
 
 const getStatusValue = (payload) => {
   const status = payload?.status
@@ -408,6 +409,10 @@ export const POST = async (req) => {
     calendarSyncError: access?.allowCalendarSync
       ? ''
       : 'calendar_sync_unavailable',
+  })
+  await recordCrmItemCreated({
+    userId: user._id,
+    hasNextAction: event.additionalEvents?.some((item) => item && !item.done),
   })
   await createHistorySafely(
     {

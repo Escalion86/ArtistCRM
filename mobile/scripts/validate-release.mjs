@@ -30,6 +30,14 @@ const notificationConfig = app.plugins.find(
 )?.[1]
 const apiUrl = String(process.env.EXPO_PUBLIC_API_BASE_URL || '').trim()
 const vkIdAppId = String(process.env.EXPO_PUBLIC_VK_ID_APP_ID || '').trim()
+const googleServicesFile = String(process.env.GOOGLE_SERVICES_JSON || '').trim()
+const googleServicesPath = resolve(root, googleServicesFile || 'google-services.json')
+let googleServices = null
+try {
+  googleServices = JSON.parse(readFileSync(googleServicesPath, 'utf8'))
+} catch {
+  googleServices = null
+}
 
 requireValue(app.name === 'ArtistCRM', 'expo.name должен быть ArtistCRM')
 requireValue(app.slug === 'artistcrm', 'Expo slug должен соответствовать EAS project')
@@ -69,6 +77,18 @@ requireValue(/^\d+$/.test(vkIdAppId), 'Не задан числовой EXPO_PUB
 requireValue(
   notificationConfig?.defaultChannel === 'default',
   'Не настроен default notification channel'
+)
+requireValue(
+  existsSync(googleServicesPath) && statSync(googleServicesPath).size > 0,
+  'Не найден google-services.json: добавьте GOOGLE_SERVICES_JSON как EAS file secret'
+)
+requireValue(
+  googleServices?.client?.some(
+    (client) =>
+      client?.client_info?.android_client_info?.package_name ===
+      app.android?.package
+  ),
+  `google-services.json не содержит Android client ${app.android?.package}`
 )
 
 for (const permission of [

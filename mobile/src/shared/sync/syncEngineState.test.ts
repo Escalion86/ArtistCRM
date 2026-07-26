@@ -1,5 +1,6 @@
 import NetInfo from '@react-native-community/netinfo'
 import { api } from '../api/client'
+import { getSyncCursor } from '../storage/cache'
 import { getOutboxSummary } from '../storage/outbox'
 import { runSync } from './syncEngine'
 import {
@@ -73,6 +74,19 @@ describe('sync engine state lifecycle', () => {
 
     expect(markSyncCompleted).toHaveBeenCalledWith()
     expect(markSyncFailed).not.toHaveBeenCalled()
+  })
+
+  it('при ручной полной сверке не использует сохранённый курсор', async () => {
+    mockedNetInfo.fetch.mockResolvedValue({ isConnected: true } as never)
+    jest.mocked(getSyncCursor).mockResolvedValue('stale-cursor')
+    mockedApi.get.mockResolvedValue({
+      data: { cursor: 'cursor-2', entities: { events: [] }, tombstones: [] },
+    } as never)
+
+    await runSync({ fullPull: true })
+
+    expect(getSyncCursor).not.toHaveBeenCalled()
+    expect(mockedApi.get).toHaveBeenCalledWith('/mobile/v1/sync/pull')
   })
 
   it('сохраняет безопасную категорию ошибки и возвращает reject вызывающему коду', async () => {
