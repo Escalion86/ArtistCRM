@@ -2,11 +2,17 @@ const indexNowKey =
   process.env.INDEXNOW_KEY || 'cac7028067b34e49ad316b94dae4a065'
 const defaultPaths = [
   '/',
+  '/crm-dlya-fokusnikov',
   '/crm-dlya-artistov',
   '/crm-dlya-vedushchih',
   '/crm-dlya-muzykantov',
   '/crm-dlya-tilda-zayavok',
   '/crm-s-google-calendar',
+  '/kak-artistu-ne-teryat-zayavki-iz-messendzherov',
+  '/kak-kontrolirovat-zadatki-za-vystupleniya',
+  '/crm-ili-google-kalendar-dlya-artista',
+  '/kak-vesti-zayavki-fokusniku',
+  '/kak-ponyat-svobodna-li-data-meropriyatiya',
 ]
 
 const rawSiteUrl = process.env.DOMAIN || 'https://artistcrm.ru'

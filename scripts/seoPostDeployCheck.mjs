@@ -1,10 +1,16 @@
 const publicPaths = [
   '/',
+  '/crm-dlya-fokusnikov',
   '/crm-dlya-artistov',
   '/crm-dlya-vedushchih',
   '/crm-dlya-muzykantov',
   '/crm-dlya-tilda-zayavok',
   '/crm-s-google-calendar',
+  '/kak-artistu-ne-teryat-zayavki-iz-messendzherov',
+  '/kak-kontrolirovat-zadatki-za-vystupleniya',
+  '/crm-ili-google-kalendar-dlya-artista',
+  '/kak-vesti-zayavki-fokusniku',
+  '/kak-ponyat-svobodna-li-data-meropriyatiya',
 ]
 
 const normalizeSiteUrl = (value) => {

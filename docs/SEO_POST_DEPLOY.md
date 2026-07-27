@@ -6,7 +6,7 @@
 npm run seo:check -- https://artistcrm.ru
 ```
 
-Проверяются главная и пять SEO-посадочных: HTTP 200, canonical, отсутствие
+Проверяются главная, шесть SEO-посадочных и пять практических материалов: HTTP 200, canonical, отсутствие
 `noindex`, наличие `title` и `h1`, а также `robots.txt` и `sitemap.xml`.
 
 Локальную production-сборку с production canonical можно проверить так:
@@ -51,11 +51,17 @@ npm run seo:indexnow -- /crm-dlya-artistov
 
 ```text
 https://artistcrm.ru/
+https://artistcrm.ru/crm-dlya-fokusnikov
 https://artistcrm.ru/crm-dlya-artistov
 https://artistcrm.ru/crm-dlya-vedushchih
 https://artistcrm.ru/crm-dlya-muzykantov
 https://artistcrm.ru/crm-dlya-tilda-zayavok
 https://artistcrm.ru/crm-s-google-calendar
+https://artistcrm.ru/kak-artistu-ne-teryat-zayavki-iz-messendzherov
+https://artistcrm.ru/kak-kontrolirovat-zadatki-za-vystupleniya
+https://artistcrm.ru/crm-ili-google-kalendar-dlya-artista
+https://artistcrm.ru/kak-vesti-zayavki-fokusniku
+https://artistcrm.ru/kak-ponyat-svobodna-li-data-meropriyatiya
 ```
 
 ## 6. Цели Яндекс Метрики
