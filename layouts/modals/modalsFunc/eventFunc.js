@@ -783,8 +783,10 @@ const eventFunc = (
           title: 'Закрыть мероприятие?',
           text: 'Мероприятие полностью оплачено и завершено. Возможно, стоит закрыть мероприятие?',
           confirmButtonName: 'Закрыть мероприятие',
+          confirmButtonPendingName: 'Закрываем мероприятие...',
           declineButtonName: 'Оставить открытым',
           showDecline: true,
+          waitForConfirm: true,
           onConfirm: async () => {
             await setEvent({ _id: targetEventId, status: 'closed' }, false)
             closeModalRef.current()

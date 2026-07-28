@@ -70,12 +70,14 @@ export const SectionTitle = ({ children }: PropsWithChildren) => (
 type ButtonProps = PressableProps & {
   title: string
   loading?: boolean
+  loadingTitle?: string
   variant?: 'primary' | 'secondary' | 'danger'
 }
 
 export const Button = ({
   title,
   loading = false,
+  loadingTitle,
   variant = 'primary',
   disabled,
   style,
@@ -95,9 +97,21 @@ export const Button = ({
     {...props}
   >
     {loading ? (
-      <ActivityIndicator
-        color={variant === 'secondary' ? colors.text : '#FFFFFF'}
-      />
+      <View style={styles.buttonLoadingContent}>
+        <ActivityIndicator
+          color={variant === 'secondary' ? colors.text : '#FFFFFF'}
+        />
+        {loadingTitle ? (
+          <Text
+            style={[
+              styles.buttonText,
+              variant === 'secondary' && styles.buttonSecondaryText,
+            ]}
+          >
+            {loadingTitle}
+          </Text>
+        ) : null}
+      </View>
     ) : (
       <Text
         style={[
@@ -223,6 +237,12 @@ const styles = StyleSheet.create({
   buttonDanger: { backgroundColor: colors.danger },
   buttonPressed: { opacity: 0.82 },
   buttonDisabled: { opacity: 0.5 },
+  buttonLoadingContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
   buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   buttonSecondaryText: { color: colors.text },
   fieldWrap: { gap: 6 },

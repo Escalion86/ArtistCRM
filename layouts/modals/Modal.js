@@ -28,6 +28,7 @@ const Modal = ({
   onConfirm2,
   onDecline,
   confirmButtonName,
+  confirmButtonPendingName,
   confirmButtonName2,
   declineButtonName,
   closeButtonName,
@@ -42,6 +43,7 @@ const Modal = ({
   bottomLeftComponent,
   declineButtonBgClassName,
   crossShow = true,
+  waitForConfirm = false,
 }) => {
   // const [rendered, setRendered] = useState(false)
   // const [preventCloseFunc, setPreventCloseFunc] = useState(null)
@@ -49,6 +51,7 @@ const Modal = ({
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const [disableConfirm, setDisableConfirm] = useState(false)
   const [disableDecline, setDisableDecline] = useState(false)
+  const [confirmPending, setConfirmPending] = useState(false)
   const [confirmButtonNameState, setConfirmButtonNameState] =
     useState(confirmButtonName)
   const [confirmButtonName2State, setConfirmButtonName2State] =
@@ -152,15 +155,34 @@ const Modal = ({
   //   closeModal()
   // }
 
-  const onConfirmClick =
+  const confirmHandler =
     typeof onConfirmFunc === 'function'
-      ? () => onConfirmFunc(refreshPage)
+      ? onConfirmFunc
       : typeof onConfirm === 'function'
-      ? () => {
-          onConfirm(refreshPage)
-          closeModal()
+        ? onConfirm
+        : null
+
+  const onConfirmClick = confirmHandler
+    ? waitForConfirm
+      ? async () => {
+          if (confirmPending) return
+          setConfirmPending(true)
+          let completed = false
+          try {
+            await confirmHandler(refreshPage)
+            completed = true
+            closeModal()
+          } finally {
+            if (!completed) setConfirmPending(false)
+          }
         }
-      : undefined
+      : typeof onConfirmFunc === 'function'
+        ? () => onConfirmFunc(refreshPage)
+        : () => {
+            onConfirm(refreshPage)
+            closeModal()
+          }
+    : undefined
 
   const onConfirm2Click =
     typeof onConfirm2Func === 'function'
@@ -246,7 +268,11 @@ const Modal = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: close ? 0 : 1 }}
       transition={{ duration: 0.1 }}
-      onMouseDown={crossShow ? onDeclineClick || onCloseButtonClick : undefined}
+      onMouseDown={
+        crossShow && !confirmPending
+          ? onDeclineClick || onCloseButtonClick
+          : undefined
+      }
     >
       <motion.div
         className={
@@ -276,10 +302,19 @@ const Modal = ({
           <Tooltip title="Закрыть">
             <div className="absolute right-2 top-2">
               <FontAwesomeIcon
-                className="h-8 w-8 transform cursor-pointer text-black duration-200 hover:scale-110"
+                className={cn(
+                  'h-8 w-8 transform text-black duration-200',
+                  confirmPending
+                    ? 'cursor-not-allowed opacity-40'
+                    : 'cursor-pointer hover:scale-110'
+                )}
                 icon={faTimes}
                 // size="1x"
-                onClick={onDeclineClick || onCloseButtonClick}
+                onClick={
+                  confirmPending
+                    ? undefined
+                    : onDeclineClick || onCloseButtonClick
+                }
               />
             </div>
           </Tooltip>
@@ -372,7 +407,9 @@ const Modal = ({
             // showConfirm2={!onlyCloseButtonShow && showConfirm2}
             // showDecline={!onlyCloseButtonShowState && showDecline}
             disableConfirm={disableConfirm}
-            disableDecline={disableDecline}
+            disableDecline={disableDecline || confirmPending}
+            confirmPending={confirmPending}
+            confirmPendingName={confirmButtonPendingName}
             closeModal={onCloseButtonClick}
             bottomLeftButton={bottomLeftButton}
             bottomLeftComponent={bottomLeftComponentState}

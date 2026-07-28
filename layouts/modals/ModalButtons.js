@@ -2,6 +2,7 @@ import isObject from '@helpers/isObject'
 import Button from '@components/Button'
 import AppButton from '@components/AppButton'
 import Divider from '@components/Divider'
+import LoadingSpinner from '@components/LoadingSpinner'
 
 const ModalButtons = ({
   confirmName = 'Подтвердить',
@@ -16,6 +17,8 @@ const ModalButtons = ({
   // showDecline,
   disableConfirm = false,
   disableDecline = false,
+  confirmPending = false,
+  confirmPendingName,
   children,
   closeButtonShow,
   declineButtonShow,
@@ -61,9 +64,17 @@ const ModalButtons = ({
               size="md"
               className="modal-action-button rounded"
               onClick={onConfirmClick}
-              disabled={disableConfirm}
+              disabled={disableConfirm || confirmPending}
+              aria-busy={confirmPending}
             >
-              {confirmName}
+              {confirmPending ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <LoadingSpinner size="xxs" heightClassName="h-auto" />
+                  <span>{confirmPendingName || confirmName}</span>
+                </span>
+              ) : (
+                confirmName
+              )}
             </AppButton>
           )}
           {declineButtonShow &&

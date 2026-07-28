@@ -467,8 +467,25 @@ export default function EventEditScreen() {
       </Surface>
 
       {error ? <ErrorNotice message={error} /> : null}
-      <Button testID="save-event" title="Сохранить" onPress={save} loading={loading} />
-      {!isNew && !isClone ? <Button title="Удалить мероприятие" variant="danger" onPress={remove} /> : null}
+      <Button
+        testID="save-event"
+        title="Сохранить"
+        loadingTitle={
+          values.status === 'closed'
+            ? 'Закрываем мероприятие...'
+            : 'Сохраняем...'
+        }
+        onPress={save}
+        loading={loading}
+      />
+      {!isNew && !isClone ? (
+        <Button
+          title="Удалить мероприятие"
+          variant="danger"
+          onPress={remove}
+          disabled={loading}
+        />
+      ) : null}
     </Screen>
   )
 }
