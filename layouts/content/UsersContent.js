@@ -124,7 +124,7 @@ const UsersContent = () => {
   }, [search, sortMode, sourceFilter, users])
 
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain pb-2">
       <ContentHeader>
         <HeaderActions
           left={<div />}
@@ -142,7 +142,7 @@ const UsersContent = () => {
           }
         />
       </ContentHeader>
-      <div className="grid gap-2 p-2 tablet:grid-cols-[minmax(0,1fr)_200px_220px]">
+      <div className="grid shrink-0 gap-2 p-2 tablet:grid-cols-[minmax(0,1fr)_200px_220px]">
         <Input
           label="Поиск пользователя"
           value={search}
@@ -185,56 +185,76 @@ const UsersContent = () => {
         </label>
       </div>
       {sourceStats.length > 0 ? (
-        <div className="grid gap-3 px-2 pb-2">
-          <div className="grid grid-cols-2 gap-2 tablet:grid-cols-3 desktop:grid-cols-7">
-            {funnelSteps.map(([label, key]) => (
-              <div
-                key={key}
-                className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
-              >
-                <div className="text-xs font-semibold text-gray-500">{label}</div>
-                <div className="mt-1 text-xl font-semibold text-gray-900">
-                  {funnelTotals[key]}
-                </div>
-                {key !== 'registered' ? (
-                  <div className="text-xs text-gray-500">
-                    {formatPercent(funnelTotals[key], funnelTotals.registered)}
+        <div className="shrink-0 px-2 pb-2">
+          <details className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+            <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-gray-800">
+              <span>Статистика привлечения</span>
+              <span className="text-xs font-medium text-gray-500">
+                {sourceStats.length} источников
+              </span>
+            </summary>
+            <div className="grid gap-3 border-t border-gray-100 p-3">
+              <div className="grid grid-cols-2 gap-2 tablet:grid-cols-3 desktop:grid-cols-7">
+                {funnelSteps.map(([label, key]) => (
+                  <div
+                    key={key}
+                    className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
+                  >
+                    <div className="text-xs font-semibold text-gray-500">
+                      {label}
+                    </div>
+                    <div className="mt-1 text-xl font-semibold text-gray-900">
+                      {funnelTotals[key]}
+                    </div>
+                    {key !== 'registered' ? (
+                      <div className="text-xs text-gray-500">
+                        {formatPercent(
+                          funnelTotals[key],
+                          funnelTotals.registered
+                        )}
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-            <table className="min-w-[720px] w-full text-left text-xs">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="px-3 py-2">Источник</th>
-                  {funnelSteps.map(([label, key]) => (
-                    <th key={key} className="px-3 py-2">{label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sourceStats.map((source) => (
-                  <tr key={source.source} className="border-t border-gray-100">
-                    <td className="px-3 py-2 font-semibold text-gray-800">
-                      {source.source === EMPTY_SOURCE
-                        ? 'Без метки'
-                        : formatRegistrationSource(source.source)}
-                    </td>
-                    {funnelSteps.map(([, key]) => (
-                      <td key={key} className="px-3 py-2 text-gray-700">
-                        {source[key]}
-                      </td>
-                    ))}
-                  </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+              <div className="max-h-64 overflow-auto rounded-lg border border-gray-200 bg-white">
+                <table className="w-full min-w-[720px] text-left text-xs">
+                  <thead className="sticky top-0 z-10 bg-gray-50 text-gray-600">
+                    <tr>
+                      <th className="px-3 py-2">Источник</th>
+                      {funnelSteps.map(([label, key]) => (
+                        <th key={key} className="px-3 py-2">
+                          {label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sourceStats.map((source) => (
+                      <tr
+                        key={source.source}
+                        className="border-t border-gray-100"
+                      >
+                        <td className="px-3 py-2 font-semibold text-gray-800">
+                          {source.source === EMPTY_SOURCE
+                            ? 'Без метки'
+                            : formatRegistrationSource(source.source)}
+                        </td>
+                        {funnelSteps.map(([, key]) => (
+                          <td key={key} className="px-3 py-2 text-gray-700">
+                            {source[key]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
         </div>
       ) : null}
-      <SectionCard className="flex-1 min-h-0 overflow-hidden">
+      <SectionCard className="min-h-[360px] flex-1 shrink-0 overflow-hidden">
         {filteredUsers.length > 0 ? (
           <UsersList users={filteredUsers} />
         ) : (
