@@ -1,5 +1,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
+import CallOutlinedIcon from '@mui/icons-material/CallOutlined'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded'
+import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded'
 import MetrikaLink from '@components/MetrikaLink'
 import dbConnect from '@server/dbConnect'
 import Tariffs from '@models/Tariffs'
@@ -84,9 +89,9 @@ const formatEventsLimit = (limit) => {
 
 const faqItems = [
   {
-    question: 'Подойдёт ли ArtistCRM, если у меня немного мероприятий?',
+    question: 'Подойдёт ли ArtistCRM, если заказов немного?',
     answer:
-      'Да. На бесплатном тарифе можно вести заявки, клиентов и оплаты без оплаты сервиса. Актуальный лимит мероприятий указан в таблице тарифов.',
+      'Да. На бесплатном тарифе можно вести заявки, клиентов и оплаты без оплаты сервиса. Актуальный лимит заказов и мероприятий указан в таблице тарифов.',
   },
   {
     question: 'Нужно ли устанавливать программу?',
@@ -107,24 +112,20 @@ const faqItems = [
 
 const benefits = [
   {
-    icon: 'inbox',
     title: 'Не теряйте заявки',
-    text: 'Следующий контакт и просроченные задачи всегда на виду.',
+    text: 'Все обращения собираются в одном рабочем потоке.',
   },
   {
-    icon: 'wallet',
+    title: 'Не забывайте клиентов',
+    text: 'История общения и задачи помогают держать связь вовремя.',
+  },
+  {
     title: 'Контролируйте оплаты',
-    text: 'Задатки, остатки и расходы привязаны к мероприятию.',
+    text: 'Видите статусы оплат и остатки по каждому заказу.',
   },
   {
-    icon: 'calendar',
-    title: 'Помните о каждом событии',
-    text: 'Календарь и напоминания помогают держать сроки.',
-  },
-  {
-    icon: 'document',
-    title: 'Готовьте документы быстрее',
-    text: 'Договоры и акты собираются из данных заявки.',
+    title: 'Держите сроки',
+    text: 'Планируйте день и получайте напоминания о важном.',
   },
 ]
 
@@ -132,29 +133,39 @@ const steps = [
   ['Заявка', 'Сохраняете обращение и источник'],
   ['Контакт', 'Планируете звонок или встречу'],
   ['Оплата', 'Отмечаете задаток и остаток'],
-  ['Событие', 'Проводите и закрываете мероприятие'],
+  ['Событие или заказ', 'Проводите работу и закрываете заказ'],
 ]
 
 const audiencePages = [
   {
-    href: '/crm-dlya-fokusnikov',
-    title: 'Для фокусников',
-    text: 'Заявки из мессенджеров, свободные даты, задатки и личная настройка пилота.',
-  },
-  {
-    href: '/crm-dlya-artistov',
-    title: 'Для соло-артистов',
-    text: 'Заявки, выступления, оплаты и документы в одном рабочем контуре.',
-  },
-  {
     href: '/crm-dlya-vedushchih',
-    title: 'Для ведущих',
-    text: 'Даты, договорённости, задатки и подготовка к каждому мероприятию.',
+    title: 'Ведущие и артисты',
+    text: 'Заявки, даты, договорённости и задатки в одном месте.',
   },
   {
     href: '/crm-dlya-muzykantov',
-    title: 'Для музыкантов',
-    text: 'Календарь выступлений, гонорары, расходы и организационные задачи.',
+    title: 'Музыканты',
+    text: 'Календарь выступлений, гонорары и организационные задачи.',
+  },
+  {
+    href: registerUrl,
+    title: 'Фотографы и видеографы',
+    text: 'Съёмки, клиенты, этапы оплаты и сроки готовности материалов.',
+  },
+  {
+    href: registerUrl,
+    title: 'Декораторы',
+    text: 'Проекты, сметы, предоплаты и контроль ключевых дат.',
+  },
+  {
+    href: registerUrl,
+    title: 'Технические специалисты',
+    text: 'Заказы, выезды, оборудование, расчёты и рабочие задачи.',
+  },
+  {
+    href: registerUrl,
+    title: 'Другие частные специалисты',
+    text: 'Универсальный рабочий контур для услуг и проектной работы.',
   },
 ]
 
@@ -174,37 +185,11 @@ const tariffFeatureRows = [
 ]
 
 function ArrowIcon() {
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M4 10h11M11 6l4 4-4 4" />
-    </svg>
-  )
+  return <ArrowForwardRoundedIcon aria-hidden="true" />
 }
 
 function CheckIcon() {
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden="true">
-      <path d="m5 10 3 3 7-7" />
-    </svg>
-  )
-}
-
-function FeatureIcon({ type }) {
-  const paths = {
-    inbox: <path d="M4 7h16v12H4V7Zm0 7h4l2 2h4l2-2h4M7 7V4h10v3" />,
-    wallet: <path d="M4 6h15v13H4V6Zm0 3h15m-4 4h4m-2 0v.01M7 6V4h9v2" />,
-    calendar: <path d="M5 5h14v15H5V5Zm0 5h14M8 3v4m8-4v4m-7 7h2m3 0h2" />,
-    document: <path d="M6 3h9l4 4v13H6V3Zm9 0v5h4M9 13h7m-7 3h5" />,
-  }
-  return (
-    <svg
-      className="landing-feature-icon"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      {paths[type]}
-    </svg>
-  )
+  return <CheckRoundedIcon aria-hidden="true" />
 }
 
 function ProductPreview() {
@@ -220,7 +205,7 @@ function ProductPreview() {
           <div className="landing-product-brand">
             Artist<span>CRM</span>
           </div>
-          {['Сегодня', 'Заявки', 'Клиенты', 'Мероприятия', 'Оплаты'].map(
+          {['Сегодня', 'Заявки', 'Клиенты', 'Заказы', 'Финансы'].map(
             (item, index) => (
               <div
                 key={item}
@@ -238,13 +223,15 @@ function ProductPreview() {
               <strong>Сегодня</strong>
               <span>Пятница, 23 мая</span>
             </div>
-            <span className="landing-product-select">Неделя⌄</span>
+            <span className="landing-product-select">
+              Неделя <KeyboardArrowDownRoundedIcon aria-hidden="true" />
+            </span>
           </div>
           <div className="landing-agenda-item is-done">
             <time>10:00</time>
             <div>
-              <strong>Созвон с клиентом</strong>
-              <span>Обсудить программу</span>
+              <strong>Позвонить Анне</strong>
+              <span>Обсудить детали свадьбы</span>
             </div>
             <i>
               <CheckIcon />
@@ -254,33 +241,44 @@ function ProductPreview() {
             <time>12:30</time>
             <div>
               <strong>Проверить оплату</strong>
-              <span>Банк, мероприятие 17 мая</span>
+              <span>Свадьба · 24 августа</span>
             </div>
             <i>
               <CheckIcon />
             </i>
           </div>
-          <div className="landing-agenda-item is-current">
+          <div className="landing-agenda-item is-current is-mobile-hidden">
             <time>15:00</time>
             <div>
-              <strong>Позвонить Анне</strong>
-              <span>Свадьба · 24 августа</span>
+              <strong>Встреча с Сергеем</strong>
+              <span>Корпоратив · 31 мая</span>
             </div>
-            <b>☎</b>
+            <b>
+              <CallOutlinedIcon aria-hidden="true" />
+            </b>
           </div>
-          <div className="landing-agenda-item">
+          <div className="landing-agenda-item is-mobile-hidden">
             <time>18:00</time>
             <div>
-              <strong>Репетиция</strong>
-              <span>Студия SoundHall</span>
+              <strong>Отправить договор</strong>
+              <span>День рождения · 7 июня</span>
             </div>
             <i />
+          </div>
+          <div className="landing-mobile-payment">
+            <i>
+              <CheckIcon />
+            </i>
+            <div>
+              <strong>Задаток получен · 45 000 ₽</strong>
+              <span>Свадьба · 24 августа</span>
+            </div>
           </div>
         </div>
         <div className="landing-product-event">
           <div className="landing-product-event-head">
             <strong>Свадьба · 24 августа</strong>
-            <span>•••</span>
+            <MoreHorizRoundedIcon aria-hidden="true" />
           </div>
           <div className="landing-payment-status">
             <CheckIcon /> Задаток получен
@@ -441,7 +439,7 @@ function TariffComparison({ tariffs }) {
                 <span className="landing-tariff-mobile-price">
                   {formatPrice(tariff.price)}
                 </span>
-                <i aria-hidden="true" />
+                <KeyboardArrowDownRoundedIcon aria-hidden="true" />
               </summary>
               <div className="landing-tariff-mobile-body">
                 <dl>
@@ -513,12 +511,12 @@ export default async function HomePage() {
     '@type': 'SoftwareApplication',
     name: 'ArtistCRM',
     applicationCategory: 'BusinessApplication',
-    applicationSubCategory: 'CRM для артистов',
+    applicationSubCategory: 'CRM для самостоятельных специалистов',
     operatingSystem: 'Web',
     inLanguage: 'ru-RU',
     url: homeUrl,
     description:
-      'CRM-система для артистов: управление заявками, клиентами, финансами, календарем и документами.',
+      'CRM-система для артистов и самостоятельных специалистов: заявки, клиенты, финансы, календарь и документы.',
     featureList: benefits.map((benefit) => benefit.title),
     image: ogImageUrl,
     offers:
@@ -565,6 +563,9 @@ export default async function HomePage() {
 
   return (
     <main className="landing-page">
+      <a className="landing-skip-link" href="#main-content">
+        Перейти к содержанию
+      </a>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -619,18 +620,18 @@ export default async function HomePage() {
         </div>
       </header>
 
-      <section className="landing-hero">
+      <section id="main-content" className="landing-hero">
         <div className="landing-container landing-hero-grid">
           <div className="landing-hero-copy">
             <h1 className="landing-reveal">
-              CRM для артистов: заявки, деньги и клиенты под контролем
+              Заявки, клиенты и деньги — под контролем
             </h1>
             <p
               className="landing-hero-lead landing-reveal"
               style={{ '--delay': '60ms' }}
             >
-              ArtistCRM помогает артистам не терять обращения, вовремя
-              связываться с клиентами и видеть оплаты по каждому мероприятию.
+              ArtistCRM помогает не терять обращения, вовремя связываться с
+              клиентами и видеть оплаты по каждому заказу.
             </p>
             <div
               className="landing-hero-actions landing-reveal"
@@ -648,21 +649,6 @@ export default async function HomePage() {
                 Посмотреть возможности <ArrowIcon />
               </Link>
             </div>
-            <div
-              className="landing-proof landing-reveal"
-              style={{ '--delay': '140ms' }}
-            >
-              {[
-                'Есть бесплатный тариф',
-                'Работает с телефона',
-                'Без установки',
-              ].map((item) => (
-                <span key={item}>
-                  <CheckIcon />
-                  {item}
-                </span>
-              ))}
-            </div>
           </div>
           <ProductPreview />
         </div>
@@ -678,63 +664,16 @@ export default async function HomePage() {
         <div className="landing-container">
           <div className="landing-section-head">
             <h2>Всё важное — в одном месте</h2>
-            <p>Не нужно собирать работу по чатам, таблицам и заметкам.</p>
           </div>
           <div className="landing-benefits">
             {benefits.map((benefit, index) => (
               <article key={benefit.title} className="landing-benefit">
                 <div className="landing-benefit-top">
-                  <FeatureIcon type={benefit.icon} />
-                  {index < benefits.length - 1 && <ArrowIcon />}
+                  <span>{index + 1}</span>
                 </div>
                 <h3>{benefit.title}</h3>
                 <p>{benefit.text}</p>
               </article>
-            ))}
-          </div>
-          <div className="landing-system-line" aria-hidden="true">
-            {[
-              'Заявка создана',
-              'Контакт запланирован',
-              'Задаток получен',
-              'Мероприятие проведено',
-            ].map((item) => (
-              <span key={item}>
-                <i />
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="landing-audiences landing-section-below"
-        aria-labelledby="audiences-title"
-      >
-        <div className="landing-container landing-audiences-inner">
-          <div className="landing-section-head">
-            <h2 id="audiences-title">
-              Создано для тех, кто работает на мероприятиях
-            </h2>
-            <p>
-              Выберите свой сценарий и посмотрите, как ArtistCRM помогает именно
-              в вашей работе.
-            </p>
-          </div>
-          <div className="landing-audience-grid">
-            {audiencePages.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="landing-audience-card"
-              >
-                <strong>{item.title}</strong>
-                <span>{item.text}</span>
-                <i>
-                  Подробнее <ArrowIcon />
-                </i>
-              </Link>
             ))}
           </div>
         </div>
@@ -746,7 +685,7 @@ export default async function HomePage() {
       >
         <div className="landing-container">
           <div className="landing-section-head landing-section-head-wide">
-            <h2>От первого сообщения до закрытого мероприятия</h2>
+            <h2>От первого сообщения до закрытого заказа</h2>
           </div>
           <div className="landing-steps">
             {steps.map(([title, text], index) => (
@@ -761,7 +700,7 @@ export default async function HomePage() {
                         'Новая заявка',
                         'Звонок · 14:00',
                         'Задаток · 30 000 ₽',
-                        'Проведено и закрыто',
+                        'Заказ выполнен',
                       ][index]
                     }
                   </span>
@@ -772,9 +711,44 @@ export default async function HomePage() {
               </article>
             ))}
           </div>
-          <blockquote>
-            Система подсказывает, что требует внимания сегодня.
-          </blockquote>
+        </div>
+      </section>
+
+      <section
+        className="landing-audiences landing-section-below"
+        aria-labelledby="audiences-title"
+      >
+        <div className="landing-container landing-audiences-inner">
+          <div className="landing-audience-intro">
+            <div className="landing-section-head">
+              <h2 id="audiences-title">Для тех, кто работает на себя</h2>
+              <p>
+                Спокойный рабочий контур для специалистов event-индустрии и
+                частной практики.
+              </p>
+            </div>
+            <blockquote>
+              Система подсказывает, что требует внимания сегодня.
+            </blockquote>
+          </div>
+          <div className="landing-audience-grid">
+            {audiencePages.map((item) => (
+              <Link
+                key={`${item.title}-${item.href}`}
+                href={item.href}
+                className="landing-audience-card"
+                aria-label={`${item.title}: открыть подходящий сценарий`}
+              >
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.text}</small>
+                </span>
+                <i aria-hidden="true">
+                  <ArrowIcon />
+                </i>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -804,7 +778,7 @@ export default async function HomePage() {
               <details key={item.question} open={index === 0}>
                 <summary>
                   <span>{item.question}</span>
-                  <i aria-hidden="true" />
+                  <KeyboardArrowDownRoundedIcon aria-hidden="true" />
                 </summary>
                 <p>{item.answer}</p>
               </details>
@@ -842,7 +816,7 @@ export default async function HomePage() {
                 Artist<strong>CRM</strong>
               </span>
             </Link>
-            <p>CRM для артистов и специалистов индустрии мероприятий</p>
+            <p>CRM для event-индустрии и специалистов, работающих на себя</p>
           </div>
           <nav aria-label="Навигация в подвале">
             <Link href="#features">Возможности</Link>
