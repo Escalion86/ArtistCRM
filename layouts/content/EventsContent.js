@@ -1451,7 +1451,7 @@ const EventsContent = ({
   )
 
   return (
-    <div className="tablet:gap-3 flex h-full flex-col gap-2">
+    <div className="tablet:gap-3 flex h-full flex-col gap-x-2">
       {voiceDraftOpen ? (
         <VoiceDraftOverlay
           onClose={() => setVoiceDraftOpen(false)}
@@ -1564,81 +1564,83 @@ const EventsContent = ({
         </div>
       </ContentHeader>
       {filter === 'upcoming' || filter === 'past' ? (
-        <SectionCard className="event-quick-filters border border-gray-200 bg-white/95 p-2 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="tablet:w-auto tablet:flex-1 tablet:justify-end flex w-full items-center justify-start">
-              <div className="phoneH:flex-row tablet:w-auto flex w-full flex-row gap-x-2">
-                {filter === 'upcoming' ? (
-                  <AppButton
-                    variant="primary"
-                    size="sm"
-                    className="event-quick-filter-chip tablet:text-sm w-auto min-w-0 flex-none rounded-md px-3 text-xs font-semibold"
-                    onClick={() => modalsFunc.event?.upcomingOverview?.()}
-                  >
-                    <span className="inline-flex min-w-0 items-center justify-center gap-2">
-                      <span className="tablet:inline hidden">
-                        Требует внимания
-                      </span>
-                      <span className="tablet:hidden">Внимание</span>
-                      {upcomingOverviewBadges.length > 0 ? (
-                        <span className="inline-flex items-center gap-1">
-                          {upcomingOverviewBadges.map((badge) => (
-                            <span
-                              key={badge.key}
-                              title={badge.title}
-                              className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold shadow-sm ${badge.className}`}
-                            >
-                              {badge.value}
-                            </span>
-                          ))}
+        <ContentHeader>
+          <SectionCard className="event-quick-filters bg-white/95 p-2 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="tablet:w-auto tablet:flex-1 tablet:justify-end flex w-full items-center justify-start">
+                <div className="phoneH:flex-row tablet:w-auto flex w-full flex-row gap-x-2">
+                  {filter === 'upcoming' ? (
+                    <AppButton
+                      variant="primary"
+                      size="sm"
+                      className="event-quick-filter-chip tablet:text-sm w-auto min-w-0 flex-none rounded-md px-3 text-xs font-semibold"
+                      onClick={() => modalsFunc.event?.upcomingOverview?.()}
+                    >
+                      <span className="inline-flex min-w-0 items-center justify-center gap-2">
+                        <span className="tablet:inline hidden">
+                          Требует внимания
                         </span>
-                      ) : null}
-                    </span>
-                  </AppButton>
-                ) : null}
-                {filter === 'upcoming' && pastActiveClosableCount > 0 ? (
-                  <AppButton
-                    variant="secondary"
-                    size="sm"
-                    className="event-quick-filter-chip tablet:text-sm w-auto min-w-0 flex-none rounded-md px-3 text-xs font-semibold"
-                    onClick={() =>
-                      router.push(
-                        '/cabinet/eventsPast?statusFinished=true&statusClosed=false&statusCanceled=false'
-                      )
-                    }
-                  >
-                    <span className="inline-flex min-w-0 items-center justify-center gap-2">
-                      <span className="tablet:inline hidden">
-                        Закрыть прошедшие мероприятия
+                        <span className="tablet:hidden">Внимание</span>
+                        {upcomingOverviewBadges.length > 0 ? (
+                          <span className="inline-flex items-center gap-1">
+                            {upcomingOverviewBadges.map((badge) => (
+                              <span
+                                key={badge.key}
+                                title={badge.title}
+                                className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold shadow-sm ${badge.className}`}
+                              >
+                                {badge.value}
+                              </span>
+                            ))}
+                          </span>
+                        ) : null}
                       </span>
-                      <span className="tablet:hidden">Закрыть прошедшие</span>
-                      <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm">
-                        {pastActiveClosableCount}
+                    </AppButton>
+                  ) : null}
+                  {filter === 'upcoming' && pastActiveClosableCount > 0 ? (
+                    <AppButton
+                      variant="secondary"
+                      size="sm"
+                      className="event-quick-filter-chip tablet:text-sm w-auto min-w-0 flex-none rounded-md px-3 text-xs font-semibold"
+                      onClick={() =>
+                        router.push(
+                          '/cabinet/eventsPast?statusFinished=true&statusClosed=false&statusCanceled=false'
+                        )
+                      }
+                    >
+                      <span className="inline-flex min-w-0 items-center justify-center gap-2">
+                        <span className="tablet:inline hidden">
+                          Закрыть прошедшие мероприятия
+                        </span>
+                        <span className="tablet:hidden">Закрыть прошедшие</span>
+                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm">
+                          {pastActiveClosableCount}
+                        </span>
                       </span>
-                    </span>
-                  </AppButton>
-                ) : null}
-                {filter === 'past'
-                  ? PAST_QUICK_FILTERS.map((item) => (
-                      <AppButton
-                        key={item.key}
-                        variant={
-                          activePastQuickFilter === item.key
-                            ? 'primary'
-                            : 'secondary'
-                        }
-                        size="sm"
-                        className="event-quick-filter-chip phoneH:w-auto tablet:flex-none tablet:px-3 tablet:text-sm min-w-0 flex-1 rounded-md px-2 text-xs font-semibold"
-                        onClick={() => setPastQuickFilter(item)}
-                      >
-                        {item.label}
-                      </AppButton>
-                    ))
-                  : null}
+                    </AppButton>
+                  ) : null}
+                  {filter === 'past'
+                    ? PAST_QUICK_FILTERS.map((item) => (
+                        <AppButton
+                          key={item.key}
+                          variant={
+                            activePastQuickFilter === item.key
+                              ? 'primary'
+                              : 'secondary'
+                          }
+                          size="sm"
+                          className="event-quick-filter-chip phoneH:w-auto tablet:flex-none tablet:px-3 tablet:text-sm min-w-0 flex-1 rounded-md px-2 text-xs font-semibold"
+                          onClick={() => setPastQuickFilter(item)}
+                        >
+                          {item.label}
+                        </AppButton>
+                      ))
+                    : null}
+                </div>
               </div>
             </div>
-          </div>
-        </SectionCard>
+          </SectionCard>
+        </ContentHeader>
       ) : null}
       <SectionCard className="min-h-0 flex-1 overflow-hidden border-0 bg-transparent shadow-none">
         {viewMode === 'list' ? (
