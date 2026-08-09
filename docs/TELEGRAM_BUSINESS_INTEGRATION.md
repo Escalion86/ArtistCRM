@@ -40,9 +40,32 @@
 Webhook регистрируется автоматически. Для production переменная `DOMAIN`
 должна указывать на публичный HTTPS-домен ArtistCRM.
 
+## VPS без прямого доступа к Telegram
+
+Если VPS не может открыть `https://api.telegram.org`, задайте серверную
+переменную `TELEGRAM_PROXY_URL`. Поддерживаются прокси:
+
+```env
+# HTTP CONNECT proxy
+TELEGRAM_PROXY_URL=http://user:password@proxy.example:3128
+
+# или SOCKS5
+TELEGRAM_PROXY_URL=socks5://user:password@proxy.example:1080
+```
+
+После изменения environment перезапустите процесс ArtistCRM. В блоке интеграции
+будет показано, идут запросы напрямую или через прокси. Через прокси проходят
+только исходящие обращения к Telegram Bot API: проверка токена, регистрация
+webhook и отправка сообщений. Остальной трафик ArtistCRM остаётся прямым.
+
+Входящий webhook Telegram продолжает обращаться непосредственно к публичному
+HTTPS-домену ArtistCRM. Поэтому порт 443, DNS, сертификат и маршрут
+`/api/integrations/telegram/webhook/*` должны быть доступны извне.
+
 ## Безопасность
 
 - токен бота хранится серверно и не возвращается в браузер;
+- URL прокси и его логин/пароль хранятся только в server environment;
 - webhook имеет персональный случайный URL;
 - каждый запрос Telegram дополнительно проверяется по заголовку
   `X-Telegram-Bot-Api-Secret-Token`;

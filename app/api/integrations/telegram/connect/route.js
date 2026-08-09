@@ -8,6 +8,7 @@ import {
   createTelegramWebhookSecret,
   createTelegramWebhookToken,
   deleteTelegramWebhook,
+  getTelegramTransportStatus,
   normalizeTelegramSettings,
   sanitizeTelegramSiteSettings,
   setTelegramWebhook,
@@ -47,6 +48,7 @@ export const POST = async (req) => {
   const webhookSecret = telegram.webhookSecret || createTelegramWebhookSecret()
   const webhookUrl = buildTelegramWebhookUrl({ req, token: webhookToken })
   const keepsBusinessConnection = telegram.botToken === botToken
+  const transport = getTelegramTransportStatus()
 
   try {
     const bot = await checkTelegramBot({ botToken })
@@ -99,12 +101,20 @@ export const POST = async (req) => {
                 ? 'connected'
                 : 'bot_ready',
             botUsername: String(bot.username || ''),
+            ...transport,
           },
         },
       },
       { status: 200 }
     )
   } catch (error) {
+    const connectionMessage = [
+      'telegram_proxy_invalid',
+      'telegram_proxy_unavailable',
+      'telegram_api_unavailable',
+    ].includes(error?.code)
+      ? String(error.message)
+      : 'Telegram не принял токен или адрес webhook. Проверьте токен и публичный HTTPS-домен.'
     const updated = await updateTelegramCustom({
       tenantId,
       patch: {
@@ -113,12 +123,12 @@ export const POST = async (req) => {
         telegramBusinessWebhookSecret: webhookSecret,
         telegramBusinessWebhookUrl: webhookUrl,
         telegramBusinessStatus: 'auth_error',
-        telegramBusinessLastError: String(error?.message || error).slice(0, 500),
+        telegramBusinessLastError: connectionMessage.slice(0, 500),
         telegramBusinessLastCheckedAt: new Date().toISOString(),
       },
     })
     return jsonError(
-      'Telegram не принял токен или адрес webhook. Проверьте токен и публичный HTTPS-домен.',
+      connectionMessage,
       400,
       'auth_error',
       { siteSettings: sanitizeTelegramSiteSettings(updated) }

@@ -1645,6 +1645,14 @@ const IntegrationsContent = () => {
                     Бот: @{telegramStatusData.botUsername}
                   </span>
                 ) : null}
+                <span className="block text-xs">
+                  Исходящие запросы:{' '}
+                  {telegramStatusData?.proxyEnabled
+                    ? `через ${String(
+                        telegramStatusData.proxyType || 'HTTP'
+                      ).toUpperCase()}-прокси`
+                    : 'напрямую с сервера'}
+                </span>
                 {telegramStatusData?.lastMessageAt ? (
                   <span className="block text-xs">
                     Последнее сообщение:{' '}

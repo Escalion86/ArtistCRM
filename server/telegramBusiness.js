@@ -1,4 +1,10 @@
 import crypto from 'crypto'
+import dns from 'dns'
+import {
+  Agent as UndiciAgent,
+  ProxyAgent,
+  Socks5ProxyAgent,
+} from 'undici'
 import Clients from '@models/Clients'
 import SiteSettings from '@models/SiteSettings'
 import TelegramConversations from '@models/TelegramConversations'
@@ -6,6 +12,70 @@ import TelegramMessages from '@models/TelegramMessages'
 
 const TELEGRAM_API_BASE = 'https://api.telegram.org'
 const REPLY_WINDOW_MS = 24 * 60 * 60 * 1000
+const TELEGRAM_REQUEST_TIMEOUT_MS = 15_000
+
+const lookupIPv4 = (hostname, options, callback) => {
+  if (typeof options === 'function') {
+    return dns.lookup(hostname, { family: 4 }, options)
+  }
+  return dns.lookup(hostname, { ...(options || {}), family: 4 }, callback)
+}
+
+const createTelegramTransport = () => {
+  const proxyUrl = String(process.env.TELEGRAM_PROXY_URL || '').trim()
+  if (!proxyUrl) {
+    return {
+      dispatcher: new UndiciAgent({
+        connect: { lookup: lookupIPv4, family: 4 },
+      }),
+      proxyEnabled: false,
+      proxyType: 'direct',
+      configError: '',
+    }
+  }
+
+  try {
+    const protocol = new URL(proxyUrl).protocol.toLowerCase()
+    if (['http:', 'https:'].includes(protocol)) {
+      return {
+        dispatcher: new ProxyAgent(proxyUrl),
+        proxyEnabled: true,
+        proxyType: protocol.slice(0, -1),
+        configError: '',
+      }
+    }
+    if (['socks5:', 'socks5h:'].includes(protocol)) {
+      return {
+        dispatcher: new Socks5ProxyAgent(proxyUrl),
+        proxyEnabled: true,
+        proxyType: protocol.slice(0, -1),
+        configError: '',
+      }
+    }
+    return {
+      dispatcher: null,
+      proxyEnabled: true,
+      proxyType: 'invalid',
+      configError:
+        'TELEGRAM_PROXY_URL поддерживает только http://, https:// и socks5://',
+    }
+  } catch {
+    return {
+      dispatcher: null,
+      proxyEnabled: true,
+      proxyType: 'invalid',
+      configError: 'Некорректный формат TELEGRAM_PROXY_URL',
+    }
+  }
+}
+
+const telegramTransport = createTelegramTransport()
+
+export const getTelegramTransportStatus = () => ({
+  proxyEnabled: telegramTransport.proxyEnabled,
+  proxyType: telegramTransport.proxyType,
+  configError: telegramTransport.configError,
+})
 
 const readCustom = (custom, key) =>
   typeof custom?.get === 'function' ? custom.get(key) : custom?.[key]
@@ -21,15 +91,34 @@ const getBaseUrl = (req) => {
 }
 
 const telegramRequest = async ({ botToken, method, body = {} }) => {
-  const response = await fetch(
-    `${TELEGRAM_API_BASE}/bot${botToken}/${method}`,
-    {
+  if (telegramTransport.configError || !telegramTransport.dispatcher) {
+    const error = new Error(telegramTransport.configError)
+    error.code = 'telegram_proxy_invalid'
+    throw error
+  }
+
+  let response
+  try {
+    response = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/${method}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       cache: 'no-store',
-    }
-  )
+      dispatcher: telegramTransport.dispatcher,
+      signal: AbortSignal.timeout(TELEGRAM_REQUEST_TIMEOUT_MS),
+    })
+  } catch (cause) {
+    const error = new Error(
+      telegramTransport.proxyEnabled
+        ? 'Не удалось подключиться к Telegram API через настроенный прокси'
+        : 'Сервер не может подключиться к Telegram API'
+    )
+    error.code = telegramTransport.proxyEnabled
+      ? 'telegram_proxy_unavailable'
+      : 'telegram_api_unavailable'
+    error.cause = cause
+    throw error
+  }
   const payload = await response.json().catch(() => ({}))
   if (!response.ok || payload?.ok === false) {
     const error = new Error(payload?.description || 'Telegram API error')

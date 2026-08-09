@@ -5,6 +5,7 @@ import { requireTenantIntegrationAccess } from '@server/integrationAccess'
 import {
   buildTelegramWebhookUrl,
   checkTelegramBot,
+  getTelegramTransportStatus,
   normalizeTelegramSettings,
   setTelegramWebhook,
   updateTelegramCustom,
@@ -28,6 +29,7 @@ const publicStatus = (settings) => ({
   lastWebhookAt: settings.lastWebhookAt,
   lastMessageAt: settings.lastMessageAt,
   rights: settings.rights,
+  ...getTelegramTransportStatus(),
 })
 
 export const GET = async (req) => {
@@ -100,14 +102,21 @@ export const POST = async (req) => {
       { status: 200 }
     )
   } catch (error) {
+    const connectionMessage = [
+      'telegram_proxy_invalid',
+      'telegram_proxy_unavailable',
+      'telegram_api_unavailable',
+    ].includes(error?.code)
+      ? String(error.message)
+      : 'Не удалось проверить Telegram-бота'
     await updateTelegramCustom({
       tenantId,
       patch: {
         telegramBusinessStatus: 'auth_error',
-        telegramBusinessLastError: String(error?.message || error).slice(0, 500),
+        telegramBusinessLastError: connectionMessage.slice(0, 500),
         telegramBusinessLastCheckedAt: new Date().toISOString(),
       },
     })
-    return jsonError('Не удалось проверить Telegram-бота', 400, 'auth_error')
+    return jsonError(connectionMessage, 400, 'auth_error')
   }
 }

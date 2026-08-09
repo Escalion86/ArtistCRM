@@ -21,7 +21,8 @@ NEXTAUTH_SECRET=...
 - Изолированные Google integration tests: `GOOGLE_OAUTH_AUTH_URL`, `GOOGLE_OAUTH_TOKEN_URL`, `GOOGLE_CALENDAR_API_BASE_URL`; в production не задавать.
 - Подтверждение телефона: `TELEFONIP`, `TELEFONIP_API_BASE_URL`, `PHONE_SMS_SEND_WEBHOOK`
 - Generic telephony webhook: `TELEPHONY_WEBHOOK_SECRET`, только если используется глобальный generic endpoint
-- Telegram: `TELEGRAM_TOKEN`, только если используется отправка сообщений через Telegram bot
+- Telegram: `TELEGRAM_TOKEN`, только если используется legacy-отправка сообщений через общего Telegram bot.
+- Telegram Business: `TELEGRAM_PROXY_URL` — необязательный HTTP(S) или SOCKS5-прокси только для исходящих запросов ArtistCRM к `api.telegram.org`, например `http://user:password@proxy.example:3128` или `socks5://user:password@proxy.example:1080`. Значение хранится только в server environment и не возвращается в браузер.
 - Общий ИИ ArtistCRM с оплатой из баланса: `AITUNNEL_KEY`; модели можно переопределить через `AITUNNEL_CALL_ANALYSIS_MODEL` и `AITUNNEL_TRANSCRIPTION_MODEL`
 - Облачные файлы: `ESCALIONCLOUD_PASSWORD`
 

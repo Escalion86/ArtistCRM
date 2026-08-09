@@ -187,6 +187,8 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 ```env
 ESCALIONCLOUD_PASSWORD=...
 TELEGRAM_TOKEN=...
+# Только если VPS не имеет прямого доступа к api.telegram.org
+TELEGRAM_PROXY_URL=http://user:password@proxy.example:3128
 
 SMTP_HOST=smtp.yandex.ru
 SMTP_PORT=465
@@ -197,6 +199,9 @@ MAIL_FROM=ArtistCRM <support@artistcrm.ru>
 ```
 
 `ESCALIONCLOUD_PASSWORD` и `TELEGRAM_TOKEN` нужны только если используются соответствующие функции проекта.
+`TELEGRAM_PROXY_URL` применяется только к исходящим запросам Telegram Business
+и может использовать `http://`, `https://` или `socks5://`. После изменения
+переменной перезапустите процесс приложения.
 
 ## Frontend diagnostics
 
