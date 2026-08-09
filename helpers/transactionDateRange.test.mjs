@@ -10,7 +10,7 @@ import {
 } from './transactionDateRange.js'
 
 test('formatDateRangeLabel returns idle label for empty range', () => {
-  assert.equal(formatDateRangeLabel({ from: '', to: '' }), 'Дата')
+  assert.equal(formatDateRangeLabel({ from: '', to: '' }), 'Период')
 })
 
 test('formatDateRangeLabel returns one day without regular spaces', () => {

@@ -1,5 +1,12 @@
 import Input from '@components/Input'
+import { faPaste } from '@fortawesome/free-solid-svg-icons/faPaste'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import getPersonFullName from '@helpers/getPersonFullName'
+import {
+  formatPhoneWithPlus,
+  getInitialClientPhone,
+  getPhoneDigits,
+} from '@helpers/phoneUi'
 import { modalsFuncAtom } from '@state/atoms'
 import { useState } from 'react'
 import { useAtomValue } from 'jotai'
@@ -12,6 +19,15 @@ const clientSelectFunc = (onSelect, title = 'Выбор клиента', options
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const [search, setSearch] = useState('')
 
+    const handlePasteSearch = async () => {
+      try {
+        const text = await navigator.clipboard.readText()
+        setSearch(String(text ?? '').trim())
+      } catch {
+        // Браузер сам показывает запрос доступа к буферу обмена.
+      }
+    }
+
     const filteredClients = clients
       .filter((client) => {
         if (Array.isArray(clientTypes) && clientTypes.length > 0) {
@@ -19,16 +35,22 @@ const clientSelectFunc = (onSelect, title = 'Выбор клиента', options
         }
         if (!search.trim()) return true
         const text = search.trim().toLowerCase()
-        return [
+        const matchesText = [
           client.firstName,
           client.secondName,
           client.thirdName,
-          client.phone ? `+${client.phone}` : '',
+          formatPhoneWithPlus(client.phone),
         ]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
           .includes(text)
+        const searchDigits = getPhoneDigits(search)
+        const matchesPhone =
+          searchDigits.length > 0 &&
+          getPhoneDigits(client.phone).includes(searchDigits)
+
+        return matchesText || matchesPhone
       })
       .sort((a, b) => (a.firstName ?? '').localeCompare(b.firstName ?? ''))
 
@@ -39,23 +61,41 @@ const clientSelectFunc = (onSelect, title = 'Выбор клиента', options
 
     return (
       <div className="flex h-full flex-col gap-2">
-        <Input
-          label="Поиск клиента"
-          value={search}
-          onChange={setSearch}
-          placeholder="Имя или телефон"
-        />
+        <div className="flex items-center gap-2">
+          <Input
+            label="Поиск клиента"
+            value={search}
+            onChange={setSearch}
+            placeholder="Имя или телефон"
+            className="min-w-0 flex-1"
+            fullWidth
+            noMargin
+          />
+          <button
+            type="button"
+            className="action-icon-button action-icon-button--neutral flex h-10 min-w-10 shrink-0 cursor-pointer items-center justify-center rounded"
+            onClick={handlePasteSearch}
+            title="Вставить из буфера обмена"
+            aria-label="Вставить из буфера обмена в поиск клиента"
+          >
+            <FontAwesomeIcon icon={faPaste} className="h-4 w-4" />
+          </button>
+        </div>
         <button
           type="button"
           className="rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-emerald-700"
-          onClick={() =>
-            modalsFunc.client?.add((created) => {
-              if (created?._id) {
-                onSelect && onSelect(created._id)
-                closeModal()
-              }
-            })
-          }
+          onClick={() => {
+            const initialPhone = getInitialClientPhone(search)
+            modalsFunc.client?.add(
+              (created) => {
+                if (created?._id) {
+                  onSelect && onSelect(created._id)
+                  closeModal()
+                }
+              },
+              { initialPhone }
+            )
+          }}
         >
           Создать клиента
         </button>
@@ -77,7 +117,8 @@ const clientSelectFunc = (onSelect, title = 'Выбор клиента', options
                       {getPersonFullName(client, { fallback: '[Без имени]' })}
                     </span>
                     <span className="text-sm text-gray-600">
-                      {client.phone ? `+${client.phone}` : 'Телефон не указан'}
+                      {formatPhoneWithPlus(client.phone) ||
+                        'Телефон не указан'}
                     </span>
                   </div>
                 </button>

@@ -1,15 +1,13 @@
 'use client'
 
-import { useMemo, useCallback, useState } from 'react'
+import { useMemo, useCallback, useState, useEffect } from 'react'
 import { List } from 'react-window'
 import ContentHeader from '@components/ContentHeader'
 import AddIconButton from '@components/AddIconButton'
 import EmptyState from '@components/EmptyState'
 import HeaderActions from '@components/HeaderActions'
-import TransactionRelationToggleButtons from '@components/IconToggleButtons/TransactionRelationToggleButtons'
-import TransactionTypeToggleButtons from '@components/IconToggleButtons/TransactionTypeToggleButtons'
 import TransactionDateRangeFilter from '@components/TransactionDateRangeFilter'
-import MutedText from '@components/MutedText'
+import DropDown from '@components/DropDown'
 import SectionCard from '@components/SectionCard'
 import TransactionCard from '@layouts/cards/TransactionCard'
 import { useAtomValue } from 'jotai'
@@ -27,8 +25,122 @@ import {
 } from '@helpers/useTransactionsQuery'
 import { useClientsQuery } from '@helpers/useClientsQuery'
 import { useEventsQuery } from '@helpers/useEventsQuery'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faCheck,
+  faChevronDown,
+  faFilter,
+  faLink,
+  faUnlink,
+} from '@fortawesome/free-solid-svg-icons'
 
-const TransactionsContent = () => {
+const TRANSACTION_TYPE_OPTIONS = [
+  { value: 'all', label: 'Все транзакции' },
+  { value: 'income', label: 'Доходы' },
+  { value: 'expense', label: 'Расходы' },
+  { value: 'obligation', label: 'Обязательства' },
+]
+
+const TransactionTypeFilter = ({ value, onChange }) => {
+  const activeOption =
+    TRANSACTION_TYPE_OPTIONS.find((item) => item.value === value) ??
+    TRANSACTION_TYPE_OPTIONS[0]
+
+  return (
+    <DropDown
+      renderInPortal
+      menuPadding={false}
+      menuClassName="filter-menu w-[min(276px,calc(100vw-24px))] flex-col items-stretch overflow-hidden"
+      trigger={
+        <button
+          type="button"
+          className="filter-control filter-control--primary min-w-[72px]"
+          aria-label="Выбрать тип транзакций"
+        >
+          {activeOption.value === 'all' ? 'Все' : activeOption.label}
+          <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3" />
+        </button>
+      }
+    >
+      {TRANSACTION_TYPE_OPTIONS.map((option) => {
+        const active = option.value === value
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="menuitemradio"
+            aria-checked={active}
+            className={`filter-menu-item ${
+              active ? 'filter-menu-item--active' : ''
+            }`}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+            {active ? (
+              <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />
+            ) : null}
+          </button>
+        )
+      })}
+    </DropDown>
+  )
+}
+
+const TransactionRelationFilter = ({ value, onChange }) => {
+  const activeCount = Number(!value.linked) + Number(!value.unlinked)
+  const toggle = (key) => {
+    const next = { ...value, [key]: !value[key] }
+    if (!next.linked && !next.unlinked) return
+    onChange(next)
+  }
+
+  return (
+    <DropDown
+      renderInPortal
+      turnOffAutoClose="inside"
+      menuPadding="sm"
+      menuClassName="min-w-52 flex-col items-stretch !border-gray-200 !bg-white"
+      trigger={
+        <button
+          type="button"
+          className="filter-control min-w-[96px]"
+          aria-label="Дополнительные фильтры транзакций"
+        >
+          <FontAwesomeIcon icon={faFilter} className="h-4 w-4" />
+          <span>Фильтры</span>
+          {activeCount > 0 ? (
+            <span className="text-[var(--ui-primary)]">{activeCount}</span>
+          ) : null}
+        </button>
+      }
+    >
+      <div className="w-full p-1">
+        {[
+          { key: 'linked', label: 'Связанные', icon: faLink },
+          { key: 'unlinked', label: 'Без связи', icon: faUnlink },
+        ].map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className="flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+            onClick={() => toggle(item.key)}
+          >
+            <FontAwesomeIcon icon={item.icon} className="h-4 w-4" />
+            <span className="flex-1">{item.label}</span>
+            {value[item.key] ? (
+              <FontAwesomeIcon
+                icon={faCheck}
+                className="h-4 w-4 text-[var(--ui-primary)]"
+              />
+            ) : null}
+          </button>
+        ))}
+      </div>
+    </DropDown>
+  )
+}
+
+const TransactionsContent = ({ onHeaderCountChange }) => {
   const { isCompact } = useUiDensity()
   const { data: transactions = [] } = useTransactionsQuery()
   const deleteTransactionMutation = useDeleteTransactionMutation()
@@ -39,10 +151,7 @@ const TransactionsContent = () => {
   })
   const events = useMemo(() => eventsPayload?.data ?? [], [eventsPayload?.data])
   const modalsFunc = useAtomValue(modalsFuncAtom)
-  const [typeFilter, setTypeFilter] = useState({
-    income: true,
-    expense: true,
-  })
+  const [typeMode, setTypeMode] = useState('all')
   const [relationFilter, setRelationFilter] = useState({
     linked: true,
     unlinked: true,
@@ -51,7 +160,16 @@ const TransactionsContent = () => {
     from: '',
     to: '',
   })
-  const itemHeight = isCompact ? 106 : 120
+  const itemHeight = isCompact ? 176 : 188
+
+  const typeFilter = useMemo(
+    () => ({
+      income: typeMode === 'all' || typeMode === 'income',
+      expense: typeMode === 'all' || typeMode === 'expense',
+      obligation: typeMode === 'all' || typeMode === 'obligation',
+    }),
+    [typeMode]
+  )
 
   const typeMap = useMemo(
     () =>
@@ -177,41 +295,37 @@ const TransactionsContent = () => {
     ]
   )
 
+  useEffect(() => {
+    onHeaderCountChange?.(filteredTransactions.length)
+  }, [filteredTransactions.length, onHeaderCountChange])
+
   return (
     <div className="flex h-full flex-col gap-4">
       <ContentHeader>
         <HeaderActions
           left={
-            <div className="flex flex-wrap items-end gap-2">
-              <TransactionTypeToggleButtons
-                value={typeFilter}
-                onChange={setTypeFilter}
-              />
-              <TransactionRelationToggleButtons
-                value={relationFilter}
-                onChange={setRelationFilter}
-              />
+            <div className="ml-2 flex flex-nowrap items-center gap-2">
+              <TransactionTypeFilter value={typeMode} onChange={setTypeMode} />
               <TransactionDateRangeFilter
                 value={dateRange}
                 onChange={setDateRange}
                 activeDateKeys={activeTransactionDateKeys}
               />
+              <TransactionRelationFilter
+                value={relationFilter}
+                onChange={setRelationFilter}
+              />
             </div>
           }
-          leftClassName="flex-wrap"
+          leftClassName="min-w-0 flex-nowrap"
           right={
-            <>
-              <MutedText>
-                {filteredTransactions.length} из {transactions.length}
-              </MutedText>
-              <AddIconButton
-                onClick={() => modalsFunc.transaction?.add()}
-                disabled={!modalsFunc.transaction?.add}
-                title="Добавить транзакцию"
-                size="sm"
-                variant="neutral"
-              />
-            </>
+            <AddIconButton
+              onClick={() => modalsFunc.transaction?.add()}
+              disabled={!modalsFunc.transaction?.add}
+              title="Добавить транзакцию"
+              size="sm"
+              variant="neutral"
+            />
           }
         />
       </ContentHeader>

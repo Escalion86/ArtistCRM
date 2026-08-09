@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import Clients from '@models/Clients'
+import Services from '@models/Services'
+import SiteSettings from '@models/SiteSettings'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import { getTenantAiSettings } from '@server/aiSettings'
 import { requestAiChatCompletion } from '@server/aiChatCompletion'
@@ -9,6 +11,84 @@ import {
   getAiBalanceErrorMessage,
   isAiBalanceError,
 } from '@server/aiBilling'
+import {
+  buildAiClientPayload,
+  extractAiClientContacts,
+  findClientByAiContacts,
+  formatAiClientName,
+  hasAiClientContacts,
+  keepAiContactsPresentInText,
+  matchAiServiceIds,
+  mergeAiClientContacts,
+  resolveAiClientByName,
+} from '@helpers/aiEventDraftContacts.mjs'
+import {
+  applyAiEventDraftHints,
+  getAiDraftToday,
+} from '@helpers/aiEventDraftHints.mjs'
+
+const MAX_TEXT_LENGTH = 12000
+const AI_FORM_FIELDS = new Set([
+  'eventType',
+  'eventDate',
+  'dateEnd',
+  'description',
+  'contractSum',
+  'waitDeposit',
+  'depositExpectedAmount',
+  'isByContract',
+  'financeComment',
+  'address',
+  'clientId',
+  'servicesIds',
+])
+
+const toSafeClient = (client) => {
+  if (!client) return null
+  const source = typeof client.toObject === 'function' ? client.toObject() : client
+  return {
+    _id: String(source._id),
+    firstName: source.firstName ?? '',
+    secondName: source.secondName ?? '',
+    thirdName: source.thirdName ?? '',
+    phone: source.phone ?? null,
+    whatsapp: source.whatsapp ?? null,
+    viber: source.viber ?? null,
+    email: source.email ?? '',
+    telegram: source.telegram ?? '',
+    instagram: source.instagram ?? '',
+    vk: source.vk ?? '',
+    preferredContactChannel: source.preferredContactChannel ?? '',
+    clientType: source.clientType ?? 'none',
+  }
+}
+
+const getVerifiedClientName = (clientName, sourceText) => {
+  const name = String(clientName ?? '').trim()
+  if (!name) return ''
+  const normalizedName = name.toLocaleLowerCase('ru-RU').replace(/\s+/g, ' ')
+  const normalizedSource = String(sourceText ?? '')
+    .toLocaleLowerCase('ru-RU')
+    .replace(/\s+/g, ' ')
+  return normalizedSource.includes(normalizedName) ? name : ''
+}
+
+const normalizeAiWarnings = (warnings) =>
+  Array.isArray(warnings)
+    ? warnings
+        .filter((warning) => typeof warning === 'string' && warning.trim())
+        .map((warning) => warning.trim().slice(0, 240))
+        .slice(0, 3)
+    : []
+
+const getAmbiguousClientWarning = (candidates) => {
+  const names = candidates
+    .map(formatAiClientName)
+    .filter(Boolean)
+    .slice(0, 3)
+  const suffix = candidates.length > names.length ? ' и другие' : ''
+  return `Не удалось однозначно определить клиента: подходят ${names.join(', ')}${suffix}. Выберите клиента вручную.`
+}
 
 /**
  * POST /api/events/ai-draft
@@ -46,14 +126,30 @@ export async function POST(request) {
         { status: 400 }
       )
     }
+    if (text.length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        {
+          error: `Текст слишком длинный. Максимум ${MAX_TEXT_LENGTH} символов`,
+          fields: {},
+        },
+        { status: 413 }
+      )
+    }
 
-    // --- получаем список клиентов для матчинга имён ---
+    // --- получаем данные для матчинга клиентов и услуг ---
     await dbConnect()
-    const [clients, aiSettings] = await Promise.all([
+    const [clients, services, aiSettings, siteSettings] = await Promise.all([
       Clients.find({ tenantId })
-        .select('_id firstName secondName thirdName')
+        .select(
+          '_id firstName secondName thirdName phone whatsapp viber email telegram instagram vk preferredContactChannel clientType'
+        )
+        .lean(),
+      Services.find({ tenantId })
+        .select('_id title description price')
+        .sort({ title: 1 })
         .lean(),
       getTenantAiSettings(tenantId),
+      SiteSettings.findOne({ tenantId }).select('timeZone').lean(),
     ])
 
     const clientNames = clients.map((c) => ({
@@ -66,7 +162,8 @@ export async function POST(request) {
 
     // --- получаем сегодняшнюю дату для контекста ---
     const today = new Date()
-    const todayStr = today.toISOString().split('T')[0]
+    const timeZone = siteSettings?.timeZone || 'Asia/Krasnoyarsk'
+    const todayStr = getAiDraftToday(today, timeZone)
 
     // --- собираем промпт ---
     const systemPrompt = `Ты — ассистент CRM для иллюзиониста (артиста, ведущего мероприятий). Твоя задача — извлечь из свободного описания события структурированные данные для заполнения формы.
@@ -75,7 +172,7 @@ export async function POST(request) {
 
 Доступные поля (все опциональны):
 - eventType: строка, тип события. Например: "свадьба", "корпоратив", "день рождения", "выпускной", "юбилей", "новый год", "детский праздник", "гендер пати", "квартирник", "концерт", "тимбилдинг", "выставка", "презентация", "фуршет", "банкет", "помолвка", "девичник", "мальчишник", "крестины", "встреча", "тест", "другое"
-- eventDate: строка даты и времени в ISO 8601 (например "2026-06-15T18:00:00"). Если указан только день — ставь время на 18:00. Если «завтра»/«послезавтра» — вычисляй относительно сегодня (${todayStr}). Если не указан год — подставляй текущий (${today.getFullYear()}).
+- eventDate: строка даты и времени в ISO 8601. Если указан только день — ставь время на 12:00 в часовом поясе ${timeZone}. Если «завтра»/«послезавтра» — вычисляй относительно сегодня (${todayStr}). Если не указан год — подставляй текущий (${today.getFullYear()}).
 - dateEnd: строка даты окончания в ISO 8601. Если указана только продолжительность (например «на 4 часа»), вычисли eventDate + длительность.
 - description: строка, краткое описание события (2-3 предложения). Не дублируй то, что уже извлечено в другие поля.
 - contractSum: число, сумма контракта в рублях. Извлекай из фраз вроде «бюджет 50 тысяч», «за 30000 руб», «гонорар 100к», «стоимость 15000₽».
@@ -83,6 +180,7 @@ export async function POST(request) {
 - depositExpectedAmount: число, сумма задатка если указана («задаток 10 тысяч»).
 - isByContract: булево, true если упоминается договор («по договору», «с договором», «оформим договор»).
 - financeComment: строка, финансовые заметки не попавшие в другие поля.
+- servicesIds: массив ID услуг из списка ниже, которые явно выбрал клиент. Выбирай только существующие услуги и только если они подходят по смыслу заметки.
 
 - address: объект с полями адреса. Любые из:
   - town: строка, город
@@ -92,6 +190,24 @@ export async function POST(request) {
 
 - clientId: строка (ID клиента) или null если клиент найден. Сопоставляй имя из текста со списком ниже.
 - clientName: строка, имя клиента как оно упомянуто в тексте (даже если не найден в списке).
+- clientPhone: телефон клиента.
+- clientWhatsapp: номер WhatsApp клиента.
+- clientViber: номер Viber клиента.
+- clientEmail: email клиента.
+- clientTelegram: логин или ссылка Telegram клиента.
+- clientInstagram: логин или ссылка Instagram клиента.
+- clientVk: логин, ID или ссылка VK клиента.
+- warnings: массив коротких пояснений о неоднозначных или противоречивых данных. Добавляй предупреждение только если нужный факт присутствует в тексте, но его нельзя определить уверенно. Не перечисляй поля, которых в тексте просто нет.
+
+Список услуг (id → название и описание):
+${services
+  .map(
+    (service) =>
+      `- ${service._id}: "${service.title}"${
+        service.description ? ` — ${String(service.description).slice(0, 200)}` : ''
+      }`
+  )
+  .join('\n')}
 
 Список клиентов (id → name):
 ${clientNames.map((c) => `- ${c.id}: "${c.name}"`).join('\n')}
@@ -100,7 +216,14 @@ ${clientNames.map((c) => `- ${c.id}: "${c.name}"`).join('\n')}
 - Возвращай ТОЛЬКО JSON, без markdown-блоков.
 - Не выдумывай данные — если чего-то нет в тексте, не добавляй это поле.
 - Если клиент найден в списке — верни clientId, иначе — не включай clientId в ответ.
+- Если подходят несколько клиентов и нельзя уверенно выбрать одного — не возвращай clientId и кратко объясни неоднозначность в warnings.
+- Контакты возвращай только если они явно присутствуют в тексте.
+- servicesIds может содержать только ID из списка услуг выше.
 - Суммы возвращай как числа (не строки).
+- contractSum и depositExpectedAmount указывай только при явном денежном контексте: «бюджет», «гонорар», «стоимость», «цена», «сумма», «оплата», валюта, «тысяч» или «к». Числа в адресах, датах и контактах суммами не являются.
+- Учитывай словоформы и разговорные сокращения. Например, «свадебное» и «свадебный» означают тип события «Свадьба».
+- Если факт уже разложен по структурированным полям, не дублируй его в description. Оставляй там только важный остаток текста.
+- Пример: «Завтра на линейной 38 от Ларковича за свадебное» означает тип «Свадьба», завтра в 12:00, улица «Линейная», дом «38»; суммы в этой фразе нет.
 - Даты в ISO 8601.`
 
     // --- LLM: выбранный пользователем OpenAI-совместимый провайдер ---
@@ -126,38 +249,84 @@ ${clientNames.map((c) => `- ${c.id}: "${c.name}"`).join('\n')}
       console.error('[ai-draft] LLM API error:', error?.message)
     }
 
-    if (!completion) {
-      console.warn('[ai-draft] AI provider не настроен, использую regex-заглушку')
-      const fields = extractFieldsFallback(text, clientNames, todayStr)
-      return NextResponse.json({ fields })
-    }
-    const content = completion.content
-
-    // Парсим LLM-ответ (может быть с markdown-блоком или без)
     let parsed = null
-    try {
-      // Пробуем прямой JSON
-      parsed = JSON.parse(content)
-    } catch {
-      // Пробуем извлечь из ```json ... ```
-      const jsonMatch = content.match(/```(?:json)?\s*\n?([\s\S]*?)```/)
-      if (jsonMatch) {
-        try {
-          parsed = JSON.parse(jsonMatch[1].trim())
-        } catch {
-          console.warn('[ai-draft] не удалось разобрать LLM-ответ, использую regex')
+    if (completion) {
+      const content = completion.content
+      try {
+        parsed = JSON.parse(content)
+      } catch {
+        const jsonMatch = content.match(/```(?:json)?\s*\n?([\s\S]*?)```/)
+        if (jsonMatch) {
+          try {
+            parsed = JSON.parse(jsonMatch[1].trim())
+          } catch {
+            console.warn(
+              '[ai-draft] не удалось разобрать LLM-ответ, использую regex'
+            )
+          }
         }
       }
+    } else {
+      console.warn('[ai-draft] AI provider не настроен, использую regex-заглушку')
     }
 
-    if (!parsed) {
-      const fields = extractFieldsFallback(text, clientNames, todayStr)
-      return NextResponse.json({ fields })
+    const validServiceIds = services.map((service) => String(service._id))
+    let fields = parsed
+      ? normalizeLLMFields(parsed, clientNames, validServiceIds)
+      : extractFieldsFallback(text, clientNames, todayStr, services)
+    fields = applyAiEventDraftHints(fields, text, { now: today, timeZone })
+
+    const deterministicServiceIds = matchAiServiceIds(text, services)
+    const selectedServiceIds = Array.from(
+      new Set([...(fields.servicesIds ?? []), ...deterministicServiceIds])
+    )
+    if (selectedServiceIds.length > 0) {
+      fields.servicesIds = selectedServiceIds
     }
 
-    // Валидируем и нормализуем поля
-    const fields = normalizeLLMFields(parsed, clientNames)
-    return NextResponse.json({ fields })
+    const contacts = keepAiContactsPresentInText(
+      mergeAiClientContacts(extractAiClientContacts(text), parsed ?? {}),
+      text
+    )
+    const aiWarnings = normalizeAiWarnings(parsed?.warnings)
+    let selectedClient = findClientByAiContacts(clients, contacts)
+    const nameResolution = resolveAiClientByName(clients, text)
+    if (!selectedClient && nameResolution.client) {
+      selectedClient = nameResolution.client
+    } else if (!selectedClient && nameResolution.ambiguous) {
+      delete fields.clientId
+      aiWarnings.unshift(getAmbiguousClientWarning(nameResolution.candidates))
+    } else if (!selectedClient && fields.clientId) {
+      selectedClient = clients.find(
+        (client) => String(client._id) === String(fields.clientId)
+      )
+    }
+
+    let clientCreated = false
+    if (!selectedClient && hasAiClientContacts(contacts)) {
+      selectedClient = await Clients.create({
+        ...buildAiClientPayload({
+          clientName: getVerifiedClientName(fields.clientName, text),
+          contacts,
+        }),
+        tenantId,
+      })
+      clientCreated = true
+    }
+
+    if (selectedClient?._id) fields.clientId = String(selectedClient._id)
+
+    const aiFilledFields = Object.keys(fields).filter((field) =>
+      AI_FORM_FIELDS.has(field)
+    )
+
+    return NextResponse.json({
+      fields,
+      aiFilledFields,
+      client: toSafeClient(selectedClient),
+      clientCreated,
+      aiWarnings: Array.from(new Set(aiWarnings)).slice(0, 3),
+    })
 
   } catch (error) {
     console.error('[ai-draft] ошибка:', error)
@@ -172,7 +341,7 @@ ${clientNames.map((c) => `- ${c.id}: "${c.name}"`).join('\n')}
 // Fallback: извлечение полей регулярными выражениями (когда нет LLM)
 // ============================================================================
 
-function extractFieldsFallback(text, clientNames, todayStr) {
+function extractFieldsFallback(text, clientNames, todayStr, services = []) {
   const fields = {}
 
   // --- дата события ---
@@ -197,11 +366,11 @@ function extractFieldsFallback(text, clientNames, todayStr) {
   const now = new Date()
   if (tomorrowMatch) {
     now.setDate(now.getDate() + 2)
-    now.setHours(18, 0, 0, 0)
+    now.setHours(12, 0, 0, 0)
     fields.eventDate = now.toISOString()
   } else if (todayMatch) {
     now.setDate(now.getDate() + 1)
-    now.setHours(18, 0, 0, 0)
+    now.setHours(12, 0, 0, 0)
     fields.eventDate = now.toISOString()
   } else {
     // Пробуем числовую дату
@@ -212,7 +381,7 @@ function extractFieldsFallback(text, clientNames, todayStr) {
       d = parseInt(d, 10)
       y = parseInt(y, 10)
       if (y < 100) y += 2000
-      const date = new Date(y, m - 1, d, 18, 0, 0)
+      const date = new Date(y, m - 1, d, 12, 0, 0)
       if (!Number.isNaN(date.getTime())) {
         fields.eventDate = date.toISOString()
       }
@@ -225,7 +394,7 @@ function extractFieldsFallback(text, clientNames, todayStr) {
       const mStr = textMatch[2].toLowerCase()
       const m = months[mStr] ?? months[mStr.replace(/[ья]$/, 'ь')] ?? 1
       const y = parseInt(textMatch[3] || String(now.getFullYear()), 10)
-      const date = new Date(y, m - 1, d, 18, 0, 0)
+      const date = new Date(y, m - 1, d, 12, 0, 0)
       if (!Number.isNaN(date.getTime())) {
         fields.eventDate = date.toISOString()
       }
@@ -234,10 +403,12 @@ function extractFieldsFallback(text, clientNames, todayStr) {
 
   // --- тип события ---
   const typeMatch = text.match(
-    /(свадьб[аы]|корпоратив|день\s+рождени[яе]|выпускной|юбилей|новый\s+год|детский\s+праздник|гендер\s+пати|квартирник|концерт|тимбилдинг|выставк[аи]|презентаци[яю]|фуршет|банкет|помолвк[аи]|девичник|мальчишник|крестины|встреч[ау]|тест)/i
+    /(свадьб\w*|свадебн\w*|корпоратив|день\s+рождени[яе]|выпускной|юбилей|новый\s+год|детский\s+праздник|гендер\s+пати|квартирник|концерт|тимбилдинг|выставк[аи]|презентаци[яю]|фуршет|банкет|помолвк[аи]|девичник|мальчишник|крестины|встреч[ау]|тест)/i
   )
   if (typeMatch) {
-    fields.eventType = typeMatch[0].toLowerCase()
+    fields.eventType = /^свадьб|^свадебн/i.test(typeMatch[0])
+      ? 'Свадьба'
+      : typeMatch[0].toLowerCase()
   }
 
   // --- сумма контракта ---
@@ -310,6 +481,9 @@ function extractFieldsFallback(text, clientNames, todayStr) {
     }
   }
 
+  const servicesIds = matchAiServiceIds(text, services)
+  if (servicesIds.length > 0) fields.servicesIds = servicesIds
+
   return fields
 }
 
@@ -317,7 +491,7 @@ function extractFieldsFallback(text, clientNames, todayStr) {
 // Нормализация полей от LLM
 // ============================================================================
 
-function normalizeLLMFields(parsed, clientNames) {
+function normalizeLLMFields(parsed, clientNames, validServiceIds = []) {
   const fields = {}
 
   if (typeof parsed.eventType === 'string' && parsed.eventType.trim()) {
@@ -381,7 +555,19 @@ function normalizeLLMFields(parsed, clientNames) {
   }
 
   if (typeof parsed.clientName === 'string' && parsed.clientName.trim()) {
-    fields.clientName = parsed.clientName.trim()
+    fields.clientName = parsed.clientName.trim().slice(0, 100)
+  }
+
+  if (Array.isArray(parsed.servicesIds)) {
+    const allowedIds = new Set(validServiceIds)
+    const servicesIds = Array.from(
+      new Set(
+        parsed.servicesIds
+          .map((value) => String(value ?? '').trim())
+          .filter((value) => allowedIds.has(value))
+      )
+    )
+    if (servicesIds.length > 0) fields.servicesIds = servicesIds
   }
 
   return fields

@@ -19,8 +19,9 @@ import Head from 'next/head'
 // import { useRouter } from 'next/router'
 import { Provider } from 'jotai'
 import store from '@state/store'
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import RegistrationOfferBanner from '@components/RegistrationOfferBanner'
 // import { useAtomValue } from 'jotai'
 
 // const SuspenseChild = () => (
@@ -39,6 +40,22 @@ function CabinetPage(props) {
   }, [pathname])
 
   const currentPage = page || pageFromPath || 'eventsUpcoming'
+  const [headerCountState, setHeaderCountState] = useState({
+    page: null,
+    count: null,
+  })
+
+  const handleHeaderCountChange = useCallback(
+    (count) => {
+      setHeaderCountState((current) => {
+        if (current.page === currentPage && current.count === count) {
+          return current
+        }
+        return { page: currentPage, count }
+      })
+    },
+    [currentPage]
+  )
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme')
@@ -66,6 +83,8 @@ function CabinetPage(props) {
     : () => <div className="flex justify-center px-2">Ошибка 404</div>
 
   const title = CONTENTS[currentPage] ? CONTENTS[currentPage].name : ''
+  const headerCount =
+    headerCountState.page === currentPage ? headerCountState.count : null
 
   return (
     <>
@@ -78,10 +97,14 @@ function CabinetPage(props) {
         <StateLoader {...props}>
           {/* {loggedUser && ( */}
           <CabinetWrapper>
-            <CabinetHeader title={title} />
+            <CabinetHeader title={title} count={headerCount} />
             <BurgerLayout />
             <ContentWrapper page={currentPage}>
-              <Component {...props} />
+              <RegistrationOfferBanner user={props.loggedUser} />
+              <Component
+                {...props}
+                onHeaderCountChange={handleHeaderCountChange}
+              />
               {/* {!redirect && (
                 <Suspense fallback={<SuspenseChild />}>
                   <Component {...props} />

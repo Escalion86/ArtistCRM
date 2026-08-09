@@ -1,4 +1,5 @@
 import DateTimePicker from '@components/DateTimePicker'
+import AiFieldHighlight from '@components/AiFieldHighlight'
 import ErrorsList from '@components/ErrorsList'
 import FormWrapper from '@components/FormWrapper'
 import IconCheckBox from '@components/IconCheckBox'
@@ -160,6 +161,8 @@ const eventFunc = (
     setOnShowOnCloseConfirmDialog,
     setDisableConfirm,
     setComponentInFooter,
+    setConfirmButtonName,
+    setTitle,
   }) => {
     const { data: eventFromQuery } = useEventQuery(eventId)
     const event = eventId ? eventFromQuery : (options?.initialEvent ?? null)
@@ -189,6 +192,33 @@ const eventFunc = (
     )
     const deleteTransactionMutation = useDeleteTransactionMutation()
     const closeModalRef = useRef(closeModal)
+    const [aiHighlightedFields, setAiHighlightedFields] = useState(
+      () =>
+        new Set(
+          !eventId && !clone && Array.isArray(options?.aiFilledFields)
+            ? options.aiFilledFields
+            : []
+        )
+    )
+    const hasAiHighlightedFields = aiHighlightedFields.size > 0
+    const aiWarnings =
+      !eventId && !clone && Array.isArray(options?.aiWarnings)
+        ? options.aiWarnings.filter(
+            (warning) => typeof warning === 'string' && warning.trim()
+          )
+        : []
+    const isAiFieldHighlighted = useCallback(
+      (field) => aiHighlightedFields.has(field),
+      [aiHighlightedFields]
+    )
+    const clearAiFields = useCallback((...fields) => {
+      setAiHighlightedFields((current) => {
+        if (!fields.some((field) => current.has(field))) return current
+        const next = new Set(current)
+        fields.forEach((field) => next.delete(field))
+        return next
+      })
+    }, [])
 
     const initialIsTransferred =
       event?.isTransferred ??
@@ -447,6 +477,13 @@ const eventFunc = (
     const sourceEventId = clone
       ? null
       : (persistedEventId ?? event?._id ?? null)
+
+    useEffect(() => {
+      if (clone || !sourceEventId) return
+      setTitle?.('Редактирование мероприятия')
+      setConfirmButtonName?.('Применить')
+    }, [setConfirmButtonName, setTitle, sourceEventId])
+
     const documentsUploadBaseDirectory = useMemo(
       () => `events/${sourceEventId || newEventUploadKeyRef.current}/documents`,
       [sourceEventId]
@@ -718,10 +755,20 @@ const eventFunc = (
         buildEventSaveContext()
       const savedEvent = await setEvent(payload, clone)
       const nextEventId = savedEvent?._id ?? payload?._id ?? null
+      if (!nextEventId) {
+        throw new Error('Не удалось создать мероприятие')
+      }
+      setAiHighlightedFields(new Set())
       if (nextEventId) {
         setPersistedEventId(nextEventId)
       }
-      setLastSavedPayloadKey(JSON.stringify(payload))
+      setLastSavedPayloadKey(
+        JSON.stringify(
+          payload?._id || !nextEventId
+            ? payload
+            : { ...payload, _id: nextEventId }
+        )
+      )
       if (typeof options?.onSaved === 'function') {
         await options.onSaved(savedEvent)
       }
@@ -1089,10 +1136,16 @@ const eventFunc = (
     }, [dateRangeError, missingFields, requiredMissing, setComponentInFooter])
 
     const selectedClient = useMemo(
-      () =>
-        clientId && clients.length
-          ? clients.find((client) => String(client._id) === String(clientId))
-          : null,
+      () => {
+        if (!clientId) return null
+        const clientFromList = clients.find(
+          (client) => String(client._id) === String(clientId)
+        )
+        if (clientFromList) return clientFromList
+        return String(options?.initialClient?._id) === String(clientId)
+          ? options.initialClient
+          : null
+      },
       [clientId, clients]
     )
     const selectedServiceTitles = useMemo(
@@ -1298,6 +1351,7 @@ const eventFunc = (
       const normalizedEventType =
         typeof rawEventType === 'string' ? rawEventType.trim() : ''
       if (!normalizedEventType) return
+      clearAiFields('eventType')
       setEventType(normalizedEventType)
       const currentEventTypes = Array.isArray(siteSettings?.custom?.eventTypes)
         ? siteSettings.custom.eventTypes
@@ -1343,6 +1397,7 @@ const eventFunc = (
 
     const openClientSelectModal = () => {
       modalsFunc.client?.select((newClientId) => {
+        clearAiFields('clientId')
         setClientId(newClientId)
       })
     }
@@ -1351,6 +1406,7 @@ const eventFunc = (
       modalsFunc.add(
         serviceFunc(null, true, (createdService) => {
           if (!createdService?._id) return
+          clearAiFields('servicesIds')
           setServicesIds((prev) =>
             prev.includes(createdService._id)
               ? prev
@@ -1437,21 +1493,10 @@ const eventFunc = (
       )
     }
 
-    const openTransactionModal = async (transactionId) => {
-      const requiresAutosaveForTransactions =
-        !sourceEventId || lastSavedPayloadKey !== currentSavePayloadKey
-      const transactionAction = getEventTransactionAction({
-        clone,
-        status,
-        sourceEventId,
-        isFormChanged: requiresAutosaveForTransactions,
-      })
-
-      if (transactionAction.type === 'blocked') {
-        setFinanceError(transactionAction.error)
-        return
-      }
-
+    const performTransactionAction = async (
+      transactionAction,
+      transactionId
+    ) => {
       try {
         setFinanceError('')
 
@@ -1459,12 +1504,6 @@ const eventFunc = (
         let targetContractSum = contractSum
 
         if (transactionAction.type === 'autosave') {
-          if (!validateEventForm()) {
-            setFinanceError(
-              'Заполните обязательные поля мероприятия перед добавлением транзакции'
-            )
-            return
-          }
           setFinanceLoading(true)
           const { savedEvent } = await saveEvent()
           targetEventId = savedEvent?._id ?? targetEventId
@@ -1494,6 +1533,44 @@ const eventFunc = (
       }
     }
 
+    const openTransactionModal = (transactionId) => {
+      const requiresAutosaveForTransactions =
+        !sourceEventId || lastSavedPayloadKey !== currentSavePayloadKey
+      const transactionAction = getEventTransactionAction({
+        clone,
+        status,
+        sourceEventId,
+        isFormChanged: requiresAutosaveForTransactions,
+      })
+
+      if (transactionAction.type === 'blocked') {
+        setFinanceError(transactionAction.error)
+        return
+      }
+
+      if (transactionAction.type === 'autosave' && !validateEventForm()) {
+        setFinanceError(
+          'Заполните обязательные поля мероприятия перед добавлением транзакции'
+        )
+        return
+      }
+
+      if (transactionAction.type === 'autosave' && !sourceEventId) {
+        modalsFunc.add({
+          title: 'Создать мероприятие для транзакции?',
+          text: 'Чтобы привязать транзакцию, текущее мероприятие будет создано. После закрытия транзакции вы вернётесь к его редактированию.',
+          confirmButtonName: 'Создать и продолжить',
+          closeButtonName: 'Отмена',
+          waitForConfirm: true,
+          onConfirm: () =>
+            performTransactionAction(transactionAction, transactionId),
+        })
+        return
+      }
+
+      performTransactionAction(transactionAction, transactionId)
+    }
+
     return (
       <TabContext
         value={initialTab}
@@ -1503,6 +1580,24 @@ const eventFunc = (
       >
         <TabPanel tabName="Общие">
           <FormWrapper>
+            {hasAiHighlightedFields ? (
+              <div className="ai-filled-hint mb-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800">
+                Поля с фиолетовой подсветкой заполнены ИИ. Проверьте их —
+                подсветка отдельного поля исчезнет после вашего изменения.
+              </div>
+            ) : null}
+            {aiWarnings.length > 0 ? (
+              <div className="ai-draft-warning mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <div className="font-medium">
+                  ИИ не смог определить всё однозначно:
+                </div>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  {aiWarnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <InputWrapper label="Статус" paddingY fitWidth>
               <div className="flex w-full flex-col">
                 <div className="flex flex-wrap gap-2">
@@ -1550,77 +1645,106 @@ const eventFunc = (
               </div>
             </InputWrapper>
             <div className={formLockedClassName}>
-              <ServiceMultiSelect
-                value={servicesIds}
-                onChange={setServicesIds}
-                onCreate={openServiceCreateModal}
-                error={errors.servicesIds}
-                required
-                onClearError={() => removeError('servicesIds')}
-              />
-              <div className="mt-4 flex items-end gap-x-1">
-                <ComboBox
-                  label="Что за событие?"
-                  items={eventTypeOptions}
-                  value={eventType}
+              <AiFieldHighlight
+                active={isAiFieldHighlighted('servicesIds')}
+              >
+                <ServiceMultiSelect
+                  value={servicesIds}
                   onChange={(value) => {
-                    removeError('eventType')
-                    setEventType(value ?? '')
+                    clearAiFields('servicesIds')
+                    setServicesIds(value)
                   }}
-                  placeholder="Выберите тип события"
-                  fullWidth
-                  noMargin
-                  className="min-w-38 flex-1"
-                  error={errors.eventType}
+                  onCreate={openServiceCreateModal}
+                  error={errors.servicesIds}
                   required
+                  onClearError={() => removeError('servicesIds')}
                 />
-                <AddIconButton
-                  onClick={handleCreateEventType}
-                  title="Добавить тип события"
-                  size="md"
-                />
-              </div>
+              </AiFieldHighlight>
+              <AiFieldHighlight active={isAiFieldHighlighted('eventType')}>
+                <div className="mt-4 flex items-end gap-x-1">
+                  <ComboBox
+                    label="Что за событие?"
+                    items={eventTypeOptions}
+                    value={eventType}
+                    onChange={(value) => {
+                      clearAiFields('eventType')
+                      removeError('eventType')
+                      setEventType(value ?? '')
+                    }}
+                    placeholder="Выберите тип события"
+                    fullWidth
+                    noMargin
+                    className="min-w-38 flex-1"
+                    error={errors.eventType}
+                    required
+                  />
+                  <AddIconButton
+                    onClick={handleCreateEventType}
+                    title="Добавить тип события"
+                    size="md"
+                  />
+                </div>
+              </AiFieldHighlight>
 
               <div className="flex flex-wrap items-center gap-x-1">
-                <DateTimePicker
-                  value={eventDate}
-                  onChange={(value) => {
-                    removeError('eventDate')
-                    const nextStart = value ?? null
-                    setDateEnd(
-                      (prevEnd) =>
-                        shiftEndByStartChange(eventDate, nextStart, prevEnd) ??
-                        prevEnd
-                    )
-                    setEventDate(nextStart)
-                  }}
-                  label="Дата начала"
-                  error={errors.eventDate}
-                />
-                <DateTimePicker
-                  value={dateEnd}
-                  onChange={(value) => {
-                    setDateEndTouched(true)
-                    setDateEnd(value ?? null)
-                  }}
-                  label="Дата окончания"
-                />
+                <AiFieldHighlight active={isAiFieldHighlighted('eventDate')}>
+                  <DateTimePicker
+                    value={eventDate}
+                    onChange={(value) => {
+                      clearAiFields('eventDate', 'dateEnd')
+                      removeError('eventDate')
+                      const nextStart = value ?? null
+                      setDateEnd(
+                        (prevEnd) =>
+                          shiftEndByStartChange(
+                            eventDate,
+                            nextStart,
+                            prevEnd
+                          ) ?? prevEnd
+                      )
+                      setEventDate(nextStart)
+                    }}
+                    label="Дата начала"
+                    error={errors.eventDate}
+                  />
+                </AiFieldHighlight>
+                <AiFieldHighlight active={isAiFieldHighlighted('dateEnd')}>
+                  <DateTimePicker
+                    value={dateEnd}
+                    onChange={(value) => {
+                      clearAiFields('dateEnd')
+                      setDateEndTouched(true)
+                      setDateEnd(value ?? null)
+                    }}
+                    label="Дата окончания"
+                  />
+                </AiFieldHighlight>
               </div>
-              <AddressPoolPicker
-                address={address}
-                onChange={setAddress}
-                label="Локация"
-                required={false}
-                errors={errors}
-                townOptions={townOptions}
-                onCreateTown={handleCreateTown}
-              />
-              <Textarea
-                label="Описание"
-                onChange={setDescription}
-                value={description}
-                rows={3}
-              />
+              <AiFieldHighlight active={isAiFieldHighlighted('address')}>
+                <AddressPoolPicker
+                  address={address}
+                  onChange={(value) => {
+                    clearAiFields('address')
+                    setAddress(value)
+                  }}
+                  label="Локация"
+                  required={false}
+                  errors={errors}
+                  townOptions={townOptions}
+                  onCreateTown={handleCreateTown}
+                />
+              </AiFieldHighlight>
+              <AiFieldHighlight active={isAiFieldHighlighted('description')}>
+                <Textarea
+                  label="Описание"
+                  onChange={(value) => {
+                    clearAiFields('description')
+                    setDescription(value)
+                  }}
+                  value={description}
+                  rows={3}
+                />
+              </AiFieldHighlight>
               {showColleagueTransferControls && (
                 <>
                   <IconCheckBox
@@ -1674,27 +1798,30 @@ const eventFunc = (
         <TabPanel tabName="Клиент и Контакты">
           <FormWrapper>
             <div className={formLockedClassName}>
-              <ClientPicker
-                selectedClient={selectedClient}
-                selectedClientId={clientId}
-                onSelectClick={openClientSelectModal}
-                onViewClick={() => modalsFunc.client?.view(clientId)}
-                onEditClick={() => modalsFunc.client?.edit(clientId)}
-                onCreateClick={() =>
-                  modalsFunc.client?.add((newClient) => {
-                    if (!newClient?._id) return
-                    setClientId(newClient._id)
-                    removeError('clientId')
-                  })
-                }
-                label="Клиент"
-                required
-                error={errors.clientId}
-                paddingY
-                fullWidth
-                compact
-                showSelectButton
-              />
+              <AiFieldHighlight active={isAiFieldHighlighted('clientId')}>
+                <ClientPicker
+                  selectedClient={selectedClient}
+                  selectedClientId={clientId}
+                  onSelectClick={openClientSelectModal}
+                  onViewClick={() => modalsFunc.client?.view(clientId)}
+                  onEditClick={() => modalsFunc.client?.edit(clientId)}
+                  onCreateClick={() =>
+                    modalsFunc.client?.add((newClient) => {
+                      if (!newClient?._id) return
+                      clearAiFields('clientId')
+                      setClientId(newClient._id)
+                      removeError('clientId')
+                    })
+                  }
+                  label="Клиент"
+                  required
+                  error={errors.clientId}
+                  paddingY
+                  fullWidth
+                  compact
+                  showSelectButton
+                />
+              </AiFieldHighlight>
               <OtherContactsPicker
                 contacts={otherContacts}
                 clients={clients}
@@ -1843,53 +1970,70 @@ const eventFunc = (
 
         <TabPanel tabName="Финансы и Документы">
           <div className={`flex flex-col gap-2 ${formLockedClassName}`}>
-            <Input
-              label="Договорная сумма"
-              type="number"
-              value={contractSum}
-              onChange={setContractSum}
-              min={0}
-              step={1000}
-              noMargin
-            />
+            <AiFieldHighlight active={isAiFieldHighlighted('contractSum')}>
+              <Input
+                label="Договорная сумма"
+                type="number"
+                value={contractSum}
+                onChange={(value) => {
+                  clearAiFields('contractSum')
+                  setContractSum(value)
+                }}
+                min={0}
+                step={1000}
+                noMargin
+              />
+            </AiFieldHighlight>
             {!hasDepositTransaction ? (
               <div className="flex flex-col gap-2">
-                <IconCheckBox
-                  checked={waitDeposit}
-                  onClick={() =>
-                    setWaitDeposit((prev) => {
-                      const next = !prev
-                      if (!next) {
-                        setDepositDueAt(null)
-                        setDepositExpectedAmount(null)
-                      } else if (!depositDueAt) {
-                        setDepositDueAt(
-                          new Date(
-                            Date.now() + 24 * 60 * 60 * 1000
-                          ).toISOString()
-                        )
-                      }
-                      return next
-                    })
-                  }
-                  label="Ждем задаток"
-                  checkedIcon={faCircleCheck}
-                  checkedIconColor="#F97316"
-                  noMargin
-                />
+                <AiFieldHighlight
+                  active={isAiFieldHighlighted('waitDeposit')}
+                >
+                  <IconCheckBox
+                    checked={waitDeposit}
+                    onClick={() => {
+                      clearAiFields('waitDeposit', 'depositExpectedAmount')
+                      setWaitDeposit((prev) => {
+                        const next = !prev
+                        if (!next) {
+                          setDepositDueAt(null)
+                          setDepositExpectedAmount(null)
+                        } else if (!depositDueAt) {
+                          setDepositDueAt(
+                            new Date(
+                              Date.now() + 24 * 60 * 60 * 1000
+                            ).toISOString()
+                          )
+                        }
+                        return next
+                      })
+                    }}
+                    label="Ждем задаток"
+                    checkedIcon={faCircleCheck}
+                    checkedIconColor="#F97316"
+                    noMargin
+                  />
+                </AiFieldHighlight>
                 {waitDeposit ? (
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-                    <Input
-                      label="Сумма задатка"
-                      type="number"
-                      value={depositExpectedAmount}
-                      onChange={setDepositExpectedAmount}
-                      min={0}
-                      step={1000}
-                      noMargin
-                      className="w-[140px]"
-                      inputClassName="w-[60px]"
-                    />
+                    <AiFieldHighlight
+                      active={isAiFieldHighlighted('depositExpectedAmount')}
+                    >
+                      <Input
+                        label="Сумма задатка"
+                        type="number"
+                        value={depositExpectedAmount}
+                        onChange={(value) => {
+                          clearAiFields('depositExpectedAmount')
+                          setDepositExpectedAmount(value)
+                        }}
+                        min={0}
+                        step={1000}
+                        noMargin
+                        className="w-[140px]"
+                        inputClassName="w-[60px]"
+                      />
+                    </AiFieldHighlight>
                     <DateTimePicker
                       value={depositDueAt}
                       onChange={(value) => setDepositDueAt(value ?? null)}
@@ -1900,22 +2044,34 @@ const eventFunc = (
                 ) : null}
               </div>
             ) : null}
-            <Textarea
-              label="Комментарий по финансам"
-              value={financeComment}
-              onChange={setFinanceComment}
-              rows={2}
-              wrapperClassName="mt-2"
-              noMargin
-            />
-            <IconCheckBox
-              checked={isByContract}
-              onClick={() => setIsByContract((prev) => !prev)}
-              label="По договору"
-              checkedIcon={faCircleCheck}
-              checkedIconColor="#2563EB"
-              noMargin
-            />
+            <AiFieldHighlight
+              active={isAiFieldHighlighted('financeComment')}
+            >
+              <Textarea
+                label="Комментарий по финансам"
+                value={financeComment}
+                onChange={(value) => {
+                  clearAiFields('financeComment')
+                  setFinanceComment(value)
+                }}
+                rows={2}
+                wrapperClassName="mt-2"
+                noMargin
+              />
+            </AiFieldHighlight>
+            <AiFieldHighlight active={isAiFieldHighlighted('isByContract')}>
+              <IconCheckBox
+                checked={isByContract}
+                onClick={() => {
+                  clearAiFields('isByContract')
+                  setIsByContract((prev) => !prev)
+                }}
+                label="По договору"
+                checkedIcon={faCircleCheck}
+                checkedIconColor="#2563EB"
+                noMargin
+              />
+            </AiFieldHighlight>
             {isDraft ? (
               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 {`Для заявки финансы, транзакции и документы недоступны. Переведите тип в "Подтверждено"`}
@@ -1949,9 +2105,7 @@ const eventFunc = (
                   </div>
                   <AddIconButton
                     onClick={() => openTransactionModal()}
-                    disabled={
-                      isDraft || clone || financeLoading || !sourceEventId
-                    }
+                    disabled={isDraft || clone || financeLoading}
                     title="Добавить транзакцию"
                     size="sm"
                     className="disabled:cursor-not-allowed disabled:opacity-60"

@@ -5,27 +5,66 @@ export const isTrialActive = (user) => {
   return endsAt.getTime() > Date.now()
 }
 
+const getRegistrationOfferState = (user) => {
+  const offer = user?.registrationOffer
+  if (!offer?.tariffId || !offer?.endsAt) {
+    return { applies: false, active: false, expired: false }
+  }
+  const applies = String(offer.tariffId) === String(user?.tariffId ?? '')
+  const endsAt = new Date(offer.endsAt)
+  const validDate = !Number.isNaN(endsAt.getTime())
+  const active = applies && validDate && endsAt.getTime() > Date.now()
+  const replacedByPaidPeriod = Boolean(user?.nextChargeAt)
+  return {
+    applies,
+    active,
+    expired: applies && validDate && !active && !replacedByPaidPeriod,
+  }
+}
+
+export const isRegistrationOfferTariff = (user) => {
+  const state = getRegistrationOfferState(user)
+  return state.applies && !user?.nextChargeAt
+}
+
 export const getUserTariffAccess = (user, tariffs = []) => {
   const trialActive = isTrialActive(user)
+  const registrationOffer = getRegistrationOfferState(user)
+  const unrestrictedTrialActive = trialActive && !registrationOffer.applies
   const tariffId = user?.tariffId ? String(user.tariffId) : null
   const tariff =
     tariffId && Array.isArray(tariffs)
       ? tariffs.find((item) => String(item?._id) === tariffId)
       : null
+  const hasTariff = Boolean(tariff) && !registrationOffer.expired
 
   return {
     trialActive,
+    registrationOfferActive: registrationOffer.active,
     tariff,
-    hasTariff: Boolean(tariff),
-    allowCalendarSync: trialActive || Boolean(tariff?.allowCalendarSync),
-    allowStatistics: trialActive || Boolean(tariff?.allowStatistics),
-    allowDocuments: trialActive || Boolean(tariff?.allowDocuments),
-    allowTelephony: Boolean(tariff?.allowTelephony),
-    allowAi: Boolean(tariff?.allowAi),
+    hasTariff,
+    allowCalendarSync:
+      unrestrictedTrialActive ||
+      (hasTariff && Boolean(tariff?.allowCalendarSync)),
+    allowStatistics:
+      unrestrictedTrialActive ||
+      (hasTariff && Boolean(tariff?.allowStatistics)),
+    allowDocuments:
+      unrestrictedTrialActive ||
+      (hasTariff && Boolean(tariff?.allowDocuments)),
+    allowTelephony: hasTariff && Boolean(tariff?.allowTelephony),
+    allowAi: hasTariff && Boolean(tariff?.allowAi),
     allowAvitoIntegration:
-      trialActive || Boolean(tariff?.allowAvitoIntegration),
-    allowVkIntegration: trialActive || Boolean(tariff?.allowVkIntegration),
-    allowPublicLeadApi: Boolean(tariff?.allowPublicLeadApi),
-    eventsPerMonth: trialActive ? Infinity : Number(tariff?.eventsPerMonth ?? 0),
+      unrestrictedTrialActive ||
+      (hasTariff && Boolean(tariff?.allowAvitoIntegration)),
+    allowVkIntegration:
+      unrestrictedTrialActive ||
+      (hasTariff && Boolean(tariff?.allowVkIntegration)),
+    allowPublicLeadApi: hasTariff && Boolean(tariff?.allowPublicLeadApi),
+    eventsPerMonth: unrestrictedTrialActive
+      ? Infinity
+      : hasTariff
+        ? Number(tariff?.eventsPerMonth ?? 0)
+        : 0,
   }
 }

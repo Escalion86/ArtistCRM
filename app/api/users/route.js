@@ -3,9 +3,9 @@ import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import bcrypt from 'bcryptjs'
-import Tariffs from '@models/Tariffs'
 import Events from '@models/Events'
 import { applyUserEventStats } from '@helpers/userEventStats'
+import { buildRegistrationTrialUserFields } from '@server/registrationTrial'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -96,12 +96,7 @@ export const POST = async (req) => {
   }
 
   if (!payload.tariffId) {
-    const cheapestTariff = await Tariffs.findOne({
-      hidden: { $ne: true },
-    })
-      .sort({ price: 1, title: 1 })
-      .lean()
-    payload.tariffId = cheapestTariff?._id ?? null
+    Object.assign(payload, await buildRegistrationTrialUserFields())
   }
 
   if (payload.password) {

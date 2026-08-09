@@ -21,17 +21,33 @@ import CardWrapper from '@components/CardWrapper'
 const typeClassNames = {
   income: 'bg-green-500',
   expense: 'bg-red-500',
+  obligation: 'bg-amber-500',
+}
+
+const PAYMENT_METHOD_LABELS = {
+  transfer: 'Перевод',
+  account: 'Расчётный счёт',
+  cash: 'Наличные',
+  barter: 'Бартер',
+  obligation: 'Обязательство',
 }
 
 const formatTransactionDate = (value) => {
-  if (!value) return '-'
+  if (!value) return { day: '—', monthYear: '', time: '' }
   const date = new Date(value)
-  const datePart = formatDate(date.toISOString(), false, true)
+  if (Number.isNaN(date.getTime())) return { day: '—', monthYear: '', time: '' }
+  const month = date
+    .toLocaleDateString('ru-RU', { month: 'short' })
+    .replace('.', '')
   const timePart = date.toLocaleTimeString('ru-RU', {
     hour: '2-digit',
     minute: '2-digit',
   })
-  return `${datePart} ${timePart}`
+  return {
+    day: String(date.getDate()).padStart(2, '0'),
+    monthYear: `${month}, ${date.getFullYear()}`,
+    time: timePart,
+  }
 }
 
 const TransactionCard = ({
@@ -50,7 +66,8 @@ const TransactionCard = ({
     : 'Без клиента'
 
   const eventTitle = event
-    ? formatAddress(event?.address, '') ||
+    ? event?.eventType ||
+      formatAddress(event?.address, '') ||
       (event?.eventDate
         ? `Мероприятие ${formatDate(event.eventDate, false, true)}`
         : 'Мероприятие')
@@ -73,18 +90,39 @@ const TransactionCard = ({
       ?.name ?? null
   const isObligation = transaction.paymentMethod === OBLIGATION_PAYMENT_METHOD
   const dateLabel = getTransactionDateLabel(transaction.paymentMethod)
+  const transactionDate = formatTransactionDate(transaction.date)
+  const transactionType = isObligation
+    ? 'obligation'
+    : (type?.value ?? transaction.type)
+  const amount = Number(transaction.amount ?? 0)
+  const amountPrefix = isObligation
+    ? ''
+    : transactionType === 'income'
+      ? '+'
+      : '−'
+  const amountClassName = isObligation
+    ? 'text-amber-600'
+    : transactionType === 'income'
+      ? 'text-emerald-600'
+      : 'text-red-600'
+  const paymentMethodLabel =
+    PAYMENT_METHOD_LABELS[transaction.paymentMethod] ||
+    transaction.paymentMethod ||
+    'Способ не указан'
+  const title = categoryLabel || transaction.comment || 'Транзакция'
 
   return (
     <CardWrapper
       style={style}
+      outerClassName="px-2 py-1"
       onClick={() => !loading && onEdit?.()}
-      className="card-body-pad flex h-full w-full cursor-pointer p-3 pr-4 text-left hover:border-gray-300"
+      className="transaction-card-shell card-body-pad flex h-full w-full cursor-pointer p-3 pr-3 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions>
         <CardButtons
           item={transaction}
-          compactTriggerClassName="card-menu-trigger h-8 min-h-8 w-8"
+          compactTriggerClassName="card-menu-trigger h-10 min-h-10 w-10"
           typeOfItem="transaction"
           minimalActions
           alwaysCompact
@@ -93,54 +131,51 @@ const TransactionCard = ({
         />
       </CardActions>
       <CardStatusBar
-        className={
-          typeClassNames[type?.value ?? transaction.type] || 'bg-gray-300'
-        }
+        className={typeClassNames[transactionType] || 'bg-gray-300'}
       />
 
-      <div className="flex h-full w-full flex-col pl-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex flex-col gap-0.5">
-            <div className="card-muted text-[11px] font-medium">
-              {dateLabel}
-            </div>
-            <div className="card-title text-sm">
-              {formatTransactionDate(transaction.date)}
-            </div>
+      <div className="grid h-full w-full grid-cols-[76px_minmax(0,1fr)_auto] gap-3 pr-8 pl-3">
+        <div className="flex flex-col gap-0.5 border-r border-gray-200 pr-2">
+          <div className="card-muted text-[11px] font-medium">{dateLabel}</div>
+          <div className="card-title text-2xl leading-none">
+            {transactionDate.day}
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {isObligation && (
-              <div className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-                Обязательство
-              </div>
-            )}
-            {categoryLabel && (
-              <div className="card-muted text-xs font-medium">
-                {categoryLabel}
-              </div>
-            )}
+          {transactionDate.monthYear ? (
+            <div className="text-xs font-medium text-blue-800">
+              {transactionDate.monthYear}
+            </div>
+          ) : null}
+          {transactionDate.time ? (
+            <div className="card-muted text-xs">{transactionDate.time}</div>
+          ) : null}
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="card-title truncate text-sm">{title}</div>
+          <div className="card-muted truncate text-xs font-medium">
+            {paymentMethodLabel}
+          </div>
+          <div className="card-meta truncate text-sm font-medium">
+            {clientName || '-'}
+          </div>
+          <div className="card-muted truncate text-xs">
+            {eventTitleWithDate}
+          </div>
+          {transaction.comment && transaction.comment !== title ? (
+            <div className="card-muted line-clamp-1 text-xs">
+              {transaction.comment}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex min-w-[92px] flex-col items-end justify-center gap-2 text-right">
+          <div
+            className={`text-base font-semibold whitespace-nowrap ${amountClassName}`}
+          >
+            {amountPrefix}
+            {amount.toLocaleString()} ₽
           </div>
         </div>
-        <div className="card-meta tablet:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] grid text-sm">
-          <div className="truncate">
-            <div className="card-title truncate font-medium">
-              {clientName || '-'}
-            </div>
-          </div>
-          <div className="truncate">
-            <div className="card-title truncate font-medium">
-              {eventTitleWithDate}
-            </div>
-          </div>
-        </div>
-        {transaction.comment && (
-          <div className="card-muted text-sm">{transaction.comment}</div>
-        )}
-      </div>
-      <div className="card-title mt-auto self-end text-right text-lg font-semibold whitespace-nowrap">
-        {transaction.amount
-          ? `${transaction.amount.toLocaleString()} ₽`
-          : '0 ₽'}
       </div>
     </CardWrapper>
   )
@@ -160,12 +195,14 @@ TransactionCard.propTypes = {
     comment: PropTypes.string,
     amount: PropTypes.number,
     category: PropTypes.string,
+    paymentMethod: PropTypes.string,
   }).isRequired,
   client: PropTypes.shape({
     firstName: PropTypes.string,
     secondName: PropTypes.string,
   }),
   event: PropTypes.shape({
+    eventType: PropTypes.string,
     eventDate: PropTypes.oneOfType([
       PropTypes.string,
       PropTypes.number,

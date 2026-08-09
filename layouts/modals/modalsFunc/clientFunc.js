@@ -85,7 +85,7 @@ const getRequisitesSummary = ({
   return hiddenCount > 0 ? `${summary} +${hiddenCount}` : summary
 }
 
-const clientFunc = (clientId, clone = false, onSuccess) => {
+const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
   const ClientModal = ({
     closeModal,
     setOnConfirmFunc,
@@ -115,7 +115,9 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
     const [thirdName, setThirdName] = useState(
       client?.thirdName ?? DEFAULT_CLIENT.thirdName
     )
-    const [phone, setPhone] = useState(client?.phone ?? DEFAULT_CLIENT.phone)
+    const [phone, setPhone] = useState(
+      client?.phone ?? options?.initialPhone ?? DEFAULT_CLIENT.phone
+    )
     const [whatsapp, setWhatsapp] = useState(
       client?.whatsapp ?? DEFAULT_CLIENT.whatsapp
     )
@@ -276,13 +278,14 @@ const clientFunc = (clientId, clone = false, onSuccess) => {
       const hasAnyContact =
         Boolean(normalizePhoneValue(phone)) ||
         Boolean(normalizePhoneValue(whatsapp)) ||
+        Boolean(String(email || '').trim()) ||
         Boolean(String(telegram || '').trim()) ||
         Boolean(String(instagram || '').trim()) ||
         Boolean(String(vk || '').trim())
       if (!hasAnyContact) {
         addError({
           phone:
-            'Укажите хотя бы один контакт: телефон, WhatsApp, Telegram, Instagram или VK',
+            'Укажите хотя бы один контакт: телефон, WhatsApp, email, Telegram, Instagram или VK',
         })
         customError = true
       }

@@ -103,7 +103,14 @@ const VoiceDraftButton = ({ onDraft, disabled, className }) => {
         const fields = draftPayload?.fields ?? {}
         setStatus('success')
         setTimeout(() => setStatus('idle'), 2000)
-        if (onDraft) onDraft(fields, transcript)
+        if (onDraft)
+          onDraft(
+            fields,
+            transcript,
+            draftPayload?.aiFilledFields ?? [],
+            draftPayload?.client ?? null,
+            draftPayload?.aiWarnings ?? []
+          )
       } catch (err) {
         setStatus('error')
         setErrorMessage(err?.message || 'Ошибка при обработке голоса')

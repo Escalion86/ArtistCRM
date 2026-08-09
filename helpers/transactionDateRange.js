@@ -60,7 +60,7 @@ export const formatDateRuNoWrap = (value) =>
   formatDateRu(value).replace(' ', '\u00A0')
 
 export const formatDateRangeLabel = ({ from = '', to = '' } = {}) => {
-  if (!from) return 'Дата'
+  if (!from) return 'Период'
   if (!to || from === to) return formatDateRuNoWrap(from)
   return `${formatDateRuNoWrap(from)} - ${formatDateRuNoWrap(to)}`
 }

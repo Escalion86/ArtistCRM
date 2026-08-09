@@ -68,7 +68,7 @@ const UserCard = ({ userId, user: userProp, hidden = false, style }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && modalsFunc.user.view(user._id)}
-      className="card-body-pad flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
+      className="card-body-pad flex h-full w-full cursor-pointer py-3 pr-3 pl-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} rounded />
       <CardActions>
@@ -80,37 +80,51 @@ const UserCard = ({ userId, user: userProp, hidden = false, style }) => {
           alwaysCompact
         />
       </CardActions>
-      <div className="flex h-full w-full gap-3">
-        <img
-          className="h-16 w-16 min-w-[64px] rounded-lg object-cover"
-          src={getUserAvatarSrc(user)}
-          alt="user"
-        />
-        <div className="relative flex flex-1 flex-col gap-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <UserName user={user} className="card-title text-base" />
+      <div className="flex h-full w-full min-w-0 flex-col">
+        <div className="flex min-h-11 min-w-0 shrink-0 items-center border-b border-gray-200 pr-12 pb-2">
+          <UserName
+            user={user}
+            className="card-title min-w-0 flex-1 truncate text-base"
+          />
+        </div>
+
+        <div className="flex min-h-[106px] flex-1 shrink-0 items-center gap-3 py-3">
+          <img
+            className="h-14 w-14 min-w-14 rounded-lg object-cover"
+            src={getUserAvatarSrc(user)}
+            alt="user"
+          />
+          <div className="grid min-w-0 flex-1 grid-cols-2 content-center gap-x-3 gap-y-1.5">
+            <div className="card-meta truncate text-xs font-semibold">
+              Тариф: {tariffTitle}
+              {tariffPaidUntil ? ` (${tariffPaidUntil})` : ''}
+            </div>
+            <div className="card-meta truncate text-xs font-semibold">
+              Баланс: {formattedBalance} руб.
+            </div>
+            <div className="card-meta truncate text-xs font-semibold">
+              Мероприятия: {eventsCount}
+            </div>
+            <div className="card-meta truncate text-xs font-semibold">
+              Заявки: {requestsCount}
+            </div>
+            <div className="card-meta col-span-2 truncate text-xs font-semibold">
+              Дата регистрации: {registrationLabel}
+            </div>
+            <div className="card-meta col-span-2 truncate text-xs font-semibold">
+              Источник: {formatRegistrationSource(user.registrationSource)}
+            </div>
           </div>
-          <div className="card-meta text-xs font-semibold">
-            Тариф: {tariffTitle}
-            {tariffPaidUntil ? ` (${tariffPaidUntil})` : ''}
-          </div>
-          <div className="card-meta text-xs font-semibold">
-            Баланс: {formattedBalance} руб.
-          </div>
-          <div className="card-meta text-xs font-semibold">
-            Создано мероприятий: {eventsCount}
-          </div>
-          <div className="card-meta text-xs font-semibold">
-            Создано заявок: {requestsCount}
-          </div>
-          <div className="card-meta text-xs font-semibold">
-            Дата регистрации: {registrationLabel}
-          </div>
-          <div className="card-meta text-xs font-semibold">
-            Источник: {formatRegistrationSource(user.registrationSource)}
-          </div>
-          <div className="mt-auto flex justify-end sm:absolute sm:right-0 sm:bottom-0">
-            <ContactsIconsButtons user={user} className="justify-end" />
+        </div>
+
+        <div className="flex min-h-10 shrink-0 items-center justify-end border-t border-gray-200 pt-2">
+          <div onClick={(event) => event.stopPropagation()}>
+            <ContactsIconsButtons
+              user={user}
+              compactButtons
+              forceTelegram={false}
+              className="my-0 justify-end"
+            />
           </div>
         </div>
       </div>

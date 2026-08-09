@@ -16,7 +16,7 @@ const CardWrapper = ({
       tabIndex={tabIndex}
       onClick={onClick}
       className={cn(
-        'ui-surface-card ui-surface-card--interactive hover:shadow-card relative h-full w-full overflow-hidden rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-general/60 focus-visible:ring-offset-2',
+        'ui-surface-card ui-surface-card--interactive focus-visible:ring-general/60 relative h-full w-full overflow-hidden rounded-lg transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
         className
       )}
     >

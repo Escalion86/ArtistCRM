@@ -18,6 +18,7 @@ import {
   faUser,
   faUsers,
   faWandMagicSparkles,
+  faGift,
 } from '@fortawesome/free-solid-svg-icons'
 import {
   faCalendarCheck,
@@ -689,6 +690,14 @@ export const pages = [
     href: 'ai-usage',
     icon: faChartLine,
     accessRoles: ['dev'],
+  },
+  {
+    id: 29,
+    group: 10,
+    name: 'Пробный тариф',
+    href: 'registration-trial',
+    icon: faGift,
+    accessRoles: ['dev', 'admin'],
   },
   {
     id: 99,

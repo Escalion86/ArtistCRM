@@ -67,6 +67,23 @@ export const serializeMobileProfile = (user, tariff = null) => {
     role: data.role || 'user',
     tariffId: tariffId ? String(tariffId) : null,
     tariffTitle: typeof tariff?.title === 'string' ? tariff.title.trim() : '',
+    registrationOffer: data.registrationOffer
+      ? {
+          tariffId: data.registrationOffer.tariffId
+            ? String(data.registrationOffer.tariffId)
+            : null,
+          tariffTitle: data.registrationOffer.tariffTitle || '',
+          startedAt: data.registrationOffer.startedAt || null,
+          endsAt: data.registrationOffer.endsAt || null,
+          welcomeMessage: data.registrationOffer.welcomeMessage || '',
+          featureKeys: Array.isArray(data.registrationOffer.featureKeys)
+            ? data.registrationOffer.featureKeys
+            : [],
+          featureLabels: Array.isArray(data.registrationOffer.featureLabels)
+            ? data.registrationOffer.featureLabels
+            : [],
+        }
+      : null,
     registrationType: data.registrationType || 'phone',
     consentPrivacyPolicyAccepted: Boolean(data.consentPrivacyPolicyAccepted),
     consentPersonalDataAccepted: Boolean(data.consentPersonalDataAccepted),

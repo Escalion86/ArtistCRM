@@ -1,5 +1,6 @@
 const ACCESS_FLAGS = [
   'trialActive',
+  'registrationOfferActive',
   'hasTariff',
   'allowCalendarSync',
   'allowStatistics',

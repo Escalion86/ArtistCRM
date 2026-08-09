@@ -9,6 +9,7 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable'
 import FilterAltIcon from '@mui/icons-material/FilterAlt'
 import MicIcon from '@mui/icons-material/Mic'
 import NoteAddIcon from '@mui/icons-material/NoteAdd'
+import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import ViewListIcon from '@mui/icons-material/ViewList'
 import ContentHeader from '@components/ContentHeader'
 import AddIconButton from '@components/AddIconButton'
@@ -16,12 +17,13 @@ import ComboBox from '@components/ComboBox'
 import DropDown from '@components/DropDown'
 import EmptyState from '@components/EmptyState'
 import CabinetFilterChip from '@components/CabinetFilterChip'
-import HeaderActions from '@components/HeaderActions'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
+import TextDraftModal from '@components/TextDraftModal'
 import VoiceDraftOverlay from '@components/VoiceDraftOverlay'
 // import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useAtomValue } from 'jotai'
+import { useQueryClient } from '@tanstack/react-query'
 import { modalsFuncAtom, modalsAtom } from '@state/atoms'
 import EventCard from '@layouts/cards/EventCard'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
@@ -54,6 +56,7 @@ import {
   readEventListFiltersState,
   writeEventListFiltersState,
 } from '@helpers/eventListFilters'
+import { queryKeys } from '@helpers/queryKeys'
 
 const STATUS_FILTER_META = {
   request: {
@@ -150,6 +153,7 @@ const AddEventMenu = ({
   onCreateRequest,
   onCreateEvent,
   onVoice,
+  onText,
 }) => {
   if (disabled) {
     return (
@@ -180,6 +184,11 @@ const AddEventMenu = ({
       label: 'Голосом',
       icon: <MicIcon fontSize="small" />,
       onClick: onVoice,
+    })
+    menuItems.push({
+      label: 'Свободным текстом',
+      icon: <TextSnippetIcon fontSize="small" />,
+      onClick: onText,
     })
   }
 
@@ -329,7 +338,11 @@ const getValidDateTime = (value) => {
   return Number.isNaN(time) ? null : time
 }
 
-const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
+const EventsContent = ({
+  filter = 'all',
+  eventsPaging = null,
+  onHeaderCountChange,
+}) => {
   const { isCompact } = useUiDensity()
   const eventsScope =
     filter === 'upcoming' ? 'upcoming' : filter === 'past' ? 'past' : 'all'
@@ -389,6 +402,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   })
   // const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const queryClient = useQueryClient()
   const modals = useAtomValue(modalsAtom)
   const loggedUser = useAtomValue(loggedUserAtom)
   const tariffs = useAtomValue(tariffsAtom)
@@ -410,12 +424,12 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const [checkFilter, setCheckFilter] = useState(
     () => createEventListFiltersState(filter).checkFilter
   )
-  const [statusFilter, setStatusFilter] = useState(() =>
-    createEventListFiltersState(filter).statusFilter
+  const [statusFilter, setStatusFilter] = useState(
+    () => createEventListFiltersState(filter).statusFilter
   )
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [additionalQuickFilter, setAdditionalQuickFilter] = useState('')
   const [voiceDraftOpen, setVoiceDraftOpen] = useState(false)
+  const [textDraftOpen, setTextDraftOpen] = useState(false)
   const [pastHasMore, setPastHasMore] = useState(false)
   const [pastNextBefore, setPastNextBefore] = useState(null)
   const [pastLoadingMore, setPastLoadingMore] = useState(false)
@@ -425,7 +439,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
   const noDepositReminderShownRef = useRef(false)
   const skipEventFiltersPersistRef = useRef(true)
   const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
-  const itemHeight = isCompact ? 152 : 170
+  const itemHeight = isCompact ? 194 : 206
 
   useEffect(() => {
     if (filter !== 'past') {
@@ -437,11 +451,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     }
     setPastHasMore(Boolean(eventsPaging?.hasMore))
     setPastNextBefore(eventsPaging?.nextBefore || null)
-  }, [
-    eventsPaging?.hasMore,
-    eventsPaging?.nextBefore,
-    filter,
-  ])
+  }, [eventsPaging?.hasMore, eventsPaging?.nextBefore, filter])
 
   const baseEvents = useMemo(() => {
     if (filter === 'all') return events
@@ -1006,10 +1016,9 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
       ? (serverFilteredCount ?? sortedEvents.length)
       : sortedEvents.length
 
-  const selectedStatusCount = useMemo(
-    () => statusFilterKeys.filter((key) => Boolean(statusFilter[key])).length,
-    [statusFilter, statusFilterKeys]
-  )
+  useEffect(() => {
+    onHeaderCountChange?.(displayedCount)
+  }, [displayedCount, onHeaderCountChange])
 
   const currentMonthStart = useMemo(() => toMonthStart(new Date()), [])
   const isUpcomingMinMonth =
@@ -1031,17 +1040,6 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     additionalQuickFilter,
   ].filter(Boolean).length
   const hasActiveFilters = activeMobileFiltersCount > 0
-
-  const mobileFiltersSummary = [
-    selectedTown || 'Все города',
-    filter !== 'all'
-      ? `Статусы ${selectedStatusCount}/${statusFilterKeys.length}`
-      : null,
-    hasUncheckedEvents && !isCheckFilterDefault ? 'Проверка' : null,
-    additionalQuickFilter ? 'Быстрый фильтр' : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
 
   const resetFilters = useCallback(() => {
     setSelectedTown('')
@@ -1295,7 +1293,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 return (
                   <div
                     key={`month-day-additional-${item.eventId}-${item.index}-${idx}`}
-                    className="px-3 py-2 bg-white border border-gray-200 rounded"
+                    className="rounded border border-gray-200 bg-white px-3 py-2"
                   >
                     <div className="text-sm font-semibold text-gray-900">
                       {item.title || 'Доп. событие'}
@@ -1312,7 +1310,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                       <AppButton
                         variant="secondary"
                         size="sm"
-                        className="w-full rounded-md tablet:w-auto"
+                        className="tablet:w-auto w-full rounded-md"
                         onClick={() => modalsFunc.event?.view?.(item.eventId)}
                       >
                         Открыть мероприятие
@@ -1354,7 +1352,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             <AppButton
               variant="secondary"
               size="sm"
-              className="px-4 rounded-md"
+              className="rounded-md px-4"
               disabled={pastLoadingMore}
               onClick={handleLoadMorePast}
             >
@@ -1391,9 +1389,33 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
     setVoiceDraftOpen(true)
   }, [])
 
+  const handleCreateByText = useCallback(() => {
+    setTextDraftOpen(true)
+  }, [])
+
+  const cacheAiClient = useCallback(
+    (client) => {
+      if (!client?._id) return
+      queryClient.setQueryData(queryKeys.client(client._id), client)
+      queryClient.setQueriesData({ queryKey: ['clients'] }, (current) => {
+        if (!Array.isArray(current)) return current
+        const exists = current.some(
+          (item) => String(item?._id) === String(client._id)
+        )
+        if (!exists) return [...current, client]
+        return current.map((item) =>
+          String(item?._id) === String(client._id) ? client : item
+        )
+      })
+      queryClient.invalidateQueries({ queryKey: queryKeys.clients() })
+    },
+    [queryClient]
+  )
+
   const handleVoiceDraft = useCallback(
-    (fields, transcript) => {
+    (fields, transcript, aiFilledFields, client, aiWarnings) => {
       setVoiceDraftOpen(false)
+      cacheAiClient(client)
       modalsFunc.event?.create?.(fields?.status || 'draft', {
         initialEvent: {
           ...fields,
@@ -1402,26 +1424,118 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             fields?.description ||
             (transcript ? `Голосовой ввод: ${transcript}` : ''),
         },
+        aiFilledFields,
+        aiWarnings,
+        initialClient: client,
       })
     },
-    [modalsFunc]
+    [cacheAiClient, modalsFunc]
+  )
+
+  const handleTextDraft = useCallback(
+    (fields, sourceText, aiFilledFields, client, aiWarnings) => {
+      setTextDraftOpen(false)
+      cacheAiClient(client)
+      modalsFunc.event?.create?.(fields?.status || 'draft', {
+        initialEvent: {
+          ...fields,
+          status: fields?.status || 'draft',
+          description: fields?.description || sourceText,
+        },
+        aiFilledFields,
+        aiWarnings,
+        initialClient: client,
+      })
+    },
+    [cacheAiClient, modalsFunc]
   )
 
   return (
-    <div className="flex flex-col h-full gap-3 tablet:gap-4">
+    <div className="tablet:gap-3 flex h-full flex-col gap-2">
       {voiceDraftOpen ? (
         <VoiceDraftOverlay
           onClose={() => setVoiceDraftOpen(false)}
           onDraft={handleVoiceDraft}
         />
       ) : null}
+      <TextDraftModal
+        open={textDraftOpen}
+        onClose={() => setTextDraftOpen(false)}
+        onDraft={handleTextDraft}
+      />
       <ContentHeader>
-        <div className="flex flex-col w-full gap-2 tablet:hidden">
-          <div className="flex items-center w-full gap-2">
+        <div className="flex w-full min-w-0 items-center gap-2">
+          <DropDown
+            renderInPortal
+            turnOffAutoClose="inside"
+            placement="right"
+            menuPadding={false}
+            menuClassName="filter-menu w-[min(340px,calc(100vw-24px))] flex-col items-stretch p-3"
+            className="min-w-0"
+            trigger={
+              <button
+                type="button"
+                className="filter-control filter-control--outline min-w-[118px] gap-1 px-3 text-xs"
+                aria-label="Фильтры мероприятий"
+              >
+                <FilterAltIcon fontSize="small" />
+                <span className="truncate">Фильтры</span>
+                {activeMobileFiltersCount > 0 ? (
+                  <span className="text-[#c75f00]">
+                    {activeMobileFiltersCount}
+                  </span>
+                ) : null}
+              </button>
+            }
+          >
+            <div className="flex w-full flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold text-gray-800">
+                  Фильтры
+                </div>
+                {hasActiveFilters ? (
+                  <button
+                    type="button"
+                    className="text-general cursor-pointer text-xs font-semibold hover:underline"
+                    onClick={resetFilters}
+                  >
+                    Сбросить
+                  </button>
+                ) : null}
+              </div>
+              <ComboBox
+                label="Город"
+                items={townsOptions}
+                value={selectedTown}
+                onChange={(value) => setSelectedTown(value ?? '')}
+                placeholder="Все города"
+                activePlaceholder
+                fullWidth
+                noMargin
+                className="mt-1"
+              />
+              {filter !== 'all' ? (
+                <div className="flex flex-col gap-2">
+                  {hasUncheckedEvents ? (
+                    <EventCheckFilterChips
+                      value={checkFilter}
+                      onChange={setCheckFilter}
+                    />
+                  ) : null}
+                  <EventStatusFilterChips
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    mode={filter}
+                  />
+                </div>
+              ) : null}
+            </div>
+          </DropDown>
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <AppButton
               variant="secondary"
               size="sm"
-              className="flex items-center justify-center p-0 rounded-md h-9 w-9 shrink-0"
+              className="flex h-9 w-9 items-center justify-center rounded-md p-0"
               onClick={() =>
                 setViewMode((prev) => (prev === 'list' ? 'month' : 'list'))
               }
@@ -1438,189 +1552,31 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 <CalendarMonthIcon fontSize="small" />
               )}
             </AppButton>
-            <div className="flex-1 min-w-0">
-              <MutedText className="block text-xs truncate">
-                {filterName}: {displayedCount}
-              </MutedText>
-              <div className="truncate text-[11px] leading-tight text-gray-500">
-                {mobileFiltersSummary}
-              </div>
-            </div>
-            <AppButton
-              variant={mobileFiltersOpen ? 'primary' : 'secondary'}
-              size="sm"
-              className="relative flex items-center justify-center p-0 rounded-md h-9 w-9 shrink-0"
-              onClick={() => setMobileFiltersOpen((prev) => !prev)}
-              title="Фильтры"
-              aria-label="Фильтры"
-            >
-              <FilterAltIcon fontSize="small" />
-              {activeMobileFiltersCount > 0 ? (
-                <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] leading-none font-semibold text-white">
-                  {activeMobileFiltersCount}
-                </span>
-              ) : null}
-            </AppButton>
             <AddEventMenu
               disabled={createMenuDisabled}
               allowVoice={allowVoiceDraft}
               onCreateRequest={handleCreateRequest}
               onCreateEvent={handleCreateActiveEvent}
               onVoice={handleCreateByVoice}
+              onText={handleCreateByText}
             />
           </div>
-          {mobileFiltersOpen ? (
-            <SectionCard className="p-2 border border-gray-200 shadow-sm bg-white/95">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-semibold text-gray-800">
-                    Фильтры
-                  </div>
-                  {hasActiveFilters ? (
-                    <button
-                      type="button"
-                      className="text-xs font-semibold cursor-pointer text-general hover:underline"
-                      onClick={resetFilters}
-                    >
-                      Сбросить
-                    </button>
-                  ) : null}
-                </div>
-                <ComboBox
-                  label="Город"
-                  items={townsOptions}
-                  value={selectedTown}
-                  onChange={(value) => setSelectedTown(value ?? '')}
-                  placeholder="Все города"
-                  activePlaceholder
-                  fullWidth
-                  noMargin
-                  className="mt-1"
-                />
-                {filter !== 'all' ? (
-                  <div className="flex flex-col gap-2">
-                    {hasUncheckedEvents ? (
-                      <EventCheckFilterChips
-                        value={checkFilter}
-                        onChange={setCheckFilter}
-                      />
-                    ) : null}
-                    <EventStatusFilterChips
-                      value={statusFilter}
-                      onChange={setStatusFilter}
-                      mode={filter}
-                    />
-                  </div>
-                ) : null}
-              </div>
-            </SectionCard>
-          ) : null}
-        </div>
-        <div className="hidden w-full tablet:block">
-          <HeaderActions
-            className="w-full tablet:flex-nowrap gap-y-2"
-            leftClassName="min-w-0"
-            bottomClassName="w-full tablet:w-auto"
-            rightClassName="ml-auto w-full justify-end tablet:w-auto"
-            left={
-              <div className="tablet:w-52 w-[min(56vw,160px)]">
-                <ComboBox
-                  label="Город"
-                  items={townsOptions}
-                  value={selectedTown}
-                  onChange={(value) => setSelectedTown(value ?? '')}
-                  placeholder="Все города"
-                  activePlaceholder
-                  fullWidth
-                  noMargin
-                  className="mt-1.5"
-                />
-              </div>
-            }
-            bottom={
-              filter !== 'all' ? (
-                <div className="flex flex-wrap items-center justify-center w-full gap-2 tablet:w-auto tablet:flex-nowrap tablet:justify-start tablet:gap-3">
-                  {hasUncheckedEvents && (
-                    <EventCheckFilterChips
-                      value={checkFilter}
-                      onChange={setCheckFilter}
-                    />
-                  )}
-                  <EventStatusFilterChips
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                    mode={filter}
-                  />
-                  {hasActiveFilters ? (
-                    <button
-                      type="button"
-                      className="text-xs font-semibold cursor-pointer text-general hover:underline"
-                      onClick={resetFilters}
-                    >
-                      Сбросить
-                    </button>
-                  ) : null}
-                </div>
-              ) : null
-            }
-            right={
-              <>
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <AppButton
-                    variant="secondary"
-                    size="sm"
-                    className="flex h-9 items-center gap-1.5 rounded-md px-2.5"
-                    onClick={() =>
-                      setViewMode((prev) =>
-                        prev === 'list' ? 'month' : 'list'
-                      )
-                    }
-                    title={
-                      viewMode === 'list'
-                        ? 'Показать календарь'
-                        : 'Показать список'
-                    }
-                  >
-                    {viewMode === 'list' ? (
-                      <ViewListIcon fontSize="small" />
-                    ) : (
-                      <CalendarMonthIcon fontSize="small" />
-                    )}
-                    {viewMode === 'list' ? 'Список' : 'Месяц'}
-                  </AppButton>
-                  <MutedText>
-                    {filterName}: {displayedCount}
-                  </MutedText>
-                  <MutedText className="hidden tablet:inline">
-                    Всего: {events.length}
-                  </MutedText>
-                  <AddEventMenu
-                    disabled={createMenuDisabled}
-                    allowVoice={allowVoiceDraft}
-                    onCreateRequest={handleCreateRequest}
-                    onCreateEvent={handleCreateActiveEvent}
-                    onVoice={handleCreateByVoice}
-                  />
-                </div>
-              </>
-            }
-          />
         </div>
       </ContentHeader>
       {filter === 'upcoming' || filter === 'past' ? (
-        <SectionCard className="p-2 border border-gray-200 shadow-sm tablet:p-3 bg-white/95">
+        <SectionCard className="event-quick-filters border border-gray-200 bg-white/95 p-2 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center justify-start w-full tablet:w-auto tablet:flex-1 tablet:justify-end">
-              <div className="flex flex-row w-full phoneH:flex-row tablet:w-auto gap-x-2">
+            <div className="tablet:w-auto tablet:flex-1 tablet:justify-end flex w-full items-center justify-start">
+              <div className="phoneH:flex-row tablet:w-auto flex w-full flex-row gap-x-2">
                 {filter === 'upcoming' ? (
                   <AppButton
                     variant="primary"
                     size="sm"
-                    className="flex-1 min-w-0 px-3 text-xs font-semibold rounded-md shadow-md phoneH:w-auto tablet:text-sm"
+                    className="event-quick-filter-chip tablet:text-sm w-auto min-w-0 flex-none rounded-md px-3 text-xs font-semibold"
                     onClick={() => modalsFunc.event?.upcomingOverview?.()}
                   >
-                    <span className="inline-flex items-center justify-center min-w-0 gap-2">
-                      <span className="hidden tablet:inline">
+                    <span className="inline-flex min-w-0 items-center justify-center gap-2">
+                      <span className="tablet:inline hidden">
                         Требует внимания
                       </span>
                       <span className="tablet:hidden">Внимание</span>
@@ -1644,15 +1600,15 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   <AppButton
                     variant="secondary"
                     size="sm"
-                    className="flex-1 min-w-0 px-3 text-xs font-semibold rounded-md phoneH:w-auto tablet:text-sm"
+                    className="event-quick-filter-chip tablet:text-sm w-auto min-w-0 flex-none rounded-md px-3 text-xs font-semibold"
                     onClick={() =>
                       router.push(
                         '/cabinet/eventsPast?statusFinished=true&statusClosed=false&statusCanceled=false'
                       )
                     }
                   >
-                    <span className="inline-flex items-center justify-center min-w-0 gap-2">
-                      <span className="hidden tablet:inline">
+                    <span className="inline-flex min-w-0 items-center justify-center gap-2">
+                      <span className="tablet:inline hidden">
                         Закрыть прошедшие мероприятия
                       </span>
                       <span className="tablet:hidden">Закрыть прошедшие</span>
@@ -1672,7 +1628,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                             : 'secondary'
                         }
                         size="sm"
-                        className="flex-1 min-w-0 px-2 text-xs font-semibold rounded-md phoneH:w-auto tablet:flex-none tablet:px-3 tablet:text-sm"
+                        className="event-quick-filter-chip phoneH:w-auto tablet:flex-none tablet:px-3 tablet:text-sm min-w-0 flex-1 rounded-md px-2 text-xs font-semibold"
                         onClick={() => setPastQuickFilter(item)}
                       >
                         {item.label}
@@ -1684,7 +1640,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
           </div>
         </SectionCard>
       ) : null}
-      <SectionCard className="flex-1 min-h-0 overflow-hidden bg-transparent border-0 shadow-none">
+      <SectionCard className="min-h-0 flex-1 overflow-hidden border-0 bg-transparent shadow-none">
         {viewMode === 'list' ? (
           sortedEvents.length > 0 ? (
             <List
@@ -1703,14 +1659,14 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
             <EmptyState text="Для выбранных фильтьров мероприятий пока нет" />
           )
         ) : (
-          <div className="flex flex-col h-full min-h-0 gap-3 overflow-hidden">
-            <SectionCard className="p-3 border border-gray-200 shadow-sm bg-white/95">
+          <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+            <SectionCard className="border border-gray-200 bg-white/95 p-3 shadow-sm">
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center justify-center gap-2">
                   <AppButton
                     variant="secondary"
                     size="sm"
-                    className="flex items-center justify-center p-0 rounded-md h-9 w-9"
+                    className="flex h-9 w-9 items-center justify-center rounded-md p-0"
                     disabled={isUpcomingMinMonth}
                     onClick={() =>
                       setMonthCursor((prev) =>
@@ -1734,7 +1690,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   <AppButton
                     variant="secondary"
                     size="sm"
-                    className="px-3 rounded-md"
+                    className="rounded-md px-3"
                     onClick={() => setMonthCursor(toMonthStart(new Date()))}
                   >
                     Сегодня
@@ -1742,7 +1698,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   <AppButton
                     variant="secondary"
                     size="sm"
-                    className="flex items-center justify-center p-0 rounded-md h-9 w-9"
+                    className="flex h-9 w-9 items-center justify-center rounded-md p-0"
                     onClick={() =>
                       setMonthCursor((prev) =>
                         toMonthStart(
@@ -1756,7 +1712,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                     <ChevronRightIcon fontSize="small" />
                   </AppButton>
                 </div>
-                <div className="flex flex-wrap items-center justify-center text-center gap-x-2 gap-y-1">
+                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
                   <div className="text-sm font-semibold text-gray-800 capitalize">
                     {monthTitle}
                   </div>
@@ -1767,8 +1723,8 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                 </div>
               </div>
             </SectionCard>
-            <div className="flex-1 min-h-0 overflow-auto bg-white border rounded-lg event-month-calendar">
-              <div className="sticky top-0 z-10 grid grid-cols-7 border-b shadow-sm event-month-calendar__weekdays backdrop-blur">
+            <div className="event-month-calendar min-h-0 flex-1 overflow-auto rounded-lg border bg-white">
+              <div className="event-month-calendar__weekdays sticky top-0 z-10 grid grid-cols-7 border-b shadow-sm backdrop-blur">
                 {DAYS_OF_WEEK.map((dayName) => (
                   <div
                     key={dayName}
@@ -1778,7 +1734,7 @@ const EventsContent = ({ filter = 'all', eventsPaging = null }) => {
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-7 auto-rows-auto">
+              <div className="grid auto-rows-auto grid-cols-7">
                 {monthGridDays.map((day) => {
                   const dayItems = monthItemsByDay.get(day.key) || []
                   const hasDayContent = dayItems.length > 0

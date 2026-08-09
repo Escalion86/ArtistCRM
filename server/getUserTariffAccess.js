@@ -1,27 +1,7 @@
 import Tariffs from '@models/Tariffs'
 import Users from '@models/Users'
 import dbConnect from './dbConnect'
-import { isTrialActive } from '@helpers/tariffAccess'
-
-const buildAccess = (user, tariff) => {
-  const trialActive = isTrialActive(user)
-  return {
-    user,
-    tariff,
-    trialActive,
-    hasTariff: Boolean(tariff),
-    allowCalendarSync: trialActive || Boolean(tariff?.allowCalendarSync),
-    allowStatistics: trialActive || Boolean(tariff?.allowStatistics),
-    allowDocuments: trialActive || Boolean(tariff?.allowDocuments),
-    allowTelephony: Boolean(tariff?.allowTelephony),
-    allowAi: Boolean(tariff?.allowAi),
-    allowAvitoIntegration:
-      trialActive || Boolean(tariff?.allowAvitoIntegration),
-    allowVkIntegration: trialActive || Boolean(tariff?.allowVkIntegration),
-    allowPublicLeadApi: Boolean(tariff?.allowPublicLeadApi),
-    eventsPerMonth: trialActive ? Infinity : Number(tariff?.eventsPerMonth ?? 0),
-  }
-}
+import { getUserTariffAccess as buildUserTariffAccess } from '@helpers/tariffAccess'
 
 const getUserTariffAccess = async (userId) => {
   if (!userId) return null
@@ -31,7 +11,10 @@ const getUserTariffAccess = async (userId) => {
   const tariff = user.tariffId
     ? await Tariffs.findById(user.tariffId).lean()
     : null
-  return buildAccess(user, tariff)
+  return {
+    user,
+    ...buildUserTariffAccess(user, tariff ? [tariff] : []),
+  }
 }
 
 export default getUserTariffAccess

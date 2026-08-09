@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 import dbConnect from '@server/dbConnect'
 import Users from '@models/Users'
-import Tariffs from '@models/Tariffs'
 import PhoneConfirms from '@models/PhoneConfirms'
+import { buildRegistrationTrialUserFields } from '@server/registrationTrial'
 import {
   findUserByPhone,
   isValidNormalizedPhone,
@@ -60,28 +60,19 @@ const createRegisterUser = async (
     acquisition = null,
   } = {}
 ) => {
-  const cheapestTariff = await Tariffs.findOne({
-    hidden: { $ne: true },
-  })
-    .sort({ price: 1, title: 1 })
-    .lean()
-
   const now = new Date()
-  const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+  const registrationTrial = await buildRegistrationTrialUserFields(now)
 
   const user = await Users.create({
     phone,
     password: hashedPassword,
     role: 'user',
     tenantId: null,
-    tariffId: cheapestTariff?._id ?? null,
+    ...registrationTrial,
     referrerId: referrerId ?? null,
     registrationSource,
     registrationSourceCapturedAt: registrationSource ? now : null,
     acquisition: acquisition ? { ...acquisition, capturedAt: now } : null,
-    trialActivatedAt: now,
-    trialEndsAt,
-    trialUsed: true,
     consentPrivacyPolicyAccepted: Boolean(consentPrivacyPolicy),
     consentPersonalDataAccepted: Boolean(consentPersonalData),
     privacyPolicyAcceptedAt: consentPrivacyPolicy ? now : null,
@@ -180,6 +171,9 @@ export const POST = async (req) => {
 
       if (user && !user.password) {
         const now = new Date()
+        const registrationTrial = user.trialUsed
+          ? {}
+          : await buildRegistrationTrialUserFields(now)
         const referrerId = await resolveReferrerId(rawReferrerId, user._id)
         user.password = hashedPassword
         if (!user.tenantId) user.tenantId = user._id
@@ -195,6 +189,7 @@ export const POST = async (req) => {
         user.consentPersonalDataAccepted = true
         user.privacyPolicyAcceptedAt = now
         user.personalDataProcessingAcceptedAt = now
+        Object.assign(user, registrationTrial)
         await user.save()
       } else {
         const referrerId = await resolveReferrerId(rawReferrerId)

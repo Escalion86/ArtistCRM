@@ -4,7 +4,10 @@ import { modalsFuncAtom } from '@state/atoms'
 import CardButtons from '@components/CardButtons'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import SurfaceCard from '@components/SurfaceCard'
+import { faCopy } from '@fortawesome/free-solid-svg-icons/faCopy'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import getPersonFullName from '@helpers/getPersonFullName'
+import { formatPhoneWithPlus } from '@helpers/phoneUi'
 import {
   useClientQuery,
   useClientRelationsQuery,
@@ -166,6 +169,7 @@ const clientViewFunc = (clientId) => {
       )
 
     const fullName = getPersonFullName(client, { fallback: 'Без имени' })
+    const clientPhone = formatPhoneWithPlus(client.phone)
     const initials = fullName
       .split(' ')
       .filter(Boolean)
@@ -184,8 +188,22 @@ const clientViewFunc = (clientId) => {
               <div className="truncate text-lg font-semibold text-gray-900">
                 {fullName}
               </div>
-              <div className="mt-0.5 text-gray-600">
-                {client.phone ? `+${client.phone}` : 'Телефон не указан'}
+              <div className="mt-0.5 flex min-h-7 items-center gap-1 text-gray-600">
+                <span>{clientPhone || 'Телефон не указан'}</span>
+                {clientPhone ? (
+                  <button
+                    type="button"
+                    className="flex h-7 min-w-7 shrink-0 cursor-pointer items-center justify-center rounded text-gray-500 transition hover:bg-white/70 hover:text-gray-800 focus-visible:ring-2 focus-visible:ring-[var(--ui-primary)]/40 focus-visible:outline-none"
+                    onClick={() => {
+                      if (!navigator.clipboard) return
+                      navigator.clipboard.writeText(clientPhone).catch(() => {})
+                    }}
+                    title="Скопировать номер телефона"
+                    aria-label={`Скопировать номер телефона ${clientPhone}`}
+                  >
+                    <FontAwesomeIcon icon={faCopy} className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>

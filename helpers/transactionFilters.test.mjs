@@ -80,3 +80,22 @@ test('filterTransactions combines date, type and relation filters', () => {
     ['unlinked-expense']
   )
 })
+
+test('filterTransactions separates obligations from regular income and expense', () => {
+  const transactions = [
+    { _id: 'income', type: 'income', paymentMethod: 'transfer' },
+    { _id: 'expense', type: 'expense', paymentMethod: 'cash' },
+    { _id: 'obligation', type: 'expense', paymentMethod: 'obligation' },
+  ]
+
+  const result = filterTransactions({
+    transactions,
+    typeFilter: { income: false, expense: false, obligation: true },
+    relationFilter: { linked: true, unlinked: true },
+  })
+
+  assert.deepEqual(
+    result.map((item) => item._id),
+    ['obligation']
+  )
+})

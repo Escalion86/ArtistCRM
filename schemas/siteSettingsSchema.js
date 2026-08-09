@@ -105,6 +105,19 @@ const siteSettingsSchema = {
       markupCoefficient: 1.5,
     },
   },
+  registrationTrial: {
+    type: {
+      enabled: { type: Boolean, default: false },
+      tariffId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Tariffs',
+        default: null,
+      },
+      durationDays: { type: Number, default: 14, min: 1, max: 365 },
+      welcomeMessage: { type: String, maxlength: 2000, default: '' },
+    },
+    default: undefined,
+  },
   custom: {
     type: Map,
     of: Schema.Types.Mixed,

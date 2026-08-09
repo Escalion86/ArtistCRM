@@ -36,6 +36,14 @@ test('mobile profile serializer возвращает контакты без pas
     telegram: 'artist',
     password: 'hash',
     googleCalendar: { refreshToken: 'oauth-secret' },
+    registrationOffer: {
+      tariffId: 'tariff-id',
+      tariffTitle: 'Профи',
+      endsAt: '2026-08-20T00:00:00.000Z',
+      welcomeMessage: 'Добро пожаловать',
+      featureKeys: ['allowDocuments'],
+      featureLabels: ['Документы и шаблоны'],
+    },
   }, {
     _id: 'tariff-id',
     title: 'Профи',
@@ -45,6 +53,8 @@ test('mobile profile serializer возвращает контакты без pas
   assert.equal(result.telegram, 'artist')
   assert.equal(result.tariffId, 'tariff-id')
   assert.equal(result.tariffTitle, 'Профи')
+  assert.equal(result.registrationOffer.tariffTitle, 'Профи')
+  assert.deepEqual(result.registrationOffer.featureKeys, ['allowDocuments'])
   const json = JSON.stringify(result)
   assert.equal(json.includes('hash'), false)
   assert.equal(json.includes('oauth-secret'), false)

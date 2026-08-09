@@ -159,6 +159,22 @@ const usersSchema = {
     type: Boolean,
     default: false,
   },
+  registrationOffer: {
+    type: {
+      tariffId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Tariffs',
+        default: null,
+      },
+      tariffTitle: { type: String, default: '' },
+      startedAt: { type: Date, default: null },
+      endsAt: { type: Date, default: null },
+      welcomeMessage: { type: String, maxlength: 2400, default: '' },
+      featureKeys: { type: [String], default: [] },
+      featureLabels: { type: [String], default: [] },
+    },
+    default: null,
+  },
   balance: {
     type: Number,
     default: 0,

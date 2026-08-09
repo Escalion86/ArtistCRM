@@ -2,6 +2,7 @@ import Payments from '@models/Payments'
 import Tariffs from '@models/Tariffs'
 import Users from '@models/Users'
 import { addMonths, calculateTariffCredit } from './billingCalculations.js'
+import { isRegistrationOfferTariff } from '@helpers/tariffAccess'
 
 const applyTariffPurchase = async ({ userId, tariffId, skipCompensation = false }) => {
   if (!userId || !tariffId) {
@@ -16,7 +17,9 @@ const applyTariffPurchase = async ({ userId, tariffId, skipCompensation = false 
 
   const now = new Date()
   const currentTariff =
-    user.tariffId && user.tariffActiveUntil
+    user.tariffId &&
+    user.tariffActiveUntil &&
+    !isRegistrationOfferTariff(user)
       ? await Tariffs.findById(user.tariffId).lean()
       : null
 

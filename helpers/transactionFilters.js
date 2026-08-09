@@ -20,10 +20,23 @@ const isInDateRange = (transaction, dateFrom, dateTo) => {
 }
 
 const matchesTypeFilter = (transaction, typeFilter = {}) => {
-  if (typeFilter.income && typeFilter.expense) return true
-  if (typeFilter.income) return transaction?.type === 'income'
-  if (typeFilter.expense) return transaction?.type === 'expense'
-  return true
+  const isObligation = transaction?.paymentMethod === 'obligation'
+  const hasExplicitTypeFilter = ['income', 'expense', 'obligation'].some(
+    (key) => key in typeFilter
+  )
+  if (!hasExplicitTypeFilter) return true
+
+  const hasExplicitObligationFilter = 'obligation' in typeFilter
+  const obligationEnabled = hasExplicitObligationFilter
+    ? Boolean(typeFilter.obligation)
+    : true
+  const incomeEnabled = Boolean(typeFilter.income)
+  const expenseEnabled = Boolean(typeFilter.expense)
+
+  if (isObligation) return obligationEnabled
+  if (incomeEnabled && transaction?.type === 'income') return true
+  if (expenseEnabled && transaction?.type === 'expense') return true
+  return false
 }
 
 const matchesRelationFilter = (transaction, relationFilter = {}) => {

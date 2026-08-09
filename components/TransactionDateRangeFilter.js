@@ -3,6 +3,8 @@
 import cn from 'classnames'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCalendarDays } from '@fortawesome/free-solid-svg-icons'
 import {
   buildMonthDays,
   calculateDateRangePanelPosition,
@@ -266,13 +268,14 @@ const TransactionDateRangeFilter = ({
         ref={buttonRef}
         type="button"
         className={cn(
-          'inline-flex h-9 items-center justify-center rounded-full border px-4 text-sm font-semibold whitespace-nowrap transition-colors',
+          'filter-control min-w-[104px]',
           active
             ? 'border-[var(--ui-primary)] bg-[var(--ui-primary)] text-[var(--ui-primary-text)] hover:bg-[var(--ui-primary-hover)]'
             : 'border-[var(--ui-secondary-border)] bg-[var(--ui-secondary-bg)] text-[var(--ui-secondary-text)] hover:border-[var(--ui-secondary-hover-border)] hover:bg-[var(--ui-secondary-hover-bg)] hover:text-[var(--ui-secondary-hover-text)]'
         )}
         onClick={toggleOpen}
       >
+        <FontAwesomeIcon icon={faCalendarDays} className="h-4 w-4" />
         {buttonLabel}
       </button>
       {open && typeof document !== 'undefined'

@@ -7,6 +7,7 @@ import EmptyState from '@components/EmptyState'
 import IconCheckBox from '@components/IconCheckBox'
 import SectionCard from '@components/SectionCard'
 import tariffsAtom from '@state/atoms/tariffsAtom'
+import { isRegistrationOfferTariff } from '@helpers/tariffAccess'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
@@ -140,6 +141,7 @@ const TariffSelectContent = () => {
       : null
     const isActivePaidTariff =
       hasPaidTariff &&
+      !isRegistrationOfferTariff(loggedUser) &&
       activeUntil &&
       !Number.isNaN(activeUntil.getTime()) &&
       activeUntil.getTime() > now.getTime()

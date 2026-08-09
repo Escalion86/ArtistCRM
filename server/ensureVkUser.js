@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 import Users from '@models/Users'
-import Tariffs from '@models/Tariffs'
+import { buildRegistrationTrialUserFields } from '@server/registrationTrial'
 import {
   findUserByPhone,
   isValidNormalizedPhone,
@@ -69,14 +69,8 @@ export const ensureVkUser = async ({
       await Users.updateMany({ vkId: normalizedVkId }, { $unset: { vkId: 1 } })
     }
 
-    const cheapestTariff = await Tariffs.findOne({
-      hidden: { $ne: true },
-    })
-      .sort({ price: 1, title: 1 })
-      .lean()
-
     const now = new Date()
-    const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+    const registrationTrial = await buildRegistrationTrialUserFields(now)
 
     try {
       const resolvedReferrerId = await resolveReferrerId(referrerId)
@@ -94,10 +88,7 @@ export const ensureVkUser = async ({
         registrationSource,
         registrationSourceCapturedAt: registrationSource ? now : null,
         acquisition: acquisition ? { ...acquisition, capturedAt: now } : null,
-        tariffId: cheapestTariff?._id ?? null,
-        trialActivatedAt: now,
-        trialEndsAt,
-        trialUsed: true,
+        ...registrationTrial,
         consentPrivacyPolicyAccepted: true,
         consentPersonalDataAccepted: true,
         privacyPolicyAcceptedAt: now,

@@ -12,20 +12,46 @@ import { faSms } from '@fortawesome/free-solid-svg-icons/faSms'
 import ClientChatButton from '@components/ClientChatButton'
 import NovofonCallButton from '@components/NovofonCallButton'
 
-const ContactIconBtn = ({ url, icon, size = 'lg', className = null }) => (
-  <FontAwesomeIcon
-    className={cn(
-      'hover:text-toxic h-6 cursor-pointer duration-300 hover:scale-110',
-      className
-    )}
-    icon={icon}
-    onClick={(event) => {
-      event.stopPropagation()
-      window.open(url)
-    }}
-    size={size}
-  />
-)
+const ContactIconBtn = ({
+  url,
+  icon,
+  size = 'lg',
+  className = null,
+  buttonClassName = '',
+  title,
+}) => {
+  const handleClick = (event) => {
+    event.stopPropagation()
+    window.open(url)
+  }
+
+  if (buttonClassName) {
+    return (
+      <button
+        type="button"
+        className={buttonClassName}
+        onClick={handleClick}
+        aria-label={title || 'Открыть контакт'}
+        title={title || 'Открыть контакт'}
+      >
+        <FontAwesomeIcon className={cn('h-5 w-5', className)} icon={icon} />
+      </button>
+    )
+  }
+
+  return (
+    <FontAwesomeIcon
+      className={cn(
+        'hover:text-toxic h-6 cursor-pointer duration-300 hover:scale-110',
+        className
+      )}
+      icon={icon}
+      onClick={handleClick}
+      size={size}
+      title={title}
+    />
+  )
+}
 
 const ContactIconBtnWithTitle = ({
   url,
@@ -65,8 +91,15 @@ const ContactsIconsButtons = ({
   forceWhatsApp = true,
   forceTelegram = true,
   showChat = false,
+  compactButtons = false,
 }) => {
   const Btn = withTitle ? ContactIconBtnWithTitle : ContactIconBtn
+  const compactButtonClassName = compactButtons
+    ? 'contact-quick-button inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-primary)]/40'
+    : ''
+  const compactAuxiliaryClassName = compactButtons
+    ? 'contact-quick-button h-8 w-8 rounded-lg border'
+    : ''
 
   const encodedMessage =
     message !== undefined || message !== null
@@ -87,7 +120,7 @@ const ContactsIconsButtons = ({
       {user?.phone && (
         <Btn
           icon={message || smsViaPhone ? faSms : faPhone}
-          className="text-yellow-600"
+          className="text-green-700"
           url={
             message
               ? `sms:+${user.phone}?body=${encodedMessage}`
@@ -96,6 +129,7 @@ const ContactsIconsButtons = ({
                 : `tel:+${user.phone}`
           }
           title={'+' + user.phone}
+          buttonClassName={compactButtonClassName}
         />
       )}
       {user?.whatsapp ? (
@@ -106,6 +140,7 @@ const ContactsIconsButtons = ({
             message ? `?text=${encodedMessage}` : ''
           }`}
           title={'+' + user.whatsapp}
+          buttonClassName={compactButtonClassName}
         />
       ) : (
         forceWhatsApp &&
@@ -117,6 +152,7 @@ const ContactsIconsButtons = ({
               message ? `?text=${encodedMessage}` : ''
             }`}
             title={'+' + user.phone}
+            buttonClassName={compactButtonClassName}
           />
         )
       )}
@@ -126,6 +162,7 @@ const ContactsIconsButtons = ({
           className="text-purple-600"
           url={'viber://chat?number=' + user.viber}
           title={'+' + user.viber}
+          buttonClassName={compactButtonClassName}
         />
       )}
 
@@ -136,6 +173,7 @@ const ContactsIconsButtons = ({
             className="text-blue-600"
             url={`tg://resolve?domain=${user.telegram}`}
             title={'@' + user.telegram}
+            buttonClassName={compactButtonClassName}
           />
         ) : (
           forceTelegram &&
@@ -145,6 +183,7 @@ const ContactsIconsButtons = ({
               className="text-red-400"
               url={`tg://resolve?phone=${user.phone}`}
               title={'+' + user.phone}
+              buttonClassName={compactButtonClassName}
             />
           )
         ))}
@@ -154,6 +193,7 @@ const ContactsIconsButtons = ({
           className="text-yellow-700"
           url={'https://instagram.com/' + user.instagram}
           title={'@' + user.instagram}
+          buttonClassName={compactButtonClassName}
         />
       )}
       {!message && user?.vk && (
@@ -162,6 +202,7 @@ const ContactsIconsButtons = ({
           url={'https://vk.com/' + user.vk}
           className="text-blue-600"
           title={'@' + user.vk}
+          buttonClassName={compactButtonClassName}
         />
       )}
       {!message && user?.email && (
@@ -170,13 +211,22 @@ const ContactsIconsButtons = ({
           className="text-red-400"
           url={'mailto:' + user.email}
           title={user.email}
+          buttonClassName={compactButtonClassName}
         />
       )}
       {!message && showChat && (
-        <NovofonCallButton client={user} withTitle={withTitle} />
+        <NovofonCallButton
+          client={user}
+          withTitle={withTitle}
+          className={compactAuxiliaryClassName}
+        />
       )}
       {!message && showChat && (
-        <ClientChatButton clientId={user?._id} withTitle={withTitle} />
+        <ClientChatButton
+          clientId={user?._id}
+          withTitle={withTitle}
+          className={compactAuxiliaryClassName}
+        />
       )}
     </div>
   )

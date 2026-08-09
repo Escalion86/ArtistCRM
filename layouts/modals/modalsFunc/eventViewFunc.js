@@ -2,12 +2,15 @@ import CardButtons from '@components/CardButtons'
 import Chip from '@components/Chips/Chip'
 import cn from 'classnames'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
+import { faCopy } from '@fortawesome/free-solid-svg-icons/faCopy'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import ImageGallery from '@components/ImageGallery'
 import SurfaceCard from '@components/SurfaceCard'
 import TextLine from '@components/TextLine'
 import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
 import formatMinutes from '@helpers/formatMinutes'
+import { formatPhoneWithPlus } from '@helpers/phoneUi'
 import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
 import getEventDuration from '@helpers/getEventDuration'
 import getPersonFullName from '@helpers/getPersonFullName'
@@ -55,18 +58,51 @@ const EVENT_STATUS_META = Object.freeze({
   },
 })
 
-const formatClientContactLines = (client) => {
+const getClientContactItems = (client) => {
   if (!client || typeof client !== 'object') return []
-  const lines = []
-  if (client?.phone) lines.push(`Телефон: ${client.phone}`)
-  if (client?.whatsapp) lines.push(`WhatsApp: ${client.whatsapp}`)
-  if (client?.viber) lines.push(`Viber: ${client.viber}`)
-  if (client?.telegram) lines.push(`Telegram: ${client.telegram}`)
-  if (client?.instagram) lines.push(`Instagram: ${client.instagram}`)
-  if (client?.vk) lines.push(`VK: ${client.vk}`)
-  if (client?.email) lines.push(`Email: ${client.email}`)
-  return lines
+  return [
+    {
+      key: 'phone',
+      label: 'Телефон',
+      value: formatPhoneWithPlus(client.phone),
+      canCopy: true,
+    },
+    { key: 'whatsapp', label: 'WhatsApp', value: client.whatsapp },
+    { key: 'viber', label: 'Viber', value: client.viber },
+    { key: 'telegram', label: 'Telegram', value: client.telegram },
+    { key: 'instagram', label: 'Instagram', value: client.instagram },
+    { key: 'vk', label: 'VK', value: client.vk },
+    { key: 'email', label: 'Email', value: client.email },
+  ].filter((item) => item.value)
 }
+
+const ClientContactLines = ({ client }) =>
+  getClientContactItems(client).map((item) => (
+    <div
+      key={item.key}
+      className="flex min-h-6 items-center gap-1 text-xs text-gray-600"
+    >
+      <span className="min-w-0 break-all">
+        {item.label}: {item.value}
+      </span>
+      {item.canCopy ? (
+        <button
+          type="button"
+          className="flex h-6 min-w-6 shrink-0 cursor-pointer items-center justify-center rounded text-gray-500 transition hover:bg-gray-200 hover:text-gray-800 focus-visible:ring-2 focus-visible:ring-[var(--ui-primary)]/40 focus-visible:outline-none"
+          onClick={(event) => {
+            event.stopPropagation()
+            if (!navigator.clipboard) return
+            navigator.clipboard.writeText(item.value).catch(() => {})
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+          title="Скопировать номер телефона"
+          aria-label={`Скопировать номер телефона ${item.value}`}
+        >
+          <FontAwesomeIcon icon={faCopy} className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </div>
+  ))
 
 const SectionBlock = ({ title, children }) => (
   <SurfaceCard>
@@ -428,11 +464,7 @@ const eventViewFunc = (eventId) => {
                         fallback: 'Не указан',
                       })}
                     </div>
-                    {formatClientContactLines(mainClient).map((line) => (
-                      <div key={line} className="text-xs text-gray-600">
-                        {line}
-                      </div>
-                    ))}
+                    <ClientContactLines client={mainClient} />
                     <div
                       className="mt-1"
                       onClick={(event) => event.stopPropagation()}
@@ -458,14 +490,9 @@ const eventViewFunc = (eventId) => {
                       Передано коллеге:{' '}
                       {transferDisplay.colleagueName || 'не указан'}
                     </div>
-                    {transferDisplay.colleague &&
-                      formatClientContactLines(transferDisplay.colleague).map(
-                        (line) => (
-                          <div key={line} className="text-xs text-gray-600">
-                            {line}
-                          </div>
-                        )
-                      )}
+                    {transferDisplay.colleague ? (
+                      <ClientContactLines client={transferDisplay.colleague} />
+                    ) : null}
                     {transferDisplay.colleague ? (
                       <div
                         className="mt-1"
@@ -505,17 +532,9 @@ const eventViewFunc = (eventId) => {
                               {contact.comment}
                             </div>
                           ) : null}
-                          {contact.client &&
-                            formatClientContactLines(contact.client).map(
-                              (line) => (
-                                <div
-                                  key={line}
-                                  className="text-xs text-gray-600"
-                                >
-                                  {line}
-                                </div>
-                              )
-                            )}
+                          {contact.client ? (
+                            <ClientContactLines client={contact.client} />
+                          ) : null}
                           {contact.client && (
                             <div
                               className="mt-1"

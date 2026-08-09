@@ -422,7 +422,8 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
     client: {
       edit: (clientId, onSuccess) =>
         addModal(clientFunc(clientId, false, onSuccess)),
-      add: (onSuccess) => addModal(clientFunc(null, true, onSuccess)),
+      add: (onSuccess, options) =>
+        addModal(clientFunc(null, true, onSuccess, options)),
       select: (onSelect, title, options) =>
         addModal(clientSelectFunc(onSelect, title, options)),
       view: (clientId) => addModal(clientViewFunc(clientId)),

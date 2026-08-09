@@ -117,7 +117,13 @@ const VoiceDraftOverlay = ({ onClose, onDraft }) => {
           throw new Error(draftPayload?.error || 'Не удалось разобрать текст')
         }
 
-        onDraft(draftPayload?.fields ?? {}, transcript)
+        onDraft(
+          draftPayload?.fields ?? {},
+          transcript,
+          draftPayload?.aiFilledFields ?? [],
+          draftPayload?.client ?? null,
+          draftPayload?.aiWarnings ?? []
+        )
       } catch (error) {
         setStatus('error')
         setErrorMessage(error?.message || 'Не удалось обработать голосовой ввод')

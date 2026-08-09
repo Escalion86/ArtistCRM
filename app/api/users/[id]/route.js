@@ -7,6 +7,7 @@ import Tariffs from '@models/Tariffs'
 import Payments from '@models/Payments'
 import Events from '@models/Events'
 import { applyUserEventStats } from '@helpers/userEventStats'
+import { isRegistrationOfferTariff } from '@helpers/tariffAccess'
 
 const addMonths = (date, count) => {
   const next = new Date(date)
@@ -123,7 +124,9 @@ export const PUT = async (req, { params }) => {
       }
     }
     const currentTariff =
-      existing.tariffId && existing.tariffActiveUntil
+      existing.tariffId &&
+      existing.tariffActiveUntil &&
+      !isRegistrationOfferTariff(existing)
         ? await Tariffs.findById(existing.tariffId).lean()
         : null
     let creditAmount = 0

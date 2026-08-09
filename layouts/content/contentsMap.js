@@ -12,6 +12,7 @@ import NotificationsContent from './NotificationsContent'
 import ReferralsContent from './ReferralsContent'
 import SiteReferralSettingsContent from './SiteReferralSettingsContent'
 import AiUsageAdminContent from './AiUsageAdminContent'
+import RegistrationTrialSettingsContent from './RegistrationTrialSettingsContent'
 import StatisticsContent from './StatisticsContent'
 import ServicesContent from './ServicesContent'
 import UsersContent from './UsersContent'
@@ -88,6 +89,10 @@ export const CONTENTS = Object.freeze({
   'ai-usage': {
     Component: AiUsageAdminContent,
     name: 'Настройки сайта / ИИ и расходы',
+  },
+  'registration-trial': {
+    Component: RegistrationTrialSettingsContent,
+    name: 'Настройки сайта / Пробный тариф',
   },
   tariffs: {
     Component: TariffsContent,
