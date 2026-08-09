@@ -60,7 +60,8 @@ const getEventCardDateParts = (value) => {
 
   return {
     day: String(date.getDate()).padStart(2, '0'),
-    monthWeekday: `${month}, ${weekday}`,
+    month,
+    weekday,
     time: date.toLocaleTimeString('ru-RU', {
       hour: '2-digit',
       minute: '2-digit',
@@ -386,14 +387,19 @@ const EventCard = ({
           </div>
         </div>
 
-        <div className="flex flex-col border-r border-gray-200 py-2 pr-3 text-left">
-          <span className="card-title text-2xl leading-none">
-            {eventCardDate.day}
+        <div className="flex flex-col border-r border-gray-200 py-2 pr-3 text-center">
+          <div className="flex items-baseline gap-x-1">
+            <span className="text-sm font-medium whitespace-nowrap uppercase">
+              {eventCardDate.weekday}
+            </span>
+            <span className="card-title text-2xl leading-none">
+              {eventCardDate.day}
+            </span>
+          </div>
+          <span className="text-general text-base font-medium whitespace-nowrap">
+            {eventCardDate.month}
           </span>
-          <span className="mt-1 text-xs font-medium text-blue-800">
-            {eventCardDate.monthWeekday}
-          </span>
-          <span className="card-meta mt-2 text-sm">{eventCardDate.time}</span>
+          <span className="card-meta mt-0.5 text-sm">{eventCardDate.time}</span>
         </div>
 
         <div className="flex min-w-0 flex-col justify-center gap-1 py-2">
