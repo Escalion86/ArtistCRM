@@ -5,6 +5,8 @@ import AvitoMessages from '@models/AvitoMessages'
 import Clients from '@models/Clients'
 import VkConversations from '@models/VkConversations'
 import VkMessages from '@models/VkMessages'
+import TelegramConversations from '@models/TelegramConversations'
+import TelegramMessages from '@models/TelegramMessages'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
@@ -25,19 +27,30 @@ const jsonError = (message, status = 400, code = 'messenger_candidates_error') =
 const normalizeConversation = (provider, conversation) => ({
   _id: String(conversation._id),
   provider,
-  providerLabel: provider === 'avito' ? 'Avito' : 'VK',
+  providerLabel:
+    provider === 'avito' ? 'Avito' : provider === 'vk' ? 'VK' : 'Telegram',
   clientId: conversation.clientId ? String(conversation.clientId) : '',
   linkedToCurrentClient: Boolean(conversation.clientId),
   title:
     provider === 'avito'
       ? conversation.avitoItemTitle || conversation.clientName || 'Чат Avito'
-      : conversation.clientName || 'Чат VK',
+      : provider === 'vk'
+        ? conversation.clientName || 'Чат VK'
+        : conversation.clientName || 'Чат Telegram',
   subtitle:
     conversation.lastMessageText ||
-    (provider === 'avito' ? conversation.avitoChatId : conversation.vkPeerId) ||
+    (provider === 'avito'
+      ? conversation.avitoChatId
+      : provider === 'vk'
+        ? conversation.vkPeerId
+        : conversation.telegramUsername || conversation.telegramChatId) ||
     '',
   externalId:
-    provider === 'avito' ? conversation.avitoChatId : conversation.vkPeerId,
+    provider === 'avito'
+      ? conversation.avitoChatId
+      : provider === 'vk'
+        ? conversation.vkPeerId
+        : conversation.telegramChatId,
   lastMessageText: conversation.lastMessageText || '',
   lastMessageAt: conversation.lastMessageAt || null,
   unreadCount: conversation.unreadCount || 0,
@@ -49,7 +62,8 @@ const loadCandidates = async ({ tenantId, clientId, access }) => {
     $or: [{ clientId: null }, { clientId: { $exists: false } }, { clientId }],
   }
 
-  const [avitoConversations, vkConversations] = await Promise.all([
+  const [avitoConversations, vkConversations, telegramConversations] =
+    await Promise.all([
     hasIntegrationAccess(access, 'avito')
       ? AvitoConversations.find(query)
           .sort({ lastMessageAt: -1, updatedAt: -1 })
@@ -62,11 +76,20 @@ const loadCandidates = async ({ tenantId, clientId, access }) => {
           .limit(100)
           .lean()
       : Promise.resolve([]),
+    hasIntegrationAccess(access, 'telegram')
+      ? TelegramConversations.find(query)
+          .sort({ lastMessageAt: -1, updatedAt: -1 })
+          .limit(100)
+          .lean()
+      : Promise.resolve([]),
   ])
 
   return [
     ...avitoConversations.map((item) => normalizeConversation('avito', item)),
     ...vkConversations.map((item) => normalizeConversation('vk', item)),
+    ...telegramConversations.map((item) =>
+      normalizeConversation('telegram', item)
+    ),
   ].sort(
     (a, b) =>
       new Date(b.lastMessageAt || 0).getTime() -
@@ -115,7 +138,7 @@ export const PATCH = async (req, { params }) => {
   const conversationId = String(body?.conversationId || '').trim()
   const linked = body?.linked === true
 
-  if (!['avito', 'vk'].includes(provider)) {
+  if (!['avito', 'vk', 'telegram'].includes(provider)) {
     return jsonError('Некорректный источник переписки', 400, 'bad_provider')
   }
   if (!isObjectId(conversationId)) {
@@ -135,8 +158,17 @@ export const PATCH = async (req, { params }) => {
   if (!clientExists) return jsonError('Клиент не найден', 404, 'client_not_found')
 
   const ConversationModel =
-    provider === 'avito' ? AvitoConversations : VkConversations
-  const MessageModel = provider === 'avito' ? AvitoMessages : VkMessages
+    provider === 'avito'
+      ? AvitoConversations
+      : provider === 'vk'
+        ? VkConversations
+        : TelegramConversations
+  const MessageModel =
+    provider === 'avito'
+      ? AvitoMessages
+      : provider === 'vk'
+        ? VkMessages
+        : TelegramMessages
 
   const current = await ConversationModel.findOne({
     _id: conversationId,

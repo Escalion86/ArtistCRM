@@ -5,7 +5,11 @@ import Users from '@models/Users'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
-import { getOAuthClient, WRITE_SCOPE } from '@server/googleUserCalendarClient'
+import {
+  getOAuthClient,
+  READ_SCOPE,
+  WRITE_SCOPE,
+} from '@server/googleUserCalendarClient'
 
 export const runtime = 'nodejs'
 
@@ -32,9 +36,20 @@ export const GET = async (req) => {
   }
 
   const access = await getUserTariffAccess(user._id)
-  if (!access?.allowCalendarSync) {
+  const purpose =
+    req.nextUrl.searchParams.get('purpose') === 'import' ? 'import' : 'sync'
+  if (
+    !access?.allowCalendarSync ||
+    (purpose === 'import' && !access?.allowAi)
+  ) {
     return NextResponse.json(
-      { success: false, error: 'Синхронизация недоступна по тарифу' },
+      {
+        success: false,
+        error:
+          purpose === 'import'
+            ? 'Импорт недоступен по тарифу'
+            : 'Синхронизация недоступна по тарифу',
+      },
       { status: 403 }
     )
   }
@@ -58,12 +73,12 @@ export const GET = async (req) => {
 
   const redirect = req.nextUrl.searchParams.get('redirect') || '/cabinet/profile'
   const nonce = crypto.randomBytes(16).toString('hex')
-  const state = encodeState({ nonce, redirect })
+  const state = encodeState({ nonce, redirect, purpose })
 
   const url = oauth.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: [WRITE_SCOPE],
+    scope: [purpose === 'import' ? READ_SCOPE : WRITE_SCOPE],
     state,
   })
 

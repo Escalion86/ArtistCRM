@@ -151,6 +151,7 @@ const AdditionalEventCard = ({
             >
               <DropDown
                 placement="right"
+                renderInPortal
                 menuPadding={false}
                 menuClassName="flex-col items-stretch justify-start overflow-hidden"
                 trigger={

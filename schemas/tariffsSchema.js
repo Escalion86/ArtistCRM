@@ -44,6 +44,10 @@ const tariffsSchema = {
     type: Boolean,
     default: false,
   },
+  allowTelegramIntegration: {
+    type: Boolean,
+    default: false,
+  },
   allowPublicLeadApi: {
     type: Boolean,
     default: false,

@@ -11,6 +11,7 @@ import AudioPlayer from '@components/AudioPlayer'
 const PROVIDER_LABELS = {
   avito: 'Avito',
   vk: 'VK',
+  telegram: 'Telegram',
   novofon: 'Novofon',
 }
 
@@ -204,13 +205,14 @@ const clientMessengerFunc = (clientId) => {
     const replyConversations = useMemo(
       () =>
         conversations.filter((conversation) =>
-          ['avito', 'vk'].includes(conversation.provider)
+          ['avito', 'vk', 'telegram'].includes(conversation.provider)
         ),
       [conversations]
     )
     const canReply = Boolean(
       selectedConversation &&
-        ['avito', 'vk'].includes(selectedConversation.provider)
+        ['avito', 'vk', 'telegram'].includes(selectedConversation.provider) &&
+        selectedConversation.canReply !== false
     )
 
     const applyPayload = useCallback((payload) => {
@@ -274,7 +276,7 @@ const clientMessengerFunc = (clientId) => {
     useEffect(() => {
       if (
         selectedConversation &&
-        ['avito', 'vk'].includes(selectedConversation.provider)
+        ['avito', 'vk', 'telegram'].includes(selectedConversation.provider)
       ) {
         return
       }
@@ -405,6 +407,12 @@ const clientMessengerFunc = (clientId) => {
               disabled={!canReply}
               maxLength={4000}
             />
+            {selectedConversation?.provider === 'telegram' && !canReply ? (
+              <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                24-часовое окно ответа Telegram истекло. Клиенту нужно сначала
+                написать вам снова.
+              </div>
+            ) : null}
             <button
               type="button"
               className="action-icon-button action-icon-button--success flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 tablet:w-auto tablet:self-end"

@@ -5,6 +5,7 @@ import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import { normalizeAvitoSettings } from '@server/avito'
 import { normalizeVkSettings } from '@server/vkGroup'
+import { normalizeTelegramSettings } from '@server/telegramBusiness'
 import { normalizeCalendarSettings } from '@server/googleUserCalendarClient'
 import { serializeMobileGoogleCalendar } from '@server/mobile/googleCalendar'
 import { serializeMobileProviderIntegration } from '@server/mobile/providerIntegrations'
@@ -27,6 +28,7 @@ export const GET = async (req) => {
   ])
   const avito = normalizeAvitoSettings(settings?.custom)
   const vk = normalizeVkSettings(settings?.custom)
+  const telegram = normalizeTelegramSettings(settings?.custom)
   const calendar = normalizeCalendarSettings(user)
   return mobileSuccess({
     googleCalendar: serializeMobileGoogleCalendar(calendar, access),
@@ -45,6 +47,17 @@ export const GET = async (req) => {
       status: vk.status,
       lastCheckedAt: vk.lastCheckedAt,
       lastWebhookAt: vk.lastWebhookAt,
+    },
+    telegram: {
+      available: Boolean(access?.allowTelegramIntegration),
+      enabled: telegram.enabled,
+      configured: Boolean(telegram.botToken),
+      status: telegram.status,
+      botUsername: telegram.botUsername,
+      connectedAt: telegram.connectedAt,
+      lastCheckedAt: telegram.lastCheckedAt,
+      lastWebhookAt: telegram.lastWebhookAt,
+      lastMessageAt: telegram.lastMessageAt,
     },
     telephony: serializeMobileProviderIntegration({
       provider: 'telephony',

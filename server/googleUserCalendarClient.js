@@ -156,11 +156,24 @@ const normalizeCalendarSettings = (user) => {
   }
 }
 
-const getUserOAuthClient = (user) => {
+const normalizeImportCalendarSettings = (user) => {
+  const settings = user?.googleCalendarImport ?? {}
+  return {
+    enabled: Boolean(settings.enabled),
+    calendarId: settings.calendarId || '',
+    calendarName: settings.calendarName || '',
+    refreshToken: settings.refreshToken || '',
+    accessToken: settings.accessToken || '',
+    tokenExpiry: settings.tokenExpiry || null,
+    scope: settings.scope || '',
+    connectedAt: settings.connectedAt || null,
+    email: settings.email || '',
+  }
+}
+
+const buildCalendarOAuthClient = (settings) => {
   const oauth = getOAuthClient()
-  if (!oauth || !user) return null
-  const settings = normalizeCalendarSettings(user)
-  if (!settings.refreshToken) return null
+  if (!oauth || !settings?.refreshToken) return null
   oauth.setCredentials({
     refresh_token: settings.refreshToken,
     access_token: settings.accessToken || undefined,
@@ -170,6 +183,16 @@ const getUserOAuthClient = (user) => {
     scope: settings.scope || undefined,
   })
   return oauth
+}
+
+const getUserOAuthClient = (user) => {
+  if (!user) return null
+  return buildCalendarOAuthClient(normalizeCalendarSettings(user))
+}
+
+const getUserImportOAuthClient = (user) => {
+  if (!user) return null
+  return buildCalendarOAuthClient(normalizeImportCalendarSettings(user))
 }
 
 const getUserCalendarClient = (user) => {
@@ -183,10 +206,18 @@ const getUserCalendarClient = (user) => {
   })
 }
 
-const listUserCalendars = async (user) => {
-  const calendar = getUserCalendarClient(user)
-  if (!calendar) return []
-  const response = await calendar.calendarList.list()
+const getUserImportCalendarClient = (user) => {
+  const auth = getUserImportOAuthClient(user)
+  if (!auth) return null
+  const rootUrl = process.env.GOOGLE_CALENDAR_API_BASE_URL
+  return google.calendar({
+    version: 'v3',
+    auth,
+    ...(rootUrl ? { rootUrl: `${rootUrl.replace(/\/$/, '')}/` } : {}),
+  })
+}
+
+const serializeCalendarList = (response) => {
   const items = Array.isArray(response?.data?.items) ? response.data.items : []
   return items.map((item) => ({
     id: item.id,
@@ -196,9 +227,28 @@ const listUserCalendars = async (user) => {
   }))
 }
 
+const listUserCalendars = async (user) => {
+  const calendar = getUserCalendarClient(user)
+  if (!calendar) return []
+  const response = await calendar.calendarList.list()
+  return serializeCalendarList(response)
+}
+
+const listUserImportCalendars = async (user) => {
+  const calendar = getUserImportCalendarClient(user)
+  if (!calendar) return []
+  const response = await calendar.calendarList.list()
+  return serializeCalendarList(response)
+}
+
 const getUserCalendarId = (user) => {
   const settings = normalizeCalendarSettings(user)
   return settings.calendarId || 'primary'
+}
+
+const getUserImportCalendarId = (user) => {
+  const settings = normalizeImportCalendarSettings(user)
+  return settings.calendarId || ''
 }
 
 export {
@@ -206,13 +256,18 @@ export {
   WRITE_SCOPE,
   getOAuthClient,
   getUserOAuthClient,
+  getUserImportOAuthClient,
   getUserCalendarClient,
+  getUserImportCalendarClient,
   listUserCalendars,
+  listUserImportCalendars,
   normalizeCalendarReminders,
   normalizeCalendarStatusColors,
   normalizeCalendarSyncSettings,
   normalizeCalendarSettings,
+  normalizeImportCalendarSettings,
   getUserCalendarId,
+  getUserImportCalendarId,
   DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS,
   DEFAULT_GOOGLE_CALENDAR_SYNC_SETTINGS,
 }

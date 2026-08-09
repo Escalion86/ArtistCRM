@@ -110,6 +110,12 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
             noMargin
           />
           <IconCheckBox
+            checked={tariff.allowTelegramIntegration}
+            label="Интеграция Telegram"
+            readOnly
+            noMargin
+          />
+          <IconCheckBox
             checked={tariff.allowPublicLeadApi}
             label="Подключение сайта по API"
             readOnly
@@ -134,6 +140,7 @@ TariffCard.propTypes = {
     allowAi: PropTypes.bool,
     allowAvitoIntegration: PropTypes.bool,
     allowVkIntegration: PropTypes.bool,
+    allowTelegramIntegration: PropTypes.bool,
     allowPublicLeadApi: PropTypes.bool,
     hidden: PropTypes.bool,
   }).isRequired,

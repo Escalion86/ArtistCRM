@@ -155,10 +155,12 @@ const EventCard = ({
     return titles.length > 0 ? titles.join(', ') : 'Услуга не указана'
   }, [event?.servicesIds, services])
 
-  const { contractSum, status, hasObligations } = useMemo(() => {
+  const { contractSum, paid, net, status, hasObligations } = useMemo(() => {
     if (!event)
       return {
         contractSum: 0,
+        paid: 0,
+        net: 0,
         status: null,
         hasObligations: false,
       }
@@ -168,6 +170,16 @@ const EventCard = ({
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
     const contractSumValue = Number(event.contractSum ?? 0)
+    const totals = eventTransactions.reduce(
+      (result, transaction) => {
+        const amount = Number(transaction.amount ?? 0)
+        if (!Number.isFinite(amount)) return result
+        if (transaction.type === 'income') result.income += amount
+        if (transaction.type === 'expense') result.expense += amount
+        return result
+      },
+      { income: 0, expense: 0 }
+    )
     const statusValue =
       EVENT_STATUSES_SIMPLE.find((item) => item.value === event.status) ??
       EVENT_STATUSES.find((item) => item.value === event.status)
@@ -184,6 +196,8 @@ const EventCard = ({
 
     return {
       contractSum: contractSumValue,
+      paid: totals.income,
+      net: totals.income - totals.expense,
       status: statusValue,
       hasObligations: closeState.hasObligations,
     }
@@ -467,13 +481,42 @@ const EventCard = ({
               {apiSourceLabel}
             </StatusChip>
           ) : null}
-          <span
-            className={`text-base font-semibold whitespace-nowrap ${
-              isClosed ? 'text-emerald-600' : 'card-title'
-            }`}
-          >
-            {contractSum > 0 ? `${contractSum.toLocaleString()} ₽` : '—'}
-          </span>
+          {isClosed ? (
+            <span
+              className={`event-profit-badge flex min-w-[92px] items-center justify-center rounded-full border px-3 py-1.5 text-base font-semibold whitespace-nowrap ${
+                net > 0
+                  ? 'event-profit-card event-profit-text'
+                  : net < 0
+                    ? 'event-profit-card--negative event-profit-text--negative'
+                    : 'event-profit-card--zero event-profit-text--zero'
+              }`}
+              title="Итог мероприятия: получено минус потрачено"
+            >
+              {net.toLocaleString()} ₽
+            </span>
+          ) : (
+            <span className="card-title text-base font-semibold whitespace-nowrap">
+              {paid > 0 || contractSum > 0 ? (
+                paid === contractSum ? (
+                  <span className="text-emerald-600">
+                    {paid.toLocaleString()} ₽
+                  </span>
+                ) : (
+                  <>
+                    {paid > 0 ? (
+                      <span className="text-emerald-600">
+                        {paid.toLocaleString()}
+                      </span>
+                    ) : null}
+                    {paid > 0 && contractSum > 0 ? ' / ' : null}
+                    {contractSum > 0 ? contractSum.toLocaleString() : null} ₽
+                  </>
+                )
+              ) : (
+                '—'
+              )}
+            </span>
+          )}
         </div>
 
         <div className="col-span-3 flex min-h-11 min-w-0 flex-nowrap items-center gap-2 border-t border-gray-200 pt-2 text-sm">

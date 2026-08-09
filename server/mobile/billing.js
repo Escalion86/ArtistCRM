@@ -15,6 +15,7 @@ const serializeTariff = (tariff, quote = null) => ({
   allowAi: Boolean(tariff.allowAi),
   allowAvitoIntegration: Boolean(tariff.allowAvitoIntegration),
   allowVkIntegration: Boolean(tariff.allowVkIntegration),
+  allowTelegramIntegration: Boolean(tariff.allowTelegramIntegration),
   allowPublicLeadApi: Boolean(tariff.allowPublicLeadApi),
   ...(quote ? { change: quote } : {}),
 })

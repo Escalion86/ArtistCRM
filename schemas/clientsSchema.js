@@ -68,6 +68,10 @@ const clientsSchema = {
     type: String,
     default: '',
   },
+  telegramUserId: {
+    type: String,
+    default: '',
+  },
   instagram: {
     type: String,
     default: '',

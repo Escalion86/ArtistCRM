@@ -217,8 +217,8 @@ const usersSchema = {
   googleCalendar: {
     type: {
       enabled: { type: Boolean, default: false },
-        calendarId: { type: String, default: '' },
-        calendarName: { type: String, default: '' },
+      calendarId: { type: String, default: '' },
+      calendarName: { type: String, default: '' },
       refreshToken: { type: String, default: '' },
       accessToken: { type: String, default: '' },
       tokenExpiry: { type: Date, default: null },
@@ -278,6 +278,20 @@ const usersSchema = {
         showNavigationLinks: { type: Boolean, default: true },
         showEventLink: { type: Boolean, default: true },
       },
+    },
+    default: () => ({}),
+  },
+  googleCalendarImport: {
+    type: {
+      enabled: { type: Boolean, default: false },
+      calendarId: { type: String, default: '' },
+      calendarName: { type: String, default: '' },
+      refreshToken: { type: String, default: '' },
+      accessToken: { type: String, default: '' },
+      tokenExpiry: { type: Date, default: null },
+      scope: { type: String, default: '' },
+      connectedAt: { type: Date, default: null },
+      email: { type: String, default: '' },
     },
     default: () => ({}),
   },

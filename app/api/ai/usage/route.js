@@ -11,6 +11,7 @@ const FEATURES = [
   'call_analysis',
   'voice_transcription',
   'event_draft',
+  'calendar_import',
 ]
 
 const toObjectId = (value) =>

@@ -295,6 +295,12 @@ const TariffSelectContent = () => {
                     noMargin
                   />
                   <IconCheckBox
+                    checked={tariff.allowTelegramIntegration}
+                    label="Интеграция Telegram"
+                    readOnly
+                    noMargin
+                  />
+                  <IconCheckBox
                     checked={tariff.allowPublicLeadApi}
                     label="Подключение сайта по API"
                     readOnly

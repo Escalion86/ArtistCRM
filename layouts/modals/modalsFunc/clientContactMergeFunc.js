@@ -74,6 +74,7 @@ const FILTER_PROVIDERS = [
   { value: 'all', label: 'Все' },
   { value: 'avito', label: 'Avito' },
   { value: 'vk', label: 'VK' },
+  { value: 'telegram', label: 'Telegram' },
 ]
 
 const FILTER_STATUSES = [
@@ -365,6 +366,8 @@ const clientContactMergeFunc = (clientId) => {
           ['Avito-сообщения', preview.avitoMessages],
           ['VK-диалоги', preview.vkConversations],
           ['VK-сообщения', preview.vkMessages],
+          ['Telegram-диалоги', preview.telegramConversations],
+          ['Telegram-сообщения', preview.telegramMessages],
           ['Звонки', preview.calls],
         ].filter((item) => Number(item[1]) > 0)
       : []

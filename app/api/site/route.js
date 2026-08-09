@@ -4,6 +4,7 @@ import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import { getProtectedCustomAccessFailures } from '@server/integrationAccess'
+import { sanitizeTelegramSiteSettings } from '@server/telegramBusiness'
 
 const normalizeTowns = (towns = []) =>
   Array.from(
@@ -45,7 +46,10 @@ export const GET = async () => {
   await dbConnect()
   const siteSettings = await SiteSettings.findOne({ tenantId }).lean()
   return NextResponse.json(
-    { success: true, data: siteSettings ?? {} },
+    {
+      success: true,
+      data: sanitizeTelegramSiteSettings(siteSettings ?? {}),
+    },
     { status: 200 }
   )
 }
@@ -94,6 +98,28 @@ export const POST = async (req) => {
         },
         { status: 403 }
       )
+    }
+    const existingCustom = existingSiteSettings?.custom ?? {}
+    const normalizedExistingCustom =
+      typeof existingCustom?.get === 'function'
+        ? Object.fromEntries(existingCustom)
+        : existingCustom
+    const protectedTelegramKeys = [
+      'telegramBusinessBotToken',
+      'telegramBusinessWebhookToken',
+      'telegramBusinessWebhookSecret',
+      'telegramBusinessWebhookUrl',
+      'telegramBusinessConnectionId',
+      'telegramBusinessAccountUserId',
+      'telegramBusinessRights',
+    ]
+    for (const key of protectedTelegramKeys) {
+      if (
+        readCustom(body.custom, key) === undefined &&
+        normalizedExistingCustom?.[key] !== undefined
+      ) {
+        body.custom[key] = normalizedExistingCustom[key]
+      }
     }
     const access = await getUserTariffAccess(tenantId)
     const failures = getProtectedCustomAccessFailures({
@@ -194,7 +220,7 @@ export const POST = async (req) => {
   )
 
   return NextResponse.json(
-    { success: true, data: siteSettings },
+    { success: true, data: sanitizeTelegramSiteSettings(siteSettings) },
     { status: 200 }
   )
 }

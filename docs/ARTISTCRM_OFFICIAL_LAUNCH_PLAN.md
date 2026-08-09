@@ -21,10 +21,10 @@ ArtistCRM близок к официальному запуску. Основн�
 - Документы: генерация договора и акта через `helpers/generateContractTemplate.js`, `helpers/generateActTemplate.js`, `helpers/exportDocxFromTemplate.js`, пользовательская документация `docs/DOCX_DOCUMENTS_GUIDE.md`.
 - Входящие заявки: `app/api/public/lead/route.js`, `app/api/public/lead/tilda/route.js`, несколько API-ключей и инструкция `docs/PUBLIC_LEADS_API.md`.
 - Google Calendar: `app/api/google-calendar/**`, `server/googleUserCalendarClient.js`, синхронизация мероприятий и доп. событий.
-- VK и Avito: модели переписок/сообщений, webhooks, UI в интеграциях, связь диалогов с клиентами, документы `docs/VK_GROUP_INTEGRATION_GUIDE.md` и `docs/AVITO_INTEGRATION_GUIDE.md`.
+- VK, Avito и Telegram Business: модели переписок/сообщений, webhooks, UI в интеграциях, связь диалогов с клиентами и пользовательская документация.
 - Телефония и AI: `app/api/calls/**`, `server/calls.js`, `server/callTranscription.js`, `server/callAiAnalysis.js`, `server/novofon.js`, AI-черновик заявки по звонку и голосу.
 - Push/PWA/offline: `app/api/push/**`, `server/additionalEventsPushReminders.js`, `helpers/serverSyncQueue.js`, настройки уведомлений и local/offline queue.
-- Биллинг и тарифы: YooKassa, Tochka, тарифные флаги `allowCalendarSync`, `allowStatistics`, `allowDocuments`, `allowTelephony`, `allowAi`, `allowAvitoIntegration`, `allowVkIntegration`.
+- Биллинг и тарифы: YooKassa, Tochka, тарифные флаги `allowCalendarSync`, `allowStatistics`, `allowDocuments`, `allowTelephony`, `allowAi`, `allowAvitoIntegration`, `allowVkIntegration`, `allowTelegramIntegration`.
 - SEO: публичная главная, посадочные страницы, sitemap, robots, OG image, SEO-документация и monitoring checklist.
 
 ## P0: сделать до официального анонса
@@ -124,7 +124,7 @@ ArtistCRM близок к официальному запуску. Основн�
 
 - [ ] React Native + Expo приложение или полноценный mobile companion, когда web/PWA стабилен.
 - [ ] AI-подсказки по следующим действиям: когда перезвонить, что уточнить, какой документ подготовить.
-- [ ] Расширенные интеграции: Telegram bot, WhatsApp/ВК формы, email parsing, inbound call routing.
+- [ ] Расширенные интеграции: WhatsApp-формы, email parsing, inbound call routing.
 - [ ] Пакетные операции: массовое закрытие задач, массовое выставление напоминаний, bulk import.
 - [ ] Больше автоматизации документов: несколько шаблонов договоров, счета, закрывающие документы, пользовательские переменные.
 - [ ] Customer success аналитика: воронка первого входа, activation rate, retention, причины отмены тарифа.

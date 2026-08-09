@@ -34,6 +34,7 @@ import {
   faChartLine,
   faCog,
   faFileLines,
+  faFileImport,
   faList,
   faPlug,
 } from '@fortawesome/free-solid-svg-icons'
@@ -427,6 +428,7 @@ export const DEFAULT_TARIFF = Object.freeze({
   allowAi: false,
   allowAvitoIntegration: false,
   allowVkIntegration: false,
+  allowTelegramIntegration: false,
   allowPublicLeadApi: false,
   hidden: false,
 })
@@ -638,6 +640,13 @@ export const pages = [
     name: 'Интеграции',
     href: 'integrations',
     icon: faPlug,
+  },
+  {
+    id: 30,
+    group: 6,
+    name: 'Импорт',
+    href: 'import',
+    icon: faFileImport,
   },
   {
     id: 23,

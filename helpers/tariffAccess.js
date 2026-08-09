@@ -60,6 +60,8 @@ export const getUserTariffAccess = (user, tariffs = []) => {
     allowVkIntegration:
       unrestrictedTrialActive ||
       (hasTariff && Boolean(tariff?.allowVkIntegration)),
+    allowTelegramIntegration:
+      hasTariff && Boolean(tariff?.allowTelegramIntegration),
     allowPublicLeadApi: hasTariff && Boolean(tariff?.allowPublicLeadApi),
     eventsPerMonth: unrestrictedTrialActive
       ? Infinity

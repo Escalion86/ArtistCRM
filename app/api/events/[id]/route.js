@@ -266,8 +266,13 @@ export const PUT = async (req, { params }) => {
     update.servicesIds = normalizeObjectIdList(body.servicesIds)
   if (body.otherContacts !== undefined)
     update.otherContacts = normalizeOtherContacts(body.otherContacts)
-  if (body.calendarImportChecked !== undefined && access?.allowCalendarSync)
+  if (body.calendarImportChecked !== undefined && access?.allowCalendarSync) {
     update.calendarImportChecked = Boolean(body.calendarImportChecked)
+    if (update.calendarImportChecked) {
+      update.calendarImportAiFields = []
+      update.calendarImportWarnings = []
+    }
+  }
   if (body.colleagueId !== undefined)
     update.colleagueId = normalizeObjectId(body.colleagueId)
   if (body.isTransferred !== undefined) {

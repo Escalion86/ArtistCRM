@@ -69,6 +69,7 @@ export const GET = async (req) => {
 
   const decodedState = decodeState(state)
   const redirect = decodedState?.redirect || '/cabinet/profile'
+  const importConnection = decodedState?.purpose === 'import'
   const baseUrl = normalizeBaseUrl(process.env.DOMAIN) || req.nextUrl.origin
   if (!decodedState?.nonce || decodedState.nonce !== cookieState) {
     const response = NextResponse.redirect(
@@ -79,7 +80,7 @@ export const GET = async (req) => {
   }
 
   const access = await getUserTariffAccess(user._id)
-  if (!access?.allowCalendarSync) {
+  if (!access?.allowCalendarSync || (importConnection && !access?.allowAi)) {
     const response = NextResponse.redirect(
       new URL(`${redirect}?gc_error=tariff`, baseUrl)
     )
@@ -97,33 +98,51 @@ export const GET = async (req) => {
     )
   }
 
-  const prev = existing.googleCalendar ?? {}
+  const prev = importConnection
+    ? (existing.googleCalendarImport ?? {})
+    : (existing.googleCalendar ?? {})
   const refreshToken = tokens.refresh_token || prev.refreshToken || ''
   const accessToken = tokens.access_token || prev.accessToken || ''
   const tokenExpiry =
     tokens.expiry_date ? new Date(tokens.expiry_date) : prev.tokenExpiry || null
-  const reminders = normalizeCalendarReminders(prev.reminders)
-  const statusColors = normalizeCalendarStatusColors(prev.statusColors)
-  const syncSettings = normalizeCalendarSyncSettings(prev.syncSettings)
-  const deleteCanceledFromCalendar = prev?.deleteCanceledFromCalendar === true
-  const skipTransferredFromCalendar =
-    prev?.skipTransferredFromCalendar === true
+  if (importConnection) {
+    existing.googleCalendarImport = {
+      enabled: true,
+      calendarId: '',
+      calendarName: '',
+      refreshToken,
+      accessToken,
+      tokenExpiry,
+      scope: tokens.scope || prev.scope || '',
+      connectedAt: new Date(),
+      email: prev.email || '',
+    }
+  } else {
+    const reminders = normalizeCalendarReminders(prev.reminders)
+    const statusColors = normalizeCalendarStatusColors(prev.statusColors)
+    const syncSettings = normalizeCalendarSyncSettings(prev.syncSettings)
+    const deleteCanceledFromCalendar =
+      prev?.deleteCanceledFromCalendar === true
+    const skipTransferredFromCalendar =
+      prev?.skipTransferredFromCalendar === true
 
-  existing.googleCalendar = {
-    enabled: true,
-    calendarId: prev.calendarId || 'primary',
-    refreshToken,
-    accessToken,
-    tokenExpiry,
-    scope: tokens.scope || prev.scope || '',
-    syncToken: '',
-    connectedAt: new Date(),
-    email: prev.email || '',
-    reminders,
-    statusColors,
-    syncSettings,
-    deleteCanceledFromCalendar,
-    skipTransferredFromCalendar,
+    existing.googleCalendar = {
+      enabled: true,
+      calendarId: prev.calendarId || 'primary',
+      calendarName: prev.calendarName || '',
+      refreshToken,
+      accessToken,
+      tokenExpiry,
+      scope: tokens.scope || prev.scope || '',
+      syncToken: '',
+      connectedAt: new Date(),
+      email: prev.email || '',
+      reminders,
+      statusColors,
+      syncSettings,
+      deleteCanceledFromCalendar,
+      skipTransferredFromCalendar,
+    }
   }
 
   await existing.save()

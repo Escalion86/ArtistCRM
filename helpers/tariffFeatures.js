@@ -6,6 +6,7 @@ export const TARIFF_FEATURES = Object.freeze([
   { key: 'allowAi', label: 'ИИ-функции' },
   { key: 'allowAvitoIntegration', label: 'Интеграция с Avito' },
   { key: 'allowVkIntegration', label: 'Интеграция с VK' },
+  { key: 'allowTelegramIntegration', label: 'Интеграция с Telegram' },
   { key: 'allowPublicLeadApi', label: 'API входящих заявок' },
 ])
 

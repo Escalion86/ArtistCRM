@@ -13,6 +13,7 @@ const FEATURE_LABELS = {
   call_analysis: 'Анализ звонка',
   voice_transcription: 'Голосовой ввод',
   event_draft: 'Черновик мероприятия',
+  calendar_import: 'Импорт Google Calendar',
 }
 
 const formatDateTime = (value) =>

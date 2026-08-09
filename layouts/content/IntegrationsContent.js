@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import {
   faChevronDown,
@@ -463,6 +463,40 @@ const VkGuide = () => (
   </div>
 )
 
+const TelegramBusinessGuide = () => (
+  <div className="flex flex-col gap-3 text-sm leading-6 text-gray-700">
+    <p>
+      Для интеграции нужен отдельный Telegram-бот, подключённый к вашему
+      аккаунту как Business Bot. Токен хранится только на сервере ArtistCRM.
+    </p>
+    <ol className="list-decimal space-y-2 pl-5">
+      <li>Откройте официальный бот @BotFather и создайте бота командой /newbot.</li>
+      <li>
+        В @BotFather откройте созданного бота, перейдите в Bot Settings и
+        включите Business Mode.
+      </li>
+      <li>Скопируйте токен бота, вставьте его ниже и нажмите «Подключить».</li>
+      <li>
+        В Telegram откройте Настройки → Telegram Business → Чат-боты и добавьте
+        созданного бота.
+      </li>
+      <li>
+        Разрешите боту читать сообщения и отвечать на них, затем выберите чаты,
+        которыми он может управлять.
+      </li>
+      <li>
+        Попросите клиента написать вам тестовое сообщение. После этого диалог
+        появится в карточке клиента в ArtistCRM.
+      </li>
+    </ol>
+    <p>
+      Telegram разрешает Business Bot отвечать в течение 24 часов после
+      входящего сообщения. Старая история до подключения автоматически не
+      загружается, секретные чаты не поддерживаются.
+    </p>
+  </div>
+)
+
 const IntegrationAccordion = ({
   title,
   description,
@@ -544,6 +578,9 @@ const IntegrationsContent = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [avitoLoading, setAvitoLoading] = useState(false)
   const [vkLoading, setVkLoading] = useState(false)
+  const [telegramLoading, setTelegramLoading] = useState(false)
+  const [telegramBotToken, setTelegramBotToken] = useState('')
+  const [telegramStatusData, setTelegramStatusData] = useState(null)
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false)
   const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false)
   const [aiUsage, setAiUsage] = useState(null)
@@ -581,6 +618,7 @@ const IntegrationsContent = () => {
   const canUseAi = Boolean(tariffAccess?.allowAi)
   const canUseAvito = Boolean(tariffAccess?.allowAvitoIntegration)
   const canUseVk = Boolean(tariffAccess?.allowVkIntegration)
+  const canUseTelegram = Boolean(tariffAccess?.allowTelegramIntegration)
   const canUsePublicLeadApi = Boolean(tariffAccess?.allowPublicLeadApi)
   const isDeveloper = loggedUser?.role === 'dev'
   const isEnabled = getCustomValue(customSettings, 'publicLeadEnabled') === true
@@ -735,6 +773,16 @@ const IntegrationsContent = () => {
     if (vkStatus === 'disabled') return 'Отключено'
     return 'Настраивается'
   })()
+  const telegramEnabled = Boolean(telegramStatusData?.enabled)
+  const telegramStatus = String(telegramStatusData?.status || 'disabled')
+  const telegramStatusText = (() => {
+    if (telegramStatus === 'connected') return 'Подключено к аккаунту'
+    if (telegramStatus === 'bot_ready') {
+      return 'Бот настроен — подключите его в Telegram Business'
+    }
+    if (telegramStatus === 'auth_error') return 'Ошибка подключения'
+    return 'Отключено'
+  })()
   const novofonWebhookUrl = useMemo(() => {
     const tenantId = loggedUser?.tenantId || loggedUser?._id || ''
     const path = '/api/telephony/novofon/webhook'
@@ -745,6 +793,30 @@ const IntegrationsContent = () => {
     if (typeof window === 'undefined') return relative
     return `${window.location.origin}${relative}`
   }, [loggedUser?._id, loggedUser?.tenantId, novofonWebhookSecret])
+
+  const loadTelegramStatus = useCallback(async ({ showSuccess = false } = {}) => {
+    setTelegramLoading(true)
+    try {
+      const response = await fetch('/api/integrations/telegram/status', {
+        cache: 'no-store',
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || result?.success === false) {
+        if (showSuccess) {
+          snackbar.error(result?.error?.message || 'Telegram не отвечает')
+        }
+        return false
+      }
+      setTelegramStatusData(result?.data || null)
+      if (showSuccess) snackbar.success('Подключение Telegram проверено')
+      return true
+    } catch (error) {
+      if (showSuccess) snackbar.error('Не удалось проверить Telegram')
+      return false
+    } finally {
+      setTelegramLoading(false)
+    }
+  }, [snackbar])
 
   useEffect(() => {
     let active = true
@@ -767,6 +839,10 @@ const IntegrationsContent = () => {
       active = false
     }
   }, [canUseCalendar])
+
+  useEffect(() => {
+    if (canUseTelegram) loadTelegramStatus()
+  }, [canUseTelegram, loadTelegramStatus])
 
   useEffect(() => {
     let active = true
@@ -1039,6 +1115,77 @@ const IntegrationsContent = () => {
       snackbar.error('Не удалось отключить VK')
     } finally {
       setVkLoading(false)
+    }
+  }
+
+  const connectTelegram = async () => {
+    const botToken = telegramBotToken.trim()
+    if (!botToken) return
+    setTelegramLoading(true)
+    try {
+      const response = await fetch('/api/integrations/telegram/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ botToken }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (result?.data?.siteSettings) setSiteSettings(result.data.siteSettings)
+      if (!response.ok || result?.success === false) {
+        snackbar.error(
+          result?.error?.message || 'Не удалось подключить Telegram'
+        )
+        return
+      }
+      setTelegramBotToken('')
+      setTelegramStatusData(result?.data?.telegramBusiness || null)
+      await loadTelegramStatus()
+      snackbar.success('Бот настроен. Теперь подключите его в Telegram Business')
+    } catch (error) {
+      snackbar.error('Не удалось подключить Telegram')
+    } finally {
+      setTelegramLoading(false)
+    }
+  }
+
+  const checkTelegram = async () => {
+    setTelegramLoading(true)
+    try {
+      const response = await fetch('/api/integrations/telegram/status', {
+        method: 'POST',
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || result?.success === false) {
+        snackbar.error(result?.error?.message || 'Telegram не отвечает')
+        return
+      }
+      setTelegramStatusData(result?.data || null)
+      snackbar.success('Подключение Telegram проверено')
+    } catch (error) {
+      snackbar.error('Не удалось проверить Telegram')
+    } finally {
+      setTelegramLoading(false)
+    }
+  }
+
+  const disconnectTelegram = async () => {
+    setTelegramLoading(true)
+    try {
+      const response = await fetch('/api/integrations/telegram/disconnect', {
+        method: 'POST',
+      })
+      const result = await response.json().catch(() => ({}))
+      if (result?.data?.siteSettings) setSiteSettings(result.data.siteSettings)
+      if (!response.ok || result?.success === false) {
+        snackbar.error('Не удалось отключить Telegram')
+        return
+      }
+      setTelegramBotToken('')
+      setTelegramStatusData(null)
+      snackbar.success('Telegram отключен')
+    } catch (error) {
+      snackbar.error('Не удалось отключить Telegram')
+    } finally {
+      setTelegramLoading(false)
     }
   }
 
@@ -1466,6 +1613,114 @@ const IntegrationsContent = () => {
           </IntegrationAccordion>
         ) : null}
 
+        {canUseTelegram ? (
+          <IntegrationAccordion
+            title="Telegram Business"
+            description="Переписка с клиентами и ответы от имени вашего Telegram-аккаунта."
+            connected={telegramStatus === 'connected'}
+            warning={telegramEnabled && telegramStatus !== 'connected'}
+            loading={telegramLoading}
+          >
+            <div className="flex flex-col gap-3">
+              <div className="text-sm text-gray-600">
+                Подключите собственного Business Bot. Новые сообщения будут
+                сохраняться в карточке клиента, а отвечать можно из модального
+                окна «Диалог с клиентом».
+              </div>
+
+              <div
+                className={`rounded border px-3 py-2 text-sm ${
+                  telegramStatus === 'connected'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : telegramStatus === 'auth_error'
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : telegramEnabled
+                        ? 'border-amber-200 bg-amber-50 text-amber-800'
+                        : 'border-gray-200 bg-gray-50 text-gray-700'
+                }`}
+              >
+                Статус: {telegramStatusText}
+                {telegramStatusData?.botUsername ? (
+                  <span className="block text-xs">
+                    Бот: @{telegramStatusData.botUsername}
+                  </span>
+                ) : null}
+                {telegramStatusData?.lastMessageAt ? (
+                  <span className="block text-xs">
+                    Последнее сообщение:{' '}
+                    {new Date(telegramStatusData.lastMessageAt).toLocaleString()}
+                  </span>
+                ) : null}
+                {telegramStatusData?.lastError ? (
+                  <span className="block text-xs">
+                    Ошибка: {telegramStatusData.lastError}
+                  </span>
+                ) : null}
+              </div>
+
+              <Input
+                label={
+                  telegramStatusData?.hasBotToken
+                    ? 'Новый токен бота для переподключения'
+                    : 'Токен бота из BotFather'
+                }
+                value={telegramBotToken}
+                onChange={setTelegramBotToken}
+                type="password"
+                noMargin
+                fullWidth
+              />
+
+              <div className="rounded border border-blue-100 bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-800">
+                После настройки бота добавьте его в Telegram: Настройки →
+                Telegram Business → Чат-боты. Выдайте права на чтение и ответы.
+                Старые сообщения до подключения в CRM не загрузятся.
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--success tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={connectTelegram}
+                  disabled={telegramLoading || !telegramBotToken.trim()}
+                >
+                  {telegramEnabled ? 'Переподключить' : 'Подключить'}
+                </button>
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--warning tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={checkTelegram}
+                  disabled={
+                    telegramLoading || !telegramStatusData?.hasBotToken
+                  }
+                >
+                  Проверить
+                </button>
+                <button
+                  type="button"
+                  className="action-icon-button action-icon-button--danger tablet:w-auto flex h-10 w-full cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={disconnectTelegram}
+                  disabled={telegramLoading || !telegramEnabled}
+                >
+                  Отключить
+                </button>
+                <InstructionButton
+                  onClick={() =>
+                    modalsFunc.add({
+                      title: 'Как подключить Telegram Business',
+                      showDecline: true,
+                      declineButtonName: 'Закрыть',
+                      Children: TelegramBusinessGuide,
+                    })
+                  }
+                >
+                  Как подключить
+                </InstructionButton>
+              </div>
+            </div>
+          </IntegrationAccordion>
+        ) : null}
+
         {canUseTelephony ? (
           <IntegrationAccordion
             title="Novofon IP-телефония"
@@ -1820,6 +2075,7 @@ const IntegrationsContent = () => {
                               call_analysis: 'Анализ звонка',
                               voice_transcription: 'Голосовой ввод',
                               event_draft: 'Черновик мероприятия',
+                              calendar_import: 'Импорт Google Calendar',
                             }[item.feature] || item.feature}
                           </div>
                           <div className="text-xs text-gray-500">
@@ -1857,10 +2113,12 @@ const IntegrationsContent = () => {
         !canUseTelephony &&
         !canUseAi &&
         !canUseAvito &&
-        !canUseVk ? (
+        !canUseVk &&
+        !canUseTelegram ? (
           <div className="shrink-0 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Google Calendar, Avito, VK, IP-телефония и AI-интеграции доступны
-            только на тарифах с соответствующими опциями.
+            Google Calendar, Avito, VK, Telegram, IP-телефония и
+            AI-интеграции доступны только на тарифах с соответствующими
+            опциями.
           </div>
         ) : null}
       </div>

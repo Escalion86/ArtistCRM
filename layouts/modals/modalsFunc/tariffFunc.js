@@ -45,6 +45,10 @@ const tariffFunc = (tariffId, clone = false) => {
     const [allowVkIntegration, setAllowVkIntegration] = useState(
       tariff?.allowVkIntegration ?? DEFAULT_TARIFF.allowVkIntegration
     )
+    const [allowTelegramIntegration, setAllowTelegramIntegration] = useState(
+      tariff?.allowTelegramIntegration ??
+        DEFAULT_TARIFF.allowTelegramIntegration
+    )
     const [allowPublicLeadApi, setAllowPublicLeadApi] = useState(
       tariff?.allowPublicLeadApi ?? DEFAULT_TARIFF.allowPublicLeadApi
     )
@@ -72,6 +76,7 @@ const tariffFunc = (tariffId, clone = false) => {
               allowAi,
               allowAvitoIntegration,
               allowVkIntegration,
+              allowTelegramIntegration,
               allowPublicLeadApi,
               hidden,
             },
@@ -87,6 +92,7 @@ const tariffFunc = (tariffId, clone = false) => {
       allowTelephony,
       allowAi,
       allowVkIntegration,
+      allowTelegramIntegration,
       allowPublicLeadApi,
       checkErrors,
       closeModal,
@@ -110,6 +116,7 @@ const tariffFunc = (tariffId, clone = false) => {
         tariff?.allowAi !== allowAi ||
         tariff?.allowAvitoIntegration !== allowAvitoIntegration ||
         tariff?.allowVkIntegration !== allowVkIntegration ||
+        tariff?.allowTelegramIntegration !== allowTelegramIntegration ||
         tariff?.allowPublicLeadApi !== allowPublicLeadApi ||
         tariff?.hidden !== hidden
 
@@ -126,6 +133,7 @@ const tariffFunc = (tariffId, clone = false) => {
       allowTelephony,
       allowAi,
       allowVkIntegration,
+      allowTelegramIntegration,
       allowPublicLeadApi,
       eventsPerMonth,
       hidden,
@@ -140,6 +148,7 @@ const tariffFunc = (tariffId, clone = false) => {
       tariff?.allowAi,
       tariff?.allowStatistics,
       tariff?.allowVkIntegration,
+      tariff?.allowTelegramIntegration,
       tariff?.allowPublicLeadApi,
       tariff?.eventsPerMonth,
       tariff?.hidden,
@@ -227,6 +236,12 @@ const tariffFunc = (tariffId, clone = false) => {
               checked={allowVkIntegration}
               onClick={() => setAllowVkIntegration((prev) => !prev)}
               label="Интеграция VK"
+              noMargin
+            />
+            <IconCheckBox
+              checked={allowTelegramIntegration}
+              onClick={() => setAllowTelegramIntegration((prev) => !prev)}
+              label="Интеграция Telegram"
               noMargin
             />
             <IconCheckBox

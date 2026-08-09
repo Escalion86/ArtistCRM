@@ -200,13 +200,36 @@ const eventFunc = (
             : []
         )
     )
+    const importAiMetadataLoadedRef = useRef(false)
     const hasAiHighlightedFields = aiHighlightedFields.size > 0
-    const aiWarnings =
+    const [aiWarnings, setAiWarnings] = useState(() =>
       !eventId && !clone && Array.isArray(options?.aiWarnings)
         ? options.aiWarnings.filter(
             (warning) => typeof warning === 'string' && warning.trim()
           )
         : []
+    )
+    useEffect(() => {
+      if (
+        importAiMetadataLoadedRef.current ||
+        !eventId ||
+        !event?.importedFromCalendar ||
+        event?.calendarImportChecked
+      ) {
+        return
+      }
+      importAiMetadataLoadedRef.current = true
+      if (Array.isArray(event.calendarImportAiFields)) {
+        setAiHighlightedFields(new Set(event.calendarImportAiFields))
+      }
+      if (Array.isArray(event.calendarImportWarnings)) {
+        setAiWarnings(
+          event.calendarImportWarnings.filter(
+            (warning) => typeof warning === 'string' && warning.trim()
+          )
+        )
+      }
+    }, [event])
     const isAiFieldHighlighted = useCallback(
       (field) => aiHighlightedFields.has(field),
       [aiHighlightedFields]
@@ -1586,7 +1609,7 @@ const eventFunc = (
                 подсветка отдельного поля исчезнет после вашего изменения.
               </div>
             ) : null}
-            {aiWarnings.length > 0 ? (
+            {!calendarImportChecked && aiWarnings.length > 0 ? (
               <div className="ai-draft-warning mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                 <div className="font-medium">
                   ИИ не смог определить всё однозначно:

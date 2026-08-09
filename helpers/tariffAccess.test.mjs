@@ -10,16 +10,18 @@ test('getUserTariffAccess exposes integration flags from tariff', () => {
       _id: 'paid',
       allowAvitoIntegration: true,
       allowVkIntegration: false,
+      allowTelegramIntegration: true,
       allowPublicLeadApi: true,
     },
   ])
 
   assert.equal(access.allowAvitoIntegration, true)
   assert.equal(access.allowVkIntegration, false)
+  assert.equal(access.allowTelegramIntegration, true)
   assert.equal(access.allowPublicLeadApi, true)
 })
 
-test('getUserTariffAccess allows Avito and VK integrations during active trial', () => {
+test('getUserTariffAccess keeps Telegram restricted by the selected tariff during trial', () => {
   const user = {
     tariffId: 'free',
     trialEndsAt: new Date(Date.now() + 60_000).toISOString(),
@@ -29,12 +31,14 @@ test('getUserTariffAccess allows Avito and VK integrations during active trial',
       _id: 'free',
       allowAvitoIntegration: false,
       allowVkIntegration: false,
+      allowTelegramIntegration: false,
       allowPublicLeadApi: false,
     },
   ])
 
   assert.equal(access.allowAvitoIntegration, true)
   assert.equal(access.allowVkIntegration, true)
+  assert.equal(access.allowTelegramIntegration, false)
   assert.equal(access.allowPublicLeadApi, false)
 })
 

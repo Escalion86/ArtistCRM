@@ -203,6 +203,18 @@ const eventsSchema = {
     type: Boolean,
     default: false,
   },
+  calendarImportAiFields: {
+    type: [String],
+    default: [],
+  },
+  calendarImportWarnings: {
+    type: [String],
+    default: [],
+  },
+  calendarImportBatchId: {
+    type: String,
+    default: '',
+  },
   contractSum: {
     type: Number,
     default: 0,

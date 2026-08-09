@@ -5,6 +5,8 @@ import AvitoMessages from '@models/AvitoMessages'
 import Calls from '@models/Calls'
 import VkConversations from '@models/VkConversations'
 import VkMessages from '@models/VkMessages'
+import TelegramConversations from '@models/TelegramConversations'
+import TelegramMessages from '@models/TelegramMessages'
 import SiteSettings from '@models/SiteSettings'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
@@ -19,6 +21,12 @@ import {
   sendAvitoMessage,
 } from '@server/avito'
 import { normalizeVkSettings, sendVkMessage } from '@server/vkGroup'
+import {
+  isTelegramReplyWindowOpen,
+  normalizeTelegramSettings,
+  saveTelegramBusinessMessage,
+  sendTelegramBusinessMessage,
+} from '@server/telegramBusiness'
 
 const isObjectId = (value) =>
   Boolean(value && mongoose.Types.ObjectId.isValid(String(value)))
@@ -33,12 +41,27 @@ const normalizeConversation = (provider, conversation) => ({
   _id: String(conversation._id),
   provider,
   providerLabel:
-    provider === 'avito' ? 'Avito' : provider === 'vk' ? 'VK' : 'Novofon',
+    provider === 'avito'
+      ? 'Avito'
+      : provider === 'vk'
+        ? 'VK'
+        : provider === 'telegram'
+          ? 'Telegram'
+          : 'Novofon',
   clientId: conversation.clientId ? String(conversation.clientId) : '',
   eventId: conversation.eventId ? String(conversation.eventId) : '',
   lastMessageText: conversation.lastMessageText || '',
   lastMessageAt: conversation.lastMessageAt || null,
   unreadCount: conversation.unreadCount || 0,
+  canReply:
+    provider !== 'telegram' ||
+    isTelegramReplyWindowOpen(conversation.lastIncomingAt),
+  replyWindowClosesAt:
+    provider === 'telegram' && conversation.lastIncomingAt
+      ? new Date(
+          new Date(conversation.lastIncomingAt).getTime() + 24 * 60 * 60 * 1000
+        )
+      : null,
 })
 
 const normalizeMessage = (provider, message) => ({
@@ -46,7 +69,13 @@ const normalizeMessage = (provider, message) => ({
   conversationId: String(message.conversationId),
   provider,
   providerLabel:
-    provider === 'avito' ? 'Avito' : provider === 'vk' ? 'VK' : 'Novofon',
+    provider === 'avito'
+      ? 'Avito'
+      : provider === 'vk'
+        ? 'VK'
+        : provider === 'telegram'
+          ? 'Telegram'
+          : 'Novofon',
   direction: message.direction,
   text: message.text || '',
   attachments: Array.isArray(message.attachments) ? message.attachments : [],
@@ -112,7 +141,8 @@ const loadClientMessenger = async ({
   access,
   summary = false,
 }) => {
-  const [avitoConversations, vkConversations] = await Promise.all([
+  const [avitoConversations, vkConversations, telegramConversations] =
+    await Promise.all([
     hasIntegrationAccess(access, 'avito')
       ? AvitoConversations.find({ tenantId, clientId })
           .sort({ lastMessageAt: -1, updatedAt: -1 })
@@ -121,6 +151,12 @@ const loadClientMessenger = async ({
       : Promise.resolve([]),
     hasIntegrationAccess(access, 'vk')
       ? VkConversations.find({ tenantId, clientId })
+          .sort({ lastMessageAt: -1, updatedAt: -1 })
+          .limit(100)
+          .lean()
+      : Promise.resolve([]),
+    hasIntegrationAccess(access, 'telegram')
+      ? TelegramConversations.find({ tenantId, clientId })
           .sort({ lastMessageAt: -1, updatedAt: -1 })
           .limit(100)
           .lean()
@@ -140,6 +176,9 @@ const loadClientMessenger = async ({
   const conversations = [
     ...avitoConversations.map((item) => normalizeConversation('avito', item)),
     ...vkConversations.map((item) => normalizeConversation('vk', item)),
+    ...telegramConversations.map((item) =>
+      normalizeConversation('telegram', item)
+    ),
     callConversation,
   ].filter(Boolean).sort(
     (a, b) =>
@@ -156,7 +195,7 @@ const loadClientMessenger = async ({
     }
   }
 
-  const [avitoMessages, vkMessages] = await Promise.all([
+  const [avitoMessages, vkMessages, telegramMessages] = await Promise.all([
     avitoConversations.length
       ? AvitoMessages.find({
           tenantId,
@@ -175,11 +214,23 @@ const loadClientMessenger = async ({
           .limit(500)
           .lean()
       : Promise.resolve([]),
+    telegramConversations.length
+      ? TelegramMessages.find({
+          tenantId,
+          conversationId: {
+            $in: telegramConversations.map((item) => item._id),
+          },
+        })
+          .sort({ sentAt: 1, createdAt: 1 })
+          .limit(500)
+          .lean()
+      : Promise.resolve([]),
   ])
 
   const messages = [
     ...avitoMessages.map((item) => normalizeMessage('avito', item)),
     ...vkMessages.map((item) => normalizeMessage('vk', item)),
+    ...telegramMessages.map((item) => normalizeMessage('telegram', item)),
     ...calls.map((item) => normalizeCallMessage(item, clientId)),
   ].sort(
     (a, b) =>
@@ -238,7 +289,7 @@ export const POST = async (req, { params }) => {
   const conversationId = String(body?.conversationId || '').trim()
   const text = String(body?.text || '').trim().slice(0, 4000)
 
-  if (!['avito', 'vk'].includes(provider)) {
+  if (!['avito', 'vk', 'telegram'].includes(provider)) {
     return jsonError('Выберите чат для ответа', 400, 'bad_provider')
   }
   if (!isObjectId(conversationId)) {
@@ -324,6 +375,69 @@ export const POST = async (req, { params }) => {
       )
     }
 
+    const data = await loadClientMessenger({ tenantId, clientId, access })
+    return NextResponse.json({ success: true, data }, { status: 201 })
+  }
+
+  if (provider === 'telegram') {
+    const conversation = await TelegramConversations.findOne({
+      _id: conversationId,
+      tenantId,
+      clientId,
+    })
+    if (!conversation) {
+      return jsonError('Переписка Telegram не найдена', 404, 'not_found')
+    }
+
+    const siteSettings = await SiteSettings.findOne({ tenantId }).lean()
+    const telegram = normalizeTelegramSettings(siteSettings?.custom)
+    if (
+      !telegram.enabled ||
+      !telegram.botToken ||
+      !telegram.businessConnectionId
+    ) {
+      return jsonError(
+        'Telegram Business не подключен',
+        403,
+        'not_connected'
+      )
+    }
+    if (!isTelegramReplyWindowOpen(conversation.lastIncomingAt)) {
+      return jsonError(
+        'Окно ответа Telegram истекло. Клиент должен сначала написать снова.',
+        400,
+        'reply_window_closed'
+      )
+    }
+    if (telegram.rights?.can_reply === false) {
+      return jsonError(
+        'Боту не выдано право отвечать на сообщения',
+        403,
+        'reply_not_allowed'
+      )
+    }
+
+    let sentMessage
+    try {
+      sentMessage = await sendTelegramBusinessMessage({
+        botToken: telegram.botToken,
+        businessConnectionId: telegram.businessConnectionId,
+        chatId: conversation.telegramChatId,
+        text,
+      })
+    } catch (error) {
+      return jsonError(
+        'Telegram не принял сообщение. Проверьте подключение и окно ответа.',
+        400,
+        'send_failed'
+      )
+    }
+
+    await saveTelegramBusinessMessage({
+      tenantId,
+      settings: telegram,
+      message: sentMessage,
+    })
     const data = await loadClientMessenger({ tenantId, clientId, access })
     return NextResponse.json({ success: true, data }, { status: 201 })
   }

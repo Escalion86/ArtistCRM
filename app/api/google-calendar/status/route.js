@@ -24,6 +24,7 @@ export const GET = async () => {
       success: true,
       data: {
         allowCalendarSync: Boolean(access?.allowCalendarSync),
+        allowAi: Boolean(access?.allowAi),
         connected,
         enabled: settings.enabled,
         calendarId: settings.calendarId,

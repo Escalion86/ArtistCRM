@@ -9,6 +9,7 @@ const ACCESS_FLAGS = [
   'allowAi',
   'allowAvitoIntegration',
   'allowVkIntegration',
+  'allowTelegramIntegration',
   'allowPublicLeadApi',
 ]
 

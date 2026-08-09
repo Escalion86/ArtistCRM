@@ -30,6 +30,7 @@ export const POST = async () => {
     ...settings,
     enabled: false,
     calendarId: '',
+    calendarName: '',
     refreshToken: '',
     accessToken: '',
     tokenExpiry: null,

@@ -8,6 +8,8 @@ import Events from '@models/Events'
 import Transactions from '@models/Transactions'
 import VkConversations from '@models/VkConversations'
 import VkMessages from '@models/VkMessages'
+import TelegramConversations from '@models/TelegramConversations'
+import TelegramMessages from '@models/TelegramMessages'
 import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import { recordSyncTombstone } from '@server/mobile/sync'
@@ -37,6 +39,8 @@ const getMergePreview = async ({ tenantId, duplicateClientId }) => {
     avitoMessages,
     vkConversations,
     vkMessages,
+    telegramConversations,
+    telegramMessages,
     calls,
   ] = await Promise.all([
     Events.countDocuments({ tenantId, clientId: duplicateClientId }),
@@ -50,6 +54,11 @@ const getMergePreview = async ({ tenantId, duplicateClientId }) => {
     AvitoMessages.countDocuments({ tenantId, clientId: duplicateClientId }),
     VkConversations.countDocuments({ tenantId, clientId: duplicateClientId }),
     VkMessages.countDocuments({ tenantId, clientId: duplicateClientId }),
+    TelegramConversations.countDocuments({
+      tenantId,
+      clientId: duplicateClientId,
+    }),
+    TelegramMessages.countDocuments({ tenantId, clientId: duplicateClientId }),
     Calls.countDocuments({ tenantId, linkedClientId: duplicateClientId }),
   ])
 
@@ -62,6 +71,8 @@ const getMergePreview = async ({ tenantId, duplicateClientId }) => {
     avitoMessages,
     vkConversations,
     vkMessages,
+    telegramConversations,
+    telegramMessages,
     calls,
     total:
       events +
@@ -72,6 +83,8 @@ const getMergePreview = async ({ tenantId, duplicateClientId }) => {
       avitoMessages +
       vkConversations +
       vkMessages +
+      telegramConversations +
+      telegramMessages +
       calls,
   }
 }
@@ -95,6 +108,7 @@ const mergeMissingClientFields = (target, duplicate) => {
     'whatsapp',
     'viber',
     'telegram',
+    'telegramUserId',
     'instagram',
     'vk',
     'preferredContactChannel',
@@ -227,6 +241,8 @@ export const POST = async (req, { params }) => {
     avitoMessagesResult,
     vkConversationsResult,
     vkMessagesResult,
+    telegramConversationsResult,
+    telegramMessagesResult,
     callsResult,
     updatedClient,
   ] = await Promise.all([
@@ -263,6 +279,14 @@ export const POST = async (req, { params }) => {
       { $set: { clientId: targetObjectId } }
     ),
     VkMessages.updateMany(
+      { tenantId, clientId: duplicateObjectId },
+      { $set: { clientId: targetObjectId } }
+    ),
+    TelegramConversations.updateMany(
+      { tenantId, clientId: duplicateObjectId },
+      { $set: { clientId: targetObjectId } }
+    ),
+    TelegramMessages.updateMany(
       { tenantId, clientId: duplicateObjectId },
       { $set: { clientId: targetObjectId } }
     ),
@@ -313,6 +337,9 @@ export const POST = async (req, { params }) => {
           avitoMessages: avitoMessagesResult.modifiedCount || 0,
           vkConversations: vkConversationsResult.modifiedCount || 0,
           vkMessages: vkMessagesResult.modifiedCount || 0,
+          telegramConversations:
+            telegramConversationsResult.modifiedCount || 0,
+          telegramMessages: telegramMessagesResult.modifiedCount || 0,
           calls: callsResult.modifiedCount || 0,
         },
       },
