@@ -4,6 +4,7 @@ import {
   Agent as UndiciAgent,
   ProxyAgent,
   Socks5ProxyAgent,
+  fetch as undiciFetch,
 } from 'undici'
 import Clients from '@models/Clients'
 import SiteSettings from '@models/SiteSettings'
@@ -71,6 +72,42 @@ const createTelegramTransport = () => {
 
 const telegramTransport = createTelegramTransport()
 
+const getNetworkErrorCode = (error) => {
+  let current = error
+  for (let depth = 0; current && depth < 5; depth += 1) {
+    if (current?.code) return String(current.code)
+    current = current?.cause
+  }
+  return ''
+}
+
+const getTelegramNetworkErrorMessage = (cause) => {
+  const code = getNetworkErrorCode(cause)
+  if (!telegramTransport.proxyEnabled) {
+    return code
+      ? `Сервер не может подключиться к Telegram API (${code})`
+      : 'Сервер не может подключиться к Telegram API'
+  }
+  if (code === 'ECONNREFUSED') {
+    return 'Прокси отклонил соединение (ECONNREFUSED). Проверьте, что порт прокси доступен из процесса или контейнера ArtistCRM.'
+  }
+  if (
+    [
+      'ETIMEDOUT',
+      'UND_ERR_CONNECT_TIMEOUT',
+      'UND_ERR_HEADERS_TIMEOUT',
+    ].includes(code)
+  ) {
+    return `Истекло время подключения к Telegram через прокси (${code})`
+  }
+  if (code === 'ECONNRESET') {
+    return 'Прокси разорвал соединение с Telegram (ECONNRESET)'
+  }
+  return code
+    ? `Не удалось подключиться к Telegram API через прокси (${code})`
+    : 'Не удалось подключиться к Telegram API через настроенный прокси'
+}
+
 export const getTelegramTransportStatus = () => ({
   proxyEnabled: telegramTransport.proxyEnabled,
   proxyType: telegramTransport.proxyType,
@@ -99,20 +136,18 @@ const telegramRequest = async ({ botToken, method, body = {} }) => {
 
   let response
   try {
-    response = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/${method}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      cache: 'no-store',
-      dispatcher: telegramTransport.dispatcher,
-      signal: AbortSignal.timeout(TELEGRAM_REQUEST_TIMEOUT_MS),
-    })
-  } catch (cause) {
-    const error = new Error(
-      telegramTransport.proxyEnabled
-        ? 'Не удалось подключиться к Telegram API через настроенный прокси'
-        : 'Сервер не может подключиться к Telegram API'
+    response = await undiciFetch(
+      `${TELEGRAM_API_BASE}/bot${botToken}/${method}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        dispatcher: telegramTransport.dispatcher,
+        signal: AbortSignal.timeout(TELEGRAM_REQUEST_TIMEOUT_MS),
+      }
     )
+  } catch (cause) {
+    const error = new Error(getTelegramNetworkErrorMessage(cause))
     error.code = telegramTransport.proxyEnabled
       ? 'telegram_proxy_unavailable'
       : 'telegram_api_unavailable'
@@ -143,8 +178,12 @@ export const normalizeTelegramSettings = (custom) => ({
   botToken: String(readCustom(custom, 'telegramBusinessBotToken') || ''),
   botId: String(readCustom(custom, 'telegramBusinessBotId') || ''),
   botUsername: String(readCustom(custom, 'telegramBusinessBotUsername') || ''),
-  webhookToken: String(readCustom(custom, 'telegramBusinessWebhookToken') || ''),
-  webhookSecret: String(readCustom(custom, 'telegramBusinessWebhookSecret') || ''),
+  webhookToken: String(
+    readCustom(custom, 'telegramBusinessWebhookToken') || ''
+  ),
+  webhookSecret: String(
+    readCustom(custom, 'telegramBusinessWebhookSecret') || ''
+  ),
   webhookUrl: String(readCustom(custom, 'telegramBusinessWebhookUrl') || ''),
   businessConnectionId: String(
     readCustom(custom, 'telegramBusinessConnectionId') || ''
@@ -169,7 +208,9 @@ export const sanitizeTelegramSiteSettings = (siteSettings) => {
       : { ...siteSettings }
   const custom = source.custom ?? {}
   const normalizedCustom =
-    typeof custom?.get === 'function' ? Object.fromEntries(custom) : { ...custom }
+    typeof custom?.get === 'function'
+      ? Object.fromEntries(custom)
+      : { ...custom }
   delete normalizedCustom.telegramBusinessBotToken
   delete normalizedCustom.telegramBusinessWebhookToken
   delete normalizedCustom.telegramBusinessWebhookSecret
@@ -305,14 +346,12 @@ const findOrCreateTelegramClient = async ({ tenantId, message }) => {
   if (!client) {
     client = await Clients.create({
       tenantId,
-      firstName: String(peer?.first_name || message?.from?.first_name || 'Клиент').slice(
-        0,
-        100
-      ),
-      secondName: String(peer?.last_name || message?.from?.last_name || '').slice(
-        0,
-        100
-      ),
+      firstName: String(
+        peer?.first_name || message?.from?.first_name || 'Клиент'
+      ).slice(0, 100),
+      secondName: String(
+        peer?.last_name || message?.from?.last_name || ''
+      ).slice(0, 100),
       telegram: username,
       telegramUserId,
       role: 'client',
@@ -350,7 +389,9 @@ export const saveTelegramBusinessMessage = async ({
       ? 'outgoing'
       : 'incoming'
   const client = await findOrCreateTelegramClient({ tenantId, message })
-  const sentAt = message?.date ? new Date(Number(message.date) * 1000) : new Date()
+  const sentAt = message?.date
+    ? new Date(Number(message.date) * 1000)
+    : new Date()
   const text = getMessageText(message)
   const username = normalizeUsername(
     message?.chat?.username || message?.from?.username
