@@ -1,6 +1,7 @@
 import FormWrapper from '@components/FormWrapper'
 import ComboBox from '@components/ComboBox'
 import Button from '@components/Button'
+import Notice from '@components/Notice'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import userSelector from '@state/selectors/userSelector'
 import userEditSelector from '@state/selectors/userEditSelector'
@@ -166,9 +167,9 @@ const userTariffChangeFunc = (userId) => {
           fullWidth
         />
         {error && (
-          <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
+          <Notice tone="error" role="alert" className="rounded-md">
             {error}
-          </div>
+          </Notice>
         )}
         <div className="flex justify-end gap-2">
           <Button

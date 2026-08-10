@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Notice from '@components/Notice'
 
 export default function AccountDeletionForm() {
   const [phone, setPhone] = useState('')
@@ -55,8 +56,21 @@ export default function AccountDeletionForm() {
         />
       </label>
       <p className="text-xs text-gray-500">Достаточно заполнить одно поле. В целях безопасности мы не сообщаем, найден ли аккаунт.</p>
-      {error ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
-      {message ? <p role="status" className="rounded-xl bg-green-50 p-3 text-sm text-green-800">{message}</p> : null}
+      {error ? (
+        <Notice as="p" tone="error" role="alert" className="rounded-xl p-3">
+          {error}
+        </Notice>
+      ) : null}
+      {message ? (
+        <Notice
+          as="p"
+          tone="success"
+          role="status"
+          className="rounded-xl p-3"
+        >
+          {message}
+        </Notice>
+      ) : null}
       <button type="submit" disabled={loading} className="min-h-12 cursor-pointer rounded-xl bg-red-700 px-5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
         {loading ? 'Отправляем…' : 'Запросить удаление аккаунта'}
       </button>

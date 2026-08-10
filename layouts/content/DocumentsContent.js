@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import LabeledContainer from '@components/LabeledContainer'
 import ComboBox from '@components/ComboBox'
+import Notice from '@components/Notice'
 import Input from '@components/Input'
 import ReactMarkdown from 'react-markdown'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
@@ -240,9 +241,9 @@ const DocumentsContent = () => {
       return (
         <div className="flex flex-col gap-3">
           {error ? (
-            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <Notice tone="error" role="alert" className="rounded">
               {error}
-            </div>
+            </Notice>
           ) : null}
           <Input
             label="Название шаблона"
@@ -304,9 +305,9 @@ const DocumentsContent = () => {
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         {!canUseDocuments ? (
-          <div className="p-3 text-sm border rounded border-amber-200 bg-amber-50 text-amber-800">
+          <Notice tone="warning" className="rounded p-3">
             Работа с документами недоступна на текущем тарифе.
-          </div>
+          </Notice>
         ) : (
           <LabeledContainer label="Работа с документами" noMargin>
             <div className="flex flex-col w-full gap-3">

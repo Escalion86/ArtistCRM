@@ -5,6 +5,7 @@ import Button from '@components/Button'
 import Input from '@components/Input'
 import LoadingSpinner from '@components/LoadingSpinner'
 import MutedText from '@components/MutedText'
+import Notice from '@components/Notice'
 import { formatMoney } from '@helpers/formatMoney'
 import useSnackbar from '@helpers/useSnackbar'
 
@@ -128,9 +129,9 @@ const AiUsageAdminContent = () => {
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         {error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <Notice tone="error" role="alert" className="p-3">
             {error}
-          </div>
+          </Notice>
         ) : null}
 
         <div className="flex max-w-2xl flex-col gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
@@ -144,17 +145,14 @@ const AiUsageAdminContent = () => {
               аналогичных операций.
             </MutedText>
           </div>
-          <div
-            className={`rounded-md px-3 py-2 text-sm ${
-              settings?.platformConfigured
-                ? 'border border-green-200 bg-green-50 text-green-800'
-                : 'border border-red-200 bg-red-50 text-red-700'
-            }`}
+          <Notice
+            tone={settings?.platformConfigured ? 'success' : 'error'}
+            className="rounded-md"
           >
             {settings?.platformConfigured
               ? 'Общий ключ AITunnel настроен.'
               : 'Общий ключ AITUNNEL_KEY не настроен — сервисный ИИ недоступен.'}
-          </div>
+          </Notice>
           <Input
             label="Коэффициент наценки"
             type="number"

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import ComboBox from '@components/ComboBox'
 import Input from '@components/Input'
+import Notice from '@components/Notice'
 import { sendFile } from '@helpers/cloudinary'
 import {
   DOCUMENT_TYPE_OPTIONS,
@@ -349,9 +350,9 @@ const EventDocumentsEditor = ({
       return (
         <div className="flex flex-col gap-3">
           {localError ? (
-            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <Notice tone="error" role="alert" className="rounded">
               {localError}
-            </div>
+            </Notice>
           ) : null}
 
           <div className="grid grid-cols-2 gap-2">
@@ -498,15 +499,18 @@ const EventDocumentsEditor = ({
                   </div>
                 </>
               ) : (
-                <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                <Notice tone="warning" className="rounded">
                   Загрузите DOCX-шаблоны на странице Документы.
-                </div>
+                </Notice>
               )}
 
               {!directory ? (
-                <div className="text-xs text-amber-700">
+                <Notice
+                  tone="warning"
+                  className="rounded px-2 py-1 text-xs"
+                >
                   Для прикрепления файла нужно сначала сохранить мероприятие.
-                </div>
+                </Notice>
               ) : null}
             </div>
           )}
@@ -526,9 +530,9 @@ const EventDocumentsEditor = ({
   return (
     <div className={`flex flex-col gap-3 ${noMargin ? '' : 'mt-2'}`}>
       {error ? (
-        <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <Notice tone="error" role="alert" className="rounded">
           {error}
-        </div>
+        </Notice>
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-2">

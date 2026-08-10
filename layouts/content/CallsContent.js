@@ -16,6 +16,7 @@ import AudioPlayer from '@components/AudioPlayer'
 import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import Input from '@components/Input'
 import NativeSelect from '@components/NativeSelect'
+import Notice from '@components/Notice'
 import Textarea from '@components/Textarea'
 import CardWrapper from '@components/CardWrapper'
 import CardActions from '@components/CardActions'
@@ -729,16 +730,16 @@ const CallsContent = () => {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!canUseTelephony && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+          <Notice tone="warning" className="rounded-md p-5">
             IP-телефония, журнал звонков и AI-заявки доступны на тарифе с
             включенной опцией IP-телефония.
-          </div>
+          </Notice>
         )}
         {canUseTelephony && !canUseAi && (
-          <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+          <Notice tone="warning" className="mb-3 rounded-md p-5">
             AI-анализ звонков и распознавание записей доступны на тарифе с
             включенной опцией ИИ-возможности.
-          </div>
+          </Notice>
         )}
         {canUseTelephony && isLoading && (
           <div className="py-6 text-gray-600">Загрузка...</div>

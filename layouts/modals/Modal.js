@@ -44,6 +44,7 @@ const Modal = ({
   declineButtonBgClassName,
   crossShow = true,
   waitForConfirm = false,
+  contentClassName,
 }) => {
   // const [rendered, setRendered] = useState(false)
   // const [preventCloseFunc, setPreventCloseFunc] = useState(null)
@@ -354,7 +355,10 @@ const Modal = ({
           : cloneElement(children, { onClose: closeModal, setBeforeCloseFunc })} */}
         <div
           ref={contentRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden px-2 tablet:px-3"
+          className={cn(
+            'flex-1 overflow-y-auto overflow-x-hidden px-2 tablet:px-3',
+            contentClassName
+          )}
           onFocusCapture={handleContentFocusCapture}
         >
           {Children && (

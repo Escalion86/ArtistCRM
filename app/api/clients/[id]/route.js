@@ -5,6 +5,7 @@ import Transactions from '@models/Transactions'
 import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import { buildTenantSafeUpdate } from '@server/tenantSafeUpdate'
+import { resetClientMessengerAvailability } from '@helpers/clientMessengerAvailability'
 import {
   recordSyncTombstone,
   withSyncVersionIncrement,
@@ -41,9 +42,20 @@ export const PUT = async (req, { params }) => {
   }
   await dbConnect()
 
+  const existingClient = await Clients.findOne({ _id: id, tenantId })
+    .select('phone telegram')
+    .lean()
+  if (!existingClient)
+    return NextResponse.json(
+      { success: false, error: 'Клиент не найден' },
+      { status: 404 }
+    )
+
+  const update = resetClientMessengerAvailability(existingClient, body)
+
   const client = await Clients.findOneAndUpdate(
     { _id: id, tenantId },
-    withSyncVersionIncrement(buildTenantSafeUpdate(body)),
+    withSyncVersionIncrement(buildTenantSafeUpdate(update)),
     {
       returnDocument: 'after',
       runValidators: true,

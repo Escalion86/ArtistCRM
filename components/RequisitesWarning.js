@@ -1,4 +1,5 @@
 import AppButton from '@components/AppButton'
+import Notice from '@components/Notice'
 
 const RequisitesWarning = ({
   missingArtistRequisites = false,
@@ -10,14 +11,14 @@ const RequisitesWarning = ({
   if (!missingArtistRequisites && !missingClientRequisites) return null
 
   return (
-    <div className="flex flex-col gap-2 rounded border border-red-200 bg-red-50/80 px-3 py-2">
+    <Notice tone="error" className="flex flex-col gap-2 rounded">
       {missingArtistRequisites ? (
-        <div className="text-xs text-red-700">
+        <div className="text-xs">
           Необходимо заполнить реквизиты артиста
         </div>
       ) : null}
       {missingClientRequisites ? (
-        <div className="text-xs text-red-700">
+        <div className="text-xs">
           Необходимо заполнить реквизиты в карточке клиента
         </div>
       ) : null}
@@ -44,7 +45,7 @@ const RequisitesWarning = ({
           </AppButton>
         ) : null}
       </div>
-    </div>
+    </Notice>
   )
 }
 

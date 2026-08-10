@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import Button from '@components/Button'
 import LoadingSpinner from '@components/LoadingSpinner'
 import NativeSelect from '@components/NativeSelect'
+import Notice from '@components/Notice'
 
 const BATCH_SIZE = 10
 
@@ -297,9 +298,9 @@ const GoogleCalendarImportSettings = () => {
 
   if (!calendarStatus.allowCalendarSync || !calendarStatus.allowAi) {
     return (
-      <div className="calendar-import-warning rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+      <Notice tone="warning" className="calendar-import-warning p-4">
         Импорт доступен в тарифе, где включены Google Calendar и ИИ-возможности.
-      </div>
+      </Notice>
     )
   }
 
@@ -441,9 +442,13 @@ const GoogleCalendarImportSettings = () => {
       ) : null}
 
       {error ? (
-        <div className="calendar-import-error rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+        <Notice
+          tone="error"
+          role="alert"
+          className="calendar-import-error p-3"
+        >
           {error}
-        </div>
+        </Notice>
       ) : null}
 
       {preview ? (
@@ -483,16 +488,23 @@ const GoogleCalendarImportSettings = () => {
           </div>
 
           {insufficientBalance ? (
-            <div className="calendar-import-warning mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <Notice
+              tone="warning"
+              className="calendar-import-warning mt-3 p-3"
+            >
               Баланса может не хватить на выбранные описания. Уменьшите выбор
               или пополните баланс.
-            </div>
+            </Notice>
           ) : null}
           {platformUnavailable ? (
-            <div className="calendar-import-error mt-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            <Notice
+              tone="error"
+              role="alert"
+              className="calendar-import-error mt-3 p-3"
+            >
               Общий ИИ ArtistCRM временно не настроен. Подключите собственный
               AITunnel или повторите попытку позже.
-            </div>
+            </Notice>
           ) : null}
 
           <div className="mt-4 max-h-[430px] space-y-2 overflow-y-auto pr-1">
@@ -556,9 +568,13 @@ const GoogleCalendarImportSettings = () => {
           </div>
 
           {importing ? (
-            <div className="calendar-import-progress mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+            <Notice
+              tone="info"
+              role="status"
+              className="calendar-import-progress mt-4 p-3"
+            >
               Импортировано и обработано: {progress.done} из {progress.total}
-            </div>
+            </Notice>
           ) : null}
 
           <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -581,7 +597,12 @@ const GoogleCalendarImportSettings = () => {
       ) : null}
 
       {result ? (
-        <section className="calendar-import-result rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950">
+        <Notice
+          as="section"
+          tone="success"
+          role="status"
+          className="calendar-import-result rounded-xl p-4"
+        >
           <h3 className="font-semibold">Импорт завершён</h3>
           <div className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
             <div>Создано: {result.created}</div>
@@ -589,7 +610,7 @@ const GoogleCalendarImportSettings = () => {
             <div>С предупреждениями: {result.requiresReview}</div>
             <div>Списано: {formatRub(result.actualCost)} ₽</div>
           </div>
-        </section>
+        </Notice>
       ) : null}
     </div>
   )

@@ -4,6 +4,7 @@ import QuickActionButtons from '@components/QuickActionButtons'
 import Input from '@components/Input'
 import Textarea from '@components/Textarea'
 import IconCheckBox from '@components/IconCheckBox'
+import Notice from '@components/Notice'
 import { faCircleCheck } from '@fortawesome/free-solid-svg-icons'
 
 const buildDefaultAdditionalEvent = () => ({
@@ -80,9 +81,9 @@ const openEventAdditionalEventEditorModal = ({
     return (
       <div className="mt-2 flex flex-col gap-y-2.5">
         {introText ? (
-          <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+          <Notice tone="info" className="rounded-md text-xs">
             {introText}
-          </div>
+          </Notice>
         ) : null}
         <div className="mt-2 text-xs font-semibold text-gray-700">
           Быстрый заголовок

@@ -7,6 +7,7 @@ import useSnackbar from '@helpers/useSnackbar'
 import { useClientQuery, useClientsQuery } from '@helpers/useClientsQuery'
 import clientsAtom from '@state/atoms/clientsAtom'
 import SurfaceCard from '@components/SurfaceCard'
+import Notice from '@components/Notice'
 
 const loadCandidates = async (clientId) => {
   const response = await fetch(`/api/clients/${clientId}/messenger/candidates`)
@@ -466,11 +467,11 @@ const clientContactMergeFunc = (clientId) => {
             </div>
           )}
           {mergePreview && mergeTargetClient && mergeSourceClient && (
-            <div className="mt-2 rounded border border-blue-200 bg-blue-50 px-3 py-3 text-xs text-blue-900">
+            <Notice tone="info" className="mt-2 rounded px-3 py-3 text-xs">
               <div className="font-semibold">Направление объединения</div>
               <div className="mt-2 grid grid-cols-1 gap-2 tablet:grid-cols-[1fr_auto_1fr] tablet:items-center">
-                <div className="rounded border border-emerald-200 bg-white px-3 py-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                <div className="rounded border border-gray-200 bg-white px-3 py-2">
+                  <div className="text-[10px] font-semibold tracking-wide text-gray-700 uppercase">
                     Останется
                   </div>
                   <div className="mt-1 font-semibold text-gray-900">
@@ -482,12 +483,12 @@ const clientContactMergeFunc = (clientId) => {
                     Мероприятий: {Number(targetEvents || 0)}
                   </div>
                 </div>
-                <div className="text-center text-lg font-semibold text-blue-700">
+                <div className="text-center text-lg font-semibold text-[var(--ui-primary)]">
                   <span className="tablet:hidden">↑</span>
                   <span className="hidden tablet:inline">←</span>
                 </div>
-                <div className="rounded border border-red-200 bg-white px-3 py-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-red-700">
+                <div className="rounded border border-gray-200 bg-white px-3 py-2">
+                  <div className="text-[10px] font-semibold tracking-wide text-gray-700 uppercase">
                     Данные перенесутся, карточка удалится
                   </div>
                   <div className="mt-1 font-semibold text-gray-900">
@@ -516,13 +517,13 @@ const clientContactMergeFunc = (clientId) => {
               </button>
               {String(mergeTargetClientId) ===
               String(mergePreview?.recommendedTargetClientId) ? (
-                <div className="mt-2 text-emerald-700">
+                <div className="mt-2 text-gray-700">
                   {currentEventsCount === selectedEventsCount
                     ? 'Количество мероприятий одинаковое — по умолчанию сохраняем текущую карточку.'
                     : 'Рекомендуем сохранить карточку с большим числом связанных мероприятий.'}
                 </div>
               ) : null}
-            </div>
+            </Notice>
           )}
           {preview && (
             <div className="mt-2 rounded border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">

@@ -3,6 +3,7 @@ import FormWrapper from '@components/FormWrapper'
 import IconCheckBox from '@components/IconCheckBox'
 import Input from '@components/Input'
 import InputImages from '@components/InputImages'
+import Notice from '@components/Notice'
 import PhoneInput from '@components/PhoneInput'
 import { getData, postData } from '@helpers/CRUD'
 import {
@@ -511,18 +512,18 @@ const userOnboardingFunc = () => {
             />
           ))}
         </div>
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+        <Notice tone="neutral" className="rounded-md">
           {STEP_META[step].description}
-        </div>
+        </Notice>
       </div>
     )
 
     const renderProfileStep = () => (
       <FormWrapper className="flex flex-col gap-3">
-        <div className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+        <Notice tone="info" className="rounded-md">
           Заполните данные, по которым клиенты и документы будут узнавать вас.
           Фото можно добавить сейчас или позже в настройках профиля.
-        </div>
+        </Notice>
         <InputImages
           label="Фото профиля"
           directory="users"
@@ -665,16 +666,16 @@ const userOnboardingFunc = () => {
             </button>
           ))}
         </div>
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+        <Notice tone="neutral" className="rounded-md">
           Группа - это полка, услуга - конкретное предложение. Если услуг мало,
           оставьте их без группы, а структуру усложните позже.
-        </div>
+        </Notice>
         {hasExistingServices ? (
-          <div className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-800">
+          <Notice tone="warning" className="rounded-md">
             Вижу, что у вас уже есть созданные услуги. Создание новых услуг из
             пресета может испортить структуру, поэтому лучше добавьте услуги
             вручную.
-          </div>
+          </Notice>
         ) : (
           <div className="rounded-md border border-gray-200 bg-white px-3 py-2">
             <div className="mb-2 text-sm font-semibold text-gray-900">
@@ -702,11 +703,11 @@ const userOnboardingFunc = () => {
 
     const renderTransferStep = () => (
       <FormWrapper className="flex flex-col gap-3">
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+        <Notice tone="neutral" className="rounded-md">
           Если вы иногда отдаете заказ другому исполнителю, включите настройку.
           Тогда в редакторе заявки появятся поля «Передано коллеге» и выбор
           коллеги.
-        </div>
+        </Notice>
         <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2">
           <button
             type="button"
@@ -744,10 +745,10 @@ const userOnboardingFunc = () => {
 
     const renderStatusesStep = () => (
       <FormWrapper className="flex flex-col gap-3">
-        <div className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900">
+        <Notice tone="info" className="rounded-md font-semibold">
           Обычный путь: Заявка {'->'} Подтверждено {'->'} Закрыто. Если заказ
           сорвался, используйте Отменено.
-        </div>
+        </Notice>
         <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2">
           {getFirstRunStatusEducationItems().map((item) => (
             <div
@@ -768,10 +769,14 @@ const userOnboardingFunc = () => {
 
     const renderFinishStep = () => (
       <FormWrapper className="flex flex-col gap-3">
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-900">
+        <Notice
+          tone="success"
+          role="status"
+          className="rounded-md py-3"
+        >
           Спасибо за регистрацию. Основная настройка завершена. Подробнее со
           всеми возможностями можно познакомиться в блоке меню настроек.
-        </div>
+        </Notice>
         {!hasAnyEvent && (
           <div className="rounded-md border border-gray-200 bg-white px-3 py-2">
             <IconCheckBox
@@ -784,9 +789,9 @@ const userOnboardingFunc = () => {
           </div>
         )}
         {hasAnyEvent && (
-          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+          <Notice tone="neutral" className="rounded-md">
             У вас уже есть карточки, поэтому учебную заявку создавать не будем.
-          </div>
+          </Notice>
         )}
       </FormWrapper>
     )

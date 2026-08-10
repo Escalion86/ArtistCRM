@@ -5,10 +5,12 @@ import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import { faCopy } from '@fortawesome/free-solid-svg-icons/faCopy'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import ImageGallery from '@components/ImageGallery'
+import Notice from '@components/Notice'
 import SurfaceCard from '@components/SurfaceCard'
 import TextLine from '@components/TextLine'
 import formatAddress from '@helpers/formatAddress'
 import formatDateTime from '@helpers/formatDateTime'
+import { formatMoney } from '@helpers/formatMoney'
 import formatMinutes from '@helpers/formatMinutes'
 import { formatPhoneWithPlus } from '@helpers/phoneUi'
 import getGoogleCalendarLinkFromText from '@helpers/getGoogleCalendarLinkFromText'
@@ -22,14 +24,20 @@ import { useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
-import transactionsAtom from '@state/atoms/transactionsAtom'
 import { modalsFuncAtom } from '@state/atoms'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
+import {
+  TRANSACTION_CATEGORIES,
+  TRANSACTION_PAYMENT_METHODS,
+} from '@helpers/constants'
 import { useClientsQuery } from '@helpers/useClientsQuery'
 import { useEventQuery } from '@helpers/useEventsQuery'
+import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 import {
   getCloseBlockedByObligationsMessage,
+  getTransactionDateLabel,
   hasObligationPaymentMethod,
+  OBLIGATION_PAYMENT_METHOD,
 } from '@helpers/transactionObligation'
 import AdditionalEventCard from './AdditionalEventCard'
 import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
@@ -57,6 +65,192 @@ const EVENT_STATUS_META = Object.freeze({
     className: 'event-view-status event-view-status--closed',
   },
 })
+
+const TRANSACTION_CATEGORY_NAMES = new Map(
+  TRANSACTION_CATEGORIES.map((item) => [item.value, item.name])
+)
+const TRANSACTION_PAYMENT_METHOD_NAMES = new Map(
+  TRANSACTION_PAYMENT_METHODS.map((item) => [item.value, item.name])
+)
+
+const getTransactionAmount = (transaction) => {
+  const amount = Number(transaction?.amount ?? 0)
+  return Number.isFinite(amount) ? amount : 0
+}
+
+const formatTransactionDate = (value) => {
+  if (!value) return 'не указана'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'не указана'
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const FinanceMetric = ({ label, value, valueClassName = 'text-gray-900' }) => (
+  <div className="event-view-kpi min-w-0 rounded-lg border border-gray-200 bg-gray-50 p-2">
+    <div className="text-[11px] text-gray-500">{label}</div>
+    <div className={`break-words text-base font-semibold ${valueClassName}`}>
+      {value}
+    </div>
+  </div>
+)
+
+const EventFinanceSection = ({ event, transactions }) => {
+  const summary = useMemo(() => {
+    const sortedTransactions = [...transactions].sort(
+      (a, b) =>
+        new Date(b?.date ?? 0).getTime() - new Date(a?.date ?? 0).getTime()
+    )
+    const actualTransactions = sortedTransactions.filter(
+      (item) => item?.paymentMethod !== OBLIGATION_PAYMENT_METHOD
+    )
+    const income = actualTransactions
+      .filter((item) => item?.type === 'income')
+      .reduce((total, item) => total + getTransactionAmount(item), 0)
+    const expense = actualTransactions
+      .filter((item) => item?.type === 'expense')
+      .reduce((total, item) => total + getTransactionAmount(item), 0)
+    const rawContractSum = Number(event?.contractSum ?? 0)
+    const contractSum = Number.isFinite(rawContractSum) ? rawContractSum : 0
+
+    return {
+      contractSum,
+      income,
+      expense,
+      profit: income - expense,
+      paymentLeft: contractSum - income,
+      sortedTransactions,
+    }
+  }, [event?.contractSum, transactions])
+
+  const paymentStatus =
+    summary.contractSum <= 0
+      ? 'Договорная сумма не указана'
+      : summary.paymentLeft > 0
+        ? `Осталось получить ${formatMoney(summary.paymentLeft)}`
+        : summary.paymentLeft < 0
+          ? `Переплата ${formatMoney(Math.abs(summary.paymentLeft))}`
+          : 'Оплачено полностью'
+
+  return (
+    <SectionBlock title="Финансы">
+      <div className="grid grid-cols-2 gap-2 tablet:grid-cols-4">
+        <FinanceMetric
+          label="Договорная сумма"
+          value={
+            summary.contractSum > 0 ? formatMoney(summary.contractSum) : '—'
+          }
+        />
+        <FinanceMetric
+          label="Получено"
+          value={formatMoney(summary.income)}
+          valueClassName="text-emerald-700"
+        />
+        <FinanceMetric
+          label="Расходы"
+          value={formatMoney(summary.expense)}
+          valueClassName="text-red-700"
+        />
+        <FinanceMetric
+          label="Итог"
+          value={formatMoney(summary.profit)}
+          valueClassName={
+            summary.profit > 0
+              ? 'text-emerald-700'
+              : summary.profit < 0
+                ? 'text-red-700'
+                : 'text-gray-900'
+          }
+        />
+      </div>
+
+      <Notice
+        tone={
+          summary.contractSum <= 0
+            ? 'neutral'
+            : summary.paymentLeft > 0
+              ? 'warning'
+              : 'success'
+        }
+        className="mt-2 font-semibold"
+      >
+        {paymentStatus}
+      </Notice>
+
+      <div className="mt-3">
+        <div className="mb-2 text-xs font-semibold tracking-wide text-gray-500 uppercase">
+          Операции ({summary.sortedTransactions.length})
+        </div>
+        {summary.sortedTransactions.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-sm text-gray-500">
+            Транзакций по мероприятию нет
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white">
+            {summary.sortedTransactions.map((transaction, index) => {
+              const isIncome = transaction?.type === 'income'
+              const isObligation =
+                transaction?.paymentMethod === OBLIGATION_PAYMENT_METHOD
+              const categoryName =
+                TRANSACTION_CATEGORY_NAMES.get(transaction?.category) ||
+                transaction?.category ||
+                'Без категории'
+              const paymentMethodName =
+                TRANSACTION_PAYMENT_METHOD_NAMES.get(
+                  transaction?.paymentMethod
+                ) || transaction?.paymentMethod
+
+              return (
+                <div
+                  key={transaction?._id ?? `${transaction?.date}-${index}`}
+                  className="flex flex-col gap-1 px-3 py-3 tablet:flex-row tablet:items-start tablet:justify-between tablet:gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span
+                        className={`font-semibold ${
+                          isIncome ? 'text-emerald-700' : 'text-red-700'
+                        }`}
+                      >
+                        {isIncome ? '+' : '−'}
+                        {formatMoney(getTransactionAmount(transaction))}
+                      </span>
+                      <span className="text-sm text-gray-700">
+                        {categoryName}
+                      </span>
+                      {isObligation ? (
+                        <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                          Обязательство
+                        </span>
+                      ) : null}
+                    </div>
+                    {transaction?.comment ? (
+                      <div className="mt-1 break-words text-sm text-gray-600">
+                        {transaction.comment}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="shrink-0 text-xs text-gray-500 tablet:text-right">
+                    <div>
+                      {getTransactionDateLabel(transaction?.paymentMethod)}:{' '}
+                      {formatTransactionDate(transaction?.date)}
+                    </div>
+                    {paymentMethodName ? <div>{paymentMethodName}</div> : null}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </SectionBlock>
+  )
+}
 
 const getClientContactItems = (client) => {
   if (!client || typeof client !== 'object') return []
@@ -139,7 +333,9 @@ const eventViewFunc = (eventId) => {
   }) => {
     const { data: event } = useEventQuery(eventId)
     const services = useAtomValue(servicesAtom)
-    const transactions = useAtomValue(transactionsAtom)
+    const { data: transactions = [] } = useTransactionsQuery(undefined, {
+      enabled: false,
+    })
     const { data: clients = [] } = useClientsQuery()
     const siteSettings = useAtomValue(siteSettingsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
@@ -431,10 +627,17 @@ const eventViewFunc = (eventId) => {
 
             {hasObligations ? (
               <SectionBlock title="Предупреждение">
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <Notice tone="warning" role="alert" className="p-3">
                   {getCloseBlockedByObligationsMessage()}
-                </div>
+                </Notice>
               </SectionBlock>
+            ) : null}
+
+            {event?.status !== 'draft' ? (
+              <EventFinanceSection
+                event={event}
+                transactions={eventTransactions}
+              />
             ) : null}
 
             <SectionBlock title="Подробности">

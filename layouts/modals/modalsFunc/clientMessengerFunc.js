@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { faRotateRight } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import formatDateTime from '@helpers/formatDateTime'
@@ -7,6 +8,9 @@ import useSnackbar from '@helpers/useSnackbar'
 import { useClientQuery, useClientsQuery } from '@helpers/useClientsQuery'
 import NovofonCallButton from '@components/NovofonCallButton'
 import AudioPlayer from '@components/AudioPlayer'
+import Notice from '@components/Notice'
+import { queryKeys } from '@helpers/queryKeys'
+import { clearMessengerUnreadForClient } from '@helpers/messengerUnreadSummary'
 
 const PROVIDER_LABELS = {
   avito: 'Avito',
@@ -180,6 +184,7 @@ const MessageBubble = ({ message }) => {
 const clientMessengerFunc = (clientId) => {
   const ClientMessengerModal = () => {
     const snackbar = useSnackbar()
+    const queryClient = useQueryClient()
     const bottomRef = useRef(null)
     const { data: clients = [] } = useClientsQuery()
     const initialClient = useMemo(
@@ -248,7 +253,9 @@ const clientMessengerFunc = (clientId) => {
         if (!clientId) return
         setLoading(true)
         try {
-          const response = await fetch(`/api/clients/${clientId}/messenger`)
+          const response = await fetch(`/api/clients/${clientId}/messenger`, {
+            method: 'PATCH',
+          })
           const result = await response.json().catch(() => ({}))
           if (!response.ok || result?.success === false) {
             snackbar.error(
@@ -257,6 +264,9 @@ const clientMessengerFunc = (clientId) => {
             return
           }
           applyPayload(result?.data)
+          queryClient.setQueryData(queryKeys.messengerSummary, (current) =>
+            clearMessengerUnreadForClient(current, clientId)
+          )
           if (showSuccess) snackbar.success('Сообщения обновлены')
         } catch (error) {
           snackbar.error('Не удалось загрузить переписку')
@@ -264,7 +274,7 @@ const clientMessengerFunc = (clientId) => {
           setLoading(false)
         }
       },
-      [applyPayload, snackbar]
+      [applyPayload, queryClient, snackbar]
     )
 
     useEffect(() => {
@@ -334,7 +344,7 @@ const clientMessengerFunc = (clientId) => {
     }
 
     return (
-      <div className="flex h-[70dvh] min-h-[420px] flex-col gap-3 text-sm">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 text-sm tablet:h-[70dvh] tablet:min-h-[420px] tablet:flex-none">
         <div className="flex items-start justify-between gap-2 rounded border border-gray-200 bg-gray-50 px-3 py-2">
           <div className="min-w-0">
             <div className="truncate font-semibold text-gray-900">
@@ -410,10 +420,10 @@ const clientMessengerFunc = (clientId) => {
               maxLength={4000}
             />
             {selectedConversation?.provider === 'telegram' && !canReply ? (
-              <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <Notice tone="warning" className="rounded text-xs">
                 24-часовое окно ответа Telegram истекло. Клиенту нужно сначала
                 написать вам снова.
-              </div>
+              </Notice>
             ) : null}
             <button
               type="button"
@@ -432,6 +442,7 @@ const clientMessengerFunc = (clientId) => {
   return {
     title: 'Диалог с клиентом',
     confirmButtonName: 'Закрыть',
+    contentClassName: 'flex min-h-0 flex-col overflow-hidden',
     showDecline: false,
     onConfirm: true,
     Children: ClientMessengerModal,

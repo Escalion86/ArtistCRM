@@ -17,6 +17,7 @@ import Input from '@components/Input'
 import Select from '@components/Select'
 import IconCheckBox from '@components/IconCheckBox'
 import IconActionButton from '@components/IconActionButton'
+import Notice from '@components/Notice'
 import GoogleCalendarSettings from '@components/GoogleCalendarSettings'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
@@ -509,10 +510,10 @@ const TelegramBusinessGuide = () => (
         версиях Telegram этот пункт может называться Business Mode.
       </li>
     </ol>
-    <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+    <Notice tone="warning" className="rounded">
       Без включённого «Режима секретаря» Telegram не позволит добавить бота к
       вашему аккаунту.
-    </div>
+    </Notice>
     <div className="font-semibold text-gray-900">
       3. Подключите бота к ArtistCRM
     </div>
@@ -1405,14 +1406,15 @@ const IntegrationsContent = () => {
                 статусом Черновик.
               </div>
 
-              <div
-                className={`rounded border px-3 py-2 text-sm ${
+              <Notice
+                tone={
                   avitoEnabled && avitoStatus !== 'auth_error'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    ? 'success'
                     : avitoStatus === 'auth_error'
-                      ? 'border-red-200 bg-red-50 text-red-700'
-                      : 'border-gray-200 bg-gray-50 text-gray-700'
-                }`}
+                      ? 'error'
+                      : 'neutral'
+                }
+                className="rounded"
               >
                 Статус: {avitoStatusText}
                 {avitoLastWebhookAt ? (
@@ -1426,7 +1428,7 @@ const IntegrationsContent = () => {
                     Ошибка: {avitoLastError}
                   </span>
                 ) : null}
-              </div>
+              </Notice>
 
               <div className="tablet:grid-cols-2 grid grid-cols-1 gap-3">
                 <Input
@@ -1538,14 +1540,15 @@ const IntegrationsContent = () => {
                 Черновик.
               </div>
 
-              <div
-                className={`rounded border px-3 py-2 text-sm ${
+              <Notice
+                tone={
                   vkEnabled && vkStatus !== 'auth_error'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    ? 'success'
                     : vkStatus === 'auth_error'
-                      ? 'border-red-200 bg-red-50 text-red-700'
-                      : 'border-gray-200 bg-gray-50 text-gray-700'
-                }`}
+                      ? 'error'
+                      : 'neutral'
+                }
+                className="rounded"
               >
                 Статус: {vkStatusText}
                 {vkLastWebhookAt ? (
@@ -1557,7 +1560,7 @@ const IntegrationsContent = () => {
                 {vkLastError ? (
                   <span className="block text-xs">Ошибка: {vkLastError}</span>
                 ) : null}
-              </div>
+              </Notice>
 
               <div className="tablet:grid-cols-2 grid grid-cols-1 gap-3">
                 <Input
@@ -1707,16 +1710,17 @@ const IntegrationsContent = () => {
                 настраивается ниже.
               </div>
 
-              <div
-                className={`rounded border px-3 py-2 text-sm ${
+              <Notice
+                tone={
                   telegramStatus === 'connected'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    ? 'success'
                     : telegramStatus === 'auth_error'
-                      ? 'border-red-200 bg-red-50 text-red-700'
+                      ? 'error'
                       : telegramEnabled
-                        ? 'border-amber-200 bg-amber-50 text-amber-800'
-                        : 'border-gray-200 bg-gray-50 text-gray-700'
-                }`}
+                        ? 'warning'
+                        : 'neutral'
+                }
+                className="rounded"
               >
                 Статус: {telegramStatusText}
                 {telegramStatusData?.botUsername ? (
@@ -1743,7 +1747,7 @@ const IntegrationsContent = () => {
                     Ошибка: {telegramStatusData.lastError}
                   </span>
                 ) : null}
-              </div>
+              </Notice>
 
               <Input
                 label={
@@ -1758,12 +1762,12 @@ const IntegrationsContent = () => {
                 fullWidth
               />
 
-              <div className="rounded border border-blue-100 bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-800">
+              <Notice tone="info" className="rounded text-xs leading-5">
                 Сначала включите у бота Secretary Mode / «Режим секретаря» в
                 настройках @BotFather. Затем добавьте его в Telegram: Настройки
                 → Telegram Business → Чат-боты и выдайте права на чтение и
                 ответы. Старые сообщения до подключения в CRM не загрузятся.
-              </div>
+              </Notice>
 
               <div className="rounded border border-gray-200 bg-white px-3 py-3">
                 <IconCheckBox
@@ -1778,12 +1782,15 @@ const IntegrationsContent = () => {
                   клиенту вручную. При создании карточки ArtistCRM отправит
                   уведомление, если уведомления включены.
                 </div>
-                <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-5 text-amber-900">
+                <Notice
+                  tone="warning"
+                  className="mt-2 rounded text-xs font-medium leading-5"
+                >
                   Важно: не включайте эту настройку, если бот подключён к вашему
                   личному Telegram-аккаунту. Иначе ArtistCRM будет создавать
                   карточки для друзей, родственников и других личных контактов,
                   которые напишут вам в Telegram.
-                </div>
+                </Notice>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -1960,10 +1967,10 @@ const IntegrationsContent = () => {
                 нет.
               </div>
               {!canUseTelephony && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                <Notice tone="warning" className="rounded-md">
                   AI-обработка звонков будет работать после подключения тарифа с
                   IP-телефонией.
-                </div>
+                </Notice>
               )}
               <IconCheckBox
                 label="Включить ИИ-интеграцию"
@@ -2061,15 +2068,22 @@ const IntegrationsContent = () => {
                         записи могут стоить дороже.
                       </div>
                       {!aiUsage?.platformConfigured ? (
-                        <div className="ai-billing-card__danger rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        <Notice
+                          tone="error"
+                          role="alert"
+                          className="ai-billing-card__danger rounded-md"
+                        >
                           Общий ИИ временно не настроен администратором.
-                        </div>
+                        </Notice>
                       ) : !aiUsage?.available ? (
-                        <div className="ai-billing-card__warning rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        <Notice
+                          tone="warning"
+                          className="ai-billing-card__warning rounded-md"
+                        >
                           Для части ИИ-операций недостаточно средств. Пополните
                           баланс так, чтобы он был больше средней стоимости
                           нужной операции, или подключите свой AITunnel.
-                        </div>
+                        </Notice>
                       ) : null}
                     </>
                   )}
@@ -2224,11 +2238,11 @@ const IntegrationsContent = () => {
         !canUseAvito &&
         !canUseVk &&
         !canUseTelegram ? (
-          <div className="shrink-0 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <Notice tone="warning" className="shrink-0 rounded px-4 py-3">
             Google Calendar, Avito, VK, Telegram, IP-телефония и
             AI-интеграции доступны только на тарифах с соответствующими
             опциями.
-          </div>
+          </Notice>
         ) : null}
       </div>
     </div>

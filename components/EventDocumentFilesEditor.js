@@ -5,6 +5,7 @@ import { faTrashAlt } from '@fortawesome/free-solid-svg-icons/faTrashAlt'
 import AppButton from '@components/AppButton'
 import IconActionButton from '@components/IconActionButton'
 import LabeledContainer from '@components/LabeledContainer'
+import Notice from '@components/Notice'
 import { sendFile } from '@helpers/cloudinary'
 
 const CLOUD_UPLOADS_URL = 'https://cloud.escalion.ru/uploads'
@@ -174,9 +175,9 @@ const EventDocumentFilesEditor = ({
           </div>
         ) : null}
         {error ? (
-          <div className="rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">
+          <Notice tone="error" role="alert" className="rounded px-2 py-1 text-xs">
             {error}
-          </div>
+          </Notice>
         ) : null}
         <div>
           <input

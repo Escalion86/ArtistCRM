@@ -6,6 +6,7 @@ import InputWrapper from '@components/InputWrapper'
 import ClientPicker from '@components/ClientPicker'
 import EventPicker from '@components/EventPicker'
 import Note from '@components/Note'
+import Notice from '@components/Notice'
 import IconActionButton from '@components/IconActionButton'
 import { faTimes } from '@fortawesome/free-solid-svg-icons'
 import {
@@ -496,9 +497,9 @@ const transactionFunc = ({ eventId, transactionId, contractSum } = {}) => {
           disabled={loading || isReadOnly}
         />
         {error && (
-          <div className="px-3 py-2 text-sm text-red-700 border border-red-200 rounded-md bg-red-50">
+          <Notice tone="error" role="alert" className="rounded-md">
             {error}
-          </div>
+          </Notice>
         )}
       </FormWrapper>
     )

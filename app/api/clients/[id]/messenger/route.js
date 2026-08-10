@@ -276,6 +276,43 @@ export const GET = async (req, { params }) => {
   return NextResponse.json({ success: true, data }, { status: 200 })
 }
 
+export const PATCH = async (req, { params }) => {
+  const { tenantId } = await getTenantContext()
+  if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
+
+  const routeParams = await params
+  const clientId = String(routeParams?.id || '').trim()
+  if (!isObjectId(clientId)) {
+    return jsonError('Некорректный ID клиента', 400, 'bad_id')
+  }
+
+  await dbConnect()
+  const access = await getUserTariffAccess(tenantId)
+  await Promise.all([
+    hasIntegrationAccess(access, 'avito')
+      ? AvitoConversations.updateMany(
+          { tenantId, clientId, unreadCount: { $gt: 0 } },
+          { $set: { unreadCount: 0 } }
+        )
+      : Promise.resolve(),
+    hasIntegrationAccess(access, 'vk')
+      ? VkConversations.updateMany(
+          { tenantId, clientId, unreadCount: { $gt: 0 } },
+          { $set: { unreadCount: 0 } }
+        )
+      : Promise.resolve(),
+    hasIntegrationAccess(access, 'telegram')
+      ? TelegramConversations.updateMany(
+          { tenantId, clientId, unreadCount: { $gt: 0 } },
+          { $set: { unreadCount: 0 } }
+        )
+      : Promise.resolve(),
+  ])
+
+  const data = await loadClientMessenger({ tenantId, clientId, access })
+  return NextResponse.json({ success: true, data }, { status: 200 })
+}
+
 export const POST = async (req, { params }) => {
   const { tenantId } = await getTenantContext()
   if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')

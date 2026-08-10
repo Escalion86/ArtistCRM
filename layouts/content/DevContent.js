@@ -7,6 +7,7 @@ import HeaderActions from '@components/HeaderActions'
 import IconCheckBox from '@components/IconCheckBox'
 import SectionCard from '@components/SectionCard'
 import Input from '@components/Input'
+import Notice from '@components/Notice'
 import { useAtom } from 'jotai'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { postData } from '@helpers/CRUD'
@@ -216,14 +217,14 @@ const DevContent = () => {
             className="w-full sm:w-auto bg-amber-600 text-white hover:bg-amber-700"
           />
           {cleanupError && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            <Notice tone="error" role="alert" className="rounded-md">
               {cleanupError}
-            </div>
+            </Notice>
           )}
           {cleanupResult && (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            <Notice tone="success" role="status" className="rounded-md">
               Удалено мероприятий: <b>{cleanupResult.deleted ?? 0}</b>
-            </div>
+            </Notice>
           )}
         </div>
         <div className="flex flex-col gap-3 rounded border border-sky-200 bg-sky-50 p-3">
@@ -238,12 +239,12 @@ const DevContent = () => {
             className="w-full sm:w-auto bg-sky-600 text-white hover:bg-sky-700"
           />
           {exportError && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            <Notice tone="error" role="alert" className="rounded-md">
               {exportError}
-            </div>
+            </Notice>
           )}
           {exportResult && (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            <Notice tone="success" role="status" className="rounded-md">
               <div>
                 Экспортировано событий: <b>{exportResult.count ?? 0}</b>
               </div>
@@ -253,32 +254,32 @@ const DevContent = () => {
                 </div>
               ) : null}
               {exportCopied && (
-                <div className="mt-1 text-xs text-emerald-800">
+                <div className="mt-1 text-xs">
                   Данные скопированы в буфер обмена.
                 </div>
               )}
               {!exportCopied && exportResult.text && (
                 <textarea
                   readOnly
-                  className="mt-2 max-h-48 w-full resize-none rounded border border-emerald-200 bg-white p-2 text-xs text-emerald-900"
+                  className="mt-2 max-h-48 w-full resize-none rounded border border-gray-200 bg-white p-2 text-xs text-gray-900"
                   value={exportResult.text}
                 />
               )}
-            </div>
+            </Notice>
           )}
         </div>
         {error && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+          <Notice tone="error" role="alert" className="rounded-md">
             {error}
-          </div>
+          </Notice>
         )}
         {result && (
-          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <Notice tone="success" role="status" className="rounded-md">
             <div>
               Импортировано событий: <b>{result.imported ?? 0}</b>
             </div>
             {Array.isArray(result.results) && result.results.length > 0 && (
-              <div className="mt-2 max-h-64 overflow-auto text-xs text-emerald-900">
+              <div className="mt-2 max-h-64 overflow-auto text-xs">
                 <ul className="list-disc space-y-1 pl-4">
                   {result.results.map((item) => (
                     <li key={item.googleId}>
@@ -288,7 +289,7 @@ const DevContent = () => {
                 </ul>
               </div>
             )}
-          </div>
+          </Notice>
         )}
         <div className="flex flex-col gap-3 rounded border border-slate-200 bg-slate-50 p-3">
           <div className="text-sm text-slate-800 font-semibold">
@@ -358,18 +359,18 @@ const DevContent = () => {
             className="w-full sm:w-auto"
           />
           {generateError && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            <Notice tone="error" role="alert" className="rounded-md">
               {generateError}
-            </div>
+            </Notice>
           )}
           {generateResult && (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            <Notice tone="success" role="status" className="rounded-md">
               <div>Клиенты: <b>{generateResult.clients ?? 0}</b></div>
               <div>Услуги: <b>{generateResult.services ?? 0}</b></div>
               <div>Заявки: <b>{generateResult.requests ?? 0}</b></div>
               <div>Мероприятия: <b>{generateResult.events ?? 0}</b></div>
               <div>Транзакции: <b>{generateResult.transactions ?? 0}</b></div>
-            </div>
+            </Notice>
           )}
         </div>
         <div className="flex flex-col gap-3 rounded border border-violet-200 bg-violet-50 p-3">
@@ -383,12 +384,12 @@ const DevContent = () => {
             className="w-full sm:w-auto bg-violet-600 text-white hover:bg-violet-700"
           />
           {convertError && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            <Notice tone="error" role="alert" className="rounded-md">
               {convertError}
-            </div>
+            </Notice>
           )}
           {convertResult && (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            <Notice tone="success" role="status" className="rounded-md">
               <div>
                 Преобразовано: <b>{convertResult.converted ?? 0}</b>
               </div>
@@ -398,7 +399,7 @@ const DevContent = () => {
               <div>
                 Удалено заявок: <b>{convertResult.deleted ?? 0}</b>
               </div>
-            </div>
+            </Notice>
           )}
         </div>
       </SectionCard>

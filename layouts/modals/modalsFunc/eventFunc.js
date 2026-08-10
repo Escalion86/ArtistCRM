@@ -5,6 +5,7 @@ import FormWrapper from '@components/FormWrapper'
 import IconCheckBox from '@components/IconCheckBox'
 import AddIconButton from '@components/AddIconButton'
 import IconActionButton from '@components/IconActionButton'
+import Notice from '@components/Notice'
 import Textarea from '@components/Textarea'
 import { faCircleCheck, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
@@ -1610,7 +1611,10 @@ const eventFunc = (
               </div>
             ) : null}
             {!calendarImportChecked && aiWarnings.length > 0 ? (
-              <div className="ai-draft-warning mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <Notice
+                tone="warning"
+                className="ai-draft-warning mb-3"
+              >
                 <div className="font-medium">
                   ИИ не смог определить всё однозначно:
                 </div>
@@ -1619,7 +1623,7 @@ const eventFunc = (
                     <li key={warning}>{warning}</li>
                   ))}
                 </ul>
-              </div>
+              </Notice>
             ) : null}
             <InputWrapper label="Статус" paddingY fitWidth>
               <div className="flex w-full flex-col">
@@ -2096,9 +2100,9 @@ const eventFunc = (
               />
             </AiFieldHighlight>
             {isDraft ? (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <Notice tone="warning" className="rounded-md">
                 {`Для заявки финансы, транзакции и документы недоступны. Переведите тип в "Подтверждено"`}
-              </div>
+              </Notice>
             ) : null}
             {isByContract && !isDraft && canUseDocuments && (
               <div className="mt-3">
@@ -2118,9 +2122,9 @@ const eventFunc = (
             {!isDraft && (
               <>
                 {closeState.hasObligations ? (
-                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                  <Notice tone="warning" role="alert" className="rounded-md">
                     {getCloseBlockedByObligationsMessage()}
-                  </div>
+                  </Notice>
                 ) : null}
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-base font-semibold text-gray-900">
@@ -2136,9 +2140,9 @@ const eventFunc = (
                 </div>
 
                 {financeError && (
-                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  <Notice tone="error" role="alert" className="rounded-md">
                     {financeError}
-                  </div>
+                  </Notice>
                 )}
 
                 <div className="rounded border border-gray-200 bg-white shadow-sm">

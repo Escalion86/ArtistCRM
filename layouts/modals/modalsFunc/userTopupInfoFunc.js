@@ -2,6 +2,7 @@
 import Button from '@components/Button'
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
+import Notice from '@components/Notice'
 import UserName from '@components/UserName'
 import useSnackbar from '@helpers/useSnackbar'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
@@ -95,7 +96,7 @@ const userTopupInfoFunc = (userId) => {
           Деньги зачислятся на баланс после подтверждения оплаты ЮKassa.
         </div>
         {billingConfig.sbpBonusEnabled ? (
-          <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <Notice tone="success" className="rounded">
             При оплате через СБП начислим бонус 2% к сумме пополнения.
             {totalWithSbpBonus > 0 ? (
               <div className="mt-1 font-semibold">
@@ -104,7 +105,7 @@ const userTopupInfoFunc = (userId) => {
                 {sbpBonus.toLocaleString('ru-RU')} руб.
               </div>
             ) : null}
-          </div>
+          </Notice>
         ) : null}
         <Input
           label="Сумма (руб.)"
