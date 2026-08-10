@@ -8,6 +8,7 @@ import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
 import formatAddress from '@helpers/formatAddress'
 import { modalsFuncAtom } from '@state/atoms'
+import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import servicesAtom from '@state/atoms/servicesAtom'
 import loadingAtom from '@state/atoms/loadingAtom'
 import errorAtom from '@state/atoms/errorAtom'
@@ -131,6 +132,7 @@ const EventCard = ({
   const transactions = transactionsProp ?? cachedTransactions
   const services = useAtomValue(servicesAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
+  const itemsFunc = useAtomValue(itemsFuncAtom)
   const loading = useAtomValue(loadingAtom('event' + eventId))
   const error = useAtomValue(errorAtom('event' + eventId))
   const siteSettings = useAtomValue(siteSettingsAtom)
@@ -321,6 +323,46 @@ const EventCard = ({
   const hiddenAdditionalStatusTone = hasSoonNoDepositWarning
     ? (nearestAdditionalEventInfo?.tone ?? 'overdue')
     : (nearestAdditionalEventInfo?.nextTone ?? additionalStatusTone)
+
+  const handlePhoneMessengerAttempt = (provider, targetClient) => {
+    if (!targetClient?._id || !targetClient?.phone) return
+
+    const isWhatsApp = provider === 'whatsapp'
+    const messengerName = isWhatsApp ? 'WhatsApp' : 'Telegram'
+    const unavailableField = isWhatsApp
+      ? 'whatsappPhoneUnavailable'
+      : 'telegramPhoneUnavailable'
+    const confirmedField = isWhatsApp ? 'whatsapp' : 'telegramPhone'
+
+    setTimeout(() => {
+      modalsFunc.custom({
+        title: `Контакт в ${messengerName}`,
+        text: `Удалось открыть контакт клиента в ${messengerName} по номеру +${targetClient.phone}?`,
+        confirmButtonName: 'Да',
+        declineButtonName: 'Нет',
+        waitForConfirm: true,
+        onConfirm: async () =>
+          itemsFunc.client.set(
+            {
+              ...targetClient,
+              [confirmedField]: targetClient.phone,
+              [unavailableField]: false,
+            },
+            false,
+            true
+          ),
+        onDecline: () =>
+          itemsFunc.client.set(
+            {
+              ...targetClient,
+              [unavailableField]: true,
+            },
+            false,
+            true
+          ),
+      })
+    }, 300)
+  }
 
   if (!event) return null
   const eventCardDate = getEventCardDateParts(event.eventDate)
@@ -532,7 +574,7 @@ const EventCard = ({
                 user={client}
                 showChat
                 compactButtons
-                forceTelegram={false}
+                onPhoneMessengerAttempt={handlePhoneMessengerAttempt}
                 className="my-0 justify-end"
               />
             </div>
@@ -579,7 +621,7 @@ const EventCard = ({
                         user={contact.client}
                         showChat
                         compactButtons
-                        forceTelegram={false}
+                        onPhoneMessengerAttempt={handlePhoneMessengerAttempt}
                         className="mt-1"
                       />
                     </div>

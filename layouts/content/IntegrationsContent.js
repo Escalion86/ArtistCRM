@@ -485,6 +485,10 @@ const TelegramBusinessGuide = () => (
         которыми он может управлять.
       </li>
       <li>
+        Решите, должна ли ArtistCRM создавать карточку для каждого нового
+        Telegram-контакта. Для личного аккаунта эту настройку можно выключить.
+      </li>
+      <li>
         Попросите клиента написать вам тестовое сообщение. После этого диалог
         появится в карточке клиента в ArtistCRM.
       </li>
@@ -774,6 +778,8 @@ const IntegrationsContent = () => {
     return 'Настраивается'
   })()
   const telegramEnabled = Boolean(telegramStatusData?.enabled)
+  const telegramAutoCreateClients =
+    telegramStatusData?.autoCreateClients === true
   const telegramStatus = String(telegramStatusData?.status || 'disabled')
   const telegramStatusText = (() => {
     if (telegramStatus === 'connected') return 'Подключено к аккаунту'
@@ -892,6 +898,25 @@ const IntegrationsContent = () => {
       setIsSaving(false)
     }
     return saved
+  }
+
+  const saveTelegramAutoCreateClients = async () => {
+    if (isSaving) return
+    const nextValue = !telegramAutoCreateClients
+    const saved = await saveCustom(
+      { telegramBusinessAutoCreateClients: nextValue },
+      {
+        successMessage: nextValue
+          ? 'Автосоздание клиентов Telegram включено'
+          : 'Автосоздание клиентов Telegram отключено',
+      }
+    )
+    if (saved) {
+      setTelegramStatusData((current) => ({
+        ...(current || {}),
+        autoCreateClients: nextValue,
+      }))
+    }
   }
 
   const selectAiProvider = (provider) => {
@@ -1624,8 +1649,9 @@ const IntegrationsContent = () => {
             <div className="flex flex-col gap-3">
               <div className="text-sm text-gray-600">
                 Подключите собственного Business Bot. Новые сообщения будут
-                сохраняться в карточке клиента, а отвечать можно из модального
-                окна «Диалог с клиентом».
+                сохраняться в CRM, а отвечать можно из модального окна «Диалог
+                с клиентом». Создание карточек для неизвестных контактов
+                настраивается ниже.
               </div>
 
               <div
@@ -1683,6 +1709,27 @@ const IntegrationsContent = () => {
                 После настройки бота добавьте его в Telegram: Настройки →
                 Telegram Business → Чат-боты. Выдайте права на чтение и ответы.
                 Старые сообщения до подключения в CRM не загрузятся.
+              </div>
+
+              <div className="rounded border border-gray-200 bg-white px-3 py-3">
+                <IconCheckBox
+                  label="Создавать карточку клиента, если контакта Telegram нет в базе клиентов"
+                  checked={telegramAutoCreateClients}
+                  onClick={saveTelegramAutoCreateClients}
+                  noMargin
+                />
+                <div className="mt-2 text-xs leading-5 text-gray-500">
+                  Если выключить настройку, новые сообщения сохранятся как
+                  непривязанные Telegram-диалоги. Их можно будет привязать к
+                  клиенту вручную. При создании карточки ArtistCRM отправит
+                  уведомление, если уведомления включены.
+                </div>
+                <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-5 text-amber-900">
+                  Важно: не включайте эту настройку, если бот подключён к вашему
+                  личному Telegram-аккаунту. Иначе ArtistCRM будет создавать
+                  карточки для друзей, родственников и других личных контактов,
+                  которые напишут вам в Telegram.
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">

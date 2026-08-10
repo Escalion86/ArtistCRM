@@ -9,6 +9,7 @@ import {
   saveTelegramBusinessMessage,
   updateTelegramCustom,
 } from '@server/telegramBusiness'
+import { notifyTelegramClientCreated } from '@server/telegramClientNotifications'
 
 const jsonError = (message, status = 400, code = 'telegram_error') =>
   NextResponse.json(
@@ -90,6 +91,19 @@ export const POST = async (req, { params }) => {
       settings: effectiveSettings,
       message,
     })
+    if (
+      result?.clientCreated &&
+      (typeof siteSettings?.custom?.get === 'function'
+        ? siteSettings.custom.get('publicLeadPushEnabled')
+        : siteSettings?.custom?.publicLeadPushEnabled) === true
+    ) {
+      await notifyTelegramClientCreated({
+        tenantId: siteSettings.tenantId,
+        client: result.client,
+      }).catch((error) => {
+        console.error('Не удалось отправить уведомление о Telegram-клиенте', error)
+      })
+    }
     await updateTelegramCustom({
       tenantId: siteSettings.tenantId,
       patch: {

@@ -71,6 +71,8 @@ const MessageBubble = ({ message }) => {
           }`}
         >
           {message.providerLabel || PROVIDER_LABELS[message.provider] || 'Чат'}
+          {' · '}
+          {isOutgoing ? 'Вы' : 'Клиент'}
         </div>
         <div className="whitespace-pre-wrap break-words">{message.text}</div>
         {photoAttachments.length > 0 ? (

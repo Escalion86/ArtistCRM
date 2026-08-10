@@ -84,7 +84,7 @@ const FILTER_STATUSES = [
 ]
 
 const clientContactMergeFunc = (clientId) => {
-  const ClientContactMergeModal = () => {
+  const ClientContactMergeModal = ({ closeModal }) => {
     const snackbar = useSnackbar()
     const queryClient = useQueryClient()
     const setClients = useSetAtom(clientsAtom)
@@ -108,6 +108,7 @@ const clientContactMergeFunc = (clientId) => {
     const [vkInputInitialized, setVkInputInitialized] = useState(false)
     const [duplicateSearch, setDuplicateSearch] = useState('')
     const [duplicateClientId, setDuplicateClientId] = useState('')
+    const [mergeTargetClientId, setMergeTargetClientId] = useState(clientId)
     const [mergePreview, setMergePreview] = useState(null)
     const [mergeLoading, setMergeLoading] = useState(false)
     const [merging, setMerging] = useState(false)
@@ -264,6 +265,7 @@ const clientContactMergeFunc = (clientId) => {
       try {
         const data = await loadMergePreview({ clientId, duplicateClientId })
         setMergePreview(data)
+        setMergeTargetClientId(data?.recommendedTargetClientId || clientId)
         snackbar.success('Проверка слияния готова')
       } catch (error) {
         setMergePreview(null)
@@ -281,9 +283,16 @@ const clientContactMergeFunc = (clientId) => {
 
       setMerging(true)
       try {
-        const data = await mergeDuplicateClient({ clientId, duplicateClientId })
+        const sourceClientId =
+          String(mergeTargetClientId) === String(clientId)
+            ? duplicateClientId
+            : clientId
+        const data = await mergeDuplicateClient({
+          clientId: mergeTargetClientId,
+          duplicateClientId: sourceClientId,
+        })
         const updatedClient = data?.client
-        const deletedClientId = data?.deletedClientId || duplicateClientId
+        const deletedClientId = data?.deletedClientId || sourceClientId
         setClients((prev = []) =>
           prev
             .filter((item) => String(item?._id) !== String(deletedClientId))
@@ -295,10 +304,11 @@ const clientContactMergeFunc = (clientId) => {
         )
         await queryClient.invalidateQueries()
         setDuplicateClientId('')
+        setMergeTargetClientId(clientId)
         setDuplicateSearch('')
         setMergePreview(null)
-        setConversations(await loadCandidates(clientId))
         snackbar.success('Клиенты объединены')
+        closeModal?.()
       } catch (error) {
         snackbar.error(error?.message || 'Не удалось объединить клиентов')
       } finally {
@@ -355,7 +365,23 @@ const clientContactMergeFunc = (clientId) => {
     }
 
     const clientName = getPersonFullName(client, { fallback: 'Клиент' })
-    const preview = mergePreview?.preview
+    const selectedClientIsTarget =
+      String(mergeTargetClientId) === String(duplicateClientId)
+    const mergeTargetClient = selectedClientIsTarget ? duplicateClient : client
+    const mergeSourceClient = selectedClientIsTarget ? client : duplicateClient
+    const preview = selectedClientIsTarget
+      ? mergePreview?.targetPreview
+      : mergePreview?.duplicatePreview || mergePreview?.preview
+    const targetEvents = selectedClientIsTarget
+      ? mergePreview?.duplicatePreview?.events
+      : mergePreview?.targetPreview?.events
+    const sourceEvents = selectedClientIsTarget
+      ? mergePreview?.targetPreview?.events
+      : mergePreview?.duplicatePreview?.events
+    const currentEventsCount = Number(mergePreview?.targetPreview?.events || 0)
+    const selectedEventsCount = Number(
+      mergePreview?.duplicatePreview?.events || 0
+    )
     const previewItems = preview
       ? [
           ['Мероприятия', preview.events],
@@ -384,11 +410,11 @@ const clientContactMergeFunc = (clientId) => {
 
         <SurfaceCard paddingClassName="p-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Объединить с дублем
+            Объединить с другим контактом
           </div>
           <div className="mt-1 text-xs text-gray-600">
-            Текущий клиент останется основным. Связанные записи выбранного дубля
-            будут перенесены сюда, затем дубль будет удален.
+            Выберите второй контакт, проверьте связи и укажите направление
+            объединения. Карточка-получатель останется, вторая будет удалена.
           </div>
           <input
             type="search"
@@ -398,7 +424,7 @@ const clientContactMergeFunc = (clientId) => {
               setDuplicateSearch(event.target.value)
               setMergePreview(null)
             }}
-            placeholder="Найти дубль по имени, телефону, Telegram, VK"
+            placeholder="Найти контакт по имени, телефону, Telegram, VK"
             disabled={merging}
           />
           <div className="mt-2 flex max-h-44 flex-col gap-2 overflow-y-auto">
@@ -416,6 +442,7 @@ const clientContactMergeFunc = (clientId) => {
                   }`}
                   onClick={() => {
                     setDuplicateClientId(item._id)
+                    setMergeTargetClientId(clientId)
                     setMergePreview(null)
                   }}
                   disabled={merging}
@@ -432,10 +459,69 @@ const clientContactMergeFunc = (clientId) => {
           </div>
           {duplicateClient && (
             <div className="mt-2 rounded border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700">
-              Дубль выбран:{' '}
+              Второй контакт выбран:{' '}
               <span className="font-semibold">
                 {getPersonFullName(duplicateClient, { fallback: 'Без имени' })}
               </span>
+            </div>
+          )}
+          {mergePreview && mergeTargetClient && mergeSourceClient && (
+            <div className="mt-2 rounded border border-blue-200 bg-blue-50 px-3 py-3 text-xs text-blue-900">
+              <div className="font-semibold">Направление объединения</div>
+              <div className="mt-2 grid grid-cols-1 gap-2 tablet:grid-cols-[1fr_auto_1fr] tablet:items-center">
+                <div className="rounded border border-emerald-200 bg-white px-3 py-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                    Останется
+                  </div>
+                  <div className="mt-1 font-semibold text-gray-900">
+                    {getPersonFullName(mergeTargetClient, {
+                      fallback: 'Без имени',
+                    })}
+                  </div>
+                  <div className="text-gray-500">
+                    Мероприятий: {Number(targetEvents || 0)}
+                  </div>
+                </div>
+                <div className="text-center text-lg font-semibold text-blue-700">
+                  <span className="tablet:hidden">↑</span>
+                  <span className="hidden tablet:inline">←</span>
+                </div>
+                <div className="rounded border border-red-200 bg-white px-3 py-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-red-700">
+                    Данные перенесутся, карточка удалится
+                  </div>
+                  <div className="mt-1 font-semibold text-gray-900">
+                    {getPersonFullName(mergeSourceClient, {
+                      fallback: 'Без имени',
+                    })}
+                  </div>
+                  <div className="text-gray-500">
+                    Мероприятий: {Number(sourceEvents || 0)}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="ui-btn ui-btn-secondary mt-2 min-h-10 w-full cursor-pointer px-3 text-xs tablet:w-auto"
+                onClick={() =>
+                  setMergeTargetClientId((current) =>
+                    String(current) === String(clientId)
+                      ? duplicateClientId
+                      : clientId
+                  )
+                }
+                disabled={merging}
+              >
+                Поменять направление ↔
+              </button>
+              {String(mergeTargetClientId) ===
+              String(mergePreview?.recommendedTargetClientId) ? (
+                <div className="mt-2 text-emerald-700">
+                  {currentEventsCount === selectedEventsCount
+                    ? 'Количество мероприятий одинаковое — по умолчанию сохраняем текущую карточку.'
+                    : 'Рекомендуем сохранить карточку с большим числом связанных мероприятий.'}
+                </div>
+              ) : null}
             </div>
           )}
           {preview && (
@@ -472,7 +558,7 @@ const clientContactMergeFunc = (clientId) => {
               onClick={handleMergeClients}
               disabled={!duplicateClientId || !mergePreview || merging}
             >
-              {merging ? 'Объединение...' : 'Объединить и удалить дубль'}
+              {merging ? 'Объединение...' : 'Объединить в указанном направлении'}
             </button>
           </div>
         </SurfaceCard>

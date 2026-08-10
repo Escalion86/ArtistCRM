@@ -13,6 +13,7 @@ import TelegramMessages from '@models/TelegramMessages'
 import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import { recordSyncTombstone } from '@server/mobile/sync'
+import { recommendClientMergeTargetId } from '@helpers/clientMergeDirection'
 
 const isObjectId = (value) =>
   Boolean(value && mongoose.Types.ObjectId.isValid(String(value)))
@@ -190,7 +191,16 @@ export const GET = async (req, { params }) => {
   })
   if (error) return error
 
-  const preview = await getMergePreview({ tenantId, duplicateClientId })
+  const [targetPreview, duplicatePreview] = await Promise.all([
+    getMergePreview({ tenantId, duplicateClientId: targetClientId }),
+    getMergePreview({ tenantId, duplicateClientId }),
+  ])
+  const recommendedTargetClientId = recommendClientMergeTargetId({
+    currentClientId: targetClientId,
+    selectedClientId: duplicateClientId,
+    currentPreview: targetPreview,
+    selectedPreview: duplicatePreview,
+  })
 
   return NextResponse.json(
     {
@@ -198,7 +208,10 @@ export const GET = async (req, { params }) => {
       data: {
         targetClient,
         duplicateClient,
-        preview,
+        preview: duplicatePreview,
+        targetPreview,
+        duplicatePreview,
+        recommendedTargetClientId,
       },
     },
     { status: 200 }

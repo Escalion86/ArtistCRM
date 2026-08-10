@@ -19,6 +19,7 @@ const jsonError = (message, status = 400, code = 'telegram_error') =>
 
 const publicStatus = (settings) => ({
   enabled: settings.enabled,
+  autoCreateClients: settings.autoCreateClients,
   hasBotToken: Boolean(settings.botToken),
   botId: settings.botId,
   botUsername: settings.botUsername,

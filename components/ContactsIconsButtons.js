@@ -19,10 +19,12 @@ const ContactIconBtn = ({
   className = null,
   buttonClassName = '',
   title,
+  onAfterOpen,
 }) => {
   const handleClick = (event) => {
     event.stopPropagation()
     window.open(url)
+    onAfterOpen?.()
   }
 
   if (buttonClassName) {
@@ -59,12 +61,14 @@ const ContactIconBtnWithTitle = ({
   size = 'lg',
   className = null,
   title,
+  onAfterOpen,
 }) => (
   <div
     className="group flex cursor-pointer items-center gap-x-2"
     onClick={(event) => {
       event.stopPropagation()
       window.open(url)
+      onAfterOpen?.()
     }}
   >
     <div className="flex w-6 items-center justify-center">
@@ -92,6 +96,7 @@ const ContactsIconsButtons = ({
   forceTelegram = true,
   showChat = false,
   compactButtons = false,
+  onPhoneMessengerAttempt,
 }) => {
   const Btn = withTitle ? ContactIconBtnWithTitle : ContactIconBtn
   const compactButtonClassName = compactButtons
@@ -144,7 +149,8 @@ const ContactsIconsButtons = ({
         />
       ) : (
         forceWhatsApp &&
-        user?.phone && (
+        user?.phone &&
+        !user?.whatsappPhoneUnavailable && (
           <Btn
             icon={faWhatsapp}
             className="text-red-400"
@@ -153,6 +159,9 @@ const ContactsIconsButtons = ({
             }`}
             title={'+' + user.phone}
             buttonClassName={compactButtonClassName}
+            onAfterOpen={() =>
+              onPhoneMessengerAttempt?.('whatsapp', user)
+            }
           />
         )
       )}
@@ -175,15 +184,27 @@ const ContactsIconsButtons = ({
             title={'@' + user.telegram}
             buttonClassName={compactButtonClassName}
           />
+        ) : user?.telegramPhone ? (
+          <Btn
+            icon={faTelegramPlane}
+            className="text-blue-600"
+            url={`tg://resolve?phone=${user.telegramPhone}`}
+            title={'+' + user.telegramPhone}
+            buttonClassName={compactButtonClassName}
+          />
         ) : (
           forceTelegram &&
-          user?.phone && (
+          user?.phone &&
+          !user?.telegramPhoneUnavailable && (
             <Btn
               icon={faTelegramPlane}
               className="text-red-400"
               url={`tg://resolve?phone=${user.phone}`}
               title={'+' + user.phone}
               buttonClassName={compactButtonClassName}
+              onAfterOpen={() =>
+                onPhoneMessengerAttempt?.('telegram', user)
+              }
             />
           )
         ))}

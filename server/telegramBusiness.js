@@ -10,6 +10,7 @@ import Clients from '@models/Clients'
 import SiteSettings from '@models/SiteSettings'
 import TelegramConversations from '@models/TelegramConversations'
 import TelegramMessages from '@models/TelegramMessages'
+import { getTelegramBusinessMessageDirection } from '@helpers/telegramBusinessMessage'
 
 const TELEGRAM_API_BASE = 'https://api.telegram.org'
 const REPLY_WINDOW_MS = 24 * 60 * 60 * 1000
@@ -175,6 +176,8 @@ export const buildTelegramWebhookUrl = ({ req, token }) =>
 
 export const normalizeTelegramSettings = (custom) => ({
   enabled: Boolean(readCustom(custom, 'telegramBusinessEnabled')),
+  autoCreateClients:
+    readCustom(custom, 'telegramBusinessAutoCreateClients') === true,
   botToken: String(readCustom(custom, 'telegramBusinessBotToken') || ''),
   botId: String(readCustom(custom, 'telegramBusinessBotId') || ''),
   botUsername: String(readCustom(custom, 'telegramBusinessBotUsername') || ''),
@@ -324,10 +327,15 @@ const getAttachments = (message) => {
   return attachments
 }
 
-const findOrCreateTelegramClient = async ({ tenantId, message }) => {
+const findOrCreateTelegramClient = async ({
+  tenantId,
+  message,
+  autoCreateClients,
+}) => {
   const peer = message?.chat || message?.from || {}
   const telegramUserId = String(peer?.id || message?.from?.id || '')
   const username = normalizeUsername(peer?.username || message?.from?.username)
+  let created = false
 
   let client = telegramUserId
     ? await Clients.findOne({ tenantId, telegramUserId })
@@ -344,6 +352,7 @@ const findOrCreateTelegramClient = async ({ tenantId, message }) => {
   }
 
   if (!client) {
+    if (!autoCreateClients) return { client: null, created: false }
     client = await Clients.create({
       tenantId,
       firstName: String(
@@ -356,6 +365,7 @@ const findOrCreateTelegramClient = async ({ tenantId, message }) => {
       telegramUserId,
       role: 'client',
     })
+    created = true
   } else {
     let changed = false
     if (telegramUserId && !client.telegramUserId) {
@@ -369,7 +379,7 @@ const findOrCreateTelegramClient = async ({ tenantId, message }) => {
     if (changed) await client.save()
   }
 
-  return client
+  return { client, created }
 }
 
 export const saveTelegramBusinessMessage = async ({
@@ -382,13 +392,15 @@ export const saveTelegramBusinessMessage = async ({
   const connectionId = String(message?.business_connection_id || '')
   if (!chatId || !messageId || !connectionId) return null
 
-  const accountUserId = String(settings?.businessAccountUserId || '')
-  const direction =
-    message?.sender_business_bot ||
-    (accountUserId && String(message?.from?.id || '') === accountUserId)
-      ? 'outgoing'
-      : 'incoming'
-  const client = await findOrCreateTelegramClient({ tenantId, message })
+  const direction = getTelegramBusinessMessageDirection({
+    message,
+    businessAccountUserId: settings?.businessAccountUserId,
+  })
+  const { client, created: clientCreated } = await findOrCreateTelegramClient({
+    tenantId,
+    message,
+    autoCreateClients: settings?.autoCreateClients === true,
+  })
   const sentAt = message?.date
     ? new Date(Number(message.date) * 1000)
     : new Date()
@@ -449,7 +461,13 @@ export const saveTelegramBusinessMessage = async ({
     { upsert: true, returnDocument: 'after' }
   )
 
-  return { conversation, message: savedMessage, client, direction }
+  return {
+    conversation,
+    message: savedMessage,
+    client,
+    clientCreated,
+    direction,
+  }
 }
 
 export const isTelegramReplyWindowOpen = (lastIncomingAt, now = Date.now()) => {

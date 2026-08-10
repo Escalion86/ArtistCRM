@@ -186,7 +186,7 @@ export const PATCH = async (req, { params }) => {
   }
 
   const nextClientId = linked ? clientId : null
-  await Promise.all([
+  const updates = [
     ConversationModel.updateOne(
       { _id: conversationId, tenantId },
       { $set: { clientId: nextClientId } }
@@ -195,7 +195,25 @@ export const PATCH = async (req, { params }) => {
       { tenantId, conversationId },
       { $set: { clientId: nextClientId } }
     ),
-  ])
+  ]
+  if (provider === 'telegram' && linked) {
+    const telegramUpdate = {}
+    if (current.telegramUserId) {
+      telegramUpdate.telegramUserId = String(current.telegramUserId)
+    }
+    if (current.telegramUsername) {
+      telegramUpdate.telegram = String(current.telegramUsername)
+    }
+    if (Object.keys(telegramUpdate).length > 0) {
+      updates.push(
+        Clients.updateOne(
+          { _id: clientId, tenantId },
+          { $set: telegramUpdate, $inc: { syncVersion: 1 } }
+        )
+      )
+    }
+  }
+  await Promise.all(updates)
 
   const conversations = await loadCandidates({ tenantId, clientId, access })
 

@@ -60,6 +60,10 @@ const clientsSchema = {
     type: Number,
     default: null,
   },
+  whatsappPhoneUnavailable: {
+    type: Boolean,
+    default: false,
+  },
   viber: {
     type: Number,
     default: null,
@@ -67,6 +71,14 @@ const clientsSchema = {
   telegram: {
     type: String,
     default: '',
+  },
+  telegramPhone: {
+    type: Number,
+    default: null,
+  },
+  telegramPhoneUnavailable: {
+    type: Boolean,
+    default: false,
   },
   telegramUserId: {
     type: String,
