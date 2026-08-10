@@ -469,28 +469,81 @@ const TelegramBusinessGuide = () => (
       Для интеграции нужен отдельный Telegram-бот, подключённый к вашему
       аккаунту как Business Bot. Токен хранится только на сервере ArtistCRM.
     </p>
+    <div className="font-semibold text-gray-900">1. Создайте бота</div>
     <ol className="list-decimal space-y-2 pl-5">
-      <li>Откройте официальный бот @BotFather и создайте бота командой /newbot.</li>
       <li>
-        В @BotFather откройте созданного бота, перейдите в Bot Settings и
-        включите Business Mode.
+        Откройте{' '}
+        <a
+          href="https://t.me/BotFather"
+          target="_blank"
+          rel="noreferrer"
+          className="text-blue-700 underline"
+        >
+          официальный @BotFather
+        </a>{' '}
+        и нажмите «Запустить».
       </li>
-      <li>Скопируйте токен бота, вставьте его ниже и нажмите «Подключить».</li>
+      <li>Отправьте команду /newbot.</li>
+      <li>Укажите отображаемое имя бота, например «ArtistCRM секретарь».</li>
+      <li>
+        Придумайте уникальное имя пользователя, которое заканчивается на{' '}
+        <span className="font-semibold">bot</span>, например
+        ArtistCRM_Escalion_bot.
+      </li>
+      <li>
+        BotFather пришлёт токен. Скопируйте его, никому не отправляйте и не
+        публикуйте.
+      </li>
+    </ol>
+    <div className="font-semibold text-gray-900">
+      2. Включите «Режим секретаря»
+    </div>
+    <ol className="list-decimal space-y-2 pl-5">
+      <li>
+        В @BotFather отправьте /mybots и выберите созданного бота либо откройте
+        его настройки в мини-приложении BotFather.
+      </li>
+      <li>Откройте раздел Bot Settings / Настройки бота.</li>
+      <li>
+        Найдите Secretary Mode / Режим секретаря и включите его. В старых
+        версиях Telegram этот пункт может называться Business Mode.
+      </li>
+    </ol>
+    <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+      Без включённого «Режима секретаря» Telegram не позволит добавить бота к
+      вашему аккаунту.
+    </div>
+    <div className="font-semibold text-gray-900">
+      3. Подключите бота к ArtistCRM
+    </div>
+    <ol className="list-decimal space-y-2 pl-5">
+      <li>Вставьте полученный токен в блок Telegram Business.</li>
+      <li>Нажмите «Подключить» и дождитесь сообщения, что бот настроен.</li>
+    </ol>
+    <div className="font-semibold text-gray-900">
+      4. Добавьте бота в свой Telegram-аккаунт
+    </div>
+    <ol className="list-decimal space-y-2 pl-5">
       <li>
         В Telegram откройте Настройки → Telegram Business → Чат-боты и добавьте
-        созданного бота.
+        созданного бота по его имени пользователя.
       </li>
       <li>
         Разрешите боту читать сообщения и отвечать на них, затем выберите чаты,
         которыми он может управлять.
       </li>
       <li>
+        Для личного аккаунта рекомендуется исключить контакты и разрешить боту
+        только нужные категории или выбранные чаты.
+      </li>
+      <li>
         Решите, должна ли ArtistCRM создавать карточку для каждого нового
-        Telegram-контакта. Для личного аккаунта эту настройку можно выключить.
+        Telegram-контакта. Для личного аккаунта не включайте эту настройку.
       </li>
       <li>
         Попросите клиента написать вам тестовое сообщение. После этого диалог
-        появится в карточке клиента в ArtistCRM.
+        появится в ArtistCRM. В блоке интеграции статус должен измениться на
+        «Подключено к аккаунту».
       </li>
     </ol>
     <p>
@@ -1706,9 +1759,10 @@ const IntegrationsContent = () => {
               />
 
               <div className="rounded border border-blue-100 bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-800">
-                После настройки бота добавьте его в Telegram: Настройки →
-                Telegram Business → Чат-боты. Выдайте права на чтение и ответы.
-                Старые сообщения до подключения в CRM не загрузятся.
+                Сначала включите у бота Secretary Mode / «Режим секретаря» в
+                настройках @BotFather. Затем добавьте его в Telegram: Настройки
+                → Telegram Business → Чат-боты и выдайте права на чтение и
+                ответы. Старые сообщения до подключения в CRM не загрузятся.
               </div>
 
               <div className="rounded border border-gray-200 bg-white px-3 py-3">
