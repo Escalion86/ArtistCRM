@@ -25,6 +25,7 @@ test('phone messenger fallbacks can be confirmed or hidden', async () => {
   assert.doesNotMatch(eventCardSource, /forceTelegram=\{false\}/)
   assert.match(eventCardSource, /\[confirmedField\]: targetClient\.phone/)
   assert.match(eventCardSource, /\[unavailableField\]: true/)
+  assert.doesNotMatch(eventCardSource, /\.\.\.targetClient/)
   assert.match(clientSchemaSource, /whatsappPhoneUnavailable:/)
   assert.match(clientSchemaSource, /telegramPhone:/)
   assert.match(clientSchemaSource, /telegramPhoneUnavailable:/)

@@ -341,20 +341,22 @@ const EventCard = ({
         confirmButtonName: 'Да',
         declineButtonName: 'Нет',
         waitForConfirm: true,
-        onConfirm: async () =>
-          itemsFunc.client.set(
+        onConfirm: async () => {
+          const savedClient = await itemsFunc.client.set(
             {
-              ...targetClient,
+              _id: targetClient._id,
               [confirmedField]: targetClient.phone,
               [unavailableField]: false,
             },
             false,
             true
-          ),
+          )
+          if (!savedClient) throw new Error('Контакт клиента не сохранён')
+        },
         onDecline: () =>
           itemsFunc.client.set(
             {
-              ...targetClient,
+              _id: targetClient._id,
               [unavailableField]: true,
             },
             false,
