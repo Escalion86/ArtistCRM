@@ -5,6 +5,7 @@ import {
   faClock,
   faGenderless,
   faBell,
+  faDownload,
   faLock,
   faMars,
   faPhone,
@@ -668,6 +669,13 @@ export const pages = [
     name: 'Уведомления',
     href: 'notifications',
     icon: faBell,
+  },
+  {
+    id: 31,
+    group: 6,
+    name: 'Экспорт',
+    href: 'export',
+    icon: faDownload,
   },
   {
     id: 26,

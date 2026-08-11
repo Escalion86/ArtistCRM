@@ -411,17 +411,6 @@ const StatisticsContent = () => {
     [filteredEventIds, selectedTown, selectedYear, transactions]
   )
 
-  const filteredRequests = useMemo(() => {
-    if (!includeRequests) return []
-    return requests.filter((request) => {
-      const dateRaw = request?.eventDate ?? request?.createdAt
-      if (selectedYear && !isValidDate(dateRaw)) return false
-      if (selectedYear && new Date(dateRaw).getFullYear() !== selectedYear)
-        return false
-      if (selectedTown && (request?.address?.town ?? '') !== selectedTown)
-        return false
-      return true
-    })
   }, [includeRequests, requests, selectedYear, selectedTown])
 
   const eventFinanceMap = useMemo(() => {
@@ -614,9 +603,6 @@ const StatisticsContent = () => {
     return getPersonFullName(client, { fallback: String(clientId) })
   }
 
-  const resolveClientPhone = (clientId, fallbackPhone) => {
-    if (fallbackPhone) return fallbackPhone
-    const client = clientId ? clientsMap.get(clientId) : null
     return client?.phone ? `+${client.phone}` : ''
   }
 
@@ -627,146 +613,6 @@ const StatisticsContent = () => {
     return [servicesTitle, addressLine].filter(Boolean).join(' • ')
   }
 
-  const buildCsv = (headers, rows, delimiter = ';') => {
-    const escapeValue = (value) => {
-      if (value === null || value === undefined) return ''
-      const text = String(value).replace(/\r?\n/g, ' ')
-      if (text.includes('"') || text.includes(delimiter)) {
-        return `"${text.replace(/"/g, '""')}"`
-      }
-      return text
-    }
-
-    const headerLine = headers.map(escapeValue).join(delimiter)
-    const dataLines = rows.map((row) =>
-      headers.map((header) => escapeValue(row[header])).join(delimiter)
-    )
-    return [headerLine, ...dataLines].join('\r\n')
-  }
-
-  const downloadCsv = (fileName, headers, rows) => {
-    const csv = buildCsv(headers, rows)
-    const blob = new Blob([`\ufeff${csv}`], {
-      type: 'text/csv;charset=utf-8;',
-    })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = fileName
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-  }
-
-  const handleExport = () => {
-    const eventsHeaders = [
-      'ID',
-      'Дата начала',
-      'Дата окончания',
-      'Клиент',
-      'Город',
-      'Адрес',
-      'Услуги',
-      'Статус',
-      'Договорная сумма',
-      'Доход',
-      'Расход',
-      'Прибыль',
-    ]
-    const eventsRows = filteredEvents.map((event) => {
-      const finance = eventFinanceMap.get(event._id) || {
-        income: 0,
-        expense: 0,
-      }
-      const profit = finance.income - finance.expense
-      return {
-        ID: event._id,
-        'Дата начала': formatDateTime(event.eventDate),
-        'Дата окончания': formatDateTime(event.dateEnd),
-        Клиент: resolveClientName(event.clientId),
-        Город: event?.address?.town ?? '',
-        Адрес: formatAddress(event.address, ''),
-        Услуги: resolveServicesTitles(event.servicesIds),
-        Статус: getEventStatusLabel(getEventComputedStatus(event)),
-        'Договорная сумма': Number(event.contractSum ?? 0),
-        Доход: finance.income,
-        Расход: finance.expense,
-        Прибыль: profit,
-      }
-    })
-
-    const requestsHeaders = [
-      'ID',
-      'Дата заявки',
-      'Дата мероприятия',
-      'Клиент',
-      'Телефон',
-      'Город',
-      'Адрес',
-      'Услуги',
-      'Статус',
-      'Договорная сумма',
-      'Связано с мероприятием',
-    ]
-    const requestsRows = filteredRequests.map((request) => ({
-      ID: request._id,
-      'Дата заявки': formatDateTime(request.createdAt),
-      'Дата мероприятия': formatDateTime(request.eventDate),
-      Клиент: resolveClientName(request.clientId),
-      Телефон: resolveClientPhone(request.clientId),
-      Город: request?.address?.town ?? '',
-      Адрес: formatAddress(request.address, ''),
-      Услуги: resolveServicesTitles(request.servicesIds),
-      Статус: request.status ?? '',
-      'Договорная сумма': Number(request.contractSum ?? 0),
-      'Связано с мероприятием': 'Нет',
-    }))
-
-    const transactionsHeaders = [
-      'ID',
-      'Дата',
-      'Тип',
-      'Категория',
-      'Сумма',
-      'Клиент',
-      'Мероприятие',
-      'Комментарий',
-    ]
-    const transactionsRows = filteredTransactions.map((tx) => {
-      const event = eventsMap.get(tx.eventId)
-      return {
-        ID: tx._id,
-        Дата: formatDateTime(tx.date),
-        Тип: tx.type ?? '',
-        Категория: tx.category ?? '',
-        Сумма: Number(tx.amount ?? 0),
-        Клиент: resolveClientName(tx.clientId),
-        Мероприятие: event ? resolveEventTitle(event) : 'Без мероприятия',
-        Комментарий: tx.comment ?? '',
-      }
-    })
-
-    const suffixYear = selectedYear ? String(selectedYear) : 'all'
-    const suffixTown = selectedTown ? selectedTown.replace(/\s+/g, '_') : 'all'
-    const suffixRequests = includeRequests
-      ? 'with-requests'
-      : 'without-requests'
-    const fileSuffix = `${suffixYear}-${suffixTown}-${suffixRequests}`
-    downloadCsv(`artistcrm-events-${fileSuffix}.csv`, eventsHeaders, eventsRows)
-    downloadCsv(
-      `artistcrm-requests-${fileSuffix}.csv`,
-      requestsHeaders,
-      requestsRows
-    )
-    downloadCsv(
-      `artistcrm-transactions-${fileSuffix}.csv`,
-      transactionsHeaders,
-      transactionsRows
-    )
-  }
-
-  const openEventsDetailsModal = (title, items) => {
     if (!Array.isArray(items) || items.length === 0) return
 
     const EventsDetailsModal = () => (
@@ -1007,7 +853,6 @@ const StatisticsContent = () => {
                   />
                 </div>
               }
-              right={<Button name="Экспорт CSV" onClick={handleExport} />}
             />
           </ContentHeader>
 

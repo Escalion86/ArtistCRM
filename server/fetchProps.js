@@ -97,6 +97,7 @@ const EVENTS_PAYLOAD_PAGES = new Set([
   'clientEvents',
   'transactions',
   'statistics',
+  'export',
   'dev',
 ])
 const CLIENTS_PAYLOAD_PAGES = new Set([
@@ -106,6 +107,7 @@ const CLIENTS_PAYLOAD_PAGES = new Set([
   'clients',
   'transactions',
   'statistics',
+  'export',
   'dev',
 ])
 const TRANSACTIONS_PAYLOAD_PAGES = new Set([
@@ -115,12 +117,14 @@ const TRANSACTIONS_PAYLOAD_PAGES = new Set([
   'clients',
   'transactions',
   'statistics',
+  'export',
   'dev',
 ])
 const FULL_TRANSACTIONS_PAGES = new Set([
   'clients',
   'transactions',
   'statistics',
+  'export',
   'dev',
 ])
 const SERVICES_PAYLOAD_PAGES = new Set([
@@ -131,6 +135,7 @@ const SERVICES_PAYLOAD_PAGES = new Set([
   'services',
   'transactions',
   'statistics',
+  'export',
   'dev',
 ])
 

@@ -7,6 +7,7 @@ import TransactionsContent from './TransactionsContent'
 import SettingsContent from './SettingsContent'
 import IntegrationsContent from './IntegrationsContent'
 import ImportContent from './ImportContent'
+import ExportContent from './ExportContent'
 import DocumentsContent from './DocumentsContent'
 import ListsContent from './ListsContent'
 import NotificationsContent from './NotificationsContent'
@@ -70,6 +71,10 @@ export const CONTENTS = Object.freeze({
   import: {
     Component: ImportContent,
     name: 'Импорт',
+  },
+  export: {
+    Component: ExportContent,
+    name: 'Экспорт',
   },
   documents: {
     Component: DocumentsContent,
