@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import mongoose from 'mongoose'
 import AvitoConversations from '@models/AvitoConversations'
 import Calls from '@models/Calls'
 import TelegramConversations from '@models/TelegramConversations'
@@ -42,18 +43,19 @@ export const GET = async () => {
 
   await dbConnect()
   const access = await getUserTariffAccess(tenantId)
+  const tenantObjectId = mongoose.Types.ObjectId.createFromHexString(tenantId)
   const [avito, vk, telegram, calls] = await Promise.all([
     hasIntegrationAccess(access, 'avito')
-      ? AvitoConversations.aggregate(conversationPipeline(tenantId))
+      ? AvitoConversations.aggregate(conversationPipeline(tenantObjectId))
       : [],
     hasIntegrationAccess(access, 'vk')
-      ? VkConversations.aggregate(conversationPipeline(tenantId))
+      ? VkConversations.aggregate(conversationPipeline(tenantObjectId))
       : [],
     hasIntegrationAccess(access, 'telegram')
-      ? TelegramConversations.aggregate(conversationPipeline(tenantId))
+      ? TelegramConversations.aggregate(conversationPipeline(tenantObjectId))
       : [],
     hasIntegrationAccess(access, 'telephony')
-      ? Calls.aggregate(callsPipeline(tenantId))
+      ? Calls.aggregate(callsPipeline(tenantObjectId))
       : [],
   ])
 

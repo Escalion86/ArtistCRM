@@ -20,7 +20,6 @@ import { TRANSACTION_CATEGORIES } from '@helpers/constants'
 import { getUserTariffAccess } from '@helpers/tariffAccess'
 import { useRouter } from 'next/navigation'
 import formatAddress from '@helpers/formatAddress'
-import getPersonFullName from '@helpers/getPersonFullName'
 import { getDefaultStatisticsYear } from '@helpers/getDefaultStatisticsYear'
 import { buildStatisticsChartData } from '@helpers/buildStatisticsChartData'
 import { getStatisticsMonthDetails } from '@helpers/getStatisticsMonthDetails'
@@ -246,10 +245,6 @@ const StatisticsContent = () => {
     ? statisticsData.services
     : []
   const tariffs = Array.isArray(tariffsRaw) ? tariffsRaw : []
-  const requests = useMemo(
-    () => events.filter((event) => event?.status === 'draft'),
-    [events]
-  )
   const access = getUserTariffAccess(loggedUser, tariffs)
   const router = useRouter()
   const canShowStatistics = access.allowStatistics
@@ -410,8 +405,6 @@ const StatisticsContent = () => {
       }),
     [filteredEventIds, selectedTown, selectedYear, transactions]
   )
-
-  }, [includeRequests, requests, selectedYear, selectedTown])
 
   const eventFinanceMap = useMemo(() => {
     const map = new Map()
@@ -596,16 +589,6 @@ const StatisticsContent = () => {
       .join(', ')
   }
 
-  const resolveClientName = (clientId, fallbackName) => {
-    if (!clientId) return fallbackName || ''
-    const client = clientsMap.get(clientId)
-    if (!client) return fallbackName || String(clientId)
-    return getPersonFullName(client, { fallback: String(clientId) })
-  }
-
-    return client?.phone ? `+${client.phone}` : ''
-  }
-
   const resolveEventTitle = (event) => {
     if (!event) return ''
     const servicesTitle = resolveServicesTitles(event.servicesIds)
@@ -613,6 +596,7 @@ const StatisticsContent = () => {
     return [servicesTitle, addressLine].filter(Boolean).join(' • ')
   }
 
+  const openEventsDetailsModal = (title, items) => {
     if (!Array.isArray(items) || items.length === 0) return
 
     const EventsDetailsModal = () => (
