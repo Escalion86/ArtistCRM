@@ -491,7 +491,7 @@ const CardButtons = ({
         <button
           type="button"
           className={cn(
-            'text-general hover:border-general/30 hover:bg-general/10 flex h-8 min-h-8 w-8 cursor-pointer items-center justify-center rounded-bl-2xl border border-transparent p-0 transition',
+            'card-buttons-compact-trigger text-general hover:border-general/30 hover:bg-general/10 flex h-8 min-h-8 w-8 cursor-pointer items-center justify-center rounded-bl-2xl border border-transparent p-0 transition',
             compactTriggerClassName
           )}
           aria-label="Открыть меню действий"

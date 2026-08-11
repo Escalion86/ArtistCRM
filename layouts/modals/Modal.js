@@ -297,7 +297,9 @@ const Modal = ({
           </div>
         )}
         {TopLeftComponentState && (
-          <div className="absolute left-2 top-2">{TopLeftComponentState}</div>
+          <div className="absolute left-2 top-2 [&_.card-buttons-compact-trigger]:rounded-full">
+            {TopLeftComponentState}
+          </div>
         )}
         {crossShow && (
           <Tooltip title="Закрыть">
