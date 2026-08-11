@@ -8,12 +8,13 @@ import { getData } from '@helpers/CRUD'
 import formatDate from '@helpers/formatDate'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 import userSelector from '@state/selectors/userSelector'
+import userEditSelector from '@state/selectors/userEditSelector'
 import tariffsAtom from '@state/atoms/tariffsAtom'
 import ValuePicker from '@components/ValuePicker/ValuePicker'
 import modalsFuncAtom from '@state/atoms/modalsFuncAtom'
 import cn from 'classnames'
 import { useEffect, useMemo, useState } from 'react'
-import { useAtomValue } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import useSnackbar from '@helpers/useSnackbar'
 
 const userBillingFunc = (userId) => {
@@ -23,11 +24,13 @@ const userBillingFunc = (userId) => {
     const user = useAtomValue(userSelector(userId))
     const tariffs = useAtomValue(tariffsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
+    const setUser = useSetAtom(userEditSelector)
     const snackbar = useSnackbar()
 
     const [payments, setPayments] = useState([])
     const [isPaymentsLoading, setIsPaymentsLoading] = useState(false)
     const [syncingPaymentId, setSyncingPaymentId] = useState('')
+    const [deletingPaymentId, setDeletingPaymentId] = useState('')
     const [typeFilter, setTypeFilter] = useState('all')
     const [fromDate, setFromDate] = useState('')
     const [toDate, setToDate] = useState('')
@@ -111,6 +114,43 @@ const userBillingFunc = (userId) => {
         await loadPayments()
       } finally {
         setSyncingPaymentId('')
+      }
+    }
+
+    const deletePayment = async (payment) => {
+      if (!payment?._id) return
+      const isReferralReward = Boolean(payment.referralReward?.rewardFor)
+      const warning = isReferralReward
+        ? 'Удалить реферальный бонус и вычесть его из баланса пользователя?'
+        : 'Удалить ручное пополнение и вычесть его из баланса? Связанный реферальный бонус также будет удалён.'
+      if (!window.confirm(warning)) return
+
+      setDeletingPaymentId(payment._id)
+      try {
+        const response = await fetch('/api/payments', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId: payment._id }),
+        })
+        const payload = await response.json().catch(() => ({}))
+        if (!response.ok || !payload?.success) {
+          snackbar.error(payload?.error || 'Не удалось удалить пополнение')
+          return
+        }
+        payload?.data?.users?.forEach((updatedUser) => setUser(updatedUser))
+        setPayments((current) =>
+          current.filter(
+            (item) =>
+              item._id !== payment._id &&
+              String(item?.referralReward?.sourcePaymentId ?? '') !==
+                String(payment._id)
+          )
+        )
+        snackbar.success('Пополнение удалено, баланс пересчитан')
+      } catch {
+        snackbar.error('Не удалось удалить пополнение')
+      } finally {
+        setDeletingPaymentId('')
       }
     }
 
@@ -206,7 +246,7 @@ const userBillingFunc = (userId) => {
                     payment.status === 'pending' ? (
                       <button
                         type="button"
-                        className="mt-1 cursor-pointer text-xs font-semibold text-general hover:underline"
+                        className="text-general mt-1 cursor-pointer text-xs font-semibold hover:underline"
                         disabled={syncingPaymentId === payment._id}
                         onClick={() => syncPayment(payment)}
                       >
@@ -218,20 +258,36 @@ const userBillingFunc = (userId) => {
                       </button>
                     ) : null}
                   </div>
-                  <div
-                    className={cn(
-                      'text-sm font-semibold',
-                      payment.status === 'pending'
-                        ? 'text-gray-500'
-                        : payment.status === 'failed' ||
-                            payment.status === 'canceled'
-                          ? 'text-red-600'
-                          : payment.type === 'charge'
-                        ? 'text-red-600'
-                        : 'text-green-600'
-                    )}
-                  >
-                    {Number(payment.amount ?? 0).toLocaleString('ru-RU')} руб.
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <div
+                      className={cn(
+                        'text-sm font-semibold',
+                        payment.status === 'pending'
+                          ? 'text-gray-500'
+                          : payment.status === 'failed' ||
+                              payment.status === 'canceled'
+                            ? 'text-red-600'
+                            : payment.type === 'charge'
+                              ? 'text-red-600'
+                              : 'text-green-600'
+                      )}
+                    >
+                      {Number(payment.amount ?? 0).toLocaleString('ru-RU')} руб.
+                    </div>
+                    {(payment.source === 'manual' ||
+                      payment.referralReward?.rewardFor === 'balance_topup') &&
+                    payment.status === 'succeeded' ? (
+                      <button
+                        type="button"
+                        className="cursor-pointer text-xs font-semibold text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={deletingPaymentId === payment._id}
+                        onClick={() => deletePayment(payment)}
+                      >
+                        {deletingPaymentId === payment._id
+                          ? 'Удаление...'
+                          : 'Удалить'}
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -253,4 +309,3 @@ const userBillingFunc = (userId) => {
 }
 
 export default userBillingFunc
-

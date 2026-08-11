@@ -17,7 +17,13 @@ export const metadata = {
 const normalizeCabinetProps = (input, sessionUser, page) => {
   const source = input && typeof input === 'object' ? input : {}
   return {
-    loggedUser: source.loggedUser ?? sessionUser ?? null,
+    loggedUser:
+      source.loggedUser || sessionUser
+        ? {
+            ...(source.loggedUser ?? sessionUser),
+            impersonation: sessionUser?.impersonation ?? null,
+          }
+        : null,
     clients: Array.isArray(source.clients) ? source.clients : [],
     events: Array.isArray(source.events) ? source.events : [],
     eventsPaging:

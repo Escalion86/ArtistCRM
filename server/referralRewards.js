@@ -40,12 +40,16 @@ export const createReferralRewardForBalanceTopup = async ({
   UsersModel,
   PaymentsModel,
   SiteSettingsModel,
+  allowManualReward = false,
 }) => {
   const sourcePaymentId = payment?._id
+  const isManualRewardAllowed =
+    payment?.source !== 'manual' || allowManualReward === true
   const isBalanceTopup =
     payment?.purpose === 'balance' &&
     payment?.type === 'topup' &&
-    payment?.source !== 'system'
+    payment?.source !== 'system' &&
+    isManualRewardAllowed
 
   if (!isBalanceTopup) return { ok: true, skipped: 'not_balance_topup' }
   if (!sourcePaymentId) return { ok: true, skipped: 'missing_source_payment' }

@@ -4,6 +4,7 @@ import dbConnect from '@server/dbConnect'
 import Users from '@models/Users'
 import { verifyVkIdAuthToken } from '@server/vkidAuthToken'
 import getAuthSecret from '@server/getAuthSecret'
+import { verifyImpersonationTicket } from '@server/impersonationTicket'
 
 const normalizePhone = (phone) => {
   if (!phone) return ''
@@ -83,6 +84,71 @@ const authOptions = {
       },
     }),
     CredentialsProvider({
+      id: 'impersonation',
+      name: 'Developer impersonation',
+      credentials: {
+        ticket: {
+          label: 'Ticket',
+          type: 'text',
+        },
+      },
+      async authorize(credentials) {
+        try {
+          const payload = verifyImpersonationTicket(
+            credentials?.ticket,
+            authSecret
+          )
+          if (!payload) return null
+
+          await dbConnect()
+          const [originalUser, targetUser] = await Promise.all([
+            Users.findById(payload.originalUserId),
+            Users.findById(payload.targetUserId),
+          ])
+          if (!originalUser || originalUser.role !== 'dev' || !targetUser) {
+            return null
+          }
+          if (
+            (payload.action === 'start' &&
+              String(originalUser._id) === String(targetUser._id)) ||
+            (payload.action === 'restore' &&
+              String(originalUser._id) !== String(targetUser._id))
+          ) {
+            return null
+          }
+
+          if (!targetUser.tenantId) {
+            await Users.findByIdAndUpdate(targetUser._id, {
+              tenantId: targetUser._id,
+            })
+          }
+
+          return {
+            id: targetUser._id.toString(),
+            phone: targetUser.phone ?? '',
+            role: targetUser.role ?? 'user',
+            tenantId:
+              targetUser.tenantId?.toString() ?? targetUser._id.toString(),
+            firstName: targetUser.firstName ?? '',
+            secondName: targetUser.secondName ?? '',
+            tariffId: targetUser.tariffId?.toString() ?? null,
+            impersonation:
+              payload.action === 'start'
+                ? {
+                    active: true,
+                    originalUserId: originalUser._id.toString(),
+                    originalFirstName: originalUser.firstName ?? '',
+                    originalSecondName: originalUser.secondName ?? '',
+                  }
+                : null,
+          }
+        } catch (error) {
+          console.error('Ошибка переключения учётной записи', error)
+          return null
+        }
+      },
+    }),
+    CredentialsProvider({
       id: 'vkid',
       name: 'VK ID',
       credentials: {
@@ -132,6 +198,7 @@ const authOptions = {
         token.firstName = user.firstName
         token.secondName = user.secondName
         token.tariffId = user.tariffId
+        token.impersonation = user.impersonation ?? null
       }
       return token
     },
@@ -143,6 +210,7 @@ const authOptions = {
       session.user.firstName = token.firstName
       session.user.secondName = token.secondName
       session.user.tariffId = token.tariffId ?? null
+      session.user.impersonation = token.impersonation ?? null
       session.user.name = token.phone
       return session
     },

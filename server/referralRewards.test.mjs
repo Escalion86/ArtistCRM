@@ -84,6 +84,7 @@ test('createReferralRewardForBalanceTopup ignores non-positive percent', async (
     SiteSettingsModel: createSiteSettingsModel({
       referralProgram: { percent: 0 },
     }),
+    allowManualReward: true,
   })
 
   assert.deepEqual(result, { ok: true, skipped: 'reward_amount_zero' })
@@ -91,7 +92,7 @@ test('createReferralRewardForBalanceTopup ignores non-positive percent', async (
   assert.equal(payments.length, 0)
 })
 
-test('createReferralRewardForBalanceTopup credits referrer and records reward payment', async () => {
+test('createReferralRewardForBalanceTopup credits referrer for provider payment', async () => {
   const payments = []
   const referrer = { _id: 'referrer-1', balance: 100 }
   const referred = { _id: 'user-1', referrerId: referrer._id, balance: 500 }
@@ -103,7 +104,7 @@ test('createReferralRewardForBalanceTopup credits referrer and records reward pa
       tenantId: referred._id,
       amount: 1000,
       type: 'topup',
-      source: 'manual',
+      source: 'yookassa',
       purpose: 'balance',
     },
     UsersModel: createUserModel([referrer, referred]),
@@ -155,6 +156,7 @@ test('createReferralRewardForBalanceTopup is idempotent by source payment id', a
     SiteSettingsModel: createSiteSettingsModel({
       referralProgram: { percent: 5 },
     }),
+    allowManualReward: true,
   })
 
   assert.deepEqual(result, {
@@ -203,6 +205,7 @@ test('createReferralRewardForBalanceTopup treats duplicate reward insert as idem
     SiteSettingsModel: createSiteSettingsModel({
       referralProgram: { percent: 5 },
     }),
+    allowManualReward: true,
   })
 
   assert.deepEqual(result, {
@@ -233,10 +236,13 @@ test('createReferralRewardForBalanceTopup ignores non-balance and system payment
     }),
   }
 
-  assert.deepEqual(await createReferralRewardForBalanceTopup({ payment: common, ...deps }), {
-    ok: true,
-    skipped: 'not_balance_topup',
-  })
+  assert.deepEqual(
+    await createReferralRewardForBalanceTopup({ payment: common, ...deps }),
+    {
+      ok: true,
+      skipped: 'not_balance_topup',
+    }
+  )
 
   assert.deepEqual(
     await createReferralRewardForBalanceTopup({
@@ -251,4 +257,42 @@ test('createReferralRewardForBalanceTopup ignores non-balance and system payment
 
   assert.equal(referrer.balance, 100)
   assert.equal(payments.length, 0)
+})
+
+test('createReferralRewardForBalanceTopup requires explicit opt-in for manual topup', async () => {
+  const referrer = { _id: 'referrer-1', balance: 100 }
+  const referred = { _id: 'user-1', referrerId: referrer._id, balance: 500 }
+  const payments = []
+  const payment = {
+    _id: 'payment-1',
+    userId: referred._id,
+    tenantId: referred._id,
+    amount: 1000,
+    type: 'topup',
+    source: 'manual',
+    purpose: 'balance',
+  }
+  const deps = {
+    UsersModel: createUserModel([referrer, referred]),
+    PaymentsModel: createPaymentsModel(payments),
+    SiteSettingsModel: createSiteSettingsModel({
+      referralProgram: { percent: 5 },
+    }),
+  }
+
+  assert.deepEqual(
+    await createReferralRewardForBalanceTopup({ payment, ...deps }),
+    { ok: true, skipped: 'not_balance_topup' }
+  )
+  assert.equal(referrer.balance, 100)
+  assert.equal(payments.length, 0)
+
+  const result = await createReferralRewardForBalanceTopup({
+    payment,
+    ...deps,
+    allowManualReward: true,
+  })
+  assert.equal(result.rewardAmount, 50)
+  assert.equal(referrer.balance, 150)
+  assert.equal(payments.length, 1)
 })

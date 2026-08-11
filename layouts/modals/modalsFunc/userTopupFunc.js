@@ -1,13 +1,16 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import Button from '@components/Button'
+import CheckBox from '@components/CheckBox'
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
+import Notice from '@components/Notice'
 import UserName from '@components/UserName'
 import { postData } from '@helpers/CRUD'
 import useSnackbar from '@helpers/useSnackbar'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 import userEditSelector from '@state/selectors/userEditSelector'
 import userSelector from '@state/selectors/userSelector'
+import usersAtom from '@state/atoms/usersAtom'
 import { useEffect, useState } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 
@@ -16,12 +19,18 @@ const userTopupFunc = (userId, onSuccess) => {
     const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
     const canManageUsers = loggedUserActiveRole?.users?.setRole
     const user = useAtomValue(userSelector(userId))
+    const users = useAtomValue(usersAtom)
     const setUser = useSetAtom(userEditSelector)
     const snackbar = useSnackbar()
 
     const [amount, setAmount] = useState('')
     const [comment, setComment] = useState('')
+    const [rewardReferrer, setRewardReferrer] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
+
+    const referrer = user?.referrerId
+      ? users.find((item) => String(item?._id) === String(user.referrerId))
+      : null
 
     useEffect(() => {
       if (!user) closeModal()
@@ -41,6 +50,7 @@ const userTopupFunc = (userId, onSuccess) => {
           userId: user._id,
           amount: value,
           comment,
+          rewardReferrer: Boolean(referrer && rewardReferrer),
         },
         null,
         null,
@@ -79,6 +89,22 @@ const userTopupFunc = (userId, onSuccess) => {
           step={100}
         />
         <Input label="Комментарий" value={comment} onChange={setComment} />
+        {referrer ? (
+          <Notice tone="info" className="rounded-md p-3">
+            <div className="text-sm">
+              Реферер этого пользователя:{' '}
+              <UserName user={referrer} className="inline-flex font-semibold" />
+            </div>
+            <CheckBox
+              checked={rewardReferrer}
+              onChange={(event) => setRewardReferrer(event.target.checked)}
+              label="Начислить этому рефереру бонус за ручное пополнение?"
+              labelClassName="cursor-pointer text-sm"
+              wrapperClassName="mt-3 items-start pl-0"
+              noMargin
+            />
+          </Notice>
+        ) : null}
         <div className="flex justify-end">
           <Button
             name="Пополнить"
@@ -101,4 +127,3 @@ const userTopupFunc = (userId, onSuccess) => {
 }
 
 export default userTopupFunc
-
