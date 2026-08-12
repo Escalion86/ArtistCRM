@@ -673,7 +673,11 @@ const eventViewFunc = (eventId) => {
                       onClick={(event) => event.stopPropagation()}
                       onKeyDown={(event) => event.stopPropagation()}
                     >
-                      <ContactsIconsButtons user={mainClient} showChat />
+                      <ContactsIconsButtons
+                        user={mainClient}
+                        showChat
+                        compactButtons
+                      />
                     </div>
                   </div>
                 ) : (
@@ -705,6 +709,7 @@ const eventViewFunc = (eventId) => {
                         <ContactsIconsButtons
                           user={transferDisplay.colleague}
                           showChat
+                          compactButtons
                         />
                       </div>
                     ) : null}
@@ -747,6 +752,7 @@ const eventViewFunc = (eventId) => {
                               <ContactsIconsButtons
                                 user={contact.client}
                                 showChat
+                                compactButtons
                               />
                             </div>
                           )}

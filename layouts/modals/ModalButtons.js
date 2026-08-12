@@ -38,7 +38,7 @@ const ModalButtons = ({
   return (
     <>
       <Divider light thin />
-      <div className="flex flex-wrap justify-between px-2 tablet:px-3 tablet:pt-1">
+      <div className="flex flex-wrap justify-between px-2 [&_button]:min-w-20 tablet:px-3 tablet:pt-1">
         {children}
         <div className="flex flex-1 flex-wrap justify-end gap-1 tablet:gap-x-2">
           {isObject(bottomLeftButton) ? (

@@ -216,7 +216,7 @@ const clientViewFunc = (clientId) => {
             </div>
           )}
           <div className="mt-2">
-            <ContactsIconsButtons user={client} showChat />
+            <ContactsIconsButtons user={client} showChat compactButtons />
           </div>
           {(preferredContactChannelLabel || client.comment) && (
             <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">

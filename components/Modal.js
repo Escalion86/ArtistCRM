@@ -125,7 +125,7 @@ const Modal = ({
         {footer && (
           <div
             className={cn(
-              'flex items-center justify-end gap-2 border-t px-4 py-3',
+              'flex items-center justify-end gap-2 border-t px-4 py-3 [&_button]:min-w-20',
               isParty ? 'border-sky-100' : 'border-gray-200'
             )}
           >

@@ -1,4 +1,5 @@
 import cn from 'classnames'
+import { useAtomValue } from 'jotai'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope } from '@fortawesome/free-regular-svg-icons/faEnvelope'
@@ -11,6 +12,8 @@ import { faPhone } from '@fortawesome/free-solid-svg-icons/faPhone'
 import { faSms } from '@fortawesome/free-solid-svg-icons/faSms'
 import ClientChatButton from '@components/ClientChatButton'
 import NovofonCallButton from '@components/NovofonCallButton'
+import { modalsFuncAtom } from '@state/atoms'
+import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 
 const ContactIconBtn = ({
   url,
@@ -98,6 +101,8 @@ const ContactsIconsButtons = ({
   compactButtons = false,
   onPhoneMessengerAttempt,
 }) => {
+  const modalsFunc = useAtomValue(modalsFuncAtom)
+  const itemsFunc = useAtomValue(itemsFuncAtom)
   const Btn = withTitle ? ContactIconBtnWithTitle : ContactIconBtn
   const compactButtonClassName = compactButtons
     ? 'contact-quick-button inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-primary)]/40'
@@ -110,6 +115,52 @@ const ContactsIconsButtons = ({
     message !== undefined || message !== null
       ? encodeURIComponent(message)
       : undefined
+
+  const handlePhoneMessengerAttempt = (provider, targetClient) => {
+    if (onPhoneMessengerAttempt) {
+      onPhoneMessengerAttempt(provider, targetClient)
+      return
+    }
+    if (!showChat || !targetClient?._id || !targetClient?.phone) return
+
+    const isWhatsApp = provider === 'whatsapp'
+    const messengerName = isWhatsApp ? 'WhatsApp' : 'Telegram'
+    const unavailableField = isWhatsApp
+      ? 'whatsappPhoneUnavailable'
+      : 'telegramPhoneUnavailable'
+    const confirmedField = isWhatsApp ? 'whatsapp' : 'telegramPhone'
+
+    setTimeout(() => {
+      modalsFunc.custom({
+        title: `Контакт в ${messengerName}`,
+        text: `Удалось открыть контакт клиента в ${messengerName} по номеру +${targetClient.phone}?`,
+        confirmButtonName: 'Да',
+        declineButtonName: 'Нет',
+        waitForConfirm: true,
+        onConfirm: async () => {
+          const savedClient = await itemsFunc.client.set(
+            {
+              _id: targetClient._id,
+              [confirmedField]: targetClient.phone,
+              [unavailableField]: false,
+            },
+            false,
+            true
+          )
+          if (!savedClient) throw new Error('Контакт клиента не сохранён')
+        },
+        onDecline: () =>
+          itemsFunc.client.set(
+            {
+              _id: targetClient._id,
+              [unavailableField]: true,
+            },
+            false,
+            true
+          ),
+      })
+    }, 300)
+  }
 
   return (
     <div
@@ -159,9 +210,7 @@ const ContactsIconsButtons = ({
             }`}
             title={'+' + user.phone}
             buttonClassName={compactButtonClassName}
-            onAfterOpen={() =>
-              onPhoneMessengerAttempt?.('whatsapp', user)
-            }
+            onAfterOpen={() => handlePhoneMessengerAttempt('whatsapp', user)}
           />
         )
       )}
@@ -202,9 +251,7 @@ const ContactsIconsButtons = ({
               url={`tg://resolve?phone=${user.phone}`}
               title={'+' + user.phone}
               buttonClassName={compactButtonClassName}
-              onAfterOpen={() =>
-                onPhoneMessengerAttempt?.('telegram', user)
-              }
+              onAfterOpen={() => handlePhoneMessengerAttempt('telegram', user)}
             />
           )
         ))}
