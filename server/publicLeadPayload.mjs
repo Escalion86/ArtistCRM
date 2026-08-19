@@ -68,4 +68,39 @@ const sanitizeRawPayload = (value) =>
     remaining: PUBLIC_LEAD_RAW_LIMITS.maxTotalCharacters,
   })
 
-export { PUBLIC_LEAD_RAW_LIMITS, sanitizeRawPayload }
+const normalizePublicLeadText = (value, maxLength) => {
+  if (value === null || value === undefined) return ''
+  return String(value).trim().slice(0, maxLength)
+}
+
+const buildPublicLeadAddress = ({ town, address }) => ({
+  town: normalizePublicLeadText(town, 120),
+  street: '',
+  house: '',
+  entrance: '',
+  floor: '',
+  flat: '',
+  comment: normalizePublicLeadText(address, 500),
+  latitude: '',
+  longitude: '',
+  link2Gis: '',
+  linkYandexNavigator: '',
+  link2GisShow: true,
+  linkYandexShow: true,
+})
+
+const buildPublicLeadInitialContactEvent = (requestCreatedAt) => ({
+  title: 'Связаться с клиентом',
+  description: '',
+  date: requestCreatedAt,
+  done: false,
+  doneAt: null,
+  googleCalendarEventId: '',
+})
+
+export {
+  PUBLIC_LEAD_RAW_LIMITS,
+  buildPublicLeadAddress,
+  buildPublicLeadInitialContactEvent,
+  sanitizeRawPayload,
+}

@@ -34,7 +34,7 @@ const AddressPoolPicker = ({
   outerClassName,
   contentClassName,
   comboBoxLabel = 'Выбрать адрес',
-  emptyComboBoxPlaceholder = 'Выберите адрес',
+  emptyComboBoxPlaceholder = 'Не указан',
   saveButtonLabel = 'Сохранить в пул',
   savedLabel = '✓ В пуле',
   manualToggleTitles,
@@ -60,18 +60,23 @@ const AddressPoolPicker = ({
     [poolAddresses]
   )
 
+  const formattedAddress = useMemo(
+    () => formatAddressPoolShort(address),
+    [address]
+  )
+
   const isAddressInPool = useMemo(() => {
-    if (!address) return false
+    if (!formattedAddress) return false
     const addressSignature = getAddressPoolSignature(address)
     return poolAddresses.some(
       (addr) => getAddressPoolSignature(addr) === addressSignature
     )
-  }, [address, poolAddresses])
+  }, [address, formattedAddress, poolAddresses])
 
   const currentValue = useMemo(() => {
-    if (!address) return null
+    if (!formattedAddress) return null
     return isAddressInPool ? JSON.stringify(address) : null
-  }, [address, isAddressInPool])
+  }, [address, formattedAddress, isAddressInPool])
 
   const canSaveToPool = useMemo(() => {
     if (!address) return false
@@ -79,9 +84,8 @@ const AddressPoolPicker = ({
   }, [address])
 
   const resolvedComboBoxPlaceholder = useMemo(() => {
-    if (!address) return emptyComboBoxPlaceholder
-    return formatAddressPoolShort(address)
-  }, [address, emptyComboBoxPlaceholder])
+    return formattedAddress || emptyComboBoxPlaceholder
+  }, [emptyComboBoxPlaceholder, formattedAddress])
 
   const handleSelectFromPool = (value) => {
     if (!value) {
@@ -132,6 +136,7 @@ const AddressPoolPicker = ({
                   value={currentValue}
                   onChange={handleSelectFromPool}
                   placeholder={resolvedComboBoxPlaceholder}
+                  activePlaceholder
                   tone={tone}
                   noMargin
                   fullWidth

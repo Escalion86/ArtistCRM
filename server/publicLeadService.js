@@ -3,7 +3,11 @@ import Clients from '@models/Clients'
 import Events from '@models/Events'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import createHistorySafely from '@server/historyAudit'
-import { sanitizeRawPayload } from './publicLeadPayload.mjs'
+import {
+  buildPublicLeadAddress,
+  buildPublicLeadInitialContactEvent,
+  sanitizeRawPayload,
+} from './publicLeadPayload.mjs'
 
 const readCustomValue = (custom, key) => {
   if (!custom) return undefined
@@ -75,21 +79,7 @@ const getPublicLeadApiKey = (req, body, allowApiKeyAlias = false) =>
     256
   )
 
-const buildAddress = ({ town, address, comment }) => ({
-  town: normalizeText(town, 120),
-  street: '',
-  house: '',
-  entrance: '',
-  floor: '',
-  flat: '',
-  comment: normalizeText(address || comment, 500),
-  latitude: '',
-  longitude: '',
-  link2Gis: '',
-  linkYandexNavigator: '',
-  link2GisShow: true,
-  linkYandexShow: true,
-})
+const buildAddress = buildPublicLeadAddress
 
 const resolvePublicLeadTenant = async (apiKey) => {
   if (!apiKey) {
@@ -229,17 +219,17 @@ const createPublicLeadDraftEvent = async ({
 }) => {
   const apiSourceName = normalizeText(apiKeyData?.name, 120)
   const sourceLabel = apiSourceName || normalizedData.source || 'public_api'
+  const requestCreatedAt = new Date()
   const event = await Events.create({
     tenantId,
     clientId: clientId ?? null,
     status: 'draft',
-    requestCreatedAt: new Date(),
+    requestCreatedAt,
     eventDate: normalizedData.eventDate ?? null,
     dateEnd: normalizedData.dateEnd ?? null,
     address: buildAddress({
       town: normalizedData.town,
       address: normalizedData.address,
-      comment: normalizedData.comment,
     }),
     servicesIds: normalizedData.servicesIds ?? [],
     contractSum:
@@ -249,7 +239,7 @@ const createPublicLeadDraftEvent = async ({
     description: normalizedData.comment ?? '',
     calendarImportChecked: true,
     importedFromCalendar: false,
-    additionalEvents: [],
+    additionalEvents: [buildPublicLeadInitialContactEvent(requestCreatedAt)],
     clientData: {
       source: sourceLabel,
       sourceLabel,
