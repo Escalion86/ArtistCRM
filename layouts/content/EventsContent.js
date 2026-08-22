@@ -1033,13 +1033,12 @@ const EventsContent = ({
   }, [filter, statusFilter, statusFilterKeys])
 
   const isCheckFilterDefault = checkFilter.checked && checkFilter.unchecked
-  const activeMobileFiltersCount = [
+  const hasActiveFilters = [
     selectedTown,
     filter !== 'all' && !isStatusFilterDefault,
     hasUncheckedEvents && !isCheckFilterDefault,
     additionalQuickFilter,
-  ].filter(Boolean).length
-  const hasActiveFilters = activeMobileFiltersCount > 0
+  ].some(Boolean)
 
   const resetFilters = useCallback(() => {
     setSelectedTown('')
@@ -1475,16 +1474,19 @@ const EventsContent = ({
             trigger={
               <button
                 type="button"
-                className="filter-control filter-control--outline min-w-[118px] gap-1 px-3 text-xs"
-                aria-label="Фильтры мероприятий"
+                className={`filter-control ${
+                  hasActiveFilters
+                    ? 'filter-control--primary'
+                    : 'filter-control--outline'
+                } min-w-[118px] gap-1 px-3 text-xs`}
+                aria-label={
+                  hasActiveFilters
+                    ? 'Фильтры мероприятий, есть активные фильтры'
+                    : 'Фильтры мероприятий'
+                }
               >
                 <FilterAltIcon fontSize="small" />
                 <span className="truncate">Фильтры</span>
-                {activeMobileFiltersCount > 0 ? (
-                  <span className="text-[#c75f00]">
-                    {activeMobileFiltersCount}
-                  </span>
-                ) : null}
               </button>
             }
           >

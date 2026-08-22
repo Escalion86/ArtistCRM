@@ -71,6 +71,7 @@ export const notifyCallRecordingReady = async ({
     tag: `novofon-recording-${call._id}`,
     requireInteraction: true,
     actions: promptState.actions,
+    categoryId: promptState.categoryId,
     data: {
       url: `/cabinet/calls?callId=${call._id}`,
       callId: String(call._id),

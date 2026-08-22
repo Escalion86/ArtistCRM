@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Calls from '@models/Calls'
+import Services from '@models/Services'
 import dbConnect from '@server/dbConnect'
 import { analyzeCallTranscript } from '@server/callAiAnalysis'
 import { getTenantAiSettings } from '@server/aiSettings'
@@ -35,10 +36,17 @@ export const POST = async (req, { params }) => {
   )
 
   try {
-    const aiSettings = await getTenantAiSettings(access.tenantId)
+    const [aiSettings, services] = await Promise.all([
+      getTenantAiSettings(access.tenantId),
+      Services.find({ tenantId }).select('title').lean(),
+    ])
+    aiSettings.services = services
+      .map((service) => service.title)
+      .filter(Boolean)
     const analysis = await analyzeCallTranscript(call.transcript, aiSettings, {
       feature: 'call_analysis',
       groupId: `call:${id}`,
+      referenceDate: call.startedAt ?? new Date(),
     })
     const updatedCall = await Calls.findOneAndUpdate(
       { _id: id, tenantId },

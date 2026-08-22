@@ -2061,12 +2061,19 @@ const eventFunc = (
                         inputClassName="w-[60px]"
                       />
                     </AiFieldHighlight>
-                    <DateTimePicker
-                      value={depositDueAt}
-                      onChange={(value) => setDepositDueAt(value ?? null)}
-                      label="Дата ожидания задатка"
-                      noMargin
-                    />
+                    <AiFieldHighlight
+                      active={isAiFieldHighlighted('depositDueAt')}
+                    >
+                      <DateTimePicker
+                        value={depositDueAt}
+                        onChange={(value) => {
+                          clearAiFields('depositDueAt')
+                          setDepositDueAt(value ?? null)
+                        }}
+                        label="Дата ожидания задатка"
+                        noMargin
+                      />
+                    </AiFieldHighlight>
                   </div>
                 ) : null}
               </div>

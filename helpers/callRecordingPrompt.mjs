@@ -13,6 +13,7 @@ export const getCallRecordingNotificationState = ({
   if (canCreateEvent) {
     return {
       kind: 'create_event_prompt',
+      categoryId: 'call-actions',
       body: phoneLabel
         ? `Звонок с ${phoneLabel}. Создать заявку из разговора?`
         : 'Создать заявку из разговора?',

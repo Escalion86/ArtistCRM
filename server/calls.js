@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import Clients from '@models/Clients'
 import Events from '@models/Events'
 import Calls from '@models/Calls'
+import Services from '@models/Services'
 import SiteSettings from '@models/SiteSettings'
 import { analyzeCallTranscript } from '@server/callAiAnalysis'
 import { transcribeCallRecording } from '@server/callTranscription'
@@ -199,7 +200,10 @@ export const buildEventDraftFromCall = async (call, tenantId) => {
   const linkedEvent = linkedEventId
     ? await Events.findOne({ _id: linkedEventId, tenantId }).lean()
     : null
-  const eventTypes = await getExistingEventTypes(tenantId)
+  const [eventTypes, services] = await Promise.all([
+    getExistingEventTypes(tenantId),
+    Services.find({ tenantId }).select('_id title').lean(),
+  ])
   const eventType =
     matchExistingEventType(fields?.eventType, eventTypes) ||
     matchExistingEventType(linkedEvent?.eventType, eventTypes)
@@ -222,18 +226,48 @@ export const buildEventDraftFromCall = async (call, tenantId) => {
     call?.transcript ? `\nTranscript:\n${call.transcript}` : '',
   ].filter(Boolean)
 
+  const normalizedServiceTitles = normalizeStringList(
+    fields?.serviceTitles
+  ).map((title) => title.toLowerCase())
+  const servicesIds = services
+    .filter((service) =>
+      normalizedServiceTitles.includes(
+        String(service?.title || '').toLowerCase()
+      )
+    )
+    .map((service) => String(service._id))
+
+  const aiFilledFields = [
+    fields?.eventDate ? 'eventDate' : '',
+    fields?.dateEnd ? 'dateEnd' : '',
+    fields?.eventCity || fields?.eventLocation ? 'address' : '',
+    fields?.budget !== null && fields?.budget !== undefined
+      ? 'contractSum'
+      : '',
+    eventType ? 'eventType' : '',
+    fields?.waitDeposit ? 'waitDeposit' : '',
+    fields?.depositDueAt ? 'depositDueAt' : '',
+    fields?.depositExpectedAmount ? 'depositExpectedAmount' : '',
+    servicesIds.length ? 'servicesIds' : '',
+    summaryParts.length ? 'description' : '',
+  ].filter(Boolean)
+
   return {
     clientId: linkedClientId,
     status: 'draft',
     requestCreatedAt: call?.startedAt ?? new Date(),
     eventDate: fields?.eventDate ?? null,
-    dateEnd: null,
+    dateEnd: fields?.dateEnd ?? null,
     address: {
       ...DEFAULT_CALL_ADDRESS,
       town: fields?.eventCity ?? '',
       comment: fields?.eventLocation ?? '',
     },
     contractSum: fields?.budget ?? 0,
+    waitDeposit: Boolean(fields?.waitDeposit),
+    depositDueAt: fields?.depositDueAt ?? null,
+    depositExpectedAmount: fields?.depositExpectedAmount ?? null,
+    servicesIds,
     eventType,
     description: summaryParts.join('\n').trim(),
     financeComment: fields?.budget
@@ -241,6 +275,7 @@ export const buildEventDraftFromCall = async (call, tenantId) => {
       : '',
     additionalEvents,
     sourceCallId: call?._id ?? null,
+    aiFilledFields,
   }
 }
 
@@ -255,7 +290,13 @@ export const processCallRecording = async (callId, tenantId) => {
   )
 
   try {
-    const aiSettings = await getTenantAiSettings(tenantId)
+    const [aiSettings, services] = await Promise.all([
+      getTenantAiSettings(tenantId),
+      Services.find({ tenantId }).select('title').lean(),
+    ])
+    aiSettings.services = services
+      .map((service) => service.title)
+      .filter(Boolean)
     const groupId = `call:${callId}`
     const transcript = await transcribeCallRecording(
       call.recordingUrl,
@@ -269,6 +310,7 @@ export const processCallRecording = async (callId, tenantId) => {
     const analysis = await analyzeCallTranscript(transcript, aiSettings, {
       feature: 'call_analysis',
       groupId,
+      referenceDate: call.startedAt ?? new Date(),
     })
     return Calls.findOneAndUpdate(
       { _id: callId, tenantId },

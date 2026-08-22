@@ -207,6 +207,8 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
           eventFunc(null, false, initialEvent?.status || 'draft', {
             initialEvent,
             onSaved,
+            aiFilledFields: initialEvent?.aiFilledFields,
+            aiWarnings: initialEvent?.aiWarnings,
           })
         ),
       edit: (eventId, options) =>

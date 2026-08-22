@@ -56,6 +56,18 @@ const TASK_ACTIONS: Record<string, 'complete' | 'postpone_1' | 'postpone_3'> = {
   TASK_3_DAYS: 'postpone_3',
 }
 
+const CALL_ACTIONS: Record<string, 'create_event' | 'no_event'> = {
+  CALL_CREATE_EVENT: 'create_event',
+  CALL_NO_EVENT: 'no_event',
+}
+
+type CallDecisionResponse = {
+  success?: boolean
+  data?: {
+    event?: { _id?: string | null } | null
+  }
+}
+
 const registerNotificationCategories = async () => {
   await Notifications.setNotificationCategoryAsync('task-actions', [
     {
@@ -71,6 +83,18 @@ const registerNotificationCategories = async () => {
     {
       identifier: 'TASK_3_DAYS',
       buttonTitle: 'Через 3 дня',
+      options: { opensAppToForeground: true },
+    },
+  ])
+  await Notifications.setNotificationCategoryAsync('call-actions', [
+    {
+      identifier: 'CALL_CREATE_EVENT',
+      buttonTitle: 'Да, создать заявку',
+      options: { opensAppToForeground: true },
+    },
+    {
+      identifier: 'CALL_NO_EVENT',
+      buttonTitle: 'Нет',
       options: { opensAppToForeground: true },
     },
   ])
@@ -169,6 +193,20 @@ const handleNotificationResponse = async (response: Notifications.NotificationRe
       console.log('Failed to perform notification action', error)
       throw error
     }
+  }
+  const callDecision = CALL_ACTIONS[response.actionIdentifier]
+  if (callDecision && data?.callId) {
+    const result = await api.post<CallDecisionResponse>(
+      `/mobile/v1/calls/${encodeURIComponent(data.callId)}/decision`,
+      { decision: callDecision }
+    )
+    const eventId = result?.data?.event?._id
+    if (callDecision === 'create_event' && eventId) {
+      router.push(`/events/${eventId}` as never)
+    } else {
+      router.push('/more/calls' as never)
+    }
+    return { eventChanged: callDecision === 'create_event' }
   }
   if (!data?.url) return
 

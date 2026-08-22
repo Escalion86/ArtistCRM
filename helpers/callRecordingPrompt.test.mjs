@@ -14,6 +14,7 @@ test('asks to create event when transcript already exists', () => {
   })
 
   assert.equal(state.kind, 'create_event_prompt')
+  assert.equal(state.categoryId, 'call-actions')
   assert.equal(state.body, 'Звонок с +7 999 111-22-33. Создать заявку из разговора?')
   assert.deepEqual(state.actions, [
     { action: 'create_event', title: 'Да' },
