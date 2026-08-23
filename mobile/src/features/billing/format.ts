@@ -25,6 +25,7 @@ export const getTariffFeatures = (tariff: MobileBilling['tariffs'][number]) =>
     tariff.allowCalendarSync && 'Календарь',
     tariff.allowStatistics && 'Статистика',
     tariff.allowDocuments && 'Документы',
+    (tariff.allowProposals ?? tariff.allowDocuments) && 'Коммерческие предложения',
     tariff.allowTelephony && 'Телефония',
     tariff.allowAi && 'ИИ',
     tariff.allowAvitoIntegration && 'Avito',

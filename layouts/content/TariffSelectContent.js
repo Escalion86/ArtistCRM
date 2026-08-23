@@ -283,6 +283,12 @@ const TariffSelectContent = () => {
                     noMargin
                   />
                   <IconCheckBox
+                    checked={tariff.allowProposals ?? tariff.allowDocuments}
+                    label="Коммерческие предложения"
+                    readOnly
+                    noMargin
+                  />
+                  <IconCheckBox
                     checked={tariff.allowAvitoIntegration}
                     label="Интеграция Avito"
                     readOnly

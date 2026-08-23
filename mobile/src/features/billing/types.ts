@@ -15,6 +15,7 @@ export type MobileTariff = {
   allowCalendarSync: boolean
   allowStatistics: boolean
   allowDocuments: boolean
+  allowProposals?: boolean
   allowTelephony: boolean
   allowAi: boolean
   allowAvitoIntegration: boolean

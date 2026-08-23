@@ -1,0 +1,39 @@
+import { Schema } from 'mongoose'
+
+const proposalsSchema = {
+  tenantId: { type: Schema.Types.ObjectId, ref: 'Users', required: true },
+  eventId: { type: Schema.Types.ObjectId, ref: 'Events', required: true },
+  clientId: { type: Schema.Types.ObjectId, ref: 'Clients', default: null },
+  templateId: { type: Schema.Types.ObjectId, ref: 'ProposalTemplates', default: null },
+  version: { type: Number, default: 1, min: 1 },
+  title: { type: String, required: true, trim: true, maxlength: 200 },
+  status: {
+    type: String,
+    enum: ['draft', 'published', 'expired', 'revoked'],
+    default: 'draft',
+  },
+  validUntil: { type: Date, default: null },
+  blocksSnapshot: { type: [Schema.Types.Mixed], default: [] },
+  packages: { type: [Schema.Types.Mixed], default: [] },
+  mediaSnapshot: { type: [Schema.Types.Mixed], default: [] },
+  messageText: { type: String, default: '', maxlength: 4000 },
+  eventSnapshot: { type: Schema.Types.Mixed, default: () => ({}) },
+  clientSnapshot: { type: Schema.Types.Mixed, default: () => ({}) },
+  artistSnapshot: { type: Schema.Types.Mixed, default: () => ({}) },
+  publicId: { type: String, default: undefined },
+  publicTokenNonce: { type: String, default: '' },
+  publicTokenHash: { type: String, default: '' },
+  publishedAt: { type: Date, default: null },
+  revokedAt: { type: Date, default: null },
+  viewedAt: { type: Date, default: null },
+  viewCount: { type: Number, default: 0 },
+  selectedPackageId: { type: String, default: '' },
+  selectedAt: { type: Date, default: null },
+  selectionHistory: { type: [Schema.Types.Mixed], default: [] },
+  selectionTaskCreatedAt: { type: Date, default: null },
+  appliedAt: { type: Date, default: null },
+  sentAt: { type: Date, default: null },
+  delivery: { type: [Schema.Types.Mixed], default: [] },
+}
+
+export default proposalsSchema

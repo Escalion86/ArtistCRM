@@ -177,6 +177,7 @@ const tariffFeatureRows = [
   { label: 'Синхронизация с Google Календарём', key: 'allowCalendarSync' },
   { label: 'Статистика и аналитика', key: 'allowStatistics' },
   { label: 'Договоры, акты и документы', key: 'allowDocuments' },
+  { label: 'Коммерческие предложения', key: 'allowProposals' },
   { label: 'IP-телефония', key: 'allowTelephony' },
   { label: 'ИИ-возможности', key: 'allowAi' },
   { label: 'Интеграция с Avito', key: 'allowAvitoIntegration' },

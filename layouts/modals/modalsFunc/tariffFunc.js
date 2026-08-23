@@ -33,6 +33,9 @@ const tariffFunc = (tariffId, clone = false) => {
     const [allowDocuments, setAllowDocuments] = useState(
       tariff?.allowDocuments ?? DEFAULT_TARIFF.allowDocuments
     )
+    const [allowProposals, setAllowProposals] = useState(
+      tariff?.allowProposals ?? tariff?.allowDocuments ?? DEFAULT_TARIFF.allowProposals
+    )
     const [allowTelephony, setAllowTelephony] = useState(
       tariff?.allowTelephony ?? DEFAULT_TARIFF.allowTelephony
     )
@@ -72,6 +75,7 @@ const tariffFunc = (tariffId, clone = false) => {
               allowCalendarSync,
               allowStatistics,
               allowDocuments,
+              allowProposals,
               allowTelephony,
               allowAi,
               allowAvitoIntegration,
@@ -87,6 +91,7 @@ const tariffFunc = (tariffId, clone = false) => {
     }, [
       allowCalendarSync,
       allowDocuments,
+      allowProposals,
       allowAvitoIntegration,
       allowStatistics,
       allowTelephony,
@@ -112,6 +117,7 @@ const tariffFunc = (tariffId, clone = false) => {
         tariff?.allowCalendarSync !== allowCalendarSync ||
         tariff?.allowStatistics !== allowStatistics ||
         tariff?.allowDocuments !== allowDocuments ||
+        (tariff?.allowProposals ?? tariff?.allowDocuments) !== allowProposals ||
         tariff?.allowTelephony !== allowTelephony ||
         tariff?.allowAi !== allowAi ||
         tariff?.allowAvitoIntegration !== allowAvitoIntegration ||
@@ -128,6 +134,7 @@ const tariffFunc = (tariffId, clone = false) => {
     }, [
       allowCalendarSync,
       allowDocuments,
+      allowProposals,
       allowAvitoIntegration,
       allowStatistics,
       allowTelephony,
@@ -144,6 +151,7 @@ const tariffFunc = (tariffId, clone = false) => {
       tariff?.allowCalendarSync,
       tariff?.allowAvitoIntegration,
       tariff?.allowDocuments,
+      tariff?.allowProposals,
       tariff?.allowTelephony,
       tariff?.allowAi,
       tariff?.allowStatistics,
@@ -224,6 +232,12 @@ const tariffFunc = (tariffId, clone = false) => {
               checked={allowAi}
               onClick={() => setAllowAi((prev) => !prev)}
               label="ИИ-возможности"
+              noMargin
+            />
+            <IconCheckBox
+              checked={allowProposals}
+              onClick={() => setAllowProposals((prev) => !prev)}
+              label="Коммерческие предложения"
               noMargin
             />
             <IconCheckBox

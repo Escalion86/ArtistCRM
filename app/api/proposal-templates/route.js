@@ -1,0 +1,43 @@
+import { NextResponse } from 'next/server'
+import ProposalTemplates from '@models/ProposalTemplates'
+import dbConnect from '@server/dbConnect'
+import getTenantContext from '@server/getTenantContext'
+import getUserTariffAccess from '@server/getUserTariffAccess'
+import {
+  normalizeProposalBlocks,
+  normalizeProposalMedia,
+} from '@helpers/proposalContent'
+
+const error = (message, status = 400, code = 'bad_request') =>
+  NextResponse.json({ success: false, error: { code, message } }, { status })
+
+export const GET = async () => {
+  const { tenantId, user } = await getTenantContext()
+  if (!tenantId || !user?._id) return error('Не авторизован', 401, 'unauthorized')
+  const access = await getUserTariffAccess(user._id)
+  if (!access?.allowProposals) return error('Предложения недоступны на текущем тарифе', 403, 'tariff_required')
+  await dbConnect()
+  const items = await ProposalTemplates.find({ tenantId }).sort({ updatedAt: -1 }).lean()
+  return NextResponse.json({ success: true, data: items })
+}
+
+export const POST = async (req) => {
+  const { tenantId, user } = await getTenantContext()
+  if (!tenantId || !user?._id) return error('Не авторизован', 401, 'unauthorized')
+  const access = await getUserTariffAccess(user._id)
+  if (!access?.allowProposals) return error('Предложения недоступны на текущем тарифе', 403, 'tariff_required')
+  const body = await req.json().catch(() => ({}))
+  const name = String(body?.name || '').trim().slice(0, 160)
+  if (!name) return error('Укажите название шаблона', 400, 'name_required')
+  await dbConnect()
+  const item = await ProposalTemplates.create({
+    tenantId,
+    name,
+    status: body?.status === 'archived' ? 'archived' : 'active',
+    blocks: normalizeProposalBlocks(body?.blocks),
+    messageTemplate: String(body?.messageTemplate || '').trim().slice(0, 4000),
+    media: normalizeProposalMedia(body?.media),
+    defaults: body?.defaults && typeof body.defaults === 'object' ? body.defaults : {},
+  })
+  return NextResponse.json({ success: true, data: item }, { status: 201 })
+}

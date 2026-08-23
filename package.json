@@ -1,6 +1,6 @@
 {
   "name": "ArtistCRM",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
@@ -14,6 +14,7 @@
     "seo:indexnow": "node scripts/submitIndexNow.mjs",
     "marketing:assets": "node scripts/buildMarketingComicAssets.mjs",
     "history:migrate": "node --env-file-if-exists=.env.local scripts/migrateActivityHistories.js",
+    "proposals:migrate-tariffs": "node --env-file-if-exists=.env.local scripts/migrateProposalTariffAccess.js",
     "postinstall": "node scripts/postinstall.js"
   },
   "devDependencies": {

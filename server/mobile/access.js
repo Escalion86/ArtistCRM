@@ -5,6 +5,7 @@ const ACCESS_FLAGS = [
   'allowCalendarSync',
   'allowStatistics',
   'allowDocuments',
+  'allowProposals',
   'allowTelephony',
   'allowAi',
   'allowAvitoIntegration',

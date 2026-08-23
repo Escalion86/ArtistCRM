@@ -280,6 +280,40 @@ export const sendTelegramBusinessMessage = ({
     },
   })
 
+export const sendTelegramBusinessMedia = ({
+  botToken,
+  businessConnectionId,
+  chatId,
+  media,
+}) => {
+  const items = (Array.isArray(media) ? media : []).slice(0, 10)
+  if (!items.length) return Promise.resolve([])
+  if (items.length === 1) {
+    const item = items[0]
+    return telegramRequest({
+      botToken,
+      method: item.type === 'video' ? 'sendVideo' : 'sendPhoto',
+      body: {
+        business_connection_id: businessConnectionId,
+        chat_id: chatId,
+        [item.type === 'video' ? 'video' : 'photo']: item.url,
+      },
+    }).then((message) => [message])
+  }
+  return telegramRequest({
+    botToken,
+    method: 'sendMediaGroup',
+    body: {
+      business_connection_id: businessConnectionId,
+      chat_id: chatId,
+      media: items.map((item) => ({
+        type: item.type === 'video' ? 'video' : 'photo',
+        media: item.url,
+      })),
+    },
+  })
+}
+
 const normalizeUsername = (value) =>
   String(value || '')
     .trim()

@@ -28,7 +28,7 @@ const normalizePathSegment = (value) =>
   typeof value === 'string' ? value.trim().replace(/^\/+|\/+$/g, '') : ''
 
 export async function POST(request) {
-  const { user } = await getRequestContext(request)
+  const { user, tenantId } = await getRequestContext(request)
   if (!user?._id) {
     return NextResponse.json(buildError('UNAUTHORIZED', 'Unauthorized'), {
       status: 401,
@@ -57,9 +57,19 @@ export async function POST(request) {
     const directoryFromNewContract = normalizePathSegment(directoryRaw)
     const legacyProject = normalizePathSegment(legacyProjectRaw)
     const legacyFolder = normalizePathSegment(legacyFolderRaw)
-    const directory =
+    let directory =
       directoryFromNewContract ||
       [legacyProject, legacyFolder].filter(Boolean).join('/')
+
+    if (
+      tenantId &&
+      /^artistcrm\/(?:proposal-templates|proposals)(?:\/|$)/.test(directory)
+    ) {
+      directory = directory.replace(
+        /^artistcrm\//,
+        `artistcrm/${tenantId}/`
+      )
+    }
 
     if (!files.length) {
       return NextResponse.json(

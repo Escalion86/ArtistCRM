@@ -11,6 +11,11 @@ const serializeTariff = (tariff, quote = null) => ({
   allowCalendarSync: Boolean(tariff.allowCalendarSync),
   allowStatistics: Boolean(tariff.allowStatistics),
   allowDocuments: Boolean(tariff.allowDocuments),
+  allowProposals: Boolean(
+    tariff.allowProposals === undefined
+      ? tariff.allowDocuments
+      : tariff.allowProposals
+  ),
   allowTelephony: Boolean(tariff.allowTelephony),
   allowAi: Boolean(tariff.allowAi),
   allowAvitoIntegration: Boolean(tariff.allowAvitoIntegration),

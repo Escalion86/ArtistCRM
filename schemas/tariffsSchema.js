@@ -28,6 +28,10 @@ const tariffsSchema = {
     type: Boolean,
     default: false,
   },
+  allowProposals: {
+    type: Boolean,
+    default: undefined,
+  },
   allowTelephony: {
     type: Boolean,
     default: false,

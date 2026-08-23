@@ -96,3 +96,16 @@ test('paid renewal replaces an expired registration offer', () => {
   assert.equal(access.hasTariff, true)
   assert.equal(access.allowDocuments, true)
 })
+
+test('commercial proposals inherit document access for legacy tariffs and allow explicit override', () => {
+  const user = { tariffId: 'legacy' }
+  const inherited = getUserTariffAccess(user, [
+    { _id: 'legacy', allowDocuments: true },
+  ])
+  const disabled = getUserTariffAccess(user, [
+    { _id: 'legacy', allowDocuments: true, allowProposals: false },
+  ])
+
+  assert.equal(inherited.allowProposals, true)
+  assert.equal(disabled.allowProposals, false)
+})

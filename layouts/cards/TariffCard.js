@@ -110,6 +110,12 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
             noMargin
           />
           <IconCheckBox
+            checked={tariff.allowProposals ?? tariff.allowDocuments}
+            label="Коммерческие предложения"
+            readOnly
+            noMargin
+          />
+          <IconCheckBox
             checked={tariff.allowTelegramIntegration}
             label="Интеграция Telegram"
             readOnly
@@ -136,6 +142,7 @@ TariffCard.propTypes = {
     allowCalendarSync: PropTypes.bool,
     allowStatistics: PropTypes.bool,
     allowDocuments: PropTypes.bool,
+    allowProposals: PropTypes.bool,
     allowTelephony: PropTypes.bool,
     allowAi: PropTypes.bool,
     allowAvitoIntegration: PropTypes.bool,
