@@ -23,6 +23,7 @@ import {
   normalizeDocumentTemplatesFromSettings,
   validateDocxTemplateFileMeta,
 } from '@helpers/documentTemplates'
+import { canUseProposalBuilder } from '@helpers/proposalAccess'
 
 const DEFAULT_CONTRACT_TEMPLATE_DOWNLOAD_URL =
   '/templates/default-contract-template.docx'
@@ -130,7 +131,7 @@ const DocumentsContent = () => {
     [loggedUser, tariffs]
   )
   const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
-  const canUseProposals = Boolean(tariffAccess?.allowProposals)
+  const canUseProposals = canUseProposalBuilder(loggedUser)
   const documentTemplates = useMemo(
     () => normalizeDocumentTemplatesFromSettings(customSettings),
     [customSettings]
@@ -140,8 +141,9 @@ const DocumentsContent = () => {
     const requestedSection = new URLSearchParams(window.location.search).get(
       'section'
     )
-    if (requestedSection === 'proposals') setSection('proposals')
-  }, [])
+    if (requestedSection === 'proposals' && canUseProposals)
+      setSection('proposals')
+  }, [canUseProposals])
 
   const readFileAsBase64 = (file) =>
     new Promise((resolve, reject) => {
@@ -314,11 +316,13 @@ const DocumentsContent = () => {
   return (
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1">
-          <button type="button" className={`h-10 cursor-pointer rounded-md text-sm font-semibold transition ${section === 'documents' ? 'bg-white shadow-sm' : 'text-gray-600'}`} onClick={() => setSection('documents')}>Документы</button>
-          <button type="button" className={`h-10 cursor-pointer rounded-md text-sm font-semibold transition ${section === 'proposals' ? 'bg-white shadow-sm' : 'text-gray-600'}`} onClick={() => setSection('proposals')}>Предложения</button>
-        </div>
-        {section === 'proposals' ? (
+        {canUseProposals ? (
+          <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1">
+            <button type="button" className={`h-10 cursor-pointer rounded-md text-sm font-semibold transition ${section === 'documents' ? 'bg-white shadow-sm' : 'text-gray-600'}`} onClick={() => setSection('documents')}>Документы</button>
+            <button type="button" className={`h-10 cursor-pointer rounded-md text-sm font-semibold transition ${section === 'proposals' ? 'bg-white shadow-sm' : 'text-gray-600'}`} onClick={() => setSection('proposals')}>Предложения</button>
+          </div>
+        ) : null}
+        {canUseProposals && section === 'proposals' ? (
           <LabeledContainer label="Коммерческие предложения" noMargin>
             <ProposalTemplatesPanel enabled={canUseProposals} />
           </LabeledContainer>

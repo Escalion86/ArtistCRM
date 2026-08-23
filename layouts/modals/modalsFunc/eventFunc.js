@@ -36,6 +36,7 @@ import InputWrapper from '@components/InputWrapper'
 import LabeledContainer from '@components/LabeledContainer'
 import OtherContactsPicker from '@components/OtherContactsPicker'
 import EventDocumentsEditor from '@components/EventDocumentsEditor'
+import EventProposalsSection from '@components/EventProposalsSection'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import ServiceMultiSelect from '@components/ServiceMultiSelect'
@@ -69,6 +70,7 @@ import {
   normalizeEventDocuments,
 } from '@helpers/eventDocuments'
 import { shouldShowColleagueTransferControls } from '@helpers/firstRunWizard.mjs'
+import { canUseProposalBuilder } from '@helpers/proposalAccess'
 
 const normalizeAddressValue = (rawAddress) => {
   const normalized = { ...DEFAULT_ADDRESS }
@@ -611,6 +613,14 @@ const eventFunc = (
       [loggedUser, tariffs]
     )
     const canUseDocuments = Boolean(tariffAccess?.allowDocuments)
+    const canUseProposals = canUseProposalBuilder(loggedUser)
+    const handleProposalApplied = useCallback(
+      ({ contractSum: appliedContractSum, servicesIds: appliedServicesIds }) => {
+        setContractSum(appliedContractSum)
+        setServicesIds(appliedServicesIds)
+      },
+      []
+    )
 
     const getTransactionsForEvent = useCallback(
       (targetEventId) =>
@@ -2125,6 +2135,24 @@ const eventFunc = (
                 </LabeledContainer>
               </div>
             )}
+            {canUseProposals ? (
+              <div className="mt-3">
+                <LabeledContainer label="Коммерческие предложения" noMargin>
+                  {persistedEventId ? (
+                    <EventProposalsSection
+                      eventId={persistedEventId}
+                      onApplied={handleProposalApplied}
+                    />
+                  ) : (
+                    <Notice tone="info" className="rounded-md">
+                      Сначала сохраните мероприятие. После сохранения откройте
+                      его редактирование снова — здесь появится создание
+                      коммерческого предложения.
+                    </Notice>
+                  )}
+                </LabeledContainer>
+              </div>
+            ) : null}
 
             {!isDraft && (
               <>

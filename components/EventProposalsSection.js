@@ -34,7 +34,7 @@ const hasPendingDeliveryFailures = (delivery) => {
   return [...latest.values()].some((status) => status === 'failed')
 }
 
-const EventProposalsSection = ({ eventId }) => {
+const EventProposalsSection = ({ eventId, onApplied }) => {
   const queryClient = useQueryClient()
   const [templates, setTemplates] = useState([])
   const [items, setItems] = useState([])
@@ -160,6 +160,17 @@ const EventProposalsSection = ({ eventId }) => {
         throw new Error(body?.error?.message || 'Действие не выполнено')
       if (name === 'publish') setEditing(null)
       if (name === 'apply') {
+        const appliedPackage = body.data?.packages?.find(
+          (item) => item.id === body.data?.selectedPackageId
+        )
+        if (appliedPackage && typeof onApplied === 'function') {
+          onApplied({
+            contractSum: Number(appliedPackage.total) || 0,
+            servicesIds: (appliedPackage.lines || [])
+              .map((line) => line.serviceId)
+              .filter(Boolean),
+          })
+        }
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['event', eventId] }),
           queryClient.invalidateQueries({ queryKey: ['events'] }),
@@ -280,8 +291,7 @@ const EventProposalsSection = ({ eventId }) => {
   if (unavailable)
     return (
       <Notice tone="warning">
-        Коммерческие предложения не включены в ваш тариф. Если функция уже
-        включена администратором, обновите страницу кабинета.
+        Коммерческие предложения временно доступны только разработчику.
       </Notice>
     )
 

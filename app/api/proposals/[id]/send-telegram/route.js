@@ -7,6 +7,10 @@ import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import {
+  canUseProposalBuilder,
+  PROPOSAL_BUILDER_ACCESS_ERROR,
+} from '@helpers/proposalAccess'
+import {
   isTelegramReplyWindowOpen,
   normalizeTelegramSettings,
   saveTelegramBusinessMessage,
@@ -31,13 +35,13 @@ export const POST = async (req, { params }) => {
     return error('Не авторизован', 401, 'unauthorized')
   if (!mongoose.Types.ObjectId.isValid(id))
     return error('Некорректный ID', 400, 'bad_id')
-  const access = await getUserTariffAccess(user._id)
-  if (!access?.allowProposals)
+  if (!canUseProposalBuilder(user))
     return error(
-      'Предложения недоступны на текущем тарифе',
+      PROPOSAL_BUILDER_ACCESS_ERROR,
       403,
-      'proposal_tariff_required'
+      'developer_preview_only'
     )
+  const access = await getUserTariffAccess(user._id)
   if (!access?.allowTelegramIntegration)
     return error(
       'Интеграция Telegram недоступна на текущем тарифе',

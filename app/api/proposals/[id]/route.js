@@ -5,7 +5,10 @@ import Events from '@models/Events'
 import Services from '@models/Services'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
-import getUserTariffAccess from '@server/getUserTariffAccess'
+import {
+  canUseProposalBuilder,
+  PROPOSAL_BUILDER_ACCESS_ERROR,
+} from '@helpers/proposalAccess'
 import { normalizeProposalBlocks, normalizeProposalMedia, normalizeProposalPackages } from '@helpers/proposalContent'
 import {
   buildProposalPublicUrl,
@@ -20,8 +23,14 @@ const authorize = async (id) => {
   const context = await getTenantContext()
   if (!context.tenantId || !context.user?._id) return { response: error('Не авторизован', 401, 'unauthorized') }
   if (!mongoose.Types.ObjectId.isValid(id)) return { response: error('Некорректный ID', 400, 'bad_id') }
-  const access = await getUserTariffAccess(context.user._id)
-  if (!access?.allowProposals) return { response: error('Предложения недоступны на текущем тарифе', 403, 'tariff_required') }
+  if (!canUseProposalBuilder(context.user))
+    return {
+      response: error(
+        PROPOSAL_BUILDER_ACCESS_ERROR,
+        403,
+        'developer_preview_only'
+      ),
+    }
   await dbConnect()
   const proposal = await Proposals.findOne({ _id: id, tenantId: context.tenantId })
   if (!proposal) return { response: error('Предложение не найдено', 404, 'not_found') }

@@ -42,7 +42,6 @@ import {
 import AdditionalEventCard from './AdditionalEventCard'
 import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
 import openEventAdditionalEventViewModal from './eventAdditionalEventViewModal'
-import EventProposalsSection from '@components/EventProposalsSection'
 
 const EVENT_STATUS_META = Object.freeze({
   draft: {
@@ -797,9 +796,6 @@ const eventViewFunc = (eventId) => {
                 </div>
               </SectionBlock>
             )}
-            <SectionBlock title="Коммерческие предложения">
-              <EventProposalsSection eventId={event?._id} />
-            </SectionBlock>
             {event?.address && event.address?.town && event.address?.street && (
               <SectionBlock title="Навигация">
                 <TextLine label="Ссылки для навигатора">
