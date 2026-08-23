@@ -136,6 +136,13 @@ const DocumentsContent = () => {
     [customSettings]
   )
 
+  useEffect(() => {
+    const requestedSection = new URLSearchParams(window.location.search).get(
+      'section'
+    )
+    if (requestedSection === 'proposals') setSection('proposals')
+  }, [])
+
   const readFileAsBase64 = (file) =>
     new Promise((resolve, reject) => {
       const reader = new FileReader()

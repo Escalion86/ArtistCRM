@@ -159,7 +159,9 @@ const ProposalTemplatesPanel = ({ enabled }) => {
   if (!enabled)
     return (
       <Notice tone="warning">
-        Коммерческие предложения недоступны на текущем тарифе.
+        Коммерческие предложения не включены в ваш тариф. Доступ появляется,
+        если в тарифе разрешена функция «Предложения»; для прежних тарифов он
+        наследуется от функции «Документы».
       </Notice>
     )
 
@@ -178,6 +180,11 @@ const ProposalTemplatesPanel = ({ enabled }) => {
             К списку
           </button>
         </div>
+        <Notice tone="info">
+          Вы редактируете основу будущих предложений. Текст, порядок блоков и
+          медиа будут подставляться при создании предложения из конкретной
+          заявки.
+        </Notice>
         {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
         <label className="text-sm font-medium">
           Название
@@ -348,6 +355,23 @@ const ProposalTemplatesPanel = ({ enabled }) => {
   return (
     <div className="flex flex-col gap-3">
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
+      <Notice tone="info">
+        <div className="font-semibold">Как это работает</div>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
+          <li>Создайте здесь шаблон: текст, блоки, фото и видео.</li>
+          <li>
+            Откройте нужную заявку и найдите блок «Коммерческие предложения».
+          </li>
+          <li>
+            Выберите шаблон, настройте варианты и цены, затем опубликуйте и
+            отправьте клиенту ссылку.
+          </li>
+        </ol>
+        <div className="mt-2 text-xs">
+          Шаблон клиенту не отправляется — это только заготовка. Отправляется
+          персональная версия, созданная в заявке.
+        </div>
+      </Notice>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="font-semibold">Шаблоны предложений</div>

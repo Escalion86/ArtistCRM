@@ -19,7 +19,13 @@ test('mobile billing возвращает безопасные тарифы и �
     currentTariff,
     tariffs: [
       currentTariff,
-      { _id: 'pro', title: 'Профи', price: 500, allowDocuments: true },
+      {
+        _id: 'pro',
+        title: 'Профи',
+        price: 500,
+        allowDocuments: true,
+        allowProposals: null,
+      },
     ],
     now: new Date('2026-07-25T00:00:00.000Z'),
   })
@@ -27,6 +33,7 @@ test('mobile billing возвращает безопасные тарифы и �
   assert.equal(result.account.balance, 800)
   assert.equal(result.account.fundedUntil, '2026-10-25T00:00:00.000Z')
   assert.equal(result.tariffs[1].allowDocuments, true)
+  assert.equal(result.tariffs[1].allowProposals, true)
   assert.equal('internalNote' in result.currentTariff, false)
   assert.equal('hidden' in result.currentTariff, false)
 })

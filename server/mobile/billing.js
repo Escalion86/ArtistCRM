@@ -2,6 +2,7 @@ import {
   calculateBalanceRunway,
   calculateTariffChangeQuote,
 } from '../billingCalculations.js'
+import { isProposalTariffEnabled } from '../../helpers/tariffAccess.js'
 
 const serializeTariff = (tariff, quote = null) => ({
   _id: String(tariff._id),
@@ -11,11 +12,7 @@ const serializeTariff = (tariff, quote = null) => ({
   allowCalendarSync: Boolean(tariff.allowCalendarSync),
   allowStatistics: Boolean(tariff.allowStatistics),
   allowDocuments: Boolean(tariff.allowDocuments),
-  allowProposals: Boolean(
-    tariff.allowProposals === undefined
-      ? tariff.allowDocuments
-      : tariff.allowProposals
-  ),
+  allowProposals: isProposalTariffEnabled(tariff),
   allowTelephony: Boolean(tariff.allowTelephony),
   allowAi: Boolean(tariff.allowAi),
   allowAvitoIntegration: Boolean(tariff.allowAvitoIntegration),

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import Notice from '@components/Notice'
 import { formatMoney } from '@helpers/formatMoney'
 import { sendFile } from '@helpers/cloudinary'
@@ -279,7 +280,8 @@ const EventProposalsSection = ({ eventId }) => {
   if (unavailable)
     return (
       <Notice tone="warning">
-        Коммерческие предложения недоступны на текущем тарифе.
+        Коммерческие предложения не включены в ваш тариф. Если функция уже
+        включена администратором, обновите страницу кабинета.
       </Notice>
     )
 
@@ -645,6 +647,24 @@ const EventProposalsSection = ({ eventId }) => {
   return (
     <div className="space-y-3">
       {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
+      <Notice tone="info">
+        Это предложения именно для этой заявки. Выберите заготовку, нажмите
+        «Создать предложение», проверьте варианты и цены, затем опубликуйте.
+        После публикации появятся кнопки для копирования ссылки и отправки в
+        Telegram.
+      </Notice>
+      {!templates.length ? (
+        <Notice tone="neutral">
+          Сначала создайте активный шаблон в разделе{' '}
+          <Link
+            className="cursor-pointer font-semibold underline"
+            href="/cabinet/documents?section=proposals"
+          >
+            «Документы → Предложения»
+          </Link>
+          . Затем вернитесь в заявку.
+        </Notice>
+      ) : null}
       <div className="tablet:flex-row flex flex-col gap-2">
         <select
           className="h-10 min-w-0 flex-1 rounded border border-gray-300 px-3 text-sm"
@@ -660,8 +680,8 @@ const EventProposalsSection = ({ eventId }) => {
         </select>
         <button
           type="button"
-          disabled={busy}
-          className="action-icon-button action-icon-button--warning h-10 cursor-pointer rounded px-3 text-sm font-semibold"
+          disabled={busy || !selectedTemplate}
+          className="action-icon-button action-icon-button--warning h-10 cursor-pointer rounded px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() => create()}
         >
           Создать предложение

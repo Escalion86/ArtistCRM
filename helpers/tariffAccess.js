@@ -27,6 +27,9 @@ export const isRegistrationOfferTariff = (user) => {
   return state.applies && !user?.nextChargeAt
 }
 
+export const isProposalTariffEnabled = (tariff) =>
+  Boolean(tariff?.allowProposals ?? tariff?.allowDocuments)
+
 export const getUserTariffAccess = (user, tariffs = []) => {
   const trialActive = isTrialActive(user)
   const registrationOffer = getRegistrationOfferState(user)
@@ -54,11 +57,7 @@ export const getUserTariffAccess = (user, tariffs = []) => {
       (hasTariff && Boolean(tariff?.allowDocuments)),
     allowProposals:
       unrestrictedTrialActive ||
-      (hasTariff && Boolean(
-        tariff?.allowProposals === undefined
-          ? tariff?.allowDocuments
-          : tariff?.allowProposals
-      )),
+      (hasTariff && isProposalTariffEnabled(tariff)),
     allowTelephony: hasTariff && Boolean(tariff?.allowTelephony),
     allowAi: hasTariff && Boolean(tariff?.allowAi),
     allowAvitoIntegration:
