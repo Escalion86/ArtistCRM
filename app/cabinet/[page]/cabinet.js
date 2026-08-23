@@ -22,7 +22,6 @@ import store from '@state/store'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import RegistrationOfferBanner from '@components/RegistrationOfferBanner'
-import ImpersonationBanner from '@components/ImpersonationBanner'
 // import { useAtomValue } from 'jotai'
 
 // const SuspenseChild = () => (
@@ -101,7 +100,6 @@ function CabinetPage(props) {
             <CabinetHeader title={title} count={headerCount} />
             <BurgerLayout />
             <ContentWrapper page={currentPage}>
-              <ImpersonationBanner user={props.loggedUser} />
               <RegistrationOfferBanner user={props.loggedUser} />
               <Component
                 {...props}

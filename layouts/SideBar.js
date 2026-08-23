@@ -1,8 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import {
-  faAngleDown,
-  faAngleUp,
-} from '@fortawesome/free-solid-svg-icons'
+import { faAngleDown, faAngleUp } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { pages, pagesGroups } from '@helpers/constants'
 import isPageAllowedForRole from '@helpers/pageAccess'
@@ -18,6 +15,7 @@ import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAtom, useAtomValue } from 'jotai'
 import { additionalEventsOverdueCountAtom } from '@state/selectors/additionalEventsOverdueCountAtom'
+import ImpersonationReturnButton from '@components/ImpersonationReturnButton'
 
 const menuCfg = (role) => {
   // const visiblePages = pages.filter((page) => )
@@ -67,7 +65,13 @@ const menuCfg = (role) => {
   return result
 }
 
-const MenuItem = ({ item, active = false, badge, pending = false, onNavigate }) => {
+const MenuItem = ({
+  item,
+  active = false,
+  badge,
+  pending = false,
+  onNavigate,
+}) => {
   return (
     <Link
       href={`/cabinet/${item.href}`}
@@ -93,14 +97,21 @@ const MenuItem = ({ item, active = false, badge, pending = false, onNavigate }) 
           </div>
         )}
         {pending && (
-          <span className="ml-auto h-2 w-2 min-h-2 min-w-2 animate-pulse rounded-full bg-white/80" />
+          <span className="ml-auto h-2 min-h-2 w-2 min-w-2 animate-pulse rounded-full bg-white/80" />
         )}
       </div>
     </Link>
   )
 }
 
-const Menu = ({ menuCfg, activePage, pendingPage, onNavigate, pageBadges }) => {
+const Menu = ({
+  menuCfg,
+  activePage,
+  pendingPage,
+  onNavigate,
+  pageBadges,
+  impersonationActive,
+}) => {
   const [menuOpen, setMenuOpen] = useAtom(menuOpenAtom)
   const [openedMenuIndex, setOpenedMenuIndex] = useState(1)
 
@@ -181,7 +192,7 @@ const Menu = ({ menuCfg, activePage, pendingPage, onNavigate, pageBadges }) => {
                         {item.items[0].name}
                       </h3>
                       {pendingPage === item.items[0].href && (
-                        <span className="h-2 w-2 min-h-2 min-w-2 animate-pulse rounded-full bg-current/80" />
+                        <span className="h-2 min-h-2 w-2 min-w-2 animate-pulse rounded-full bg-current/80" />
                       )}
                     </Link>
                   ) : (
@@ -249,6 +260,9 @@ const Menu = ({ menuCfg, activePage, pendingPage, onNavigate, pageBadges }) => {
               </div>
             )
           })}
+      {impersonationActive ? (
+        <ImpersonationReturnButton onRestore={() => setMenuOpen(false)} />
+      ) : null}
     </nav>
   )
 }
@@ -374,13 +388,14 @@ const SideBar = ({ page }) => {
         initial={'min'}
         layout
       >
-        <div className="flex w-full flex-col overflow-x-hidden">
+        <div className="flex h-full w-full flex-col overflow-x-hidden">
           <Menu
             menuCfg={roleMenuCfg}
             activePage={page}
             pendingPage={pendingPage}
             onNavigate={handleNavigate}
             pageBadges={{ eventsUpcoming: overdueAdditionalCount }}
+            impersonationActive={loggedUser?.impersonation?.active === true}
           />
         </div>
       </motion.div>
