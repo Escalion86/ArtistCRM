@@ -109,6 +109,7 @@ export const POST = async (req) => {
       phone,
       whatsapp,
       telegram,
+      source: 'public_api',
     })
 
     const event = await createPublicLeadDraftEvent({

@@ -30,7 +30,7 @@ import {
 } from '@helpers/aiEventDraftContacts.mjs'
 import { applyAiEventDraftHints } from '@helpers/aiEventDraftHints.mjs'
 import dbConnect from '@server/dbConnect'
-import createHistorySafely from '@server/historyAudit'
+import { recordActivityHistory } from '@server/activityHistory'
 import { getTenantAiSettings } from '@server/aiSettings'
 import {
   getAiBalanceErrorMessage,
@@ -216,6 +216,9 @@ const analyzeCalendarItem = async ({
 
 const resolveClient = async ({
   tenantId,
+  req,
+  context,
+  batchId,
   clients,
   sourceText,
   fields,
@@ -254,6 +257,16 @@ const resolveClient = async ({
       tenantId,
     })
     clients.push(client.toObject())
+    await recordActivityHistory({
+      req,
+      context,
+      entityType: 'client',
+      entityId: client._id,
+      operation: 'create',
+      after: client.toJSON(),
+      source: 'google_import',
+      batchId,
+    })
   }
 
   if (client?._id) fields.clientId = String(client._id)
@@ -479,6 +492,9 @@ export const POST = async (req) => {
         const warnings = [...analysis.warnings]
         const client = await resolveClient({
           tenantId: context.tenantId,
+          req,
+          context,
+          batchId: groupId,
           clients,
           sourceText: analysis.sourceText,
           fields: analysis.fields,
@@ -574,14 +590,19 @@ export const POST = async (req) => {
     }
 
     if (createdEvents.length > 0) {
-      await createHistorySafely(
-        {
-          schema: Events.collection.collectionName,
-          action: 'add',
-          data: createdEvents,
-          userId: String(context.user._id),
-        },
-        'events.googleImport'
+      await Promise.all(
+        createdEvents.map((event) =>
+          recordActivityHistory({
+            req,
+            context,
+            entityType: 'event',
+            entityId: event._id,
+            operation: 'create',
+            after: event,
+            source: 'google_import',
+            batchId: groupId,
+          })
+        )
       )
     }
     return NextResponse.json({

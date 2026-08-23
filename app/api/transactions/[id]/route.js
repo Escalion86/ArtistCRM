@@ -10,6 +10,7 @@ import {
 } from '@server/transactionsCore'
 import { OBLIGATION_PAYMENT_METHOD } from '@helpers/transactionObligation'
 import { recordSyncTombstone } from '@server/mobile/sync'
+import { recordActivityHistory } from '@server/activityHistory'
 
 const TRANSACTION_TYPES = new Set(['income', 'expense'])
 const TRANSACTION_PAYMENT_METHODS = new Set([
@@ -34,7 +35,8 @@ const normalizeCategory = (value) => {
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const { tenantId } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId } = context
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -114,12 +116,23 @@ export const PUT = async (req, { params }) => {
     }
   )
 
+  await recordActivityHistory({
+    req,
+    context,
+    entityType: 'transaction',
+    entityId: transaction._id,
+    operation: 'update',
+    before: existing,
+    after: transaction.toJSON?.() ?? transaction,
+  })
+
   return NextResponse.json({ success: true, data: transaction }, { status: 200 })
 }
 
 export const DELETE = async (req, { params }) => {
   const { id } = await params
-  const { tenantId } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId } = context
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -133,6 +146,14 @@ export const DELETE = async (req, { params }) => {
       { success: false, error: 'Транзакция не найдена' },
       { status: 404 }
     )
+  await recordActivityHistory({
+    req,
+    context,
+    entityType: 'transaction',
+    entityId: deleted._id,
+    operation: 'delete',
+    before: deleted.toJSON?.() ?? deleted,
+  })
   await recordSyncTombstone({
     tenantId,
     entityType: 'transactions',

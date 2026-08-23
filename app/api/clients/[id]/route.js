@@ -6,6 +6,7 @@ import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import { buildTenantSafeUpdate } from '@server/tenantSafeUpdate'
 import { resetClientMessengerAvailability } from '@helpers/clientMessengerAvailability'
+import { recordActivityHistory } from '@server/activityHistory'
 import {
   recordSyncTombstone,
   withSyncVersionIncrement,
@@ -13,7 +14,8 @@ import {
 
 export const GET = async (req, { params }) => {
   const { id } = await params
-  const { tenantId } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId } = context
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -33,7 +35,8 @@ export const GET = async (req, { params }) => {
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const { tenantId } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId } = context
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -42,9 +45,7 @@ export const PUT = async (req, { params }) => {
   }
   await dbConnect()
 
-  const existingClient = await Clients.findOne({ _id: id, tenantId })
-    .select('phone telegram')
-    .lean()
+  const existingClient = await Clients.findOne({ _id: id, tenantId }).lean()
   if (!existingClient)
     return NextResponse.json(
       { success: false, error: 'Клиент не найден' },
@@ -67,12 +68,23 @@ export const PUT = async (req, { params }) => {
       { status: 404 }
     )
 
+  await recordActivityHistory({
+    req,
+    context,
+    entityType: 'client',
+    entityId: client._id,
+    operation: 'update',
+    before: existingClient,
+    after: client.toJSON?.() ?? client,
+  })
+
   return NextResponse.json({ success: true, data: client }, { status: 200 })
 }
 
 export const DELETE = async (req, { params }) => {
   const { id } = await params
-  const { tenantId } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId } = context
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -109,6 +121,14 @@ export const DELETE = async (req, { params }) => {
       { success: false, error: 'Клиент не найден' },
       { status: 404 }
     )
+  await recordActivityHistory({
+    req,
+    context,
+    entityType: 'client',
+    entityId: deleted._id,
+    operation: 'delete',
+    before: deleted.toJSON?.() ?? deleted,
+  })
   await recordSyncTombstone({
     tenantId,
     entityType: 'clients',

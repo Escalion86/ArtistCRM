@@ -4,7 +4,7 @@ import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import { updateEventInCalendar } from '@server/CRUD'
-import createHistorySafely from '@server/historyAudit'
+import { recordActivityHistory } from '@server/activityHistory'
 import compareObjectsWithDif from '@helpers/compareObjectsWithDif'
 import {
   notifyTaskCompleted,
@@ -13,7 +13,8 @@ import {
 import { applyTaskAction, isTaskAction } from '@server/mobile/taskActions'
 
 export const POST = async (request) => {
-  const { tenantId, user } = await getRequestContext(request)
+  const context = await getRequestContext(request)
+  const { tenantId, user } = context
   if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -62,18 +63,22 @@ export const POST = async (request) => {
   event.syncVersion = Number(event.syncVersion || 1) + 1
   await event.save()
   const changes = compareObjectsWithDif(oldEvent, event.toObject())
-  if (Object.keys(changes).length > 0) {
-    await createHistorySafely(
-      {
-        schema: Events.collection.collectionName,
-        action: 'update',
-        data: [changes],
-        userId: String(user._id),
-        difference: true,
-      },
-      'mobile.tasks.action'
-    )
-  }
+  if (Object.keys(changes).length > 0)
+    await recordActivityHistory({
+      req: request,
+      context,
+      entityType: 'event',
+      entityId: event._id,
+      operation: 'update',
+      before: oldEvent,
+      after: event.toObject(),
+      semanticAction:
+        action === 'complete'
+          ? 'task_completed'
+          : action === 'tomorrow' || action === 'plus3days'
+            ? 'task_rescheduled'
+            : 'task_updated',
+    })
 
   if (event.calendarImportChecked && access?.allowCalendarSync) {
     try {

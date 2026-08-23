@@ -115,9 +115,15 @@ const callResource = async ({ req, operation, resource }) => {
   delete payload._id
   delete payload.tenantId
   delete payload.syncVersion
+  const headers = new Headers(req.headers)
+  headers.set('x-artistcrm-history-source', 'android')
+  headers.set('x-artistcrm-history-operation-id', operation.operationId)
+  if (operation.createdAt) {
+    headers.set('x-artistcrm-history-occurred-at', String(operation.createdAt))
+  }
   const request = new Request(req.url, {
     method: method === 'create' ? 'POST' : method === 'delete' ? 'DELETE' : 'PUT',
-    headers: req.headers,
+    headers,
     body: method === 'delete' ? undefined : JSON.stringify(payload),
   })
   if (method === 'create') return resource.create(request)

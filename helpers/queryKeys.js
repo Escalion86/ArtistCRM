@@ -20,4 +20,5 @@ export const queryKeys = {
   tariff: (tariffId) => ['tariff', tariffId],
   siteSettings: ['siteSettings'],
   loggedUser: ['loggedUser'],
+  histories: (params = {}) => ['histories', params],
 }

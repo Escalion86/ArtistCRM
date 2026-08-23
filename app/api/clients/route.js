@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server'
 import Clients from '@models/Clients'
 import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
+import { recordActivityHistory } from '@server/activityHistory'
 
 export const GET = async (req) => {
-  const { tenantId } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId } = context
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -18,7 +20,8 @@ export const GET = async (req) => {
 
 export const POST = async (req) => {
   const body = await req.json()
-  const { tenantId } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId } = context
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -27,6 +30,15 @@ export const POST = async (req) => {
   }
   await dbConnect()
   const client = await Clients.create({ ...body, tenantId })
+
+  await recordActivityHistory({
+    req,
+    context,
+    entityType: 'client',
+    entityId: client._id,
+    operation: 'create',
+    after: client.toJSON(),
+  })
 
   return NextResponse.json({ success: true, data: client }, { status: 201 })
 }

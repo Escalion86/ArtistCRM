@@ -2,7 +2,7 @@ import SiteSettings from '@models/SiteSettings'
 import Clients from '@models/Clients'
 import Events from '@models/Events'
 import getUserTariffAccess from '@server/getUserTariffAccess'
-import createHistorySafely from '@server/historyAudit'
+import { recordActivityHistory } from '@server/activityHistory'
 import {
   buildPublicLeadAddress,
   buildPublicLeadInitialContactEvent,
@@ -161,6 +161,7 @@ const upsertPublicLeadClient = async ({
   phone,
   whatsapp,
   telegram,
+  source = 'public_api',
 }) => {
   const phoneDigits = normalizePhone(phone)
   const phoneNumber =
@@ -182,8 +183,18 @@ const upsertPublicLeadClient = async ({
       telegram: normalizeText(telegram, 120),
       clientType: 'none',
     })
+    await recordActivityHistory({
+      tenantId,
+      entityType: 'client',
+      entityId: client._id,
+      operation: 'create',
+      after: client.toJSON(),
+      source,
+    })
     return client
   }
+
+  const before = client.toObject()
 
   const nextName = normalizeText(name, 120)
   const nextTelegram = normalizeText(telegram, 120)
@@ -204,7 +215,18 @@ const upsertPublicLeadClient = async ({
     client.whatsapp = nextWhatsapp
     hasChanges = true
   }
-  if (hasChanges) await client.save()
+  if (hasChanges) {
+    await client.save()
+    await recordActivityHistory({
+      tenantId,
+      entityType: 'client',
+      entityId: client._id,
+      operation: 'update',
+      before,
+      after: client.toJSON(),
+      source,
+    })
+  }
 
   return client
 }
@@ -257,15 +279,15 @@ const createPublicLeadDraftEvent = async ({
     },
   })
 
-  await createHistorySafely(
-    {
-      schema: Events.collection.collectionName,
-      action: 'add',
-      data: [event.toJSON()],
-      userId: historyUserId,
-    },
-    'public-lead.create'
-  )
+  const source = historyUserId === 'public-api-tilda' ? 'tilda' : 'public_api'
+  await recordActivityHistory({
+    tenantId,
+    entityType: 'event',
+    entityId: event._id,
+    operation: 'create',
+    after: event.toJSON(),
+    source,
+  })
 
   return event
 }

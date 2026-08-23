@@ -10,7 +10,7 @@ import {
 } from '@server/CRUD'
 import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
-import createHistorySafely from '@server/historyAudit'
+import { recordActivityHistory } from '@server/activityHistory'
 import {
   notifyTaskCreated,
   notifyTaskCompleted,
@@ -103,7 +103,8 @@ const getNextStatus = (current, body) => {
 
 export const GET = async (req, { params }) => {
   const { id } = await params
-  const { tenantId, user } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId, user } = context
   if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -126,7 +127,8 @@ export const GET = async (req, { params }) => {
 export const PUT = async (req, { params }) => {
   const { id } = await params
   const body = await req.json()
-  const { tenantId, user } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId, user } = context
   if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -315,16 +317,15 @@ export const PUT = async (req, { params }) => {
 
   const changes = compareObjectsWithDif(oldEvent, event.toJSON?.() ?? event)
   if (Object.keys(changes).length > 0) {
-    await createHistorySafely(
-      {
-        schema: Events.collection.collectionName,
-        action: 'update',
-        data: [changes],
-        userId: String(user._id),
-        difference: true,
-      },
-      'events.update'
-    )
+    await recordActivityHistory({
+      req,
+      context,
+      entityType: 'event',
+      entityId: event._id,
+      operation: 'update',
+      before: oldEvent,
+      after: event.toJSON?.() ?? event,
+    })
   }
 
   let responseEvent = event
@@ -420,7 +421,8 @@ export const PUT = async (req, { params }) => {
 
 export const DELETE = async (req, { params }) => {
   const { id } = await params
-  const { tenantId, user } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId, user } = context
   if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -447,15 +449,14 @@ export const DELETE = async (req, { params }) => {
       { success: false, error: 'Мероприятие не найдено' },
       { status: 404 }
     )
-  await createHistorySafely(
-    {
-      schema: Events.collection.collectionName,
-      action: 'delete',
-      data: [deleted.toJSON?.() ?? deleted],
-      userId: String(user._id),
-    },
-    'events.delete'
-  )
+  await recordActivityHistory({
+    req,
+    context,
+    entityType: 'event',
+    entityId: deleted._id,
+    operation: 'delete',
+    before: deleted.toJSON?.() ?? deleted,
+  })
   await recordSyncTombstone({
     tenantId,
     entityType: 'events',

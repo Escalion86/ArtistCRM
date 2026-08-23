@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import Events from '@models/Events'
 import dbConnect from '@server/dbConnect'
 import { updateEventInCalendar } from '@server/CRUD'
-import createHistorySafely from '@server/historyAudit'
+import { recordActivityHistory } from '@server/activityHistory'
 import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import { notifyTaskCreated } from '@server/taskPushNotifications'
@@ -330,7 +330,8 @@ export const GET = async (req) => {
 
 export const POST = async (req) => {
   const body = await req.json()
-  const { tenantId, user } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId, user } = context
   if (!tenantId || !user?._id) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -414,15 +415,14 @@ export const POST = async (req) => {
     userId: user._id,
     hasNextAction: event.additionalEvents?.some((item) => item && !item.done),
   })
-  await createHistorySafely(
-    {
-      schema: Events.collection.collectionName,
-      action: 'add',
-      data: [event.toJSON()],
-      userId: String(user._id),
-    },
-    'events.create'
-  )
+  await recordActivityHistory({
+    req,
+    context,
+    entityType: 'event',
+    entityId: event._id,
+    operation: 'create',
+    after: event.toJSON(),
+  })
   let responseEvent = event
   if (!event?.importedFromCalendar && access?.allowCalendarSync) {
     try {

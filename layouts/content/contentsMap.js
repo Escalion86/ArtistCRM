@@ -21,6 +21,7 @@ import UsersContent from './UsersContent'
 import ProfileContent from './ProfileContent'
 import TariffsContent from './TariffsContent'
 import TariffSelectContent from './TariffSelectContent'
+import HistoryContent from './HistoryContent'
 
 const UpcomingEventsContent = (props) => (
   <EventsContent filter="upcoming" {...props} />
@@ -51,6 +52,10 @@ export const CONTENTS = Object.freeze({
   transactions: {
     Component: TransactionsContent,
     name: 'Транзакции',
+  },
+  history: {
+    Component: HistoryContent,
+    name: 'История действий',
   },
   events: {
     Component: UpcomingEventsContent,

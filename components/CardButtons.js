@@ -200,7 +200,7 @@ const CardButtons = ({
             showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
           openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
           additionalEvents: showAdditionalEventsAction,
-          historyBtn: showHistoryButton && typeOfItem === 'event',
+          historyBtn: showHistoryButton && ['event', 'client', 'transaction'].includes(typeOfItem),
           statusBtn: canEditStatus,
           deleteBtn:
             showDeleteButton && canManageItem && item.status !== 'closed',
@@ -212,7 +212,7 @@ const CardButtons = ({
             showCloneButton && typeOfItem !== 'user' && typeOfItem !== 'tariff',
           openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
           additionalEvents: showAdditionalEventsAction,
-          historyBtn: showHistoryButton && typeOfItem === 'event',
+          historyBtn: showHistoryButton && ['event', 'client', 'transaction'].includes(typeOfItem),
           statusBtn: canEditStatus,
           deleteBtn:
             showDeleteButton && canManageItem && item.status !== 'closed',
@@ -231,7 +231,7 @@ const CardButtons = ({
         addToCalendar: typeOfItem === 'event',
         openCalendar: typeOfItem === 'event' && Boolean(calendarLink),
         additionalEvents: showAdditionalEventsAction,
-        historyBtn: showHistoryButton && typeOfItem === 'event',
+        historyBtn: showHistoryButton && ['event', 'client', 'transaction'].includes(typeOfItem),
         upBtn: onUpClick && upDownSee,
         downBtn: onDownClick && upDownSee,
         editBtn: showEditButton && canManageItem,

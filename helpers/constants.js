@@ -11,6 +11,7 @@ import {
   faPhone,
   faPlay,
   faVenus,
+  faClockRotateLeft,
 } from '@fortawesome/free-solid-svg-icons'
 
 import {
@@ -607,6 +608,13 @@ export const pages = [
     icon: faMoneyBill,
   },
   {
+    id: 16,
+    group: 11,
+    name: 'История действий',
+    href: 'history',
+    icon: faClockRotateLeft,
+  },
+  {
     id: 12,
     group: 7,
     name: 'Статистика',
@@ -751,6 +759,11 @@ export const pagesGroups = [
     id: 5,
     name: 'Транзакции',
     icon: faMoneyBill,
+  },
+  {
+    id: 11,
+    name: 'История действий',
+    icon: faClockRotateLeft,
   },
   {
     id: 7,

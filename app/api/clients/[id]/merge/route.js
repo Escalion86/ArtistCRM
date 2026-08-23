@@ -14,6 +14,7 @@ import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import { recordSyncTombstone } from '@server/mobile/sync'
 import { recommendClientMergeTargetId } from '@helpers/clientMergeDirection'
+import { recordActivityHistory } from '@server/activityHistory'
 
 const isObjectId = (value) =>
   Boolean(value && mongoose.Types.ObjectId.isValid(String(value)))
@@ -219,7 +220,8 @@ export const GET = async (req, { params }) => {
 }
 
 export const POST = async (req, { params }) => {
-  const { tenantId } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId } = context
   if (!tenantId) return jsonError('Не авторизован', 401, 'unauthorized')
 
   const routeParams = await params
@@ -334,6 +336,17 @@ export const POST = async (req, { params }) => {
   } catch (error) {
     console.error('Не удалось записать tombstone объединённого клиента', error)
   }
+
+  await recordActivityHistory({
+    req,
+    context,
+    entityType: 'client',
+    entityId: updatedClient._id,
+    operation: 'merge',
+    before: targetClient,
+    after: updatedClient.toJSON?.() ?? updatedClient,
+    summary: `Объединены клиенты: ${[duplicateClient.firstName, duplicateClient.secondName].filter(Boolean).join(' ') || 'дубликат'} → ${[updatedClient.firstName, updatedClient.secondName].filter(Boolean).join(' ') || 'клиент'}`,
+  })
 
   return NextResponse.json(
     {

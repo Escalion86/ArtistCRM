@@ -46,7 +46,7 @@ import tariffFunc from './modalsFunc/tariffFunc'
 // import eventSignUpToReserveAfterError from './modalsFunc/eventSignUpToReserveAfterError'
 // import roleFunc from './modalsFunc/roleFunc'
 // import browseLocationFunc from './modalsFunc/browseLocationFunc'
-import eventHistoryFunc from './modalsFunc/eventHistoryFunc'
+import historyFunc from './modalsFunc/historyFunc'
 import clientFunc from './modalsFunc/clientFunc'
 import clientContactMergeFunc from './modalsFunc/clientContactMergeFunc'
 import clientViewFunc from './modalsFunc/clientViewFunc'
@@ -197,6 +197,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
             ...props,
           })
         ),
+      history: (transactionId) => addModal(historyFunc('transaction', transactionId)),
     },
     event: {
       add: (eventId) => addModal(eventFunc(eventId, true)),
@@ -213,7 +214,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
         ),
       edit: (eventId, options) =>
         addModal(eventFunc(eventId, false, null, options)),
-      history: (eventId) => addModal(eventHistoryFunc(eventId)),
+      history: (eventId) => addModal(historyFunc('event', eventId)),
       statusEdit: (eventId) => addModal(eventStatusEditFunc(eventId)),
       close: (eventId) =>
         addModal({
@@ -422,6 +423,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
         }),
     },
     client: {
+      history: (clientId) => addModal(historyFunc('client', clientId)),
       edit: (clientId, onSuccess) =>
         addModal(clientFunc(clientId, false, onSuccess)),
       add: (onSuccess, options) =>

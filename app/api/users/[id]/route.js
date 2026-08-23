@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import Users from '@models/Users'
+import Histories from '@models/Histories'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
 import bcrypt from 'bcryptjs'
@@ -352,6 +353,9 @@ export const DELETE = async (req, { params }) => {
       { success: false, error: 'Пользователь не найден' },
       { status: 404 }
     )
+  }
+  if (String(deleted.tenantId || deleted._id) === String(deleted._id)) {
+    await Histories.deleteMany({ tenantId: deleted._id })
   }
   return NextResponse.json({ success: true }, { status: 200 })
 }

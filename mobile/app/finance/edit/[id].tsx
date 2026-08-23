@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   TRANSACTION_CATEGORIES,
@@ -158,10 +159,14 @@ export default function TransactionEditScreen() {
       },
     },
   ])
+  const openMenu = () => Alert.alert('Действия', '', [
+    { text: 'История действий', onPress: () => router.push({ pathname: '/history', params: { entityType: 'transaction', entityId: params.id } } as never) },
+    { text: 'Отмена', style: 'cancel' },
+  ])
 
   return (
     <Screen>
-      <PageHeader title={isNew ? 'Новая транзакция' : 'Редактирование'} subtitle="Доход, расход или обязательство" />
+      <PageHeader title={isNew ? 'Новая транзакция' : 'Редактирование'} subtitle="Доход, расход или обязательство" action={!isNew ? <Pressable style={styles.menu} onPress={openMenu}><MaterialCommunityIcons name="dots-vertical" size={22} color={colors.primary} /></Pressable> : undefined} />
       <Surface>
         <SectionTitle>Тип</SectionTitle>
         <View style={styles.options}>
@@ -210,6 +215,7 @@ const Choice = ({ active, label, onPress }: { active: boolean; label: string; on
 )
 
 const styles = StyleSheet.create({
+  menu: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   horizontalOptions: { gap: 6, paddingRight: spacing.md },
   option: { minHeight: 42, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted },

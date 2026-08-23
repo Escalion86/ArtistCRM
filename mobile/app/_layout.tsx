@@ -87,7 +87,9 @@ const RootNavigator = () => {
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
         }}
-      />
+      >
+        <Stack.Screen name="history" options={{ presentation: 'modal' }} />
+      </Stack>
     </>
   )
 }

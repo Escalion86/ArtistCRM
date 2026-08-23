@@ -222,6 +222,7 @@ export const POST = async (req) => {
       phone: normalized.phone,
       whatsapp: normalized.whatsapp,
       telegram: normalized.telegram,
+      source: 'tilda',
     })
 
     const event = await createPublicLeadDraftEvent({

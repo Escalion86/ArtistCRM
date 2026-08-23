@@ -6,6 +6,7 @@ import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import { normalizeOptionalRelationId } from '@server/transactionsCore'
 import { OBLIGATION_PAYMENT_METHOD } from '@helpers/transactionObligation'
+import { recordActivityHistory } from '@server/activityHistory'
 
 const CATEGORY_ALIASES = {
   advance: 'deposit',
@@ -48,7 +49,8 @@ export const GET = async (req) => {
 
 export const POST = async (req) => {
   const body = await req.json()
-  const { tenantId } = await getRequestContext(req)
+  const context = await getRequestContext(req)
+  const { tenantId } = context
   if (!tenantId) {
     return NextResponse.json(
       { success: false, error: 'Не авторизован' },
@@ -105,6 +107,15 @@ export const POST = async (req) => {
     date: body.date ? new Date(body.date) : new Date(),
     comment: body.comment ?? '',
     paymentMethod,
+  })
+
+  await recordActivityHistory({
+    req,
+    context,
+    entityType: 'transaction',
+    entityId: transaction._id,
+    operation: 'create',
+    after: transaction.toJSON(),
   })
 
   if (body.contractSum !== undefined && eventId) {

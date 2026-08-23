@@ -14,6 +14,7 @@ const sections = [
   { title: 'Работа', items: [
     ['phone-log-outline', 'Звонки', 'Журнал, записи и результаты', '/more/calls'],
     ['chart-box-outline', 'Статистика', 'Динамика заявок и маржинальность', '/more/statistics'],
+    ['history', 'История действий', 'Изменения заявок, клиентов и финансов', '/history'],
     ['briefcase-outline', 'Услуги', 'Услуги и группы', '/more/services'],
     ['file-document-outline', 'Документы', 'Шаблоны, договоры и акты', '/more/documents'],
   ] },

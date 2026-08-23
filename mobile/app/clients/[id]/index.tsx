@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import type { Client, Event, Transaction } from '../../../src/shared/domain/types'
@@ -55,13 +55,17 @@ export default function ClientDetailScreen() {
   const income = relatedTransactions.filter((item) => item.type === 'income' && item.paymentMethod !== 'obligation').reduce((sum, item) => sum + Number(item.amount || 0), 0)
   const expense = relatedTransactions.filter((item) => item.type === 'expense' && item.paymentMethod !== 'obligation').reduce((sum, item) => sum + Number(item.amount || 0), 0)
   const obligations = relatedTransactions.filter((item) => item.paymentMethod === 'obligation').reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const openMenu = () => Alert.alert('Действия', '', [
+    { text: 'История действий', onPress: () => router.push({ pathname: '/history', params: { entityType: 'client', entityId: client._id } } as never) },
+    { text: 'Отмена', style: 'cancel' },
+  ])
 
   return (
     <Screen>
       <PageHeader
         title={name}
         subtitle={[clientTypeLabel[client.clientType || 'none'] || client.clientType, client.town].filter(Boolean).join(' · ')}
-        action={<Pressable style={styles.edit} onPress={() => router.push(`/clients/edit/${client._id}` as never)}><MaterialCommunityIcons name="pencil-outline" size={21} color={colors.primary} /></Pressable>}
+        action={<View style={styles.headerActions}><Pressable style={styles.edit} onPress={() => router.push(`/clients/edit/${client._id}` as never)}><MaterialCommunityIcons name="pencil-outline" size={21} color={colors.primary} /></Pressable><Pressable style={styles.edit} onPress={openMenu}><MaterialCommunityIcons name="dots-vertical" size={22} color={colors.primary} /></Pressable></View>}
       />
       {client.syncStatus && client.syncStatus !== 'synced' ? <View style={styles.statusRow}><StatusChip label="Ожидает синхронизации" tone="warning" /></View> : null}
       <View style={styles.actions}>
@@ -142,6 +146,7 @@ const Action = ({ icon, label, onPress }: { icon: keyof typeof MaterialCommunity
 const FinanceValue = ({ label, value, tone }: { label: string; value: number; tone: 'success' | 'danger' | 'warning' }) => <View style={[styles.financeValue, tone === 'success' ? styles.financeSuccess : tone === 'danger' ? styles.financeDanger : styles.financeWarning]}><Text style={styles.financeLabel}>{label}</Text><Text style={styles.financeAmount}>{money(value)}</Text></View>
 
 const styles = StyleSheet.create({
+  headerActions: { flexDirection: 'row', gap: spacing.sm },
   edit: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   statusRow: { flexDirection: 'row' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', gap: spacing.sm },
