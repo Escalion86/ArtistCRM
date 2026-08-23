@@ -21,4 +21,7 @@ export const queryKeys = {
   siteSettings: ['siteSettings'],
   loggedUser: ['loggedUser'],
   histories: (params = {}) => ['histories', params],
+  supportTickets: (params = {}) => ['supportTickets', params],
+  supportTicket: (ticketId) => ['supportTicket', ticketId],
+  supportSummary: ['supportSummary'],
 }

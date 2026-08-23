@@ -4,6 +4,7 @@ import { router } from 'expo-router'
 interface NotificationData {
   type?: string
   url?: string
+  mobileUrl?: string
 }
 
 /**
@@ -15,10 +16,14 @@ export function handleNotificationTap(
   const data = response.notification.request.content.data as
     | NotificationData
     | undefined
-  if (!data?.url) return
+  const target = resolveNotificationUrl(data)
+  if (!target) return
 
-  router.push(data.url as any)
+  router.push(target as any)
 }
+
+export const resolveNotificationUrl = (data?: NotificationData) =>
+  data?.mobileUrl || data?.url || ''
 
 /**
  * Set up notification listeners (call once in app root)

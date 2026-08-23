@@ -12,6 +12,7 @@ import {
   faPlay,
   faVenus,
   faClockRotateLeft,
+  faComments,
 } from '@fortawesome/free-solid-svg-icons'
 
 import {
@@ -726,6 +727,13 @@ export const pages = [
     accessRoles: ['dev', 'admin'],
   },
   {
+    id: 32,
+    group: 12,
+    name: 'Обратная связь',
+    href: 'feedback',
+    icon: faComments,
+  },
+  {
     id: 99,
     group: 99,
     name: 'Разработчик',
@@ -790,6 +798,11 @@ export const pagesGroups = [
     id: 10,
     name: 'Настройки сайта',
     icon: faCog,
+  },
+  {
+    id: 12,
+    name: 'Поддержка',
+    icon: faComments,
   },
   {
     id: 99,

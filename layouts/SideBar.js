@@ -16,6 +16,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAtom, useAtomValue } from 'jotai'
 import { additionalEventsOverdueCountAtom } from '@state/selectors/additionalEventsOverdueCountAtom'
 import ImpersonationReturnButton from '@components/ImpersonationReturnButton'
+import { useSupportSummaryQuery } from '@helpers/useSupportTickets'
 
 const menuCfg = (role) => {
   // const visiblePages = pages.filter((page) => )
@@ -290,6 +291,7 @@ const SideBar = ({ page }) => {
   const device = useAtomValue(windowDimensionsTailwindSelector)
   const loggedUser = useAtomValue(loggedUserAtom)
   const overdueAdditionalCount = useAtomValue(additionalEventsOverdueCountAtom)
+  const supportSummary = useSupportSummaryQuery()
   const role = loggedUser?.role ?? 'user'
   const isMobile =
     device === 'phoneV' || device === 'phoneH' || device === 'tablet'
@@ -394,7 +396,10 @@ const SideBar = ({ page }) => {
             activePage={page}
             pendingPage={pendingPage}
             onNavigate={handleNavigate}
-            pageBadges={{ eventsUpcoming: overdueAdditionalCount }}
+            pageBadges={{
+              eventsUpcoming: overdueAdditionalCount,
+              feedback: supportSummary.data?.data?.unreadCount || 0,
+            }}
             impersonationActive={loggedUser?.impersonation?.active === true}
           />
         </div>

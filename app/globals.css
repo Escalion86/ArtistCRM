@@ -564,6 +564,32 @@ body.theme-dark .action-icon-button {
   --aib-text-hover: #0f172a;
 }
 
+.support-surface {
+  border-color: var(--surface-card-border);
+  background: var(--surface-card-bg);
+  box-shadow: var(--surface-card-shadow);
+}
+
+.support-message-own {
+  border-color: rgba(154, 107, 39, 0.34);
+  background: rgba(154, 107, 39, 0.1);
+}
+
+.support-message-other {
+  border-color: #dedbd3;
+  background: #ffffff;
+}
+
+body.theme-dark .support-message-own {
+  border-color: rgba(201, 168, 106, 0.42);
+  background: rgba(201, 168, 106, 0.14);
+}
+
+body.theme-dark .support-message-other {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(30, 41, 59, 0.45);
+}
+
 body.theme-dark .action-icon-button:hover {
   background-color: var(--aib-bg-hover);
   color: var(--aib-text-hover);
