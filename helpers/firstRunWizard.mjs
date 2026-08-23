@@ -15,6 +15,7 @@ export const shouldOpenFirstRunWizard = ({
   alreadyShown = false,
 } = {}) => {
   if (!loggedUser?._id || alreadyShown) return false
+  if (loggedUser?.impersonation?.active) return false
   const custom = siteSettings?.custom ?? {}
   const manualToken = getCustomValue(custom, FIRST_RUN_WIZARD_SHOW_TOKEN_KEY)
   if (manualToken) return true

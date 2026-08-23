@@ -12,10 +12,18 @@ test('contacts Telegram buttons use Telegram app deep links only', async () => {
 })
 
 test('phone messenger fallbacks can be confirmed or hidden everywhere for clients', async () => {
-  const [source, eventCardSource, clientSchemaSource] = await Promise.all([
+  const [
+    source,
+    eventCardSource,
+    clientSchemaSource,
+    modalSource,
+    modalButtonsSource,
+  ] = await Promise.all([
     readFile('components/ContactsIconsButtons.js', 'utf8'),
     readFile('layouts/cards/EventCard.js', 'utf8'),
     readFile('schemas/clientsSchema.js', 'utf8'),
+    readFile('layouts/modals/Modal.js', 'utf8'),
+    readFile('layouts/modals/ModalButtons.js', 'utf8'),
   ])
 
   assert.match(source, /!user\?\.whatsappPhoneUnavailable/)
@@ -27,6 +35,13 @@ test('phone messenger fallbacks can be confirmed or hidden everywhere for client
   assert.doesNotMatch(eventCardSource, /handlePhoneMessengerAttempt/)
   assert.match(source, /\[confirmedField\]: targetClient\.phone/)
   assert.match(source, /\[unavailableField\]: true/)
+  assert.match(source, /crossActsAsDecline: false/)
+  assert.match(source, /neutralButtonName: 'Не знаю'/)
+  assert.match(modalSource, /const onCrossClick = crossActsAsDecline/)
+  assert.match(modalSource, /confirmPending \? undefined : onCrossClick/)
+  assert.match(modalSource, /neutralButtonName\s+\? onCloseButtonClick/)
+  assert.match(modalButtonsSource, /onNeutralClick &&/)
+  assert.match(modalButtonsSource, /\{neutralName\}/)
   assert.doesNotMatch(source, /\.\.\.targetClient/)
   assert.match(clientSchemaSource, /whatsappPhoneUnavailable:/)
   assert.match(clientSchemaSource, /telegramPhone:/)

@@ -31,6 +31,7 @@ const Modal = ({
   confirmButtonPendingName,
   confirmButtonName2,
   declineButtonName,
+  neutralButtonName,
   closeButtonName,
   // showConfirm,
   // showConfirm2,
@@ -43,6 +44,7 @@ const Modal = ({
   bottomLeftComponent,
   declineButtonBgClassName,
   crossShow = true,
+  crossActsAsDecline = true,
   waitForConfirm = false,
   contentClassName,
 }) => {
@@ -130,7 +132,10 @@ const Modal = ({
     const parentNode = contentNode?.parentElement
     if (parentNode) parentNode.scrollLeft = 0
     if (typeof window !== 'undefined') {
-      window.scrollTo(window.scrollX > 0 ? 0 : window.pageXOffset, window.scrollY)
+      window.scrollTo(
+        window.scrollX > 0 ? 0 : window.pageXOffset,
+        window.scrollY
+      )
     }
   }, [])
 
@@ -189,11 +194,11 @@ const Modal = ({
     typeof onConfirm2Func === 'function'
       ? () => onConfirm2Func(refreshPage)
       : typeof onConfirm2 === 'function'
-      ? () => {
-          onConfirm2(refreshPage)
-          closeModal()
-        }
-      : undefined
+        ? () => {
+            onConfirm2(refreshPage)
+            closeModal()
+          }
+        : undefined
 
   const onCloseButtonClick =
     typeof onCloseButtonFunc === 'function'
@@ -215,11 +220,11 @@ const Modal = ({
             typeof onDeclineFunc === 'function'
               ? () => onDeclineFunc()
               : typeof onDecline === 'function'
-              ? () => {
-                  onDecline(refreshPage)
-                  closeModal()
-                }
-              : undefined
+                ? () => {
+                    onDecline(refreshPage)
+                    closeModal()
+                  }
+                : undefined
 
           if (onShowOnCloseConfirmDialog) {
             modalsFunc.confirm({
@@ -234,6 +239,10 @@ const Modal = ({
           }
         }
       : undefined
+
+  const onCrossClick = crossActsAsDecline
+    ? onDeclineClick || onCloseButtonClick
+    : onCloseButtonClick
 
   // const closeFunc = () => {
   //   setRendered(false)
@@ -261,8 +270,8 @@ const Modal = ({
     <motion.div
       className={
         cn(
-          'fixed inset-0 z-50 flex w-full justify-center overflow-y-auto bg-gray-800 bg-opacity-80 duration-200 tablet:items-center',
-          subModalText ? 'py-0 tablet:pb-5 tablet:pt-10' : 'py-0 tablet:py-5'
+          'bg-opacity-80 tablet:items-center fixed inset-0 z-50 flex w-full justify-center overflow-y-auto bg-gray-800 duration-200',
+          subModalText ? 'tablet:pb-5 tablet:pt-10 py-0' : 'tablet:py-5 py-0'
         )
         //  + (rendered ? ' opacity-100' : ' opacity-0')
       }
@@ -278,7 +287,7 @@ const Modal = ({
       <motion.div
         className={
           cn(
-            'laptop:w-9/12 relative flex h-[100dvh] min-h-[100dvh] w-full min-w-0 flex-col overflow-hidden border-l border-primary bg-white pb-1 duration-300 tablet:my-auto tablet:h-auto tablet:min-h-0 tablet:max-h-[calc(100dvh-2.5rem)] tablet:w-[95%] tablet:min-w-156 tablet:rounded-lg tablet:pb-2 tablet:overflow-visible',
+            'laptop:w-9/12 border-primary tablet:my-auto tablet:h-auto tablet:min-h-0 tablet:max-h-[calc(100dvh-2.5rem)] tablet:w-[95%] tablet:min-w-156 tablet:rounded-lg tablet:pb-2 tablet:overflow-visible relative flex h-[100dvh] min-h-[100dvh] w-full min-w-0 flex-col overflow-hidden border-l bg-white pb-1 duration-300',
             titleState ? 'pt-3' : 'pt-12'
           )
           // + (rendered ? '' : ' scale-50')
@@ -297,13 +306,13 @@ const Modal = ({
           </div>
         )}
         {TopLeftComponentState && (
-          <div className="absolute left-2 top-2 [&_.card-buttons-compact-trigger]:rounded-full">
+          <div className="absolute top-2 left-2 [&_.card-buttons-compact-trigger]:rounded-full">
             {TopLeftComponentState}
           </div>
         )}
         {crossShow && (
           <Tooltip title="Закрыть">
-            <div className="absolute right-2 top-2">
+            <div className="absolute top-2 right-2">
               <FontAwesomeIcon
                 className={cn(
                   'h-8 w-8 transform text-black duration-200',
@@ -313,21 +322,17 @@ const Modal = ({
                 )}
                 icon={faTimes}
                 // size="1x"
-                onClick={
-                  confirmPending
-                    ? undefined
-                    : onDeclineClick || onCloseButtonClick
-                }
+                onClick={confirmPending ? undefined : onCrossClick}
               />
             </div>
           </Tooltip>
         )}
         {titleState && (
-          <div className="mx-12 mb-3 whitespace-pre-line text-center text-lg font-bold leading-6">
+          <div className="mx-12 mb-3 text-center text-lg leading-6 font-bold whitespace-pre-line">
             {titleState}
           </div>
         )}
-        {text && <div className="mb-3 px-2 leading-4 tablet:px-3">{text}</div>}
+        {text && <div className="tablet:px-3 mb-3 px-2 leading-4">{text}</div>}
         {/* {editMode && onDelete && (
           <FontAwesomeIcon
             className="absolute w-5 h-5 text-red-700 duration-200 transform cursor-pointer top-4 left-4 hover:scale-110"
@@ -358,7 +363,7 @@ const Modal = ({
         <div
           ref={contentRef}
           className={cn(
-            'flex-1 overflow-y-auto overflow-x-hidden px-2 tablet:px-3',
+            'tablet:px-3 flex-1 overflow-x-hidden overflow-y-auto px-2',
             contentClassName
           )}
           onFocusCapture={handleContentFocusCapture}
@@ -405,10 +410,16 @@ const Modal = ({
             confirmName={confirmButtonNameState}
             confirmName2={confirmButtonName2State}
             declineName={declineButtonName}
+            neutralName={neutralButtonName}
             closeButtonName={closeButtonName}
             onConfirmClick={!onlyCloseButtonShowState && onConfirmClick}
             onConfirm2Click={!onlyCloseButtonShowState && onConfirm2Click}
             onDeclineClick={!onlyCloseButtonShowState && onDeclineClick}
+            onNeutralClick={
+              !onlyCloseButtonShowState && neutralButtonName
+                ? onCloseButtonClick
+                : undefined
+            }
             // showConfirm={!onlyCloseButtonShow && showConfirm}
             // showConfirm2={!onlyCloseButtonShow && showConfirm2}
             // showDecline={!onlyCloseButtonShowState && showDecline}

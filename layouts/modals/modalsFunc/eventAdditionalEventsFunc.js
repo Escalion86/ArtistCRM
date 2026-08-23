@@ -128,6 +128,7 @@ const eventAdditionalEventsFunc = (eventId) => {
         onToggleDone: handleToggleAdditionalEventDone,
         onEdit: handleEditAdditionalEvent,
         onDelete: deleteAdditionalEvent,
+        onOpenEvent: () => modalsFunc.event?.view(event?._id),
       })
     }
 

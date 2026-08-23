@@ -136,6 +136,8 @@ const ContactsIconsButtons = ({
         text: `Удалось открыть контакт клиента в ${messengerName} по номеру +${targetClient.phone}?`,
         confirmButtonName: 'Да',
         declineButtonName: 'Нет',
+        neutralButtonName: 'Не знаю',
+        crossActsAsDecline: false,
         waitForConfirm: true,
         onConfirm: async () => {
           const savedClient = await itemsFunc.client.set(

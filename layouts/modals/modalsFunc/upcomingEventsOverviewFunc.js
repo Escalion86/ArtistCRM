@@ -335,6 +335,7 @@ const upcomingEventsOverviewFunc = () => {
         onToggleDone: (index) => toggleAdditionalEventDone(eventId, index),
         onEdit: (index) => editAdditionalEvent(eventId, index),
         onDelete: (index) => deleteAdditionalEvent(eventId, index),
+        onOpenEvent: () => openEvent(eventId),
       })
     }
 

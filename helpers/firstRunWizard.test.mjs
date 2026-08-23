@@ -48,6 +48,22 @@ test('manual token opens wizard even when completed', () => {
   )
 })
 
+test('does not open first-run wizard during developer impersonation', () => {
+  assert.equal(
+    shouldOpenFirstRunWizard({
+      loggedUser: {
+        _id: 'user-1',
+        impersonation: { active: true, originalUserId: 'developer-1' },
+      },
+      siteSettings: {
+        custom: { [FIRST_RUN_WIZARD_SHOW_TOKEN_KEY]: 123 },
+      },
+      alreadyShown: false,
+    }),
+    false
+  )
+})
+
 test('completion patch preserves custom values and clears manual token', () => {
   assert.deepEqual(
     buildFirstRunCompletionCustomPatch({

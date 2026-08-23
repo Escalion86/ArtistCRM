@@ -8,10 +8,12 @@ const ModalButtons = ({
   confirmName = 'Подтвердить',
   confirmName2 = 'Действие',
   declineName = 'Отмена',
+  neutralName,
   closeButtonName = 'Закрыть',
   onConfirmClick,
   onConfirm2Click,
   onDeclineClick,
+  onNeutralClick,
   // showConfirm = true,
   // showConfirm2,
   // showDecline,
@@ -31,6 +33,7 @@ const ModalButtons = ({
     !onConfirmClick &&
     !onConfirm2Click &&
     !onDeclineClick &&
+    !onNeutralClick &&
     !closeButtonShow
   )
     return null
@@ -38,9 +41,9 @@ const ModalButtons = ({
   return (
     <>
       <Divider light thin />
-      <div className="flex flex-wrap justify-between px-2 [&_button]:min-w-20 tablet:px-3 tablet:pt-1">
+      <div className="tablet:px-3 tablet:pt-1 flex flex-wrap justify-between px-2 [&_button]:min-w-20">
         {children}
-        <div className="flex flex-1 flex-wrap justify-end gap-1 tablet:gap-x-2">
+        <div className="tablet:gap-x-2 flex flex-1 flex-wrap justify-end gap-1">
           {isObject(bottomLeftButton) ? (
             <div className="flex-1">{<Button {...bottomLeftButton} />}</div>
           ) : null}
@@ -80,7 +83,11 @@ const ModalButtons = ({
           {declineButtonShow &&
           (onConfirmClick || onConfirm2Click || onDeclineClick) ? (
             <AppButton
-              variant={declineButtonBgClassName === 'bg-danger' ? 'danger' : 'secondary'}
+              variant={
+                declineButtonBgClassName === 'bg-danger'
+                  ? 'danger'
+                  : 'secondary'
+              }
               size="md"
               className="modal-action-button rounded"
               onClick={
@@ -103,6 +110,17 @@ const ModalButtons = ({
                 {closeButtonName}
               </AppButton>
             )
+          )}
+          {onNeutralClick && (
+            <AppButton
+              variant="secondary"
+              size="md"
+              className="modal-action-button rounded"
+              onClick={onNeutralClick}
+              disabled={confirmPending}
+            >
+              {neutralName}
+            </AppButton>
           )}
         </div>
       </div>
