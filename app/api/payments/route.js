@@ -5,6 +5,7 @@ import Users from '@models/Users'
 import Payments from '@models/Payments'
 import SiteSettings from '@models/SiteSettings'
 import { createReferralRewardForBalanceTopup } from '@server/referralRewards'
+import { supportsMongoTransactions } from '@server/mongoCapabilities'
 import mongoose from 'mongoose'
 
 const sanitizeUser = (user) => {
@@ -23,6 +24,9 @@ const logReferralRewardError = (paymentId, error) => {
     },
   })
 }
+
+const withSession = (query, session) =>
+  session ? query.session(session) : query
 
 export const GET = async (req) => {
   const { user, tenantId } = await getTenantContext()
@@ -154,81 +158,99 @@ export const DELETE = async (req) => {
   }
 
   await dbConnect()
-  const session = await mongoose.startSession()
+  const canUseTransactions = supportsMongoTransactions(mongoose.connection)
+  const session = canUseTransactions ? await mongoose.startSession() : null
   let updatedUsers = []
 
-  try {
-    await session.withTransaction(async () => {
-      updatedUsers = []
-      const payment = await Payments.findById(body.paymentId).session(session)
-      if (!payment) {
-        const error = new Error('Пополнение не найдено')
+  const deletePayment = async () => {
+    updatedUsers = []
+    const payment = await withSession(
+      Payments.findById(body.paymentId),
+      session
+    )
+    if (!payment) {
+      const error = new Error('Пополнение не найдено')
+      error.status = 404
+      throw error
+    }
+
+    const isManualTopup =
+      payment.type === 'topup' &&
+      payment.source === 'manual' &&
+      payment.purpose === 'balance' &&
+      payment.status === 'succeeded'
+    const isReferralReward =
+      payment.type === 'topup' &&
+      payment.source === 'system' &&
+      payment.referralReward?.rewardFor === 'balance_topup'
+
+    if (!isManualTopup && !isReferralReward) {
+      const error = new Error(
+        'Можно удалять только ручные пополнения и реферальные бонусы'
+      )
+      error.status = 400
+      throw error
+    }
+
+    const linkedReward = isManualTopup
+      ? await withSession(
+          Payments.findOne({
+            'referralReward.sourcePaymentId': payment._id,
+            'referralReward.rewardFor': 'balance_topup',
+          }),
+          session
+        )
+      : null
+    const paymentsToDelete = [payment, linkedReward].filter(Boolean)
+    const deductions = new Map()
+
+    paymentsToDelete.forEach((item) => {
+      const userId = String(item.userId)
+      deductions.set(
+        userId,
+        Number(deductions.get(userId) ?? 0) + Number(item.amount ?? 0)
+      )
+    })
+
+    const balanceUpdates = []
+    for (const [userId, amount] of deductions) {
+      const balanceUser = await withSession(Users.findById(userId), session)
+      if (!balanceUser) {
+        const error = new Error('Пользователь пополнения не найден')
         error.status = 404
         throw error
       }
-
-      const isManualTopup =
-        payment.type === 'topup' &&
-        payment.source === 'manual' &&
-        payment.purpose === 'balance' &&
-        payment.status === 'succeeded'
-      const isReferralReward =
-        payment.type === 'topup' &&
-        payment.source === 'system' &&
-        payment.referralReward?.rewardFor === 'balance_topup'
-
-      if (!isManualTopup && !isReferralReward) {
+      if (Number(balanceUser.balance ?? 0) < amount) {
         const error = new Error(
-          'Можно удалять только ручные пополнения и реферальные бонусы'
+          `Недостаточно средств для отката у пользователя ${
+            [balanceUser.firstName, balanceUser.secondName]
+              .filter(Boolean)
+              .join(' ') || userId
+          }`
         )
-        error.status = 400
+        error.status = 409
         throw error
       }
+      balanceUpdates.push({ balanceUser, amount })
+    }
 
-      const linkedReward = isManualTopup
-        ? await Payments.findOne({
-            'referralReward.sourcePaymentId': payment._id,
-            'referralReward.rewardFor': 'balance_topup',
-          }).session(session)
-        : null
-      const paymentsToDelete = [payment, linkedReward].filter(Boolean)
-      const deductions = new Map()
+    for (const { balanceUser, amount } of balanceUpdates) {
+      balanceUser.balance = Number(balanceUser.balance ?? 0) - amount
+      await balanceUser.save(session ? { session } : undefined)
+      updatedUsers.push(sanitizeUser(balanceUser))
+    }
 
-      paymentsToDelete.forEach((item) => {
-        const userId = String(item.userId)
-        deductions.set(
-          userId,
-          Number(deductions.get(userId) ?? 0) + Number(item.amount ?? 0)
-        )
-      })
-
-      for (const [userId, amount] of deductions) {
-        const balanceUser = await Users.findById(userId).session(session)
-        if (!balanceUser) {
-          const error = new Error('Пользователь пополнения не найден')
-          error.status = 404
-          throw error
-        }
-        if (Number(balanceUser.balance ?? 0) < amount) {
-          const error = new Error(
-            `Недостаточно средств для отката у пользователя ${
-              [balanceUser.firstName, balanceUser.secondName]
-                .filter(Boolean)
-                .join(' ') || userId
-            }`
-          )
-          error.status = 409
-          throw error
-        }
-        balanceUser.balance = Number(balanceUser.balance ?? 0) - amount
-        await balanceUser.save({ session })
-        updatedUsers.push(sanitizeUser(balanceUser))
-      }
-
-      await Payments.deleteMany({
+    await withSession(
+      Payments.deleteMany({
         _id: { $in: paymentsToDelete.map((item) => item._id) },
-      }).session(session)
-    })
+      }),
+      session
+    )
+  }
+
+  try {
+    if (session) await session.withTransaction(deletePayment)
+    else await deletePayment()
   } catch (error) {
     return NextResponse.json(
       {
@@ -238,7 +260,7 @@ export const DELETE = async (req) => {
       { status: error?.status || 500 }
     )
   } finally {
-    await session.endSession()
+    if (session) await session.endSession()
   }
 
   return NextResponse.json(
