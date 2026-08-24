@@ -2,21 +2,13 @@
 
 import { faComments } from '@fortawesome/free-regular-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAtomValue } from 'jotai'
 import cn from 'classnames'
 import { modalsFuncAtom } from '@state/atoms'
 import { queryKeys } from '@helpers/queryKeys'
 import { clearMessengerUnreadForClient } from '@helpers/messengerUnreadSummary'
-
-const fetchMessengerSummary = async () => {
-  const response = await fetch('/api/clients/messenger-summary')
-  const result = await response.json().catch(() => ({}))
-  if (!response.ok || result?.success === false) {
-    throw new Error(result?.error?.message || 'Не удалось загрузить чаты')
-  }
-  return result?.data
-}
+import { useMessengerSummaryQuery } from '@helpers/useMessengerSummary'
 
 const UnreadBadge = ({ count }) => {
   if (count <= 0) return null
@@ -35,13 +27,8 @@ const ClientChatButton = ({
 }) => {
   const modalsFunc = useAtomValue(modalsFuncAtom)
   const queryClient = useQueryClient()
-  const { data } = useQuery({
-    queryKey: queryKeys.messengerSummary,
-    queryFn: fetchMessengerSummary,
+  const { data } = useMessengerSummaryQuery({
     enabled: Boolean(clientId),
-    staleTime: 15 * 1000,
-    refetchInterval: 30 * 1000,
-    refetchIntervalInBackground: false,
   })
 
   const summary = data?.byClientId?.[String(clientId)]

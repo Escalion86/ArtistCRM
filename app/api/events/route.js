@@ -158,23 +158,27 @@ export const GET = async (req) => {
       const statusTransferred = parseBooleanParam(
         searchParams.get('statusTransferred')
       )
+      const transferredMode = searchParams.get('transferredMode')
+      const hasIndependentTransferredMode = ['all', 'only', 'exclude'].includes(
+        transferredMode
+      )
 
       if (
         statusFinished !== null ||
         statusClosed !== null ||
-        statusTransferred !== null ||
+        (!hasIndependentTransferredMode && statusTransferred !== null) ||
         statusCanceled !== null
       ) {
         const statusConditions = []
         const nonTransferredQuery = { isTransferred: { $ne: true } }
         const withTransferScope = (query) =>
-          statusTransferred === false
+          !hasIndependentTransferredMode && statusTransferred === false
             ? { $and: [query, nonTransferredQuery] }
             : query
 
         if (statusClosed === true)
           statusConditions.push(withTransferScope({ status: 'closed' }))
-        if (statusTransferred === true) {
+        if (!hasIndependentTransferredMode && statusTransferred === true) {
           statusConditions.push({
             $and: [{ isTransferred: true }, { status: { $ne: 'canceled' } }],
           })
@@ -211,6 +215,12 @@ export const GET = async (req) => {
         }
 
         baseConditions.push({ $or: statusConditions })
+      }
+
+      if (transferredMode === 'only') {
+        baseConditions.push({ isTransferred: true })
+      } else if (transferredMode === 'exclude') {
+        baseConditions.push({ isTransferred: { $ne: true } })
       }
 
       const additionalQuick = searchParams.get('additionalQuick')

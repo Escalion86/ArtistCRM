@@ -24,6 +24,10 @@ test('sums unread messages and conversations across providers', () => {
 
 test('clears one client without mutating other summary entries', () => {
   const summary = {
+    unreadItems: [
+      { key: 'client-1', clientId: 'client-1', unreadCount: 4 },
+      { key: 'client-2', clientId: 'client-2', unreadCount: 3 },
+    ],
     byClientId: {
       'client-1': { conversationCount: 2, unreadCount: 4 },
       'client-2': { conversationCount: 1, unreadCount: 3 },
@@ -31,6 +35,7 @@ test('clears one client without mutating other summary entries', () => {
   }
 
   assert.deepEqual(clearMessengerUnreadForClient(summary, 'client-1'), {
+    unreadItems: [{ key: 'client-2', clientId: 'client-2', unreadCount: 3 }],
     byClientId: {
       'client-1': { conversationCount: 2, unreadCount: 0 },
       'client-2': { conversationCount: 1, unreadCount: 3 },

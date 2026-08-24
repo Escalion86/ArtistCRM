@@ -9,13 +9,7 @@ import {
   normalizeText,
   readCustomValue,
 } from '@server/publicLeadService'
-import {
-  getPublicLeadPushState,
-  logPublicLeadPushDiagnostic,
-  logPublicLeadPushError,
-  logPublicLeadPushSkipped,
-  notifyApiLeadCreated,
-} from '@server/publicLeadPush'
+import { notifyIncomingClientMessage } from '@server/messengerPush'
 
 const VK_API_BASE_URL =
   process.env.VK_API_BASE_URL || 'https://api.vk.com/method'
@@ -453,6 +447,7 @@ const upsertVkConversation = async ({
   rawPayload,
   clientId,
   eventId,
+  incrementUnread = true,
 }) => {
   if (!normalized.vkPeerId) return null
 
@@ -478,8 +473,17 @@ const upsertVkConversation = async ({
   return VkConversations.findOneAndUpdate(
     { tenantId, vkPeerId: normalized.vkPeerId },
     existing
-      ? { $set: update, $inc: { unreadCount: 1 } }
-      : { $set: update, $setOnInsert: { status: 'open', unreadCount: 1 } },
+      ? {
+          $set: update,
+          ...(incrementUnread ? { $inc: { unreadCount: 1 } } : {}),
+        }
+      : {
+          $set: update,
+          $setOnInsert: {
+            status: 'open',
+            unreadCount: incrementUnread ? 1 : 0,
+          },
+        },
     { upsert: true, returnDocument: 'after' }
   )
 }
@@ -489,16 +493,16 @@ const saveIncomingVkMessage = async ({
   conversation,
   normalized,
   rawPayload,
+  isNewMessage = true,
 }) => {
   if (!conversation?._id || !normalized.vkPeerId) return null
 
-  if (normalized.vkMessageId) {
-    const existing = await VkMessages.findOne({
+  if (!isNewMessage && normalized.vkMessageId) {
+    return VkMessages.findOne({
       tenantId,
       vkPeerId: normalized.vkPeerId,
       vkMessageId: normalized.vkMessageId,
     }).lean()
-    if (existing) return existing
   }
 
   return VkMessages.create({
@@ -563,55 +567,19 @@ const appendMessageToExistingEvent = async ({ event, normalized, rawPayload }) =
   return event
 }
 
-const notifyVkLead = async ({ tenantId, event, normalized, siteSettings }) => {
-  const configuredPushEnabled =
-    readCustomValue(siteSettings?.custom, 'publicLeadPushEnabled') === true
-  const pushState = await getPublicLeadPushState({
+const notifyVkMessage = async ({ tenantId, event, conversation, normalized }) =>
+  notifyIncomingClientMessage({
     tenantId,
-    configured: configuredPushEnabled,
+    provider: 'vk',
+    messageId: normalized.vkMessageId,
+    messageText: normalized.comment,
+    clientId: conversation?.clientId || event?.clientId,
+    clientName: conversation?.clientName || normalized.name,
+    associatedEvent: event,
+  }).catch((error) => {
+    console.error('Не удалось отправить push о сообщении VK', error)
+    return null
   })
-
-  await logPublicLeadPushDiagnostic({
-    tenantId,
-    event,
-    stage: 'resolved',
-    message: 'Диагностика push по VK-заявке: состояние перед отправкой',
-    meta: {
-      configured: pushState.configured,
-      activeSubscriptions: pushState.activeSubscriptions,
-      enabled: pushState.enabled,
-      skippedReason: pushState.skippedReason,
-      fallbackUsed: pushState.fallbackUsed,
-      endpoint: 'vk_group_webhook',
-    },
-  })
-
-  if (!pushState.enabled) {
-    await logPublicLeadPushSkipped({
-      tenantId,
-      event,
-      reason: pushState.skippedReason,
-      configured: configuredPushEnabled,
-      activeSubscriptions: pushState.activeSubscriptions,
-      fallbackUsed: pushState.fallbackUsed,
-    })
-    return { enabled: false, skippedReason: pushState.skippedReason }
-  }
-
-  try {
-    return await notifyApiLeadCreated({
-      tenantId,
-      event,
-      normalizedData: {
-        phone: normalized.phone,
-        source: 'VK',
-      },
-    })
-  } catch (error) {
-    await logPublicLeadPushError({ tenantId, event, error })
-    return { enabled: true, sent: 0, failed: 1, skippedReason: 'notify_error' }
-  }
-}
 
 const createOrUpdateVkLead = async ({ tenantId, siteSettings, body }) => {
   const normalized = normalizeVkWebhookPayload(body)
@@ -634,6 +602,13 @@ const createOrUpdateVkLead = async ({ tenantId, siteSettings, body }) => {
     tenantId,
     normalized,
   })
+  const isNewMessage = normalized.vkMessageId
+    ? !(await VkMessages.exists({
+        tenantId,
+        vkPeerId: normalized.vkPeerId,
+        vkMessageId: normalized.vkMessageId,
+      }))
+    : true
 
   const existingEvent = normalized.vkPeerId
     ? await Events.findOne({
@@ -654,18 +629,23 @@ const createOrUpdateVkLead = async ({ tenantId, siteSettings, body }) => {
       rawPayload: body,
       clientId: existingEvent.clientId ?? linkedClientId,
       eventId: existingEvent._id,
+      incrementUnread: isNewMessage,
     })
     await saveIncomingVkMessage({
       tenantId,
       conversation,
       normalized: normalizedForEvent,
       rawPayload: body,
+      isNewMessage,
     })
     const event = await appendMessageToExistingEvent({
       event: existingEvent,
       normalized: normalizedForEvent,
       rawPayload: body,
     })
+    if (isNewMessage) {
+      await notifyVkMessage({ tenantId, event, conversation, normalized })
+    }
     return { ok: true, event, created: false, normalized }
   }
 
@@ -692,14 +672,18 @@ const createOrUpdateVkLead = async ({ tenantId, siteSettings, body }) => {
     rawPayload: body,
     clientId: linkedClientId,
     eventId: event._id,
+    incrementUnread: isNewMessage,
   })
   await saveIncomingVkMessage({
     tenantId,
     conversation,
     normalized,
     rawPayload: body,
+    isNewMessage,
   })
-  await notifyVkLead({ tenantId, event, normalized, siteSettings })
+  if (isNewMessage) {
+    await notifyVkMessage({ tenantId, event, conversation, normalized })
+  }
 
   return {
     ok: true,

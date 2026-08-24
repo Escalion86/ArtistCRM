@@ -1,4 +1,4 @@
-const STORAGE_VERSION = 1
+const STORAGE_VERSION = 2
 const STORAGE_PREFIX = 'artistcrm:event-list-filters'
 
 const defaultCheckFilter = () => ({
@@ -11,7 +11,6 @@ export const getStatusFilterDefaults = (filter) => {
     return {
       request: true,
       active: true,
-      transferred: true,
       canceled: false,
     }
   }
@@ -19,7 +18,6 @@ export const getStatusFilterDefaults = (filter) => {
     return {
       finished: true,
       closed: true,
-      transferred: true,
       canceled: false,
     }
   }
@@ -28,16 +26,14 @@ export const getStatusFilterDefaults = (filter) => {
     active: true,
     finished: true,
     closed: true,
-    transferred: false,
     canceled: false,
   }
 }
 
 export const getStatusFilterKeys = (filter) => {
-  if (filter === 'upcoming')
-    return ['request', 'active', 'transferred', 'canceled']
-  if (filter === 'past') return ['finished', 'closed', 'transferred', 'canceled']
-  return ['request', 'active', 'finished', 'closed', 'transferred', 'canceled']
+  if (filter === 'upcoming') return ['request', 'active', 'canceled']
+  if (filter === 'past') return ['finished', 'closed', 'canceled']
+  return ['request', 'active', 'finished', 'closed', 'canceled']
 }
 
 export const getEventListFiltersStorageKey = (filter) =>
@@ -47,7 +43,9 @@ const normalizeCheckFilter = (value) => {
   if (!value || typeof value !== 'object') return defaultCheckFilter()
   const next = {
     checked:
-      typeof value.checked === 'boolean' ? value.checked : defaultCheckFilter().checked,
+      typeof value.checked === 'boolean'
+        ? value.checked
+        : defaultCheckFilter().checked,
     unchecked:
       typeof value.unchecked === 'boolean'
         ? value.unchecked
@@ -77,6 +75,7 @@ export const createEventListFiltersState = (filter) => ({
   selectedTown: '',
   checkFilter: defaultCheckFilter(),
   statusFilter: getStatusFilterDefaults(filter),
+  transferredMode: 'all',
 })
 
 const normalizeEventListFiltersState = (filter, value) => {
@@ -90,6 +89,9 @@ const normalizeEventListFiltersState = (filter, value) => {
         : defaults.selectedTown,
     checkFilter: normalizeCheckFilter(value.checkFilter),
     statusFilter: normalizeStatusFilter(filter, value.statusFilter),
+    transferredMode: ['all', 'only', 'exclude'].includes(value.transferredMode)
+      ? value.transferredMode
+      : defaults.transferredMode,
   }
 }
 

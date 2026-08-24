@@ -7,6 +7,7 @@ import getPersonFullName from '@helpers/getPersonFullName'
 import useSnackbar from '@helpers/useSnackbar'
 import { useClientQuery, useClientsQuery } from '@helpers/useClientsQuery'
 import NovofonCallButton from '@components/NovofonCallButton'
+import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import AudioPlayer from '@components/AudioPlayer'
 import Notice from '@components/Notice'
 import { queryKeys } from '@helpers/queryKeys'
@@ -354,7 +355,12 @@ const clientMessengerFunc = (clientId) => {
               Каналов: {conversations.length}
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2">
+            <ContactsIconsButtons
+              user={client}
+              compactButtons
+              className="my-0 flex-wrap justify-end"
+            />
             <NovofonCallButton
               client={client}
               className="h-8 w-8 rounded border border-gray-200 bg-white"

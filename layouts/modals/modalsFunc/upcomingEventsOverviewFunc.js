@@ -3,6 +3,7 @@ import ModalSection from '@components/ModalSection'
 import QuickActionButtons from '@components/QuickActionButtons'
 import StatusChip from '@components/StatusChip'
 import formatDateTime from '@helpers/formatDateTime'
+import { PROVIDER_LABELS } from '@helpers/incomingMessageNotification'
 import {
   getAdditionalEventSegment,
   getAdditionalEventsListBySegments,
@@ -21,6 +22,7 @@ import { useAtomValue } from 'jotai'
 import { useEffect, useMemo, useState } from 'react'
 import { useEventsQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
+import { useMessengerSummaryQuery } from '@helpers/useMessengerSummary'
 import {
   getEventAddressLine,
   getEventTitle,
@@ -83,6 +85,11 @@ const upcomingEventsOverviewFunc = () => {
     const { data: transactions = [] } = useTransactionsQuery(undefined, {
       enabled: false,
     })
+    const {
+      data: messengerSummary,
+      isLoading: isMessengerSummaryLoading,
+      isError: isMessengerSummaryError,
+    } = useMessengerSummaryQuery()
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const itemsFunc = useAtomValue(itemsFuncAtom)
     const [savingKey, setSavingKey] = useState('')
@@ -103,6 +110,21 @@ const upcomingEventsOverviewFunc = () => {
     const upcomingEvents = useMemo(
       () => getUpcomingEventsByDays(events, 3, now),
       [events, now]
+    )
+    const unreadItems = useMemo(
+      () =>
+        Array.isArray(messengerSummary?.unreadItems)
+          ? messengerSummary.unreadItems
+          : [],
+      [messengerSummary?.unreadItems]
+    )
+    const totalUnreadMessages = useMemo(
+      () =>
+        unreadItems.reduce(
+          (total, item) => total + Math.max(0, Number(item?.unreadCount || 0)),
+          0
+        ),
+      [unreadItems]
     )
     const segmentedItems = useMemo(() => {
       const withType = (items) =>
@@ -250,6 +272,12 @@ const upcomingEventsOverviewFunc = () => {
     const openEvent = (eventId) => {
       closeModal?.()
       setTimeout(() => modalsFunc.event?.view(eventId), 150)
+    }
+
+    const openClientMessenger = (clientId) => {
+      if (!clientId) return
+      closeModal?.()
+      setTimeout(() => modalsFunc.client?.messenger(clientId), 150)
     }
 
     const toggleAdditionalEventDone = async (eventId, additionalEventIndex) => {
@@ -522,6 +550,112 @@ const upcomingEventsOverviewFunc = () => {
             </ModalSection>
           )
         })}
+
+        <ModalSection
+          title="Неотвеченные сообщения"
+          titleClassName="card-title"
+          titleRight={
+            <StatusChip tone={totalUnreadMessages > 0 ? 'overdue' : 'upcoming'}>
+              {totalUnreadMessages}
+            </StatusChip>
+          }
+        >
+          {isMessengerSummaryLoading && unreadItems.length === 0 ? (
+            <div className="mt-2 text-sm text-gray-500">
+              Проверяем входящие сообщения...
+            </div>
+          ) : isMessengerSummaryError ? (
+            <div className="mt-2 text-sm text-red-600">
+              Не удалось загрузить непрочитанные сообщения
+            </div>
+          ) : unreadItems.length === 0 ? (
+            <div className="mt-2 text-sm text-gray-500">
+              Неотвеченных сообщений нет
+            </div>
+          ) : (
+            <div className="mt-2 flex flex-col gap-2">
+              {unreadItems.slice(0, 20).map((item) => {
+                const providerNames = (item.providers || [])
+                  .map((provider) => PROVIDER_LABELS[provider] || provider)
+                  .join(', ')
+                return (
+                  <div
+                    key={item.key}
+                    className="rounded border border-gray-200 px-3 py-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 text-sm font-semibold text-gray-900">
+                        {normalizeText(item.clientName, 'Клиент')}
+                      </div>
+                      <StatusChip tone="overdue">{item.unreadCount}</StatusChip>
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      {providerNames || 'Входящий канал'}
+                      {item.lastMessageAt
+                        ? ` • ${formatDateTime(
+                            item.lastMessageAt,
+                            true,
+                            false,
+                            true,
+                            false
+                          )}`
+                        : ''}
+                    </div>
+                    {item.lastMessageText ? (
+                      <div className="mt-1 line-clamp-2 text-xs text-gray-600">
+                        {normalizeText(item.lastMessageText)}
+                      </div>
+                    ) : null}
+                    {item.event ? (
+                      <div className="mt-2 rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-600">
+                        <span className="font-semibold text-gray-800">
+                          Ближайшее мероприятие:
+                        </span>{' '}
+                        {normalizeText(item.event.eventType, 'Мероприятие')}
+                        {item.event.eventDate
+                          ? ` • ${formatDateTime(
+                              item.event.eventDate,
+                              true,
+                              false,
+                              true,
+                              false
+                            )}`
+                          : ''}
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-xs text-gray-500">
+                        Связанного ближайшего мероприятия нет
+                      </div>
+                    )}
+                    <QuickActionButtons
+                      wrapperClassName="mt-2"
+                      actions={[
+                        item.clientId
+                          ? {
+                              key: 'open-chat',
+                              label: 'Открыть диалог',
+                              variant: 'primary',
+                              className: 'w-full tablet:w-auto',
+                              onClick: () => openClientMessenger(item.clientId),
+                            }
+                          : null,
+                        item.event?._id
+                          ? {
+                              key: 'open-event',
+                              label: 'Открыть мероприятие',
+                              variant: 'secondary',
+                              className: 'w-full tablet:w-auto',
+                              onClick: () => openEvent(item.event._id),
+                            }
+                          : null,
+                      ].filter(Boolean)}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </ModalSection>
 
         {queueSummary.total > 0 ? (
           <ModalSection

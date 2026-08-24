@@ -84,12 +84,6 @@ const STATUS_FILTER_META = {
     idleClass: 'border-sky-200 bg-white text-sky-700 hover:bg-sky-50',
     dotClass: 'bg-sky-600',
   },
-  transferred: {
-    label: 'Переданы',
-    selectedClass: 'border-amber-500 bg-amber-500 text-white',
-    idleClass: 'border-amber-200 bg-white text-amber-700 hover:bg-amber-50',
-    dotClass: 'bg-amber-500',
-  },
   canceled: {
     label: 'Отменены',
     selectedClass: 'border-red-600 bg-red-600 text-white',
@@ -114,6 +108,13 @@ const CHECK_FILTER_META = {
   },
 }
 
+const TRANSFERRED_FILTER_META = {
+  label: 'Переданы',
+  selectedClass: 'border-amber-500 bg-amber-500 text-white',
+  idleClass: 'border-amber-200 bg-white text-amber-700 hover:bg-amber-50',
+  dotClass: 'bg-amber-500',
+}
+
 const PAST_QUICK_FILTERS = [
   {
     key: 'needsClose',
@@ -121,9 +122,9 @@ const PAST_QUICK_FILTERS = [
     statusFilter: {
       finished: true,
       closed: false,
-      transferred: false,
       canceled: false,
     },
+    transferredMode: 'exclude',
   },
   {
     key: 'closed',
@@ -131,9 +132,9 @@ const PAST_QUICK_FILTERS = [
     statusFilter: {
       finished: false,
       closed: true,
-      transferred: false,
       canceled: false,
     },
+    transferredMode: 'all',
   },
   {
     key: 'canceled',
@@ -141,9 +142,9 @@ const PAST_QUICK_FILTERS = [
     statusFilter: {
       finished: false,
       closed: false,
-      transferred: false,
       canceled: true,
     },
+    transferredMode: 'all',
   },
 ]
 
@@ -301,6 +302,24 @@ const EventCheckFilterChips = ({ value, onChange }) => {
   )
 }
 
+const EventTransferredFilterChip = ({ value, onChange }) => {
+  const meta = TRANSFERRED_FILTER_META
+
+  return (
+    <div className="border-t border-gray-200 pt-2">
+      <div className="mb-1.5 text-xs font-medium text-gray-500">Передача</div>
+      <CabinetFilterChip
+        active={value}
+        label={meta.label}
+        selectedClassName={meta.selectedClass}
+        idleClassName={meta.idleClass}
+        dotClassName={meta.dotClass}
+        onClick={() => onChange(!value)}
+      />
+    </div>
+  )
+}
+
 const parseBooleanSearchParam = (value) => {
   if (value === '1' || value === 'true') return true
   if (value === '0' || value === 'false') return false
@@ -427,6 +446,9 @@ const EventsContent = ({
   const [statusFilter, setStatusFilter] = useState(
     () => createEventListFiltersState(filter).statusFilter
   )
+  const [transferredMode, setTransferredMode] = useState(
+    () => createEventListFiltersState(filter).transferredMode
+  )
   const [additionalQuickFilter, setAdditionalQuickFilter] = useState('')
   const [voiceDraftOpen, setVoiceDraftOpen] = useState(false)
   const [textDraftOpen, setTextDraftOpen] = useState(false)
@@ -510,6 +532,7 @@ const EventsContent = ({
     setSelectedTown(nextFilters.selectedTown)
     setCheckFilter(nextFilters.checkFilter)
     setStatusFilter(nextFilters.statusFilter)
+    setTransferredMode(nextFilters.transferredMode)
     setAdditionalQuickFilter('')
   }, [filter])
 
@@ -547,15 +570,19 @@ const EventsContent = ({
         closedParam === null
           ? getStatusFilterDefaults('past').closed
           : closedParam,
-      transferred:
-        transferredParam === null
-          ? getStatusFilterDefaults('past').transferred
-          : transferredParam,
       canceled:
         canceledParam === null
           ? getStatusFilterDefaults('past').canceled
           : canceledParam,
     })
+    const hasSelectedStatus = [finishedParam, closedParam, canceledParam].some(
+      (value) => value === true
+    )
+    if (transferredParam !== null) {
+      setTransferredMode(
+        transferredParam ? (hasSelectedStatus ? 'all' : 'only') : 'exclude'
+      )
+    }
   }, [filter, searchParams])
 
   useEffect(() => {
@@ -570,8 +597,9 @@ const EventsContent = ({
       selectedTown,
       checkFilter,
       statusFilter,
+      transferredMode,
     })
-  }, [checkFilter, filter, selectedTown, statusFilter])
+  }, [checkFilter, filter, selectedTown, statusFilter, transferredMode])
 
   const filteredByCheck = useMemo(() => {
     if (checkFilter.checked && checkFilter.unchecked) return filteredEvents
@@ -586,16 +614,17 @@ const EventsContent = ({
     const allSelected = statusFilterKeys.every((key) =>
       Boolean(statusFilter[key])
     )
-    if (allSelected) return filteredByCheck
-
     const now = new Date()
     return filteredByCheck.filter((event) => {
       const flags = getEventStatusFlags(event, now)
+      if (transferredMode === 'only' && !flags.transferred) return false
+      if (transferredMode === 'exclude' && flags.transferred) return false
+      if (allSelected) return true
       return statusFilterKeys.some(
         (key) => Boolean(statusFilter[key]) && Boolean(flags[key])
       )
     })
-  }, [filteredByCheck, statusFilter, statusFilterKeys])
+  }, [filteredByCheck, statusFilter, statusFilterKeys, transferredMode])
 
   const additionalSummary = useMemo(
     () => getAdditionalEventsSummary(filteredByStatus),
@@ -775,9 +804,16 @@ const EventsContent = ({
       const allStatusSelected = statusFilterKeys.every((key) =>
         Boolean(statusFilter[key])
       )
+      const flags = getEventStatusFlags(event, new Date())
+      if (transferredMode === 'only' && !flags.transferred) {
+        setTransferredMode('all')
+        return
+      }
+      if (transferredMode === 'exclude' && flags.transferred) {
+        setTransferredMode('all')
+        return
+      }
       if (!allStatusSelected) {
-        const now = new Date()
-        const flags = getEventStatusFlags(event, now)
         const isVisible = statusFilterKeys.some(
           (key) => Boolean(statusFilter[key]) && Boolean(flags[key])
         )
@@ -839,6 +875,7 @@ const EventsContent = ({
     pendingOpenId,
     statusFilter,
     statusFilterKeys,
+    transferredMode,
   ])
 
   // Handle openAction=upcomingOverview from push notification click
@@ -963,8 +1000,8 @@ const EventsContent = ({
       countOnly: '1',
       statusFinished: String(Boolean(statusFilter.finished)),
       statusClosed: String(Boolean(statusFilter.closed)),
-      statusTransferred: String(Boolean(statusFilter.transferred)),
       statusCanceled: String(Boolean(statusFilter.canceled)),
+      transferredMode,
     })
 
     if (selectedTown) search.set('town', selectedTown)
@@ -1008,7 +1045,7 @@ const EventsContent = ({
     statusFilter.canceled,
     statusFilter.closed,
     statusFilter.finished,
-    statusFilter.transferred,
+    transferredMode,
   ])
 
   const displayedCount =
@@ -1038,29 +1075,34 @@ const EventsContent = ({
     filter !== 'all' && !isStatusFilterDefault,
     hasUncheckedEvents && !isCheckFilterDefault,
     additionalQuickFilter,
+    transferredMode !== 'all',
   ].some(Boolean)
 
   const resetFilters = useCallback(() => {
     setSelectedTown('')
     setCheckFilter({ checked: true, unchecked: true })
     setStatusFilter(getStatusFilterDefaults(filter))
+    setTransferredMode('all')
     setAdditionalQuickFilter('')
   }, [filter])
 
   const setPastQuickFilter = useCallback((preset) => {
     setStatusFilter(preset.statusFilter)
+    setTransferredMode(preset.transferredMode)
     setAdditionalQuickFilter('')
   }, [])
 
   const activePastQuickFilter = useMemo(() => {
     if (filter !== 'past') return ''
-    const active = PAST_QUICK_FILTERS.find((item) =>
-      Object.entries(item.statusFilter).every(
-        ([key, value]) => Boolean(statusFilter[key]) === value
-      )
+    const active = PAST_QUICK_FILTERS.find(
+      (item) =>
+        item.transferredMode === transferredMode &&
+        Object.entries(item.statusFilter).every(
+          ([key, value]) => Boolean(statusFilter[key]) === value
+        )
     )
     return active?.key ?? ''
-  }, [filter, statusFilter])
+  }, [filter, statusFilter, transferredMode])
 
   const toggleAdditionalQuickFilter = (value) => {
     setAdditionalQuickFilter((prev) => (prev === value ? '' : value))
@@ -1529,6 +1571,12 @@ const EventsContent = ({
                     onChange={setStatusFilter}
                     mode={filter}
                   />
+                  <EventTransferredFilterChip
+                    value={transferredMode === 'only'}
+                    onChange={(active) =>
+                      setTransferredMode(active ? 'only' : 'all')
+                    }
+                  />
                 </div>
               ) : null}
             </div>
@@ -1606,7 +1654,7 @@ const EventsContent = ({
                       className="event-quick-filter-chip tablet:text-sm w-auto min-w-0 flex-none rounded-md px-3 text-xs font-semibold"
                       onClick={() =>
                         router.push(
-                          '/cabinet/eventsPast?statusFinished=true&statusClosed=false&statusCanceled=false'
+                          '/cabinet/eventsPast?statusFinished=true&statusClosed=false&statusTransferred=false&statusCanceled=false'
                         )
                       }
                     >
@@ -1631,8 +1679,13 @@ const EventsContent = ({
                               : 'secondary'
                           }
                           size="sm"
-                          className="event-quick-filter-chip phoneH:w-auto tablet:flex-none tablet:px-3 tablet:text-sm min-w-0 flex-1 rounded-md px-2 text-xs font-semibold"
+                          className={`event-quick-filter-chip phoneH:w-auto tablet:flex-none tablet:px-3 tablet:text-sm min-w-0 flex-auto rounded-md px-2 text-xs font-semibold whitespace-normal ${
+                            activePastQuickFilter === item.key
+                              ? 'event-quick-filter-chip--active'
+                              : ''
+                          }`}
                           onClick={() => setPastQuickFilter(item)}
+                          aria-pressed={activePastQuickFilter === item.key}
                         >
                           {item.label}
                         </AppButton>

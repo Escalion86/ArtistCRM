@@ -11,13 +11,7 @@ import {
   readCustomValue,
   upsertPublicLeadClient,
 } from '@server/publicLeadService'
-import {
-  getPublicLeadPushState,
-  logPublicLeadPushDiagnostic,
-  logPublicLeadPushError,
-  logPublicLeadPushSkipped,
-  notifyApiLeadCreated,
-} from '@server/publicLeadPush'
+import { notifyIncomingClientMessage } from '@server/messengerPush'
 
 const AVITO_API_BASE_URL =
   process.env.AVITO_API_BASE_URL || 'https://api.avito.ru'
@@ -332,6 +326,7 @@ const upsertAvitoConversation = async ({
   rawPayload,
   clientId,
   eventId,
+  incrementUnread = true,
 }) => {
   if (!normalized.avitoChatId) return null
 
@@ -358,8 +353,17 @@ const upsertAvitoConversation = async ({
   const conversation = await AvitoConversations.findOneAndUpdate(
     { tenantId, avitoChatId: normalized.avitoChatId },
     existing
-      ? { $set: update, $inc: { unreadCount: 1 } }
-      : { $set: update, $setOnInsert: { status: 'open', unreadCount: 1 } },
+      ? {
+          $set: update,
+          ...(incrementUnread ? { $inc: { unreadCount: 1 } } : {}),
+        }
+      : {
+          $set: update,
+          $setOnInsert: {
+            status: 'open',
+            unreadCount: incrementUnread ? 1 : 0,
+          },
+        },
     { upsert: true, returnDocument: 'after' }
   )
 
@@ -371,17 +375,17 @@ const saveIncomingAvitoMessage = async ({
   conversation,
   normalized,
   rawPayload,
+  isNewMessage = true,
 }) => {
   if (!conversation?._id || !normalized.avitoChatId) return null
   const sentAt = new Date()
 
-  if (normalized.avitoMessageId) {
-    const existing = await AvitoMessages.findOne({
+  if (!isNewMessage && normalized.avitoMessageId) {
+    return AvitoMessages.findOne({
       tenantId,
       avitoChatId: normalized.avitoChatId,
       avitoMessageId: normalized.avitoMessageId,
     }).lean()
-    if (existing) return existing
   }
 
   return AvitoMessages.create({
@@ -439,55 +443,19 @@ const appendMessageToExistingEvent = async ({ event, normalized, rawPayload }) =
   return event
 }
 
-const notifyAvitoLead = async ({ tenantId, event, normalized, siteSettings }) => {
-  const configuredPushEnabled =
-    readCustomValue(siteSettings?.custom, 'publicLeadPushEnabled') === true
-  const pushState = await getPublicLeadPushState({
+const notifyAvitoMessage = async ({ tenantId, event, conversation, normalized }) =>
+  notifyIncomingClientMessage({
     tenantId,
-    configured: configuredPushEnabled,
+    provider: 'avito',
+    messageId: normalized.avitoMessageId,
+    messageText: normalized.comment,
+    clientId: conversation?.clientId || event?.clientId,
+    clientName: conversation?.clientName || normalized.name,
+    associatedEvent: event,
+  }).catch((error) => {
+    console.error('Не удалось отправить push о сообщении Avito', error)
+    return null
   })
-
-  await logPublicLeadPushDiagnostic({
-    tenantId,
-    event,
-    stage: 'resolved',
-    message: 'Диагностика push по Avito-заявке: состояние перед отправкой',
-    meta: {
-      configured: pushState.configured,
-      activeSubscriptions: pushState.activeSubscriptions,
-      enabled: pushState.enabled,
-      skippedReason: pushState.skippedReason,
-      fallbackUsed: pushState.fallbackUsed,
-      endpoint: 'avito_webhook',
-    },
-  })
-
-  if (!pushState.enabled) {
-    await logPublicLeadPushSkipped({
-      tenantId,
-      event,
-      reason: pushState.skippedReason,
-      configured: configuredPushEnabled,
-      activeSubscriptions: pushState.activeSubscriptions,
-      fallbackUsed: pushState.fallbackUsed,
-    })
-    return { enabled: false, skippedReason: pushState.skippedReason }
-  }
-
-  try {
-    return await notifyApiLeadCreated({
-      tenantId,
-      event,
-      normalizedData: {
-        phone: normalized.phone,
-        source: 'Avito',
-      },
-    })
-  } catch (error) {
-    await logPublicLeadPushError({ tenantId, event, error })
-    return { enabled: true, sent: 0, failed: 1, skippedReason: 'notify_error' }
-  }
-}
 
 const createOrUpdateAvitoLead = async ({ tenantId, siteSettings, body }) => {
   const normalized = normalizeAvitoWebhookPayload(body)
@@ -500,6 +468,13 @@ const createOrUpdateAvitoLead = async ({ tenantId, siteSettings, body }) => {
     tenantId,
     normalized,
   })
+  const isNewMessage = normalized.avitoMessageId
+    ? !(await AvitoMessages.exists({
+        tenantId,
+        avitoChatId: normalized.avitoChatId,
+        avitoMessageId: normalized.avitoMessageId,
+      }))
+    : true
 
   const existingEvent = normalized.avitoChatId
     ? await Events.findOne({
@@ -516,18 +491,23 @@ const createOrUpdateAvitoLead = async ({ tenantId, siteSettings, body }) => {
       rawPayload,
       clientId: existingEvent.clientId ?? linkedClientId,
       eventId: existingEvent._id,
+      incrementUnread: isNewMessage,
     })
     await saveIncomingAvitoMessage({
       tenantId,
       conversation,
       normalized,
       rawPayload,
+      isNewMessage,
     })
     const event = await appendMessageToExistingEvent({
       event: existingEvent,
       normalized,
       rawPayload,
     })
+    if (isNewMessage) {
+      await notifyAvitoMessage({ tenantId, event, conversation, normalized })
+    }
     return { ok: true, event, created: false, normalized }
   }
 
@@ -554,14 +534,18 @@ const createOrUpdateAvitoLead = async ({ tenantId, siteSettings, body }) => {
     rawPayload,
     clientId: linkedClientId,
     eventId: event._id,
+    incrementUnread: isNewMessage,
   })
   await saveIncomingAvitoMessage({
     tenantId,
     conversation,
     normalized,
     rawPayload,
+    isNewMessage,
   })
-  await notifyAvitoLead({ tenantId, event, normalized, siteSettings })
+  if (isNewMessage) {
+    await notifyAvitoMessage({ tenantId, event, conversation, normalized })
+  }
 
   return {
     ok: true,

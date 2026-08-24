@@ -504,6 +504,19 @@ body.theme-dark .filter-menu-item {
     color: #3f3f3a !important;
     box-shadow: none !important;
   }
+
+  .event-quick-filter-chip--active {
+    border-color: #2563eb !important;
+    background: #2563eb !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28) !important;
+  }
+}
+
+body.theme-dark .event-quick-filter-chip--active {
+  border-color: #c9a86a !important;
+  background: #c9a86a !important;
+  color: #1f1b14 !important;
 }
 
 body.theme-dark .cabinet-page-heading {

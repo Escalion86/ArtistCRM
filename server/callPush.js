@@ -5,6 +5,8 @@ import {
 } from '@server/pushNotifications'
 import { sendMultiChannelPushToTenant } from '@server/multiChannelPush'
 import { getCallRecordingNotificationState } from '@helpers/callRecordingPrompt.mjs'
+import { buildIncomingMessagePushPayload } from '@helpers/incomingMessageNotification'
+import { resolveClientMessageContext } from '@server/messengerPush'
 
 const readCustomValue = (custom, key) =>
   typeof custom?.get === 'function' ? custom.get(key) : custom?.[key]
@@ -63,16 +65,27 @@ export const notifyCallRecordingReady = async ({
   })
   if (!promptState) return null
 
+  const context = await resolveClientMessageContext({
+    tenantId,
+    clientId: call.linkedClientId,
+    clientName: phone,
+  })
+  const basePayload = buildIncomingMessagePushPayload({
+    provider: 'novofon',
+    messageId: String(call._id),
+    messageText: promptState.body,
+    clientId: call.linkedClientId,
+    clientName: context.clientName,
+    event: context.event,
+    notificationKind: 'recording',
+  })
   const payload = {
-    title: 'Получена запись звонка',
-    body: promptState.body,
-    icon: '/icons/AppImages/android/android-launchericon-192-192.png',
-    badge: '/icons/notification-badge.svg',
+    ...basePayload,
     tag: `novofon-recording-${call._id}`,
-    requireInteraction: true,
     actions: promptState.actions,
     categoryId: promptState.categoryId,
     data: {
+      ...basePayload.data,
       url: `/cabinet/calls?callId=${call._id}`,
       callId: String(call._id),
       type: 'novofon_recording',

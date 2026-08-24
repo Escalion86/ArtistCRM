@@ -29,6 +29,11 @@ export const clearMessengerUnreadForClient = (summary, clientId) => {
 
   return {
     ...summary,
+    unreadItems: Array.isArray(summary.unreadItems)
+      ? summary.unreadItems.filter(
+          (item) => String(item?.clientId || '') !== key
+        )
+      : summary.unreadItems,
     byClientId: {
       ...summary.byClientId,
       [key]: { ...current, unreadCount: 0 },

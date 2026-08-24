@@ -7,7 +7,7 @@ const pastDate = new Date('2026-01-10T10:00:00.000Z')
 const futureDate = new Date('2026-08-10T10:00:00.000Z')
 const now = new Date('2026-06-25T10:00:00.000Z')
 
-test('marks transferred event as separate filter flag', () => {
+test('keeps transferred flag independent from event status', () => {
   assert.deepEqual(
     getEventStatusFlags(
       { status: 'active', isTransferred: true, dateEnd: pastDate },
@@ -16,7 +16,7 @@ test('marks transferred event as separate filter flag', () => {
     {
       request: false,
       active: false,
-      finished: false,
+      finished: true,
       closed: false,
       transferred: true,
       canceled: false,
@@ -24,7 +24,7 @@ test('marks transferred event as separate filter flag', () => {
   )
 })
 
-test('keeps canceled status primary for transferred canceled event', () => {
+test('keeps transferred flag alongside canceled status', () => {
   assert.deepEqual(
     getEventStatusFlags(
       { status: 'canceled', isTransferred: true, dateEnd: pastDate },
@@ -35,7 +35,7 @@ test('keeps canceled status primary for transferred canceled event', () => {
       active: false,
       finished: false,
       closed: false,
-      transferred: false,
+      transferred: true,
       canceled: true,
     }
   )

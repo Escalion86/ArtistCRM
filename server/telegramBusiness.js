@@ -501,6 +501,7 @@ export const saveTelegramBusinessMessage = async ({
     client,
     clientCreated,
     direction,
+    isNewMessage: !existingMessage,
   }
 }
 

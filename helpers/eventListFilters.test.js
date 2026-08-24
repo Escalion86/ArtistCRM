@@ -5,13 +5,18 @@ import {
   createEventListFiltersState,
   getEventListFiltersStorageKey,
   getStatusFilterDefaults,
+  getStatusFilterKeys,
   readEventListFiltersState,
   serializeEventListFiltersState,
 } from './eventListFilters.js'
 
-test('enables transferred status by default on upcoming and past event pages', () => {
-  assert.equal(getStatusFilterDefaults('upcoming').transferred, true)
-  assert.equal(getStatusFilterDefaults('past').transferred, true)
+test('keeps transferred events in a separate optional filter', () => {
+  assert.equal(createEventListFiltersState('upcoming').transferredMode, 'all')
+  assert.equal(createEventListFiltersState('past').transferredMode, 'all')
+  assert.equal('transferred' in getStatusFilterDefaults('upcoming'), false)
+  assert.equal('transferred' in getStatusFilterDefaults('past'), false)
+  assert.equal(getStatusFilterKeys('upcoming').includes('transferred'), false)
+  assert.equal(getStatusFilterKeys('past').includes('transferred'), false)
 })
 
 test('restores persisted event list filters for the current page mode', () => {
@@ -25,9 +30,9 @@ test('restores persisted event list filters for the current page mode', () => {
       statusFilter: {
         finished: false,
         closed: true,
-        transferred: false,
         canceled: true,
       },
+      transferredMode: 'only',
     })
   )
 
@@ -41,9 +46,9 @@ test('restores persisted event list filters for the current page mode', () => {
       statusFilter: {
         finished: false,
         closed: true,
-        transferred: false,
         canceled: true,
       },
+      transferredMode: 'only',
     }
   )
 })
@@ -52,15 +57,15 @@ test('falls back to defaults when persisted event filters are invalid', () => {
   const storage = {
     getItem: () =>
       JSON.stringify({
-        version: 1,
+        version: 2,
         selectedTown: 100,
         checkFilter: { checked: false, unchecked: false },
         statusFilter: {
           finished: false,
           closed: false,
-          transferred: false,
           canceled: false,
         },
+        transferredMode: 'invalid',
       }),
   }
 
@@ -68,6 +73,7 @@ test('falls back to defaults when persisted event filters are invalid', () => {
     selectedTown: '',
     checkFilter: { checked: true, unchecked: true },
     statusFilter: getStatusFilterDefaults('past'),
+    transferredMode: 'all',
   })
 })
 
@@ -76,5 +82,6 @@ test('creates default event list filters when storage is unavailable', () => {
     selectedTown: '',
     checkFilter: { checked: true, unchecked: true },
     statusFilter: getStatusFilterDefaults('upcoming'),
+    transferredMode: 'all',
   })
 })
