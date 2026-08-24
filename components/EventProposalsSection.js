@@ -2,11 +2,26 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import Notice from '@components/Notice'
 import { formatMoney } from '@helpers/formatMoney'
 import { sendFile } from '@helpers/cloudinary'
 import { renderProposalVariables } from '@helpers/proposalContent'
+import {
+  getProposalBlockContentHtml,
+  PROPOSAL_RICH_TEXT_BLOCK_TYPES,
+  renderProposalRichTextVariables,
+} from '@helpers/proposalRichText'
 import { useQueryClient } from '@tanstack/react-query'
+
+const ProposalRichTextEditor = dynamic(
+  () => import('@components/ProposalRichTextEditor'),
+  { ssr: false }
+)
+const ProposalRichTextView = dynamic(
+  () => import('@components/ProposalRichTextView'),
+  { ssr: false }
+)
 
 const copyText = async (text) => {
   if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text)
@@ -313,7 +328,24 @@ const EventProposalsSection = ({ eventId, onApplied }) => {
         `${block.title || ''}\n${block.text || ''}`,
         previewVariables
       ).unknown.forEach((key) => unresolved.add(key))
+      renderProposalRichTextVariables(
+        getProposalBlockContentHtml(block),
+        previewVariables
+      ).unknown.forEach((key) => unresolved.add(key))
     })
+    const previewRichBlocks = editing.blocksSnapshot
+      .filter(
+        (block) =>
+          block.enabled !== false &&
+          PROPOSAL_RICH_TEXT_BLOCK_TYPES.includes(block.type)
+      )
+      .map((block) => ({
+        ...block,
+        renderedContentHtml: renderProposalRichTextVariables(
+          getProposalBlockContentHtml(block),
+          previewVariables
+        ).html,
+      }))
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -383,14 +415,16 @@ const EventProposalsSection = ({ eventId, onApplied }) => {
                     updateBlock(blockIndex, { title: event.target.value })
                   }
                 />
-                {block.text !== undefined ? (
-                  <textarea
-                    className="mt-2 min-h-16 w-full rounded border p-2 text-sm"
-                    value={block.text || ''}
-                    onChange={(event) =>
-                      updateBlock(blockIndex, { text: event.target.value })
-                    }
-                  />
+                {PROPOSAL_RICH_TEXT_BLOCK_TYPES.includes(block.type) ? (
+                  <div className="mt-2">
+                    <ProposalRichTextEditor
+                      value={getProposalBlockContentHtml(block)}
+                      onChange={(contentHtml) =>
+                        updateBlock(blockIndex, { contentHtml })
+                      }
+                      placeholder="Введите текст блока…"
+                    />
+                  </div>
                 ) : null}
               </div>
             ))}
@@ -612,6 +646,18 @@ const EventProposalsSection = ({ eventId, onApplied }) => {
             <div className="mt-4 text-sm whitespace-pre-line text-gray-600">
               {previewMessage.text}
             </div>
+            {previewRichBlocks.length ? (
+              <div className="mt-4 space-y-4">
+                {previewRichBlocks.map((block) => (
+                  <section key={block.id || block.type}>
+                    {block.title ? (
+                      <div className="mb-2 font-semibold">{block.title}</div>
+                    ) : null}
+                    <ProposalRichTextView html={block.renderedContentHtml} />
+                  </section>
+                ))}
+              </div>
+            ) : null}
             <div className="mt-4 space-y-3">
               {editing.packages.map((item) => (
                 <div key={item.id} className="rounded-xl border bg-white p-4">

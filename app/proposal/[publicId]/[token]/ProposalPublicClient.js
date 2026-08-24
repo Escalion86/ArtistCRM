@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Notice from '@components/Notice'
+import ProposalRichTextView from '@components/ProposalRichTextView'
 import { formatMoney } from '@helpers/formatMoney'
 
 const blockMap = (blocks) =>
@@ -115,11 +116,10 @@ const ProposalPublicClient = ({ publicId, token }) => {
           {intro ? (
             <section>
               <h2 className="text-2xl font-semibold">{intro.title}</h2>
-              {intro.text ? (
-                <p className="mt-3 leading-7 whitespace-pre-line text-stone-600">
-                  {intro.text}
-                </p>
-              ) : null}
+              <ProposalRichTextView
+                html={intro.contentHtml}
+                className="mt-3 leading-7 text-stone-600"
+              />
             </section>
           ) : null}
 
@@ -242,35 +242,31 @@ const ProposalPublicClient = ({ publicId, token }) => {
             </section>
           ) : null}
 
-          {benefits?.items?.length ? (
+          {benefits?.contentHtml || benefits?.items?.length ? (
             <section>
               <h2 className="text-2xl font-semibold">{benefits.title}</h2>
-              <ul className="tablet:grid-cols-2 mt-4 grid gap-3">
-                {benefits.items.map((item) => (
-                  <li
-                    key={item}
-                    className="rounded-xl bg-stone-100 p-4 text-sm leading-6"
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              <ProposalRichTextView
+                html={benefits.contentHtml}
+                className="mt-4 leading-7 text-stone-600"
+              />
             </section>
           ) : null}
-          {terms?.text ? (
+          {terms?.contentHtml ? (
             <section>
               <h2 className="text-2xl font-semibold">{terms.title}</h2>
-              <p className="mt-3 leading-7 whitespace-pre-line text-stone-600">
-                {terms.text}
-              </p>
+              <ProposalRichTextView
+                html={terms.contentHtml}
+                className="mt-3 leading-7 text-stone-600"
+              />
             </section>
           ) : null}
           {cta ? (
             <section className="rounded-2xl bg-stone-900 p-6 text-white">
               <h2 className="text-2xl font-semibold">{cta.title}</h2>
-              {cta.text ? (
-                <p className="mt-2 text-stone-300">{cta.text}</p>
-              ) : null}
+              <ProposalRichTextView
+                html={cta.contentHtml}
+                className="mt-2 text-stone-300"
+              />
             </section>
           ) : null}
           {contacts ? (

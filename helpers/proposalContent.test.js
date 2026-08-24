@@ -25,7 +25,10 @@ test('proposal media accepts safe supported URLs and caps list at ten', () => {
   source[1].url = 'javascript:alert(1)'
   const result = normalizeProposalMedia(source)
   assert.equal(result.length, 9)
-  assert.equal(result.some((item) => item.url.startsWith('javascript:')), false)
+  assert.equal(
+    result.some((item) => item.url.startsWith('javascript:')),
+    false
+  )
 })
 
 test('proposal packages normalize lines and calculate total when omitted', () => {
@@ -45,17 +48,25 @@ test('proposal packages normalize lines and calculate total when omitted', () =>
 
 test('proposal blocks have unique supported types and unknown variables are collected', () => {
   const blocks = normalizeProposalBlocks([
-    { type: 'intro', title: 'Для {{client.firstName}}' },
+    {
+      type: 'intro',
+      title: 'Для {{client.firstName}}',
+      contentHtml: '<p>{{event.date}} — {{artist.phone}}</p>',
+    },
     { type: 'intro', title: 'Дубликат' },
     { type: 'unknown', title: 'Лишний' },
   ])
   assert.equal(blocks.length, 1)
+  assert.equal(
+    blocks[0].contentHtml,
+    '<p>{{event.date}} — {{artist.phone}}</p>'
+  )
   assert.deepEqual(
     getProposalUnknownVariables({
       blocks,
       messageText: '{{proposal.url}} {{artist.fullName}}',
       variables: { client: { firstName: 'Анна' }, proposal: { url: 'url' } },
     }),
-    ['artist.fullName']
+    ['artist.fullName', 'event.date', 'artist.phone']
   )
 })

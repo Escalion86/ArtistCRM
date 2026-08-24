@@ -1,9 +1,24 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import Notice from '@components/Notice'
 import { sendFile } from '@helpers/cloudinary'
 import { DEFAULT_PROPOSAL_BLOCKS } from '@helpers/proposalContent'
+import {
+  getProposalBlockContentHtml,
+  PROPOSAL_RICH_TEXT_BLOCK_TYPES,
+} from '@helpers/proposalRichText'
+
+const ProposalRichTextEditor = dynamic(
+  () => import('@components/ProposalRichTextEditor'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-32 animate-pulse rounded border border-gray-300 bg-gray-100" />
+    ),
+  }
+)
 
 const cloneBlocks = () =>
   DEFAULT_PROPOSAL_BLOCKS.map((item) => ({
@@ -251,27 +266,16 @@ const ProposalTemplatesPanel = ({ enabled }) => {
                 }
                 placeholder="Заголовок блока"
               />
-              {['intro', 'terms', 'cta'].includes(block.type) ? (
-                <textarea
-                  className="mt-2 min-h-20 w-full rounded border border-gray-300 p-3 text-sm"
-                  value={block.text || ''}
-                  onChange={(event) =>
-                    updateBlock(index, { text: event.target.value })
-                  }
-                  placeholder="Текст блока"
-                />
-              ) : null}
-              {block.type === 'benefits' ? (
-                <textarea
-                  className="mt-2 min-h-20 w-full rounded border border-gray-300 p-3 text-sm"
-                  value={(block.items || []).join('\n')}
-                  onChange={(event) =>
-                    updateBlock(index, {
-                      items: event.target.value.split('\n'),
-                    })
-                  }
-                  placeholder="По одному преимуществу на строке"
-                />
+              {PROPOSAL_RICH_TEXT_BLOCK_TYPES.includes(block.type) ? (
+                <div className="mt-2">
+                  <ProposalRichTextEditor
+                    value={getProposalBlockContentHtml(block)}
+                    onChange={(contentHtml) =>
+                      updateBlock(index, { contentHtml })
+                    }
+                    placeholder="Введите текст блока…"
+                  />
+                </div>
               ) : null}
             </div>
           ))}

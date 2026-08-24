@@ -4,26 +4,47 @@ import Events from '@models/Events'
 import dbConnect from '@server/dbConnect'
 import { isValidProposalToken } from '@server/proposals'
 import { sendPushToTenant } from '@server/pushNotifications'
+import {
+  getProposalBlockContentHtml,
+  renderProposalRichTextVariables,
+} from '@helpers/proposalRichText'
 
 const error = (message, status = 400, code = 'bad_request') =>
   NextResponse.json({ success: false, error: { code, message } }, { status })
 
-const publicData = (proposal) => ({
-  id: String(proposal._id),
-  title: proposal.title,
-  version: proposal.version,
-  status: proposal.status,
-  validUntil: proposal.validUntil,
-  blocks: proposal.blocksSnapshot,
-  packages: proposal.packages,
-  media: proposal.mediaSnapshot,
-  event: proposal.eventSnapshot,
-  client: { firstName: proposal.clientSnapshot?.firstName || '' },
-  artist: proposal.artistSnapshot,
-  selectedPackageId: proposal.selectedPackageId || '',
-  selectedAt: proposal.selectedAt,
-  expired: Boolean(proposal.validUntil && new Date(proposal.validUntil).getTime() < Date.now()),
-})
+const publicData = (proposal) => {
+  const variables = {
+    client: proposal.clientSnapshot || {},
+    event: proposal.eventSnapshot || {},
+    artist: proposal.artistSnapshot || {},
+  }
+  const blocks = (proposal.blocksSnapshot || []).map((block) => ({
+    ...(block.toObject?.() || block),
+    contentHtml: renderProposalRichTextVariables(
+      getProposalBlockContentHtml(block),
+      variables
+    ).html,
+  }))
+  return {
+    id: String(proposal._id),
+    title: proposal.title,
+    version: proposal.version,
+    status: proposal.status,
+    validUntil: proposal.validUntil,
+    blocks,
+    packages: proposal.packages,
+    media: proposal.mediaSnapshot,
+    event: proposal.eventSnapshot,
+    client: { firstName: proposal.clientSnapshot?.firstName || '' },
+    artist: proposal.artistSnapshot,
+    selectedPackageId: proposal.selectedPackageId || '',
+    selectedAt: proposal.selectedAt,
+    expired: Boolean(
+      proposal.validUntil &&
+      new Date(proposal.validUntil).getTime() < Date.now()
+    ),
+  }
+}
 
 const findProposal = async (publicId, token) => {
   await dbConnect()
@@ -36,22 +57,39 @@ export const GET = async (_req, { params }) => {
   const { publicId, token } = await params
   const proposal = await findProposal(publicId, token)
   if (!proposal) return error('Предложение не найдено', 404, 'not_found')
-  if (proposal.status === 'revoked' || proposal.status === 'draft') return error('Предложение недоступно', 410, 'unavailable')
+  if (proposal.status === 'revoked' || proposal.status === 'draft')
+    return error('Предложение недоступно', 410, 'unavailable')
   proposal.viewedAt = new Date()
   proposal.viewCount = Number(proposal.viewCount || 0) + 1
-  if (proposal.validUntil && new Date(proposal.validUntil).getTime() < Date.now() && proposal.status === 'published') {
+  if (
+    proposal.validUntil &&
+    new Date(proposal.validUntil).getTime() < Date.now() &&
+    proposal.status === 'published'
+  ) {
     proposal.status = 'expired'
   }
   await proposal.save()
-  return NextResponse.json({ success: true, data: publicData(proposal) }, { headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' } })
+  return NextResponse.json(
+    { success: true, data: publicData(proposal) },
+    {
+      headers: {
+        'Cache-Control': 'no-store',
+        'X-Robots-Tag': 'noindex, nofollow',
+      },
+    }
+  )
 }
 
 export const POST = async (req, { params }) => {
   const { publicId, token } = await params
   const proposal = await findProposal(publicId, token)
   if (!proposal) return error('Предложение не найдено', 404, 'not_found')
-  if (proposal.status !== 'published') return error('Выбор недоступен', 410, 'selection_closed')
-  if (proposal.validUntil && new Date(proposal.validUntil).getTime() < Date.now()) {
+  if (proposal.status !== 'published')
+    return error('Выбор недоступен', 410, 'selection_closed')
+  if (
+    proposal.validUntil &&
+    new Date(proposal.validUntil).getTime() < Date.now()
+  ) {
     proposal.status = 'expired'
     await proposal.save()
     return error('Срок действия предложения истёк', 410, 'expired')
@@ -72,7 +110,10 @@ export const POST = async (req, { params }) => {
     })
   }
   if (changed && !proposal.selectionTaskCreatedAt) {
-    const event = await Events.findOne({ _id: proposal.eventId, tenantId: proposal.tenantId })
+    const event = await Events.findOne({
+      _id: proposal.eventId,
+      tenantId: proposal.tenantId,
+    })
     if (event) {
       event.additionalEvents.push({
         title: `Связаться с клиентом: выбран вариант «${selected.title}»`,
@@ -94,9 +135,18 @@ export const POST = async (req, { params }) => {
         title: 'Клиент выбрал предложение',
         body: `Выбран вариант «${selected.title}»`,
         tag: `proposal-${proposal._id}`,
-        data: { type: 'proposal_selected', eventId: String(proposal.eventId), proposalId: String(proposal._id), url: `/event/${proposal.eventId}` },
+        data: {
+          type: 'proposal_selected',
+          eventId: String(proposal.eventId),
+          proposalId: String(proposal._id),
+          url: `/event/${proposal.eventId}`,
+        },
       },
     }).catch(() => null)
   }
-  return NextResponse.json({ success: true, data: publicData(proposal), changed })
+  return NextResponse.json({
+    success: true,
+    data: publicData(proposal),
+    changed,
+  })
 }
