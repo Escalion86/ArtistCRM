@@ -285,7 +285,8 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
     await ensureLegacyTenantBackfill(tenantObjectId)
 
     const canManageAllUsers = ['dev', 'admin'].includes(user?.role)
-    const shouldFetchUsers = USER_LIST_PAGES.has(page)
+    const shouldFetchUsers =
+      USER_LIST_PAGES.has(page) || (page === 'feedback' && canManageAllUsers)
     const shouldFetchClients = CLIENTS_PAYLOAD_PAGES.has(page)
     const shouldFetchTransactions = TRANSACTIONS_PAYLOAD_PAGES.has(page)
     const shouldFetchServices = SERVICES_PAYLOAD_PAGES.has(page)

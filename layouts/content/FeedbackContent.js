@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { useRouter, useSearchParams } from 'next/navigation'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
+import { modalsFuncAtom } from '@state/atoms'
 import Notice from '@components/Notice'
 import SupportAttachmentPicker from '@components/SupportAttachmentPicker'
 import {
@@ -22,6 +23,7 @@ const STATUS_LABELS = { open: 'Открыт', in_progress: 'В работе', re
 const formatDate = (value) => value ? new Date(value).toLocaleString('ru-RU') : ''
 
 const TicketDetail = ({ ticketId, developer, onClose }) => {
+  const modalsFunc = useAtomValue(modalsFuncAtom)
   const query = useSupportTicketQuery(ticketId)
   const { replyMutation, statusMutation, readMutation } = useSupportTicketMutations()
   const [message, setMessage] = useState('')
@@ -59,10 +61,57 @@ const TicketDetail = ({ ticketId, developer, onClose }) => {
 
   return (
     <section className="support-surface flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border">
-      <header className="flex flex-wrap items-start gap-3 border-b border-gray-200 p-4">
-        <button type="button" onClick={onClose} className="filter-control cursor-pointer">← К списку</button>
-        <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-gray-100 px-2 py-1 text-xs">{CATEGORY_LABELS[ticket.category]}</span><span className="text-xs text-gray-500">{STATUS_LABELS[ticket.status]}</span></div><h2 className="mt-1 break-words text-lg font-semibold">{ticket.title}</h2>{developer && ticket.createdByLabel ? <p className="text-sm text-gray-500">Автор: {ticket.createdByLabel}</p> : null}</div>
-        {developer ? <select value={ticket.status} disabled={statusMutation.isPending} onChange={(event) => statusMutation.mutate({ ticketId, status: event.target.value })} className="h-10 cursor-pointer rounded-lg border border-gray-300 bg-white px-3"><option value="open">Открыт</option><option value="in_progress">В работе</option><option value="resolved">Решён</option></select> : null}
+      <header className="border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="filter-control cursor-pointer"
+          >
+            ← К списку
+          </button>
+          {developer ? (
+            <select
+              aria-label="Статус тикета"
+              value={ticket.status}
+              disabled={statusMutation.isPending}
+              onChange={(event) =>
+                statusMutation.mutate({
+                  ticketId,
+                  status: event.target.value,
+                })
+              }
+              className="h-10 cursor-pointer rounded-lg border border-gray-300 bg-white px-3"
+            >
+              <option value="open">Открыт</option>
+              <option value="in_progress">В работе</option>
+              <option value="resolved">Решён</option>
+            </select>
+          ) : null}
+        </div>
+        <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
+              {CATEGORY_LABELS[ticket.category]}
+            </span>
+            <span className="text-xs text-gray-500">
+              {STATUS_LABELS[ticket.status]}
+            </span>
+          </div>
+          <h2 className="min-w-0 break-words text-lg font-semibold">
+            {ticket.title}
+          </h2>
+          {developer && ticket.createdByLabel ? (
+            <button
+              type="button"
+              disabled={!ticket.createdBy}
+              onClick={() => modalsFunc.user?.view(ticket.createdBy)}
+              className="cursor-pointer text-left text-sm text-gray-500 underline decoration-dotted underline-offset-2 disabled:cursor-default disabled:no-underline"
+            >
+              Автор: {ticket.createdByLabel}
+            </button>
+          ) : null}
+        </div>
       </header>
       <div className="min-h-64 flex-1 space-y-3 overflow-y-auto p-4">
         {query.hasNextPage ? <button type="button" onClick={() => query.fetchNextPage()} disabled={query.isFetchingNextPage} className="filter-control mx-auto flex cursor-pointer">{query.isFetchingNextPage ? 'Загружаем…' : 'Показать ранние сообщения'}</button> : null}
