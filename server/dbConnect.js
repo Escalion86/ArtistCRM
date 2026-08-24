@@ -26,6 +26,9 @@ async function dbConnect() {
       // bufferCommands: false,
       // useFindAndModify: false,
       dbName: process.env.MONGODB_DBNAME,
+      // Production can use a standalone MongoDB instance, where retryable
+      // writes fail with "Transaction numbers are only allowed...".
+      retryWrites: false,
     }
 
     const db = mongoose.connection

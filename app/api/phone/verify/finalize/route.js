@@ -5,6 +5,7 @@ import dbConnect from '@server/dbConnect'
 import Users from '@models/Users'
 import PhoneConfirms from '@models/PhoneConfirms'
 import { buildRegistrationTrialUserFields } from '@server/registrationTrial'
+import { notifyDevelopersAboutNewUser } from '@server/registrationNotifications'
 import {
   findUserByPhone,
   isValidNormalizedPhone,
@@ -83,6 +84,8 @@ const createRegisterUser = async (
     user.tenantId = user._id
     await user.save()
   }
+
+  return user
 }
 
 export const POST = async (req) => {
@@ -193,13 +196,14 @@ export const POST = async (req) => {
         await user.save()
       } else {
         const referrerId = await resolveReferrerId(rawReferrerId)
-        await createRegisterUser(phone, hashedPassword, {
+        const registeredUser = await createRegisterUser(phone, hashedPassword, {
           consentPrivacyPolicy,
           consentPersonalData,
           referrerId,
           registrationSource,
           acquisition,
         })
+        await notifyDevelopersAboutNewUser(registeredUser)
       }
     }
 

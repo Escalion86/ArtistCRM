@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import Users from '@models/Users'
 import { buildRegistrationTrialUserFields } from '@server/registrationTrial'
+import { notifyDevelopersAboutNewUser } from '@server/registrationNotifications'
 import {
   findUserByPhone,
   isValidNormalizedPhone,
@@ -63,6 +64,7 @@ export const ensureVkUser = async ({
   const normalizedEmail = normalizeEmail(email)
 
   let user = await findUserByPhone(normalizedPhone)
+  let created = false
 
   if (!user) {
     if (normalizedVkId) {
@@ -94,6 +96,7 @@ export const ensureVkUser = async ({
         privacyPolicyAcceptedAt: now,
         personalDataProcessingAcceptedAt: now,
       })
+      created = true
     } catch (error) {
       if (error?.code === 11000) {
         const conflictByPhone = await findUserByPhone(normalizedPhone)
@@ -147,6 +150,8 @@ export const ensureVkUser = async ({
       { returnDocument: 'after' }
     )
   }
+
+  if (created) await notifyDevelopersAboutNewUser(user)
 
   return user
 }
