@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useAtomValue } from 'jotai'
 import { faRotateRight } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import formatDateTime from '@helpers/formatDateTime'
@@ -12,6 +13,7 @@ import AudioPlayer from '@components/AudioPlayer'
 import Notice from '@components/Notice'
 import { queryKeys } from '@helpers/queryKeys'
 import { clearMessengerUnreadForClient } from '@helpers/messengerUnreadSummary'
+import { modalsFuncAtom } from '@state/atoms'
 
 const PROVIDER_LABELS = {
   avito: 'Avito',
@@ -186,6 +188,7 @@ const clientMessengerFunc = (clientId) => {
   const ClientMessengerModal = () => {
     const snackbar = useSnackbar()
     const queryClient = useQueryClient()
+    const modalsFunc = useAtomValue(modalsFuncAtom)
     const bottomRef = useRef(null)
     const { data: clients = [] } = useClientsQuery()
     const initialClient = useMemo(
@@ -347,14 +350,20 @@ const clientMessengerFunc = (clientId) => {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-3 text-sm tablet:h-[70dvh] tablet:min-h-[420px] tablet:flex-none">
         <div className="flex items-start justify-between gap-2 rounded border border-gray-200 bg-gray-50 px-3 py-2">
-          <div className="min-w-0">
+          <button
+            type="button"
+            className="min-w-0 cursor-pointer rounded px-1 py-0.5 text-left transition hover:bg-gray-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-primary)]/40"
+            onClick={() => modalsFunc.client.view(clientId)}
+            title="Открыть карточку клиента"
+            aria-label={`Открыть карточку клиента ${clientName}`}
+          >
             <div className="truncate font-semibold text-gray-900">
               {clientName}
             </div>
             <div className="text-xs text-gray-600">
               Каналов: {conversations.length}
             </div>
-          </div>
+          </button>
           <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2">
             <ContactsIconsButtons
               user={client}
