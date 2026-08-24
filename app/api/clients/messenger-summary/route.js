@@ -7,7 +7,10 @@ import Events from '@models/Events'
 import TelegramConversations from '@models/TelegramConversations'
 import VkConversations from '@models/VkConversations'
 import getPersonFullName from '@helpers/getPersonFullName'
-import { mergeUnreadConversations } from '@helpers/messengerAttention'
+import {
+  filterConversationsByClientIds,
+  mergeUnreadConversations,
+} from '@helpers/messengerAttention'
 import { mergeMessengerUnreadGroups } from '@helpers/messengerUnreadSummary'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
@@ -42,14 +45,40 @@ const unreadConversationQuery = (tenantId) => ({
   unreadCount: { $gt: 0 },
 })
 
-const loadUnreadConversations = (Model, tenantId) =>
-  Model.find(unreadConversationQuery(tenantId))
+const loadUnreadConversations = (
+  Model,
+  tenantId,
+  { linkedClientsOnly = false } = {}
+) =>
+  Model.find({
+    ...unreadConversationQuery(tenantId),
+    ...(linkedClientsOnly ? { clientId: { $ne: null } } : {}),
+  })
     .select(
       '_id clientId eventId clientName unreadCount lastMessageText lastMessageAt'
     )
     .sort({ lastMessageAt: -1 })
     .limit(100)
     .lean()
+
+const loadUnreadConversationsForExistingClients = async (Model, tenantId) => {
+  const conversations = await loadUnreadConversations(Model, tenantId, {
+    linkedClientsOnly: true,
+  })
+  const clientObjectIds = toObjectIds(
+    conversations.map((conversation) => String(conversation?.clientId || ''))
+  )
+  if (clientObjectIds.length === 0) return []
+
+  const existingClientIds = await Clients.distinct('_id', {
+    tenantId,
+    _id: { $in: clientObjectIds },
+  })
+  return filterConversationsByClientIds(
+    conversations,
+    existingClientIds
+  )
+}
 
 const toObjectIds = (values) =>
   Array.from(new Set(values.filter(Boolean))).flatMap((value) =>
@@ -179,7 +208,10 @@ export const GET = async () => {
     allowAvito ? loadUnreadConversations(AvitoConversations, tenantObjectId) : [],
     allowVk ? loadUnreadConversations(VkConversations, tenantObjectId) : [],
     allowTelegram
-      ? loadUnreadConversations(TelegramConversations, tenantObjectId)
+      ? loadUnreadConversationsForExistingClients(
+          TelegramConversations,
+          tenantObjectId
+        )
       : [],
   ])
   const unreadItems = await enrichUnreadItems({

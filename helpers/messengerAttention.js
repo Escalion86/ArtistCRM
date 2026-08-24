@@ -3,6 +3,16 @@ const toTimestamp = (value) => {
   return Number.isFinite(timestamp) ? timestamp : 0
 }
 
+export const filterConversationsByClientIds = (
+  conversations = [],
+  clientIds = []
+) => {
+  const allowedIds = new Set((clientIds || []).map(String).filter(Boolean))
+  return (conversations || []).filter((conversation) =>
+    allowedIds.has(String(conversation?.clientId || ''))
+  )
+}
+
 export const mergeUnreadConversations = (providerGroups = []) => {
   const byKey = new Map()
 

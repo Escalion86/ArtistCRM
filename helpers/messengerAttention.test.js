@@ -1,7 +1,24 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { mergeUnreadConversations } from './messengerAttention.js'
+import {
+  filterConversationsByClientIds,
+  mergeUnreadConversations,
+} from './messengerAttention.js'
+
+test('keeps only conversations linked to existing clients', () => {
+  assert.deepEqual(
+    filterConversationsByClientIds(
+      [
+        { _id: 'chat-1', clientId: 'client-1' },
+        { _id: 'chat-2', clientId: 'deleted-client' },
+        { _id: 'chat-3', clientId: null },
+      ],
+      ['client-1']
+    ),
+    [{ _id: 'chat-1', clientId: 'client-1' }]
+  )
+})
 
 test('merges unread conversations by client across providers', () => {
   const result = mergeUnreadConversations([

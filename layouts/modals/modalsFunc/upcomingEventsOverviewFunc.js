@@ -578,10 +578,47 @@ const upcomingEventsOverviewFunc = () => {
                 const providerNames = (item.providers || [])
                   .map((provider) => PROVIDER_LABELS[provider] || provider)
                   .join(', ')
+                const canOpenClientMessenger = Boolean(item.clientId)
+                const openCardMessenger = (event) => {
+                  if (
+                    !canOpenClientMessenger ||
+                    event.target?.closest?.('button, a')
+                  ) {
+                    return
+                  }
+                  openClientMessenger(item.clientId)
+                }
+                const openCardMessengerFromKeyboard = (event) => {
+                  if (
+                    !canOpenClientMessenger ||
+                    !['Enter', ' '].includes(event.key) ||
+                    event.target?.closest?.('button, a')
+                  ) {
+                    return
+                  }
+                  event.preventDefault()
+                  openClientMessenger(item.clientId)
+                }
                 return (
                   <div
                     key={item.key}
-                    className="rounded border border-gray-200 px-3 py-2"
+                    className={`rounded border border-gray-200 px-3 py-2 ${
+                      canOpenClientMessenger
+                        ? 'cursor-pointer transition-colors hover:border-general'
+                        : ''
+                    }`}
+                    role={canOpenClientMessenger ? 'button' : undefined}
+                    tabIndex={canOpenClientMessenger ? 0 : undefined}
+                    aria-label={
+                      canOpenClientMessenger
+                        ? `Открыть диалог с клиентом ${normalizeText(
+                            item.clientName,
+                            'Клиент'
+                          )}`
+                        : undefined
+                    }
+                    onClick={openCardMessenger}
+                    onKeyDown={openCardMessengerFromKeyboard}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 text-sm font-semibold text-gray-900">
