@@ -6,7 +6,7 @@
 npm run seo:check -- https://artistcrm.ru
 ```
 
-Проверяются главная, шесть SEO-посадочных и пять практических материалов: HTTP 200, canonical, отсутствие
+Проверяются главная, десять SEO-посадочных и пять практических материалов: HTTP 200, canonical, отсутствие
 `noindex`, наличие `title` и `h1`, а также `robots.txt` и `sitemap.xml`.
 
 Локальную production-сборку с production canonical можно проверить так:
@@ -54,6 +54,10 @@ https://artistcrm.ru/
 https://artistcrm.ru/crm-dlya-fokusnikov
 https://artistcrm.ru/crm-dlya-artistov
 https://artistcrm.ru/crm-dlya-vedushchih
+https://artistcrm.ru/crm-dlya-vyezdnyh-masterov
+https://artistcrm.ru/crm-dlya-fotografov
+https://artistcrm.ru/crm-dlya-dekoratorov
+https://artistcrm.ru/crm-dlya-chastnyh-specialistov
 https://artistcrm.ru/crm-dlya-muzykantov
 https://artistcrm.ru/crm-dlya-tilda-zayavok
 https://artistcrm.ru/crm-s-google-calendar

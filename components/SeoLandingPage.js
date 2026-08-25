@@ -19,13 +19,14 @@ const registerUrl = '/login?mode=register'
 
 const SeoLandingPage = ({ page }) => {
   const pageUrl = `${normalizedSiteUrl}/${page.slug}`
+  const signals = page.signals || productSignals
   const schema = [
     {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       name: 'ArtistCRM',
       applicationCategory: 'BusinessApplication',
-      applicationSubCategory: 'CRM для артистов',
+      applicationSubCategory: page.title,
       operatingSystem: 'Web',
       inLanguage: 'ru-RU',
       url: pageUrl,
@@ -112,7 +113,7 @@ const SeoLandingPage = ({ page }) => {
             {page.lead}
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
-            {productSignals.map((item) => (
+            {signals.map((item) => (
               <span
                 key={item}
                 className="border-general/30 rounded-full border bg-white px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm"
@@ -181,7 +182,9 @@ const SeoLandingPage = ({ page }) => {
               <h2 className="font-futuraPT mt-3 text-3xl font-semibold">
                 Опыт из реальных выступлений
               </h2>
-              <p className="mt-4 leading-7 text-gray-200">{page.founderStory}</p>
+              <p className="mt-4 leading-7 text-gray-200">
+                {page.founderStory}
+              </p>
               <div className="mt-6 rounded-xl border border-amber-400/30 bg-white/5 p-5">
                 <p className="font-semibold text-amber-300">Пилот для коллег</p>
                 <p className="mt-2 text-sm leading-6 text-gray-200">
@@ -207,7 +210,8 @@ const SeoLandingPage = ({ page }) => {
             Весь путь заявки — на реальных экранах
           </h2>
           <p className="mt-3 max-w-2xl leading-7 text-gray-700">
-            Листайте: от первого обращения до календаря, задач и закрытой оплаты.
+            Листайте: от первого обращения до календаря, задач и закрытой
+            оплаты.
           </p>
           <div className="mt-6 flex snap-x gap-4 overflow-x-auto pb-4">
             {page.gallery.map((src, index) => (
@@ -278,13 +282,15 @@ const SeoLandingPage = ({ page }) => {
                 Попробуйте ArtistCRM на реальных заявках
               </h2>
               <p className="mt-2 text-sm text-gray-700">
-                Начните с клиентов, ближайших мероприятий и контроля оплат.
+                Начните с клиентов, ближайших заказов и контроля оплат.
               </p>
             </div>
             <MetrikaLink
               href={page.demoUrl || registerUrl}
               className="ui-btn ui-btn-primary cursor-pointer"
-              goalName={page.demoUrl ? 'pilot_demo_requested' : 'landing_cta_click'}
+              goalName={
+                page.demoUrl ? 'pilot_demo_requested' : 'landing_cta_click'
+              }
               goalParams={{ page: page.slug, placement: 'final' }}
             >
               {page.demoUrl

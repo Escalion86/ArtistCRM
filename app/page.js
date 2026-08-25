@@ -31,6 +31,8 @@ export const metadata = {
     'crm для артистов',
     'crm для ведущих',
     'crm для музыкантов',
+    'crm для выездных мастеров',
+    'crm для частных специалистов',
     'учет заявок',
     'google календарь для мероприятий',
     'учет клиентов и оплат',
@@ -138,33 +140,43 @@ const steps = [
 
 const audiencePages = [
   {
+    href: '/crm-dlya-artistov',
+    title: 'Артист',
+    text: 'Выступления, клиенты, договорённости, документы и оплаты.',
+  },
+  {
+    href: '/crm-dlya-fokusnikov',
+    title: 'Фокусник или иллюзионист',
+    text: 'Заявки на выступления, свободные даты, задатки и перезвоны.',
+  },
+  {
     href: '/crm-dlya-vedushchih',
-    title: 'Ведущие и артисты',
-    text: 'Заявки, даты, договорённости и задатки в одном месте.',
+    title: 'Ведущий мероприятий',
+    text: 'Свадьбы, корпоративы, программа, площадки и оплаты.',
   },
   {
     href: '/crm-dlya-muzykantov',
-    title: 'Музыканты',
+    title: 'Музыкант или музыкальный проект',
     text: 'Календарь выступлений, гонорары и организационные задачи.',
   },
   {
-    href: registerUrl,
-    title: 'Фотографы и видеографы',
+    href: '/crm-dlya-fotografov',
+    title: 'Фотограф или видеограф',
     text: 'Съёмки, клиенты, этапы оплаты и сроки готовности материалов.',
   },
   {
-    href: registerUrl,
-    title: 'Декораторы',
+    href: '/crm-dlya-dekoratorov',
+    title: 'Декоратор или оформитель',
     text: 'Проекты, сметы, предоплаты и контроль ключевых дат.',
   },
   {
-    href: registerUrl,
-    title: 'Технические специалисты',
-    text: 'Заказы, выезды, оборудование, расчёты и рабочие задачи.',
+    href: '/crm-dlya-vyezdnyh-masterov',
+    title: 'Мастер по ремонту или выездным услугам',
+    text: 'Заявки, адреса, замеры, выезды, материалы и этапы заказов.',
   },
   {
-    href: registerUrl,
-    title: 'Другие частные специалисты',
+    href: '/crm-dlya-chastnyh-specialistov',
+    title: 'Другой частный специалист',
     text: 'Универсальный рабочий контур для услуг и проектной работы.',
   },
 ]
@@ -232,7 +244,7 @@ function ProductPreview() {
             <time>10:00</time>
             <div>
               <strong>Позвонить Анне</strong>
-              <span>Обсудить детали свадьбы</span>
+              <span>Уточнить детали заказа</span>
             </div>
             <i>
               <CheckIcon />
@@ -242,7 +254,7 @@ function ProductPreview() {
             <time>12:30</time>
             <div>
               <strong>Проверить оплату</strong>
-              <span>Свадьба · 24 августа</span>
+              <span>Заказ · 24 августа</span>
             </div>
             <i>
               <CheckIcon />
@@ -251,8 +263,8 @@ function ProductPreview() {
           <div className="landing-agenda-item is-current is-mobile-hidden">
             <time>15:00</time>
             <div>
-              <strong>Встреча с Сергеем</strong>
-              <span>Корпоратив · 31 мая</span>
+              <strong>Выезд к Сергею</strong>
+              <span>Замер · 31 мая</span>
             </div>
             <b>
               <CallOutlinedIcon aria-hidden="true" />
@@ -261,8 +273,8 @@ function ProductPreview() {
           <div className="landing-agenda-item is-mobile-hidden">
             <time>18:00</time>
             <div>
-              <strong>Отправить договор</strong>
-              <span>День рождения · 7 июня</span>
+              <strong>Отправить расчёт</strong>
+              <span>Новый заказ · 7 июня</span>
             </div>
             <i />
           </div>
@@ -272,13 +284,13 @@ function ProductPreview() {
             </i>
             <div>
               <strong>Задаток получен · 45 000 ₽</strong>
-              <span>Свадьба · 24 августа</span>
+              <span>Заказ · 24 августа</span>
             </div>
           </div>
         </div>
         <div className="landing-product-event">
           <div className="landing-product-event-head">
-            <strong>Свадьба · 24 августа</strong>
+            <strong>Заказ · 24 августа</strong>
             <MoreHorizRoundedIcon aria-hidden="true" />
           </div>
           <div className="landing-payment-status">
@@ -306,7 +318,7 @@ function ProductPreview() {
             <span>Остаток</span>
             <strong>105 000 ₽</strong>
           </div>
-          <div className="landing-product-open">Открыть мероприятие</div>
+          <div className="landing-product-open">Открыть заказ</div>
         </div>
       </div>
     </div>
@@ -722,24 +734,29 @@ export default async function HomePage() {
         <div className="landing-container landing-audiences-inner">
           <div className="landing-audience-intro">
             <div className="landing-section-head">
-              <h2 id="audiences-title">Для тех, кто работает на себя</h2>
+              <p className="landing-section-kicker">Подберите свой сценарий</p>
+              <h2 id="audiences-title">Выберите, чем вы занимаетесь</h2>
               <p>
-                Спокойный рабочий контур для специалистов event-индустрии и
-                частной практики.
+                Покажем, как ArtistCRM работает именно в вашей сфере — с вашими
+                заявками, сроками, оплатами и документами.
               </p>
             </div>
             <blockquote>
-              Система подсказывает, что требует внимания сегодня.
+              Не нашли точное название? Выберите ближайший сценарий — услуги и
+              рабочие этапы можно настроить под себя.
             </blockquote>
           </div>
           <div className="landing-audience-grid">
-            {audiencePages.map((item) => (
+            {audiencePages.map((item, index) => (
               <Link
                 key={`${item.title}-${item.href}`}
                 href={item.href}
                 className="landing-audience-card"
-                aria-label={`${item.title}: открыть подходящий сценарий`}
+                aria-label={`${item.title}: посмотреть преимущества ArtistCRM`}
               >
+                <span className="landing-audience-number" aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
                 <span>
                   <strong>{item.title}</strong>
                   <small>{item.text}</small>
@@ -817,7 +834,10 @@ export default async function HomePage() {
                 Artist<strong>CRM</strong>
               </span>
             </Link>
-            <p>CRM для event-индустрии и специалистов, работающих на себя</p>
+            <p>
+              CRM для мастеров, event-индустрии и специалистов, работающих на
+              себя
+            </p>
           </div>
           <nav aria-label="Навигация в подвале">
             <Link href="#features">Возможности</Link>
@@ -826,6 +846,14 @@ export default async function HomePage() {
             <Link href="/crm-dlya-fokusnikov">CRM для фокусников</Link>
             <Link href="/crm-dlya-vedushchih">CRM для ведущих</Link>
             <Link href="/crm-dlya-muzykantov">CRM для музыкантов</Link>
+            <Link href="/crm-dlya-vyezdnyh-masterov">
+              CRM для выездных мастеров
+            </Link>
+            <Link href="/crm-dlya-fotografov">CRM для фотографов</Link>
+            <Link href="/crm-dlya-dekoratorov">CRM для декораторов</Link>
+            <Link href="/crm-dlya-chastnyh-specialistov">
+              CRM для частных специалистов
+            </Link>
             <Link href="/crm-dlya-tilda-zayavok">Заявки с Tilda</Link>
             <Link href="/crm-s-google-calendar">CRM с Google Календарём</Link>
             <Link href="/privacy">Политика конфиденциальности</Link>

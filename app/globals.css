@@ -2699,16 +2699,24 @@ body.theme-dark .statistics-tooltip {
 }
 
 .landing-audience-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
   min-height: 112px;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  gap: 16px;
   border-bottom: 1px solid var(--landing-line);
   padding: 22px 2px;
   transition:
     color 180ms ease,
     border-color 180ms ease;
+}
+
+.landing-audience-number {
+  color: var(--landing-bronze-dark);
+  font-family: 'Futura PT', 'Futura PT Fallback', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
 }
 
 .landing-audience-card:hover {
@@ -3458,6 +3466,7 @@ body.theme-dark .statistics-tooltip {
   }
 
   .landing-audience-card {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
     min-height: 0;
     padding-block: 19px;
   }
