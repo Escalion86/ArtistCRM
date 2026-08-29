@@ -19,6 +19,7 @@ import {
 } from '@helpers/firstRunWizard.mjs'
 import { reachGoalOnce } from '@helpers/metrikaGoals'
 import { normalizeTelegramInput } from '@helpers/socialInput'
+import { normalizeTelegramCommunityUrl } from '@helpers/onboardingCommunity.mjs'
 import useSnackbar from '@helpers/useSnackbar'
 import eventsAtom from '@state/atoms/eventsAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
@@ -176,6 +177,7 @@ const userOnboardingFunc = () => {
       storedTransferSetting
     )
     const [createDemoRequest, setCreateDemoRequest] = useState(false)
+    const [telegramCommunityUrl, setTelegramCommunityUrl] = useState('')
     const [isSaving, setIsSaving] = useState(false)
     const [servicesLoaded, setServicesLoaded] = useState(
       Array.isArray(services)
@@ -245,6 +247,19 @@ const userOnboardingFunc = () => {
         cancelled = true
       }
     }, [servicesLoaded, setServices])
+
+    useEffect(() => {
+      let cancelled = false
+      getData('/api/site/community').then((data) => {
+        if (cancelled) return
+        setTelegramCommunityUrl(
+          normalizeTelegramCommunityUrl(data?.telegramUrl)
+        )
+      })
+      return () => {
+        cancelled = true
+      }
+    }, [])
 
     const saveCustom = useCallback(
       async (customPatch) =>
@@ -793,6 +808,23 @@ const userOnboardingFunc = () => {
             У вас уже есть карточки, поэтому учебную заявку создавать не будем.
           </Notice>
         )}
+        {telegramCommunityUrl ? (
+          <Notice tone="info" className="rounded-md">
+            <div className="font-semibold">Оставайтесь на связи</div>
+            <div className="mt-1 text-sm">
+              Вступайте в группу ArtistCRM в Telegram: там можно задать любой
+              вопрос, получить помощь и предложить свою идею.
+            </div>
+            <a
+              href={telegramCommunityUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="action-icon-button action-icon-button--warning mt-3 inline-flex min-h-10 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+            >
+              Вступить в группу Telegram
+            </a>
+          </Notice>
+        ) : null}
       </FormWrapper>
     )
 

@@ -4,10 +4,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import Input from '@components/Input'
+import Button from '@components/Button'
 import IconCheckBox from '@components/IconCheckBox'
 import ComboBox from '@components/ComboBox'
 import MutedText from '@components/MutedText'
 import LabeledContainer from '@components/LabeledContainer'
+import Notice from '@components/Notice'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 import { postData } from '@helpers/CRUD'
@@ -27,6 +29,10 @@ import {
   FIRST_RUN_WIZARD_SHOW_TOKEN_KEY,
   SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY,
 } from '@helpers/firstRunWizard.mjs'
+import {
+  getTelegramCommunityUrlError,
+  normalizeTelegramCommunityUrl,
+} from '@helpers/onboardingCommunity.mjs'
 
 const TIME_ZONE_OPTIONS = [
   { value: 'UTC', name: 'UTC' },
@@ -49,8 +55,13 @@ const SettingsContent = () => {
   const [darkTheme, setDarkTheme] = useState(false)
   const [defaultEventDuration, setDefaultEventDuration] = useState(60)
   const [queuedChangesCount, setQueuedChangesCount] = useState(0)
+  const [telegramCommunityUrl, setTelegramCommunityUrl] = useState('')
+  const [savedTelegramCommunityUrl, setSavedTelegramCommunityUrl] = useState('')
+  const [communityLoading, setCommunityLoading] = useState(false)
+  const [communityError, setCommunityError] = useState('')
   const durationTimeoutRef = useRef(null)
   const loggedUserActiveRole = useAtomValue(loggedUserActiveRoleSelector)
+  const canManageCommunity = loggedUserActiveRole?.dev === true
 
   // Keep Jotai atom in sync with React Query for backward compatibility
   useEffect(() => {
@@ -145,6 +156,71 @@ const SettingsContent = () => {
       }
     }
   }, [defaultEventDuration, siteSettingsState, serverSyncDisabled])
+
+  useEffect(() => {
+    if (!canManageCommunity) return undefined
+    let cancelled = false
+    setCommunityLoading(true)
+    fetch('/api/site/community', { cache: 'no-store' })
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok || result?.success === false) {
+          throw new Error(
+            result?.error?.message || 'Не удалось загрузить ссылку сообщества'
+          )
+        }
+        if (cancelled) return
+        const value = normalizeTelegramCommunityUrl(result?.data?.telegramUrl)
+        setTelegramCommunityUrl(value)
+        setSavedTelegramCommunityUrl(value)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setCommunityError(
+            error?.message || 'Не удалось загрузить ссылку сообщества'
+          )
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCommunityLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [canManageCommunity])
+
+  const saveTelegramCommunityUrl = async () => {
+    const validationError = getTelegramCommunityUrlError(telegramCommunityUrl)
+    if (validationError) {
+      setCommunityError(validationError)
+      return
+    }
+
+    setCommunityLoading(true)
+    setCommunityError('')
+    try {
+      const response = await fetch('/api/site/community', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramUrl: telegramCommunityUrl }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || result?.success === false) {
+        throw new Error(
+          result?.error?.message || 'Не удалось сохранить ссылку сообщества'
+        )
+      }
+      const value = normalizeTelegramCommunityUrl(result?.data?.telegramUrl)
+      setTelegramCommunityUrl(value)
+      setSavedTelegramCommunityUrl(value)
+    } catch (error) {
+      setCommunityError(
+        error?.message || 'Не удалось сохранить ссылку сообщества'
+      )
+    } finally {
+      setCommunityLoading(false)
+    }
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -303,6 +379,47 @@ const SettingsContent = () => {
             </button>
           </div>
         </LabeledContainer>
+        {canManageCommunity ? (
+          <LabeledContainer label="Сообщество Telegram" noMargin>
+            <div className="flex w-full flex-col gap-3">
+              <MutedText className="text-gray-500">
+                Эта ссылка показывается всем пользователям на последнем шаге
+                мастера первого запуска. Оставьте поле пустым, чтобы скрыть
+                приглашение.
+              </MutedText>
+              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end">
+                <Input
+                  label="Ссылка на группу Telegram"
+                  value={telegramCommunityUrl}
+                  onChange={(value) => {
+                    setTelegramCommunityUrl(value)
+                    setCommunityError('')
+                  }}
+                  placeholder="https://t.me/artistcrm_chat"
+                  error={getTelegramCommunityUrlError(telegramCommunityUrl)}
+                  fullWidth
+                  noMargin
+                />
+                <Button
+                  name="Сохранить"
+                  onClick={saveTelegramCommunityUrl}
+                  loading={communityLoading}
+                  disabled={
+                    communityLoading ||
+                    telegramCommunityUrl === savedTelegramCommunityUrl ||
+                    Boolean(getTelegramCommunityUrlError(telegramCommunityUrl))
+                  }
+                  className="w-full sm:w-auto"
+                />
+              </div>
+              {communityError ? (
+                <Notice tone="error" role="alert" className="rounded-md">
+                  {communityError}
+                </Notice>
+              ) : null}
+            </div>
+          </LabeledContainer>
+        ) : null}
       </div>
     </div>
   )
