@@ -15,6 +15,7 @@ import ReferralsContent from './ReferralsContent'
 import SiteReferralSettingsContent from './SiteReferralSettingsContent'
 import AiUsageAdminContent from './AiUsageAdminContent'
 import RegistrationTrialSettingsContent from './RegistrationTrialSettingsContent'
+import SiteContactsSettingsContent from './SiteContactsSettingsContent'
 import StatisticsContent from './StatisticsContent'
 import ServicesContent from './ServicesContent'
 import UsersContent from './UsersContent'
@@ -113,6 +114,10 @@ export const CONTENTS = Object.freeze({
   'registration-trial': {
     Component: RegistrationTrialSettingsContent,
     name: 'Настройки сайта / Пробный тариф',
+  },
+  'site-contacts': {
+    Component: SiteContactsSettingsContent,
+    name: 'Настройки сайта / Контакты',
   },
   tariffs: {
     Component: TariffsContent,

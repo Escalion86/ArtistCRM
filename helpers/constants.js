@@ -13,6 +13,7 @@ import {
   faVenus,
   faClockRotateLeft,
   faComments,
+  faAddressBook,
 } from '@fortawesome/free-solid-svg-icons'
 
 import {
@@ -693,6 +694,14 @@ export const pages = [
     name: 'Реферальная система',
     href: 'referrals',
     icon: faMoneyBill,
+  },
+  {
+    id: 33,
+    group: 10,
+    name: 'Контакты',
+    href: 'site-contacts',
+    icon: faAddressBook,
+    accessRoles: ['dev'],
   },
   {
     id: 21,
