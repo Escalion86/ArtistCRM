@@ -5,6 +5,7 @@ import {
   formatRegistrationSource,
   getAcquisitionFromRequest,
   getRegistrationSourceFromRequest,
+  getUserRegistrationSource,
   normalizeRegistrationSource,
   parseAcquisitionCookie,
   serializeAcquisitionCookie,
@@ -26,6 +27,34 @@ test('normalizeRegistrationSource rejects unsafe or oversized values', () => {
 test('formatRegistrationSource labels users without attribution', () => {
   assert.equal(formatRegistrationSource(''), 'Без метки')
   assert.equal(formatRegistrationSource('MAGIC_CHAT'), 'magic_chat')
+})
+
+test('getUserRegistrationSource prefers explicit registration source', () => {
+  assert.equal(
+    getUserRegistrationSource({
+      registrationSource: 'focusnik-pilot',
+      acquisition: { source: 'yandex' },
+    }),
+    'focusnik-pilot'
+  )
+})
+
+test('getUserRegistrationSource falls back to acquisition source', () => {
+  assert.equal(
+    getUserRegistrationSource({
+      registrationSource: '',
+      acquisition: { source: 'Yandex' },
+    }),
+    'yandex'
+  )
+})
+
+test('getUserRegistrationSource rejects missing or unsafe sources', () => {
+  assert.equal(getUserRegistrationSource({}), '')
+  assert.equal(
+    getUserRegistrationSource({ acquisition: { source: '<script>' } }),
+    ''
+  )
 })
 
 test('getRegistrationSourceFromRequest reads and validates the attribution cookie', () => {

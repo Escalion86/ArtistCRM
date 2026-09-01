@@ -12,6 +12,11 @@ const nextConfig = {
         hostname: 'cloud.escalion.ru',
         pathname: '/uploads/**',
       },
+      {
+        protocol: 'https',
+        hostname: '**.vkuserphoto.ru',
+        pathname: '/**',
+      },
     ],
   },
   async headers() {

@@ -14,7 +14,10 @@ import tariffsAtom from '@state/atoms/tariffsAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import { useEffect, useMemo, useState } from 'react'
 import { useAtomValue } from 'jotai'
-import { formatRegistrationSource } from '@helpers/registrationSource.mjs'
+import {
+  formatRegistrationSource,
+  getUserRegistrationSource,
+} from '@helpers/registrationSource.mjs'
 import Button from '@components/Button'
 import Notice from '@components/Notice'
 import switchImpersonation from '@helpers/switchImpersonation'
@@ -180,7 +183,7 @@ const userViewFunc = (userId, params = {}) => {
             {formatDate(user.createdAt)}
           </TextLine>
           <TextLine label="Источник регистрации">
-            {formatRegistrationSource(user.registrationSource)}
+            {formatRegistrationSource(getUserRegistrationSource(user))}
           </TextLine>
           <div className="mt-4 border-t border-gray-200 pt-4">
             <h3 className="text-sm font-semibold text-gray-800">Реферер</h3>

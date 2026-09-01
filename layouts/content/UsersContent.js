@@ -18,7 +18,10 @@ import {
   USER_SORT_MODES,
   USER_SORT_OPTIONS,
 } from '@helpers/usersSort'
-import { formatRegistrationSource } from '@helpers/registrationSource.mjs'
+import {
+  formatRegistrationSource,
+  getUserRegistrationSource,
+} from '@helpers/registrationSource.mjs'
 
 const ALL_SOURCES = '__all__'
 const EMPTY_SOURCE = '__empty__'
@@ -46,8 +49,7 @@ const UsersContent = () => {
   const sourceStats = useMemo(() => {
     const counts = new Map()
     users.forEach((user) => {
-      const source =
-        user.registrationSource || user.acquisition?.source || EMPTY_SOURCE
+      const source = getUserRegistrationSource(user) || EMPTY_SOURCE
       const current = counts.get(source) ?? {
         source,
         registered: 0,
@@ -98,8 +100,7 @@ const UsersContent = () => {
     const lowerSearch = search.trim().toLowerCase()
     return sortUsers(
       users.filter((user) => {
-        const userSource =
-          user.registrationSource || user.acquisition?.source || EMPTY_SOURCE
+        const userSource = getUserRegistrationSource(user) || EMPTY_SOURCE
         if (sourceFilter !== ALL_SOURCES && userSource !== sourceFilter) {
           return false
         }

@@ -71,6 +71,10 @@ export const normalizeRegistrationSource = (value) => {
   return REGISTRATION_SOURCE_PATTERN.test(normalized) ? normalized : ''
 }
 
+export const getUserRegistrationSource = (user) =>
+  normalizeRegistrationSource(user?.registrationSource) ||
+  normalizeRegistrationSource(user?.acquisition?.source)
+
 export const getRegistrationSourceFromRequest = (request) =>
   normalizeRegistrationSource(
     request?.cookies?.get?.(REGISTRATION_SOURCE_COOKIE)?.value
