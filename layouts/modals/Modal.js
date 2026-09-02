@@ -12,6 +12,7 @@ import { useAtomValue, useSetAtom } from 'jotai'
 
 const Modal = ({
   Children,
+  childrenProps,
   id,
   // onClose = () => {},
   // onDelete = null,
@@ -370,6 +371,7 @@ const Modal = ({
         >
           {Children && (
             <Children
+              {...childrenProps}
               closeModal={closeModal}
               setOnConfirmFunc={setOnConfirmFuncSafe}
               setOnConfirm2Func={setOnConfirm2FuncSafe}

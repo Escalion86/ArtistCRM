@@ -148,6 +148,74 @@ const PAST_QUICK_FILTERS = [
   },
 ]
 
+const getCalendarItemTimeLabel = (value) => {
+  const date = value ? new Date(value) : null
+  if (!date || Number.isNaN(date.getTime())) return 'Время не указано'
+  return date.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const DayEventsModal = ({ eventItems, additionalItems, openEvent }) => (
+  <div className="flex max-h-[70vh] flex-col gap-2 overflow-auto px-1 py-1">
+    {eventItems.length > 0 ? (
+      <>
+        <div className="text-sm font-semibold text-gray-700">Мероприятия</div>
+        {eventItems.map((item, index) => (
+          <button
+            key={`month-day-event-${item.eventId}-${index}`}
+            type="button"
+            className="ui-surface-card ui-surface-card--interactive flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left"
+            onClick={() => openEvent?.(item.eventId)}
+          >
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">
+              {item.title}
+            </span>
+            <span className="shrink-0 text-xs text-gray-600">
+              {getCalendarItemTimeLabel(item.date)}
+            </span>
+          </button>
+        ))}
+      </>
+    ) : null}
+    {additionalItems.length > 0 ? (
+      <>
+        <div className="mt-2 text-sm font-semibold text-gray-700">
+          Доп. события
+        </div>
+        {additionalItems.map((item, index) => (
+          <div
+            key={`month-day-additional-${item.eventId}-${item.index}-${index}`}
+            className="rounded border border-gray-200 bg-white px-3 py-2"
+          >
+            <div className="text-sm font-semibold text-gray-900">
+              {item.title}
+            </div>
+            <div className="text-xs text-gray-600">
+              {item.done ? 'Выполнено' : 'Активно'} •{' '}
+              {getCalendarItemTimeLabel(item.date)}
+            </div>
+            {item.description ? (
+              <div className="text-xs text-gray-600">{item.description}</div>
+            ) : null}
+            <div className="mt-2">
+              <AppButton
+                variant="secondary"
+                size="sm"
+                className="tablet:w-auto w-full rounded-md"
+                onClick={() => openEvent?.(item.eventId)}
+              >
+                Открыть мероприятие
+              </AppButton>
+            </div>
+          </div>
+        ))}
+      </>
+    ) : null}
+  </div>
+)
+
 const AddEventMenu = ({
   disabled,
   allowVoice,
@@ -1185,15 +1253,6 @@ const EventsContent = ({
     return map
   }, [sortedEvents])
 
-  const eventsById = useMemo(() => {
-    const map = new Map()
-    ;(sortedEvents ?? []).forEach((event) => {
-      if (!event?._id) return
-      map.set(String(event._id), event)
-    })
-    return map
-  }, [sortedEvents])
-
   const monthMeta = useMemo(() => {
     const meta = { events: 0, additional: 0 }
     monthGridDays.forEach((day) => {
@@ -1286,8 +1345,15 @@ const EventsContent = ({
 
       const dayEvents = dayItems
         .filter((item) => item.type === 'event')
-        .map((item) => eventsById.get(String(item.eventId)))
-        .filter(Boolean)
+        .map((item) => ({
+          ...item,
+          eventId: String(item.eventId ?? ''),
+          title:
+            typeof item.title === 'string' && item.title.trim()
+              ? item.title.trim()
+              : 'Мероприятие',
+        }))
+        .filter((item) => item.eventId)
       const dayAdditionalEvents = dayItems.filter(
         (item) => item.type === 'additional'
       )
@@ -1300,80 +1366,20 @@ const EventsContent = ({
           })
         : 'Выбранный день'
 
-      const DayEventsModal = () => (
-        <div className="flex max-h-[70vh] flex-col gap-2 overflow-auto px-1 py-1">
-          {dayEvents.length > 0 ? (
-            <>
-              <div className="text-sm font-semibold text-gray-700">
-                Мероприятия
-              </div>
-              {dayEvents.map((event) => (
-                <EventCard
-                  key={`month-day-event-${event._id}`}
-                  eventId={event._id}
-                  event={event}
-                  transactions={transactions}
-                />
-              ))}
-            </>
-          ) : null}
-          {dayAdditionalEvents.length > 0 ? (
-            <>
-              <div className="mt-2 text-sm font-semibold text-gray-700">
-                Доп. события
-              </div>
-              {dayAdditionalEvents.map((item, idx) => {
-                const date = item?.date ? new Date(item.date) : null
-                const timeLabel =
-                  date && !Number.isNaN(date.getTime())
-                    ? date.toLocaleTimeString('ru-RU', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : 'Время не указано'
-                return (
-                  <div
-                    key={`month-day-additional-${item.eventId}-${item.index}-${idx}`}
-                    className="rounded border border-gray-200 bg-white px-3 py-2"
-                  >
-                    <div className="text-sm font-semibold text-gray-900">
-                      {item.title || 'Доп. событие'}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {item.done ? 'Выполнено' : 'Активно'} • {timeLabel}
-                    </div>
-                    {item.description ? (
-                      <div className="text-xs text-gray-600">
-                        {item.description}
-                      </div>
-                    ) : null}
-                    <div className="mt-2">
-                      <AppButton
-                        variant="secondary"
-                        size="sm"
-                        className="tablet:w-auto w-full rounded-md"
-                        onClick={() => modalsFunc.event?.view?.(item.eventId)}
-                      >
-                        Открыть мероприятие
-                      </AppButton>
-                    </div>
-                  </div>
-                )
-              })}
-            </>
-          ) : null}
-        </div>
-      )
-
       modalsFunc.add({
         title: `План на день: ${dayTitle}`,
         confirmButtonName: 'Закрыть',
         onConfirm: true,
         showDecline: false,
         Children: DayEventsModal,
+        childrenProps: {
+          eventItems: dayEvents,
+          additionalItems: dayAdditionalEvents,
+          openEvent: modalsFunc.event?.view,
+        },
       })
     },
-    [eventsById, modalsFunc, monthItemsByDay, transactions]
+    [modalsFunc, monthItemsByDay]
   )
 
   useEffect(() => {
