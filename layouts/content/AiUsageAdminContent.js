@@ -15,6 +15,8 @@ const FEATURE_LABELS = {
   voice_transcription: 'Голосовой ввод',
   event_draft: 'Черновик мероприятия',
   calendar_import: 'Импорт Google Calendar',
+  file_analysis: 'Анализ файла',
+  file_import: 'Импорт из файла',
 }
 
 const formatDateTime = (value) =>

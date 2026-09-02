@@ -3,6 +3,7 @@
 // import cn from 'classnames'
 import { useAtomValue } from 'jotai'
 import { useMemo } from 'react'
+import { isEventImportChecked } from '@helpers/fileImport.mjs'
 import Image from 'next/image'
 import { EVENT_STATUSES, EVENT_STATUSES_SIMPLE } from '@helpers/constants'
 import formatDate from '@helpers/formatDate'
@@ -207,7 +208,7 @@ const EventCard = ({
   const eventEnd = event?.dateEnd ? new Date(event.dateEnd) : eventStart
   const now = new Date()
   const rawStatus = status?.value ?? event.status
-  const needsCheck = event?.calendarImportChecked === false
+  const needsCheck = !isEventImportChecked(event)
   const hasCalendarError = Boolean(event?.calendarSyncError)
   const isCanceled = rawStatus === 'canceled'
   const isClosed = rawStatus === 'closed'
@@ -379,9 +380,10 @@ const EventCard = ({
             <FontAwesomeIcon
               icon={faTriangleExclamation}
               className="h-4 w-4 shrink-0 text-amber-500"
-              aria-label="Проверка мероприятия не завершена"
+              aria-label={event.importedFromFile ? 'Импорт из файла не проверен' : 'Проверка мероприятия не завершена'}
             />
           ) : null}
+          {event.importedFromFile ? <span className="text-xs" title={event.fileImportName}>Из файла{needsCheck ? ' · Не проверено' : ''}</span> : null}
           {hasCalendarError ? (
             <FontAwesomeIcon
               icon={faCalendarXmark}

@@ -2199,6 +2199,8 @@ const IntegrationsContent = () => {
                               voice_transcription: 'Голосовой ввод',
                               event_draft: 'Черновик мероприятия',
                               calendar_import: 'Импорт Google Calendar',
+                              file_analysis: 'Анализ файла',
+                              file_import: 'Импорт из файла',
                             }[item.feature] || item.feature}
                           </div>
                           <div className="text-xs text-gray-500">

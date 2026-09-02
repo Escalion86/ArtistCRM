@@ -396,6 +396,7 @@ const updateEventInCalendar = async (
   user,
   previousEvent = null
 ) => {
+  if (event?.importedFromFile && event.fileImportChecked !== true) return undefined
   const context = await getCalendarContext(user)
   if (!context) return undefined
   const { calendar, calendarId } = context

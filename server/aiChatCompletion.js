@@ -89,13 +89,15 @@ export const requestAiChatCompletion = async ({
   feature = 'call_analysis',
   operationId,
   groupId = '',
+  prepaidImport = false,
+  timeoutMs,
 }) => {
   const provider = getAiAnalysisProviderConfig(settings)
   if (!provider.apiKey) return null
   let reservation = null
   let platformBilling = null
 
-  if (provider.name === 'artistcrm') {
+  if (provider.name === 'artistcrm' && !prepaidImport) {
     platformBilling = await import('./aiBilling.js')
     reservation = await platformBilling.reservePlatformAiUsage({
       tenantId: settings.tenantId,
@@ -129,6 +131,7 @@ export const requestAiChatCompletion = async ({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
+      ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
     })
     payload = await response.json().catch(() => null)
   } catch (error) {

@@ -216,18 +216,20 @@ const eventFunc = (
       if (
         importAiMetadataLoadedRef.current ||
         !eventId ||
-        !event?.importedFromCalendar ||
-        event?.calendarImportChecked
+        (!event?.importedFromCalendar && !event?.importedFromFile) ||
+        (event?.importedFromFile ? event.fileImportChecked : event?.calendarImportChecked)
       ) {
         return
       }
       importAiMetadataLoadedRef.current = true
-      if (Array.isArray(event.calendarImportAiFields)) {
-        setAiHighlightedFields(new Set(event.calendarImportAiFields))
+      const importedFields = event.importedFromFile ? event.fileImportAiFields : event.calendarImportAiFields
+      const importedWarnings = event.importedFromFile ? event.fileImportWarnings : event.calendarImportWarnings
+      if (Array.isArray(importedFields)) {
+        setAiHighlightedFields(new Set(importedFields))
       }
-      if (Array.isArray(event.calendarImportWarnings)) {
+      if (Array.isArray(importedWarnings)) {
         setAiWarnings(
-          event.calendarImportWarnings.filter(
+          importedWarnings.filter(
             (warning) => typeof warning === 'string' && warning.trim()
           )
         )
@@ -334,6 +336,7 @@ const eventFunc = (
       event?.calendarImportChecked ??
         (eventId ? (DEFAULT_EVENT.calendarImportChecked ?? false) : true)
     )
+    const [fileImportChecked, setFileImportChecked] = useState(event?.fileImportChecked ?? false)
     const [servicesIds, setServicesIds] = useState(
       event?.servicesIds ?? DEFAULT_EVENT.servicesIds ?? []
     )
@@ -401,6 +404,7 @@ const eventFunc = (
         calendarImportChecked:
           event?.calendarImportChecked ??
           (eventId ? DEFAULT_EVENT.calendarImportChecked : true),
+        fileImportChecked: event?.fileImportChecked ?? false,
         servicesIds: event?.servicesIds ?? DEFAULT_EVENT.servicesIds ?? [],
         otherContacts: normalizeOtherContacts(
           event?.otherContacts ?? DEFAULT_EVENT.otherContacts ?? []
@@ -458,6 +462,7 @@ const eventFunc = (
         JSON.stringify(initialEventValues.documents ?? []) !==
           JSON.stringify(documents) ||
         initialEventValues.calendarImportChecked !== calendarImportChecked ||
+        initialEventValues.fileImportChecked !== fileImportChecked ||
         JSON.stringify(initialEventValues.servicesIds ?? []) !==
           JSON.stringify(servicesIds) ||
         JSON.stringify(initialEventValues.otherContacts ?? []) !==
@@ -480,6 +485,7 @@ const eventFunc = (
         financeComment,
         documents,
         calendarImportChecked,
+        fileImportChecked,
         servicesIds,
         otherContacts,
         initialEventValues,
@@ -731,6 +737,7 @@ const eventFunc = (
         calendarImportChecked,
         servicesIds,
         otherContacts: normalizedOtherContacts,
+        ...(event?.importedFromFile && !clone ? { fileImportChecked } : {}),
       }
 
       if (canUseDocuments) {
@@ -748,6 +755,8 @@ const eventFunc = (
       address,
       calendarImportChecked,
       canUseDocuments,
+      fileImportChecked,
+      event?.importedFromFile,
       clientId,
       colleagueId,
       contractSum,
@@ -1620,7 +1629,7 @@ const eventFunc = (
                 подсветка отдельного поля исчезнет после вашего изменения.
               </div>
             ) : null}
-            {!calendarImportChecked && aiWarnings.length > 0 ? (
+            {(!calendarImportChecked || (event?.importedFromFile && !fileImportChecked)) && aiWarnings.length > 0 ? (
               <Notice
                 tone="warning"
                 className="ai-draft-warning mb-3"
@@ -1809,7 +1818,12 @@ const eventFunc = (
                   )}
                 </>
               )}
-              {!calendarImportChecked && (
+              {event?.importedFromFile && !clone ? (
+                <div className="space-y-2">
+                  <IconCheckBox checked={fileImportChecked} onClick={() => setFileImportChecked((value) => !value)} label="Импорт из файла проверен" checkedIcon={faCircleCheck} checkedIconColor="#10B981" />
+                  <details className="text-sm"><summary className="cursor-pointer">Источник: {event.fileImportName || 'файл'}</summary><pre className="mt-2 whitespace-pre-wrap break-words text-xs">{event.fileImportSource}</pre></details>
+                </div>
+              ) : !calendarImportChecked && (
                 <IconCheckBox
                   checked={calendarImportChecked}
                   onClick={() => setCalendarImportChecked(true)}

@@ -1,4 +1,5 @@
 'use client'
+import { isEventImportChecked } from '@helpers/fileImport.mjs'
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { List, useListRef } from 'react-window'
@@ -574,7 +575,7 @@ const EventsContent = ({
   }, [selectedTown, baseEvents])
 
   const hasUncheckedEvents = useMemo(
-    () => filteredEvents.some((event) => !event?.calendarImportChecked),
+    () => filteredEvents.some((event) => !isEventImportChecked(event)),
     [filteredEvents]
   )
 
@@ -672,9 +673,9 @@ const EventsContent = ({
   const filteredByCheck = useMemo(() => {
     if (checkFilter.checked && checkFilter.unchecked) return filteredEvents
     if (checkFilter.checked)
-      return filteredEvents.filter((event) => event?.calendarImportChecked)
+      return filteredEvents.filter((event) => isEventImportChecked(event))
     if (checkFilter.unchecked)
-      return filteredEvents.filter((event) => !event?.calendarImportChecked)
+      return filteredEvents.filter((event) => !isEventImportChecked(event))
     return filteredEvents
   }, [checkFilter, filteredEvents])
 
@@ -859,7 +860,7 @@ const EventsContent = ({
       }
 
       if (!checkFilter.checked || !checkFilter.unchecked) {
-        const isChecked = !!event?.calendarImportChecked
+        const isChecked = isEventImportChecked(event)
         const isVisible =
           (isChecked && checkFilter.checked) ||
           (!isChecked && checkFilter.unchecked)

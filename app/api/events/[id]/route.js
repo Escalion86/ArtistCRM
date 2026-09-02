@@ -275,6 +275,13 @@ export const PUT = async (req, { params }) => {
       update.calendarImportWarnings = []
     }
   }
+  if (oldEvent.importedFromFile && typeof body.fileImportChecked === 'boolean') {
+    update.fileImportChecked = body.fileImportChecked
+    if (update.fileImportChecked) {
+      update.fileImportAiFields = []
+      update.fileImportWarnings = []
+    }
+  }
   if (body.colleagueId !== undefined)
     update.colleagueId = normalizeObjectId(body.colleagueId)
   if (body.isTransferred !== undefined) {
@@ -335,7 +342,7 @@ export const PUT = async (req, { params }) => {
       { calendarSyncError: 'calendar_sync_unavailable' },
       { returnDocument: 'after' }
     )
-  } else if (event.calendarImportChecked && access?.allowCalendarSync) {
+  } else if (event.calendarImportChecked && access?.allowCalendarSync && (!event.importedFromFile || event.fileImportChecked)) {
     try {
       await updateEventInCalendar(event, req, user, oldEvent)
       responseEvent = await Events.findByIdAndUpdate(

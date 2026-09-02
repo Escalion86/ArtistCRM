@@ -553,6 +553,10 @@ const eventViewFunc = (eventId) => {
 
     return (
       <div className="flex flex-col gap-y-3">
+        {event.importedFromFile ? <Notice tone={event.fileImportChecked ? 'neutral' : 'warning'}>
+          <p>{event.fileImportChecked ? 'Импорт из файла проверен' : 'Импорт из файла не проверен'}</p>
+          <details className="mt-2 text-sm"><summary className="cursor-pointer">Источник: {event.fileImportName || 'файл'}</summary><pre className="mt-2 whitespace-pre-wrap break-words text-xs">{event.fileImportSource}</pre></details>
+        </Notice> : null}
         <ImageGallery images={event?.images} />
         <div className="flex flex-1 flex-col">
           <div className="flex w-full max-w-full flex-1 flex-col gap-y-3 px-2 py-2">

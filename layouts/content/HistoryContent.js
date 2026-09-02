@@ -16,6 +16,7 @@ const OPERATION_OPTIONS = [
 const SOURCE_OPTIONS = [
   ['', 'Все источники'], ['web', 'Web'], ['android', 'Android'], ['public_api', 'Public API'],
   ['tilda', 'Tilda'], ['google_import', 'Google Calendar'], ['avito', 'Avito'], ['vk', 'VK'], ['telephony', 'Телефония'],
+  ['file_import', 'Импорт из файла'],
 ]
 
 const FilterSelect = ({ label, value, onChange, options }) => (

@@ -85,6 +85,8 @@ NEXT_PUBLIC_SUPPORT_EMAIL=support@artistcrm.ru
 
 ## Push и cron
 
+Для фонового импорта XLSX/CSV/TXT/DOCX задайте `CRON_SECRET` и вызывайте каждую минуту `POST /api/events/file-import/worker` с заголовком `Authorization: Bearer <CRON_SECRET>`. Это продолжает большие импорты при закрытом браузере и очищает временные данные с истёкшим сроком хранения. Подробнее: `docs/FILE_AI_IMPORT.md`.
+
 ```env
 BILLING_CRON_SECRET=...
 PUSH_REMINDERS_CRON_SECRET=...

@@ -12,6 +12,7 @@ const DEFAULT_GOOGLE_CALENDAR_STATUS_COLORS = Object.freeze({
 })
 
 const usersSchema = {
+  aiFileImportBudgets: { type: Schema.Types.Mixed, default: {}, select: false },
   tenantId: {
     type: Schema.Types.ObjectId,
     ref: 'Users',

@@ -145,7 +145,10 @@ export const GET = async (req) => {
         searchParams.get('calendarChecked')
       )
       if (calendarChecked !== null) {
-        baseConditions.push({ calendarImportChecked: calendarChecked })
+        baseConditions.push({ $or: [
+          { importedFromFile: true, fileImportChecked: calendarChecked },
+          { importedFromFile: { $ne: true }, calendarImportChecked: calendarChecked },
+        ] })
       }
 
       const statusFinished = parseBooleanParam(

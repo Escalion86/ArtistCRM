@@ -16,6 +16,7 @@ import { useHistoriesQuery } from '@helpers/useHistoriesQuery'
 const SOURCE_LABELS = {
   web: 'Web', android: 'Android', public_api: 'Public API', tilda: 'Tilda',
   google_import: 'Google Calendar', avito: 'Avito', vk: 'VK', telephony: 'Телефония',
+  file_import: 'Импорт из файла',
 }
 const SEMANTIC_LABELS = {
   task_created: 'Добавлена задача', task_deleted: 'Удалена задача',

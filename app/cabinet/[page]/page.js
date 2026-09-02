@@ -70,6 +70,7 @@ export default async function Cabinet({ params }) {
   if (page === 'requests') return redirect('/cabinet/eventsUpcoming')
 
   if (!session) return redirect('/login')
+  if (page === 'export') return redirect('/cabinet/import?tab=export')
 
   let fetchedProps = null
   try {
