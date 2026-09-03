@@ -331,7 +331,7 @@ const eventViewFunc = (eventId) => {
     setDisableDecline,
     setTopLeftComponent,
   }) => {
-    const { data: event } = useEventQuery(eventId)
+    const { data: event, isPending, isError } = useEventQuery(eventId)
     const services = useAtomValue(servicesAtom)
     const { data: transactions = [] } = useTransactionsQuery(undefined, {
       enabled: false,
@@ -538,17 +538,26 @@ const eventViewFunc = (eventId) => {
 
     useEffect(() => {
       if (setTopLeftComponent) {
+        if (!event?._id) {
+          setTopLeftComponent(null)
+          return
+        }
         setTopLeftComponent(() => (
           <CardButtonsComponent event={event} calendarLink={calendarLink} />
         ))
       }
     }, [event, calendarLink, setTopLeftComponent])
 
-    if (!event || !eventId)
+    if (!event && eventId && isPending)
+      return <Notice tone="neutral">Загружаем мероприятие…</Notice>
+
+    if (!event?._id || !eventId)
       return (
-        <div className="flex w-full justify-center text-lg">
-          ОШИБКА! Мероприятие не найдено!
-        </div>
+        <Notice tone="error">
+          {isError
+            ? 'Не удалось загрузить мероприятие. Попробуйте открыть его ещё раз.'
+            : 'Мероприятие не найдено.'}
+        </Notice>
       )
 
     return (

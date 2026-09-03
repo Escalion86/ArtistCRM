@@ -152,7 +152,11 @@ const CardButtons = ({
   const canEditStatus =
     showStatusButton && ['event', 'serviceUser'].includes(typeOfItem)
 
-  const copyId = useCopyToClipboard(item._id, 'ID скопирован в буфер обмена')
+  const copyId = useCopyToClipboard(item?._id, 'ID скопирован в буфер обмена')
+
+  // Keep hooks unconditional while the item is loading or has been removed.
+  if (!item?._id) return null
+
   const additionalEventsSummary = getAdditionalEventsSummary([item], new Date())
   const additionalEventsBadges = [
     {
