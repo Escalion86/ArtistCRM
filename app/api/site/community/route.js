@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server'
 import SiteSettings from '@models/SiteSettings'
 import dbConnect from '@server/dbConnect'
 import getTenantContext from '@server/getTenantContext'
-import { normalizeTelegramCommunityUrl } from '@helpers/onboardingCommunity.mjs'
+import {
+  getTelegramCommunityUrlError,
+  normalizeTelegramCommunityUrl,
+} from '@helpers/onboardingCommunity.mjs'
 
 const jsonError = (message, status, code) =>
   NextResponse.json(
@@ -46,7 +49,7 @@ export const POST = async (req) => {
 
   if (rawTelegramUrl && !telegramUrl) {
     return jsonError(
-      'Укажите корректную ссылку на группу Telegram вида https://t.me/название_группы',
+      getTelegramCommunityUrlError(rawTelegramUrl),
       400,
       'invalid_telegram_url'
     )

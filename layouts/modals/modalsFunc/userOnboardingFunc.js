@@ -4,7 +4,10 @@ import IconCheckBox from '@components/IconCheckBox'
 import Input from '@components/Input'
 import InputImages from '@components/InputImages'
 import Notice from '@components/Notice'
+import OnboardingStatusGuide from '@components/OnboardingStatusGuide'
 import PhoneInput from '@components/PhoneInput'
+import { faTelegramPlane } from '@fortawesome/free-brands-svg-icons/faTelegramPlane'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { getData, postData } from '@helpers/CRUD'
 import {
   ONBOARDING_ACTIVITY_PRESETS,
@@ -15,12 +18,12 @@ import {
 import {
   SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY,
   buildFirstRunCompletionCustomPatch,
-  getFirstRunStatusEducationItems,
 } from '@helpers/firstRunWizard.mjs'
 import { reachGoalOnce } from '@helpers/metrikaGoals'
 import { normalizeTelegramInput } from '@helpers/socialInput'
 import { normalizeTelegramCommunityUrl } from '@helpers/onboardingCommunity.mjs'
 import useSnackbar from '@helpers/useSnackbar'
+import useOnboardingTown from '@helpers/useOnboardingTown'
 import eventsAtom from '@state/atoms/eventsAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
@@ -164,7 +167,10 @@ const userOnboardingFunc = () => {
     const [whatsapp, setWhatsapp] = useState(loggedUser?.whatsapp ?? null)
     const [telegram, setTelegram] = useState(loggedUser?.telegram ?? '')
     const [images, setImages] = useState(loggedUser?.images ?? [])
-    const [town, setTown] = useState(siteSettings?.defaultTown ?? '')
+    const { town, changeTown, isDetected: isTownDetected } = useOnboardingTown(
+      siteSettings?.defaultTown ?? '',
+      !loggedUser?.impersonation?.active
+    )
     const [timeZone, setTimeZone] = useState(() => {
       const current = siteSettings?.timeZone ?? 'Asia/Krasnoyarsk'
       const confirmed = siteSettings?.custom?.timeZoneConfirmed === true
@@ -190,8 +196,7 @@ const userOnboardingFunc = () => {
     const hasExistingServices = Array.isArray(services) && services.length > 0
     const hasAnyEvent = Array.isArray(events) && events.length > 0
     const isLastStep = stepIndex === STEPS.length - 1
-    const demoText =
-      'Учебная заявка создается без даты мероприятия: это еще не подтвержденный заказ. Следующее действие будет поставлено на завтра в 12:00.'
+    const demoText = `Создадим учебную заявку без даты мероприятия. В её карточке добавим задачу «${selectedPreset.demo.nextActionTitle}» на завтра в 12:00, чтобы показать, как планировать работу с клиентом. Это пример — связываться с реальным клиентом не нужно.`
 
     const errors = useMemo(
       () => ({
@@ -640,12 +645,18 @@ const userOnboardingFunc = () => {
         <Input
           label="Основной город"
           value={town}
-          onChange={setTown}
+          onChange={changeTown}
           error={errors.town}
           required
           fullWidth
           noMargin
         />
+        {isTownDetected && (
+          <Notice tone="neutral" className="rounded-md text-sm" role="status">
+            Город определён по IP. Проверьте его и при необходимости исправьте:
+            VPN или мобильная сеть могут повлиять на точность.
+          </Notice>
+        )}
         <ComboBox
           label="Часовой пояс"
           items={timeZoneOptions}
@@ -760,25 +771,7 @@ const userOnboardingFunc = () => {
 
     const renderStatusesStep = () => (
       <FormWrapper className="flex flex-col gap-3">
-        <Notice tone="info" className="rounded-md font-semibold">
-          Обычный путь: Заявка {'->'} Подтверждено {'->'} Закрыто. Если заказ
-          сорвался, используйте Отменено.
-        </Notice>
-        <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2">
-          {getFirstRunStatusEducationItems().map((item) => (
-            <div
-              key={item.status}
-              className="rounded-md border border-gray-200 bg-white px-3 py-2"
-            >
-              <div className="text-sm font-semibold text-gray-900">
-                {item.title}
-              </div>
-              <div className="mt-1 text-xs text-gray-600">
-                {item.description}
-              </div>
-            </div>
-          ))}
-        </div>
+        <OnboardingStatusGuide />
       </FormWrapper>
     )
 
@@ -819,9 +812,14 @@ const userOnboardingFunc = () => {
               href={telegramCommunityUrl}
               target="_blank"
               rel="noreferrer"
-              className="action-icon-button action-icon-button--warning mt-3 inline-flex min-h-10 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+              className="action-icon-button action-icon-button--warning mt-3 inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded px-3 text-sm font-semibold"
             >
-              Вступить в группу Telegram
+              <FontAwesomeIcon
+                icon={faTelegramPlane}
+                className="h-5 w-5 shrink-0 text-[#229ED9]"
+                aria-hidden="true"
+              />
+              <span>Вступить в группу Telegram</span>
             </a>
           </Notice>
         ) : null}

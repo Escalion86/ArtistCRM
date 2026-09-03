@@ -12,6 +12,7 @@ NEXTAUTH_SECRET=...
 
 ## Нужны только если включен соответствующий функционал
 
+- Город при первом входе: `GEOIP_CITY_DB_PATH` (абсолютный путь к локальной City MMDB) и `GEOIP_TRUST_PROXY=true` только за доверенным reverse proxy, перезаписывающим `X-Real-IP`. Без настройки автоподстановка отключена; инструкция: `docs/ONBOARDING_GEOIP.md`.
 - Google Calendar: `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`
 - Биллинг YooKassa: `YOOKASSA_*`
 - Биллинг Точка: `TOCHKA_*`

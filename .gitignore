@@ -27,6 +27,7 @@
 .DS_Store
 *.pem
 google_calendar_token.json
+*.mmdb
 
 # debug
 npm-debug.log*

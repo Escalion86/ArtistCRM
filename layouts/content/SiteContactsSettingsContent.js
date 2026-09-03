@@ -106,6 +106,9 @@ const SiteContactsSettingsContent = () => {
           <p className="mt-1 text-sm text-gray-600">
             Ссылка показывается всем пользователям на последнем шаге мастера
             первого запуска. Оставьте поле пустым, чтобы скрыть приглашение.
+            Можно указать ссылку https://t.me/… или tg://+код. Ссылка
+            tg://+код будет сохранена в формате tg://join?invite=код для открытия
+            приложения Telegram.
           </p>
 
           <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
