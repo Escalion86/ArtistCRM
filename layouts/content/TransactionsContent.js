@@ -31,6 +31,7 @@ import {
   faChevronDown,
   faFilter,
   faLink,
+  faMoneyBill,
   faUnlink,
 } from '@fortawesome/free-solid-svg-icons'
 
@@ -338,8 +339,26 @@ const TransactionsContent = ({ onHeaderCountChange }) => {
             rowProps={{}}
             style={{ height: '100%', width: '100%' }}
           />
+        ) : transactions.length === 0 ? (
+          <EmptyState
+            icon={<FontAwesomeIcon icon={faMoneyBill} className="h-5 w-5" />}
+            title="Пока нет ни одной транзакции"
+            hint="Фиксируйте задатки, оплаты и расходы — так карточка мероприятия покажет реальный итог."
+            actionLabel="Добавить транзакцию"
+            onAction={() => modalsFunc.transaction?.add()}
+          />
         ) : (
-          <EmptyState text="Транзакций пока нет" />
+          <EmptyState
+            icon={<FontAwesomeIcon icon={faFilter} className="h-5 w-5" />}
+            title="По выбранным фильтрам транзакций нет"
+            hint="Попробуйте изменить период или сбросить фильтры."
+            actionLabel="Сбросить фильтры"
+            onAction={() => {
+              setTypeMode('all')
+              setRelationFilter({ linked: true, unlinked: true })
+              setDateRange({ from: '', to: '' })
+            }}
+          />
         )}
       </SectionCard>
     </div>

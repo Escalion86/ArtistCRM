@@ -15,7 +15,6 @@ import ContentWrapper from '@layouts/wrappers/ContentWrapper'
 // import loggedUserAtom from '@state/atoms/loggedUserAtom'
 // import loggedUserActiveRoleSelector from '@state/selectors/loggedUserActiveRoleSelector'
 // import { getSession } from 'next-auth/react'
-import Head from 'next/head'
 // import { useRouter } from 'next/router'
 import { Provider } from 'jotai'
 import store from '@state/store'
@@ -88,10 +87,6 @@ function CabinetPage(props) {
 
   return (
     <>
-      <Head>
-        <title>{`Cigam.ru - Кабинет${title ? ' / ' + title : ''}`}</title>
-        {/* <meta name="description" content={activeLecture.description} /> */}
-      </Head>
       {/* <button onClick={() => signOut()}>SignOut</button> */}
       <Provider store={store}>
         <StateLoader {...props}>

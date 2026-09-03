@@ -1,10 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { faAngleDown, faAngleUp } from '@fortawesome/free-solid-svg-icons'
+import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { pages, pagesGroups } from '@helpers/constants'
 import isPageAllowedForRole from '@helpers/pageAccess'
 import menuOpenAtom from '@state/atoms/menuOpen'
-import windowDimensionsAtom from '@state/atoms/windowDimensionsAtom'
 import windowDimensionsTailwindSelector from '@state/selectors/windowDimensionsTailwindSelector'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 // import badgesSelector from '@state/selectors/badgesSelector'
@@ -154,7 +153,7 @@ const Menu = ({
                 )}
                 <div
                   className={cn(
-                    'group rounded-lg duration-300',
+                    'group min-w-12 rounded-lg duration-300',
                     groupIsActive ? 'text-general bg-white' : 'text-white'
                     // : 'hover:text-general text-white hover:bg-white'
                   )}
@@ -284,10 +283,7 @@ const SideBar = ({ page }) => {
   const wrapperRef = useRef(null)
   const menuRef = useRef(null)
   const [menuOpen, setMenuOpen] = useAtom(menuOpenAtom)
-  const [scrollPos, setScrollPos] = useState(0)
-  const [scrollable, setScrollable] = useState(false)
   const [pendingPage, setPendingPage] = useState(null)
-  const { height } = useAtomValue(windowDimensionsAtom)
   const device = useAtomValue(windowDimensionsTailwindSelector)
   const loggedUser = useAtomValue(loggedUserAtom)
   const overdueAdditionalCount = useAtomValue(additionalEventsOverdueCountAtom)
@@ -301,21 +297,6 @@ const SideBar = ({ page }) => {
   const handleNavigate = (href) => {
     setPendingPage(href)
     setMenuOpen(false)
-  }
-
-  const handleScrollPosition = (scrollAmount) => {
-    var newPos
-    if (scrollAmount < 0) {
-      newPos = Math.max(0, scrollPos + scrollAmount)
-    } else {
-      newPos = Math.min(
-        (menuRef.current?.scrollHeight ?? 0) -
-          (menuRef.current?.clientHeight ?? 0),
-        scrollPos + scrollAmount
-      )
-    }
-    setScrollPos(newPos)
-    menuRef.current.scrollTop = newPos
   }
 
   useEffect(() => {
@@ -338,14 +319,6 @@ const SideBar = ({ page }) => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [wrapperRef])
-
-  useEffect(() => {
-    if (menuRef.current?.scrollHeight) {
-      let scrollableCheck =
-        menuRef.current?.scrollHeight > menuRef.current?.clientHeight
-      setScrollable(scrollableCheck)
-    }
-  }, [menuRef.current?.scrollHeight, height])
 
   useEffect(() => {
     const pageFromPath = pathname?.split('/').filter(Boolean)?.[1]
@@ -380,7 +353,7 @@ const SideBar = ({ page }) => {
       <motion.div
         ref={menuRef}
         className={cn(
-          'absolute top-0 z-10 h-full max-h-full w-full items-start overflow-y-hidden',
+          'absolute top-0 z-10 h-full max-h-full w-full items-start overflow-hidden',
           isMobile ? 'sidebar-bg max-w-full shadow-2xl' : 'sidebar-bg'
         )}
         style={{ scrollBehavior: 'smooth' }}
@@ -390,7 +363,7 @@ const SideBar = ({ page }) => {
         initial={'min'}
         layout
       >
-        <div className="flex h-full w-full flex-col overflow-x-hidden">
+        <div className="sidebar-scroll flex h-full w-full flex-col overflow-x-hidden overflow-y-auto">
           <Menu
             menuCfg={roleMenuCfg}
             activePage={page}
@@ -415,38 +388,6 @@ const SideBar = ({ page }) => {
           isMobile ? 'bg-transparent' : 'sidebar-bg'
         )}
       />
-      {scrollable && (
-        <>
-          {scrollPos > 0 && (
-            <div
-              onClick={() => handleScrollPosition(-120)}
-              className="sidebar-bg absolute top-0 right-0 left-0 z-50 h-10 w-full cursor-pointer rounded-b-2xl border-t"
-            >
-              <div className="flex h-full w-full items-center justify-center rounded-2xl border-b border-white">
-                <FontAwesomeIcon
-                  icon={faAngleUp}
-                  className="h-6 w-6 text-white"
-                />
-              </div>
-            </div>
-          )}
-          {(menuRef.current?.scrollHeight ?? 0) -
-            (menuRef.current?.clientHeight ?? 0) >
-            scrollPos && (
-            <div
-              onClick={() => handleScrollPosition(120)}
-              className="sidebar-bg absolute right-0 bottom-0 left-0 z-50 h-10 w-full cursor-pointer rounded-t-2xl border-b"
-            >
-              <div className="flex h-full w-full items-center justify-center rounded-2xl border-t border-white">
-                <FontAwesomeIcon
-                  icon={faAngleDown}
-                  className="h-6 w-6 text-white"
-                />
-              </div>
-            </div>
-          )}
-        </>
-      )}
     </motion.div>
   )
 }

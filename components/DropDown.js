@@ -220,12 +220,15 @@ const DropDown = ({
         menuClassName
       )}
       style={
-        renderInPortal && menuPosition
+        renderInPortal
           ? {
               position: 'fixed',
-              top: menuPosition.top,
-              left: menuPosition.left,
-              right: menuPosition.right,
+              // Позиция вычисляется в rAF после первого рендера: до этого
+              // меню fixed и невидимо, чтобы не сдвигать страницу в потоке
+              visibility: menuPosition ? 'visible' : 'hidden',
+              top: menuPosition?.top,
+              left: menuPosition?.left,
+              right: menuPosition?.right,
               maxWidth: 'calc(100vw - 16px)',
               maxHeight: 'calc(100vh - 16px)',
               overflowY: 'auto',

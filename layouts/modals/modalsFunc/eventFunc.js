@@ -2197,7 +2197,7 @@ const eventFunc = (
                 <div className="rounded border border-gray-200 bg-white shadow-sm">
                   {eventTransactions.length === 0 ? (
                     <div className="px-3 py-4 text-sm text-gray-500">
-                      Пока никаких транзакций небыло
+                      Пока никаких транзакций не было
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-100">

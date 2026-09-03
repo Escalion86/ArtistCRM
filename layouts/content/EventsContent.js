@@ -13,7 +13,7 @@ import NoteAddIcon from '@mui/icons-material/NoteAdd'
 import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import ViewListIcon from '@mui/icons-material/ViewList'
 import ContentHeader from '@components/ContentHeader'
-import AddIconButton from '@components/AddIconButton'
+import CreateEventFab from '@components/CreateEventFab'
 import ComboBox from '@components/ComboBox'
 import DropDown from '@components/DropDown'
 import EmptyState from '@components/EmptyState'
@@ -32,14 +32,12 @@ import {
   getAdditionalEventsListBySegments,
   eventHasAdditionalSegment,
   getAdditionalEventsSummary,
-  getInAppReminderSummary,
   // getUpcomingEventsByDays,
   getSoonNoDepositEvents,
 } from '@helpers/additionalEvents'
 import AppButton from '@components/AppButton'
 import useUiDensity from '@helpers/useUiDensity'
 import { getData } from '@helpers/CRUD'
-import { DAYS_OF_WEEK } from '@helpers/constants'
 import { isEventCreatedViaPublicApi } from '@helpers/eventSource'
 import {
   useEventsQuery,
@@ -58,6 +56,10 @@ import {
   writeEventListFiltersState,
 } from '@helpers/eventListFilters'
 import { queryKeys } from '@helpers/queryKeys'
+
+// Неделя в календаре месяца начинается с понедельника (локально для этого экрана,
+// общий DAYS_OF_WEEK в helpers/constants остаётся с воскресенья для форматтеров дат)
+const DAYS_OF_WEEK_MONDAY_START = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС']
 
 const STATUS_FILTER_META = {
   request: {
@@ -211,77 +213,6 @@ const DayEventsModal = ({ eventItems, additionalItems, openEvent }) => (
   </div>
 )
 
-const AddEventMenu = ({
-  disabled,
-  allowVoice,
-  onCreateRequest,
-  onCreateEvent,
-  onVoice,
-  onText,
-}) => {
-  if (disabled) {
-    return (
-      <AddIconButton
-        disabled
-        title="Добавить мероприятие"
-        size="sm"
-        variant="neutral"
-      />
-    )
-  }
-
-  const menuItems = [
-    {
-      label: 'Заявка',
-      icon: <NoteAddIcon fontSize="small" />,
-      onClick: onCreateRequest,
-    },
-    {
-      label: 'Подтверждено',
-      icon: <EventAvailableIcon fontSize="small" />,
-      onClick: onCreateEvent,
-    },
-  ]
-
-  if (allowVoice) {
-    menuItems.push({
-      label: 'Голосом',
-      icon: <MicIcon fontSize="small" />,
-      onClick: onVoice,
-    })
-    menuItems.push({
-      label: 'Свободным текстом',
-      icon: <TextSnippetIcon fontSize="small" />,
-      onClick: onText,
-    })
-  }
-
-  return (
-    <DropDown
-      trigger={<AddIconButton title="Добавить" size="sm" variant="neutral" />}
-      placement="right"
-      menuPadding="sm"
-      menuClassName="min-w-44 flex-col items-stretch !border-gray-200 !bg-white"
-      renderInPortal
-    >
-      {menuItems.map((item) => (
-        <button
-          key={item.label}
-          type="button"
-          className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium !text-gray-900 transition-colors hover:bg-gray-100 focus-visible:bg-gray-100 focus-visible:outline-none"
-          onClick={item.onClick}
-          role="menuitem"
-        >
-          <span className="flex h-5 w-5 items-center justify-center !text-gray-500">
-            {item.icon}
-          </span>
-          {item.label}
-        </button>
-      ))}
-    </DropDown>
-  )
-}
-
 const getMonthItemToneClassName = (item) => {
   if (item.type === 'event') {
     if (item.status === 'canceled') {
@@ -433,22 +364,23 @@ const EventsContent = ({
   const [monthCursor, setMonthCursor] = useState(() => toMonthStart(new Date()))
   const monthAutoPositionedRef = useRef(false)
 
-  // Сетка дней календаря (включая дни соседних месяцев)
+  // Сетка дней календаря (включая дни соседних месяцев), неделя с понедельника
   const monthGridDays = useMemo(() => {
     const monthStart = toMonthStart(monthCursor)
     const year = monthStart.getFullYear()
     const month = monthStart.getMonth()
 
+    // getDay(): воскресенье = 0 → переводим в понедельник = 0
+    const toMondayIndex = (date) => (date.getDay() + 6) % 7
+
     const firstDay = new Date(year, month, 1)
-    const firstDayOfWeek = firstDay.getDay()
-    const gridStart = new Date(year, month, 1 - firstDayOfWeek)
+    const gridStart = new Date(year, month, 1 - toMondayIndex(firstDay))
 
     const lastDay = new Date(year, month + 1, 0)
-    const lastDayOfWeek = lastDay.getDay()
     const gridEnd = new Date(
       year,
       month,
-      lastDay.getDate() + (6 - lastDayOfWeek)
+      lastDay.getDate() + (6 - toMondayIndex(lastDay))
     )
 
     const diffMs = gridEnd.getTime() - gridStart.getTime()
@@ -520,8 +452,6 @@ const EventsContent = ({
   const [pastLoadingMore, setPastLoadingMore] = useState(false)
   const [serverFilteredCount, setServerFilteredCount] = useState(null)
   const [pastActiveClosableCount, setPastActiveClosableCount] = useState(0)
-  const reminderShownRef = useRef(false)
-  const noDepositReminderShownRef = useRef(false)
   const skipEventFiltersPersistRef = useRef(true)
   const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
   const itemHeight = isCompact ? 194 : 206
@@ -692,14 +622,6 @@ const EventsContent = ({
   const additionalSummary = useMemo(
     () => getAdditionalEventsSummary(filteredByStatus),
     [filteredByStatus]
-  )
-  const inAppReminderSummary = useMemo(
-    () => getInAppReminderSummary(filteredByStatus),
-    [filteredByStatus]
-  )
-  const soonNoDepositEvents = useMemo(
-    () => getSoonNoDepositEvents(filteredByStatus, transactions, new Date(), 3),
-    [filteredByStatus, transactions]
   )
   const upcomingOverviewBadges = useMemo(() => {
     const now = new Date()
@@ -962,57 +884,8 @@ const EventsContent = ({
     return () => clearTimeout(timer)
   }, [searchParams, modals.length, modalsFunc, pathname, router])
 
-  useEffect(() => {
-    if (filter !== 'upcoming') return
-    if (typeof window === 'undefined') return
-    if (modals.length > 0) return
-    if (inAppReminderSummary.total <= 0) return
-    if (reminderShownRef.current) return
-
-    const dateKey = new Date().toISOString().slice(0, 10)
-    const storageKey = `inAppReminderShown:${dateKey}`
-    const signature = [
-      inAppReminderSummary.overdue,
-      inAppReminderSummary.today,
-      inAppReminderSummary.soon2h,
-    ].join(':')
-    const savedSignature = window.localStorage.getItem(storageKey)
-    if (savedSignature === signature) return
-
-    reminderShownRef.current = true
-    window.localStorage.setItem(storageKey, signature)
-
-    modalsFunc.event?.upcomingOverview?.()
-  }, [filter, inAppReminderSummary, modals.length, modalsFunc])
-
-  useEffect(() => {
-    if (filter !== 'upcoming') return
-    if (typeof window === 'undefined') return
-    if (modals.length > 0) return
-    if (soonNoDepositEvents.length <= 0) return
-    if (noDepositReminderShownRef.current) return
-
-    const dateKey = new Date().toISOString().slice(0, 10)
-    const storageKey = `noDepositReminderShown:${dateKey}`
-    const signature = soonNoDepositEvents
-      .slice(0, 8)
-      .map((item) => String(item?._id))
-      .join(',')
-    const savedSignature = window.localStorage.getItem(storageKey)
-    if (savedSignature === signature) return
-
-    noDepositReminderShownRef.current = true
-    window.localStorage.setItem(storageKey, signature)
-
-    modalsFunc.add({
-      title: 'Просрочено ожидание задатка',
-      text: `Мероприятий с просроченным ожиданием задатка: ${soonNoDepositEvents.length}`,
-      confirmButtonName: 'Открыть ближайшие события',
-      declineButtonName: 'Позже',
-      showDecline: true,
-      onConfirm: () => modalsFunc.event?.upcomingOverview?.(),
-    })
-  }, [filter, modals.length, modalsFunc, soonNoDepositEvents])
+  // Автоматические всплывающие напоминания при входе убраны (UX-03):
+  // вместо них работают бейджи и кнопка «Требует внимания».
 
   useEffect(() => {
     if (filter !== 'upcoming') return
@@ -1386,6 +1259,12 @@ const EventsContent = ({
 
   const RowComponent = useCallback(
     ({ index, style }) => {
+      const contentRowCount =
+        sortedEvents.length + (filter === 'past' && pastHasMore ? 1 : 0)
+      if (index >= contentRowCount) {
+        // Пустая строка-спейсер: FAB не перекрывает действия последней карточки
+        return <div style={style} aria-hidden="true" />
+      }
       if (filter === 'past' && index >= sortedEvents.length) {
         return (
           <div
@@ -1415,7 +1294,23 @@ const EventsContent = ({
         />
       )
     },
-    [filter, pastLoadingMore, sortedEvents, handleLoadMorePast, transactions]
+    [
+      filter,
+      pastLoadingMore,
+      pastHasMore,
+      sortedEvents,
+      handleLoadMorePast,
+      transactions,
+    ]
+  )
+
+  const listContentRowCount =
+    sortedEvents.length + (filter === 'past' && pastHasMore ? 1 : 0)
+
+  const getEventRowHeight = useCallback(
+    // Последняя строка — спейсер 96px под плавающую кнопку создания
+    (index) => (index >= listContentRowCount ? 96 : itemHeight),
+    [listContentRowCount, itemHeight]
   )
 
   const createMenuDisabled = !modalsFunc.event?.create
@@ -1493,6 +1388,46 @@ const EventsContent = ({
     [cacheAiClient, modalsFunc]
   )
 
+  const fabItems = useMemo(() => {
+    if (createMenuDisabled) return []
+    const items = [
+      {
+        key: 'request',
+        label: 'Заявка',
+        icon: <NoteAddIcon fontSize="small" />,
+        onClick: handleCreateRequest,
+      },
+      {
+        key: 'active',
+        label: 'Подтверждено',
+        icon: <EventAvailableIcon fontSize="small" />,
+        onClick: handleCreateActiveEvent,
+      },
+    ]
+    if (allowVoiceDraft) {
+      items.push({
+        key: 'voice',
+        label: 'Голосом',
+        icon: <MicIcon fontSize="small" />,
+        onClick: handleCreateByVoice,
+      })
+      items.push({
+        key: 'text',
+        label: 'Свободным текстом',
+        icon: <TextSnippetIcon fontSize="small" />,
+        onClick: handleCreateByText,
+      })
+    }
+    return items
+  }, [
+    createMenuDisabled,
+    allowVoiceDraft,
+    handleCreateRequest,
+    handleCreateActiveEvent,
+    handleCreateByVoice,
+    handleCreateByText,
+  ])
+
   return (
     <div className="tablet:gap-3 flex h-full flex-col gap-x-2">
       {voiceDraftOpen ? (
@@ -1506,6 +1441,7 @@ const EventsContent = ({
         onClose={() => setTextDraftOpen(false)}
         onDraft={handleTextDraft}
       />
+      <CreateEventFab items={fabItems} />
       <ContentHeader>
         <div className="flex w-full min-w-0 items-center gap-2">
           <DropDown
@@ -1599,19 +1535,11 @@ const EventsContent = ({
               }
             >
               {viewMode === 'list' ? (
-                <ViewListIcon fontSize="small" />
-              ) : (
                 <CalendarMonthIcon fontSize="small" />
+              ) : (
+                <ViewListIcon fontSize="small" />
               )}
             </AppButton>
-            <AddEventMenu
-              disabled={createMenuDisabled}
-              allowVoice={allowVoiceDraft}
-              onCreateRequest={handleCreateRequest}
-              onCreateEvent={handleCreateActiveEvent}
-              onVoice={handleCreateByVoice}
-              onText={handleCreateByText}
-            />
           </div>
         </div>
       </ContentHeader>
@@ -1704,18 +1632,36 @@ const EventsContent = ({
           sortedEvents.length > 0 ? (
             <List
               listRef={listRef}
-              rowCount={
-                filter === 'past' && pastHasMore
-                  ? sortedEvents.length + 1
-                  : sortedEvents.length
-              }
-              rowHeight={itemHeight}
+              rowCount={listContentRowCount + 1}
+              rowHeight={getEventRowHeight}
               rowComponent={RowComponent}
               rowProps={{}}
               style={{ height: '100%', width: '100%' }}
             />
+          ) : baseEvents.length === 0 && !hasActiveFilters ? (
+            <EmptyState
+              icon={<NoteAddIcon />}
+              title={
+                filter === 'past'
+                  ? 'Прошедших мероприятий пока нет'
+                  : 'Пока нет ни одной заявки'
+              }
+              hint={
+                filter === 'past'
+                  ? 'Завершённые и закрытые мероприятия появятся здесь автоматически.'
+                  : 'Создайте первую заявку — вручную, голосом или свободным текстом. Дальше ArtistCRM напомнит о следующем контакте и задатке.'
+              }
+              actionLabel={filter === 'past' ? null : 'Создать заявку'}
+              onAction={filter === 'past' ? null : handleCreateRequest}
+            />
           ) : (
-            <EmptyState text="Для выбранных фильтьров мероприятий пока нет" />
+            <EmptyState
+              icon={<FilterAltIcon />}
+              title="По выбранным фильтрам ничего не найдено"
+              hint="Попробуйте изменить условия или сбросить все фильтры."
+              actionLabel="Сбросить фильтры"
+              onAction={resetFilters}
+            />
           )
         ) : (
           <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
@@ -1782,9 +1728,9 @@ const EventsContent = ({
                 </div>
               </div>
             </SectionCard>
-            <div className="event-month-calendar min-h-0 flex-1 overflow-auto rounded-lg border bg-white">
+            <div className="event-month-calendar min-h-0 flex-1 overflow-auto rounded-lg border bg-white pb-24">
               <div className="event-month-calendar__weekdays sticky top-0 z-10 grid grid-cols-7 border-b shadow-sm backdrop-blur">
-                {DAYS_OF_WEEK.map((dayName) => (
+                {DAYS_OF_WEEK_MONDAY_START.map((dayName) => (
                   <div
                     key={dayName}
                     className="px-1.5 py-1.5 text-center text-[11px] font-semibold"

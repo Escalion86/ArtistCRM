@@ -447,7 +447,7 @@ body.theme-dark .cabinet-header {
 }
 
 .cabinet-page-heading span {
-  color: #315da8;
+  color: var(--ui-primary);
   font-size: 1rem;
   font-weight: 500;
 }
@@ -476,23 +476,23 @@ body.theme-dark .cabinet-header {
 }
 
 .filter-control:hover {
-  border-color: #c75f00;
+  border-color: var(--ui-primary);
   background: #fffaf5;
 }
 
 .filter-control--primary {
-  border-color: #c75f00;
-  background: #c75f00;
+  border-color: var(--ui-primary);
+  background: var(--ui-primary);
   color: #ffffff;
 }
 
 .filter-control--primary:hover {
-  border-color: #a94f00;
-  background: #a94f00;
+  border-color: var(--ui-primary-hover);
+  background: var(--ui-primary-hover);
 }
 
 .filter-control--outline {
-  border-color: #c75f00;
+  border-color: var(--ui-primary);
   color: #171714;
 }
 
@@ -521,8 +521,16 @@ body.theme-dark .cabinet-header {
 }
 
 .filter-menu-item--active {
-  color: #c75f00;
+  color: var(--ui-primary);
   font-weight: 600;
+}
+
+.empty-state-icon {
+  background: #f4ede1;
+}
+
+body.theme-dark .empty-state-icon {
+  background: rgba(201, 168, 106, 0.16);
 }
 
 body.theme-dark .filter-control {
@@ -625,6 +633,61 @@ body.theme-dark .sidebar-root .menu-item-active svg {
 
 .sidebar-bg {
   background-color: var(--sidebar-bg);
+}
+
+/* Тонкий стилизованный скроллбар бокового меню (вешается на реальный скролл-контейнер) */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Тонкий стилизованный скроллбар для всех областей прокрутки */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.45);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.65);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body.theme-dark * {
+  scrollbar-color: rgba(203, 213, 225, 0.35) transparent;
+}
+
+body.theme-dark *::-webkit-scrollbar-thumb {
+  background: rgba(203, 213, 225, 0.35);
+}
+
+body.theme-dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(203, 213, 225, 0.5);
 }
 
 body.theme-dark .action-icon-button {
@@ -1174,6 +1237,12 @@ body.theme-dark .MuiPickersInputBase-root {
 body.theme-dark .MuiSvgIcon-root,
 body.theme-dark .MuiIconButton-root {
   color: #94a3b8;
+}
+
+/* FAB создания заявки: иконки наследуют цвет кнопки/пункта (перекрывает тёмную тему выше) */
+.create-event-fab .MuiSvgIcon-root,
+body.theme-dark .create-event-fab .MuiSvgIcon-root {
+  color: inherit;
 }
 
 body.theme-dark .MuiTab-root {

@@ -260,7 +260,6 @@ const CardButtons = ({
     alwaysCompact ||
     ((numberOfButtons > 3 || alwaysCompactOnPhone) &&
       ['phoneV', 'phoneH', 'tablet'].includes(device))
-  const isTouchDevice = ['phoneV', 'phoneH', 'tablet'].includes(device)
 
   const ItemComponent = isCompact ? MenuItem : CardButton
   const handleOpenCalendar = () => {
@@ -505,7 +504,6 @@ const CardButtons = ({
       }
       className={className}
       menuPadding={false}
-      openOnHover={!isTouchDevice}
       placement={dropDownPlacement}
       renderInPortal
     >

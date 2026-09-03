@@ -4,9 +4,24 @@ import {
   ONBOARDING_ACTIVITY_PRESETS,
   getOnboardingPreset,
   getStarterServicesForPreset,
+  areOnboardingServicesValid,
   buildDemoEventPayload,
   getStatusEducationItems,
 } from './onboardingPresets.mjs'
+
+test('onboarding requires at least one completely named service', () => {
+  assert.equal(areOnboardingServicesValid([]), false)
+  assert.equal(
+    areOnboardingServicesValid([{ title: '  ', price: 0, duration: 0 }]),
+    false
+  )
+  assert.equal(
+    areOnboardingServicesValid([
+      { title: 'Консультация', price: 0, duration: 0 },
+    ]),
+    true
+  )
+})
 
 test('returns events preset by key', () => {
   const preset = getOnboardingPreset('events')
@@ -48,15 +63,20 @@ test('demo event payload is visibly marked as educational', () => {
   assert.match(payload.description, /Учебная заявка/)
 })
 
-test('demo event has no event date and creates tomorrow follow-up task', () => {
-  const payload = buildDemoEventPayload('events', [])
+test('demo event is scheduled tomorrow from 14:00 to 15:00 in selected timezone', () => {
+  const payload = buildDemoEventPayload('events', ['service-1', 'service-2'], {
+    now: new Date('2026-09-03T20:00:00.000Z'),
+    timeZone: 'Asia/Krasnoyarsk',
+  })
+  const eventDate = new Date(payload.eventDate)
+  const dateEnd = new Date(payload.dateEnd)
   const taskDate = new Date(payload.additionalEvents[0].date)
 
-  assert.equal(payload.eventDate, null)
-  assert.equal(payload.dateEnd, null)
-  assert.equal(taskDate.getHours(), 12)
-  assert.equal(taskDate.getMinutes(), 0)
-  assert.equal(taskDate.getSeconds(), 0)
+  assert.equal(payload.eventDate, '2026-09-05T07:00:00.000Z')
+  assert.equal(payload.dateEnd, '2026-09-05T08:00:00.000Z')
+  assert.equal(eventDate.getTime() < dateEnd.getTime(), true)
+  assert.equal(taskDate.toISOString(), '2026-09-05T05:00:00.000Z')
+  assert.deepEqual(payload.servicesIds, ['service-1'])
 })
 
 test('status education explains all canonical statuses', () => {

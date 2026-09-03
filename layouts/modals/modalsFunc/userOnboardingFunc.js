@@ -6,11 +6,13 @@ import InputImages from '@components/InputImages'
 import Notice from '@components/Notice'
 import OnboardingStatusGuide from '@components/OnboardingStatusGuide'
 import PhoneInput from '@components/PhoneInput'
+import Textarea from '@components/Textarea'
 import { faTelegramPlane } from '@fortawesome/free-brands-svg-icons/faTelegramPlane'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { getData, postData } from '@helpers/CRUD'
 import {
   ONBOARDING_ACTIVITY_PRESETS,
+  areOnboardingServicesValid,
   buildDemoEventPayload,
   getOnboardingPreset,
   getStarterServicesForPreset,
@@ -50,7 +52,6 @@ const TIME_ZONE_OPTIONS = [
 
 const ACTIVITY_PRESET_KEY = 'onboardingActivityPreset'
 const STARTER_SERVICES_CREATED_KEY = 'onboardingStarterServicesCreated'
-const STARTER_SERVICES_MANUAL_KEY = 'onboardingStarterServicesManual'
 const DEMO_EVENT_CREATED_KEY = 'onboardingDemoEventCreated'
 const DEMO_EVENT_SKIPPED_KEY = 'onboardingDemoEventSkipped'
 
@@ -58,6 +59,7 @@ const STEPS = Object.freeze([
   'profile',
   'environment',
   'specialization',
+  'services',
   'transfer',
   'statuses',
   'finish',
@@ -73,8 +75,12 @@ const STEP_META = Object.freeze({
     description: 'Город и часовой пояс нужны для корректных дат и напоминаний.',
   },
   specialization: {
-    title: 'Специализация и услуги',
+    title: 'Специализация',
     description: 'Выберите сферу, чтобы получить подходящие примеры услуг.',
+  },
+  services: {
+    title: 'Услуги',
+    description: 'Отредактируйте список или добавьте свои услуги. Нужна хотя бы одна.',
   },
   transfer: {
     title: 'Передача коллеге',
@@ -179,6 +185,9 @@ const userOnboardingFunc = () => {
     })
     const [isDarkTheme, setIsDarkTheme] = useState(false)
     const [selectedPresetKey, setSelectedPresetKey] = useState(storedPresetKey)
+    const [serviceDrafts, setServiceDrafts] = useState(null)
+    const serviceDraftPresetRef = useRef(null)
+    const serviceKeyRef = useRef(0)
     const [transferEnabled, setTransferEnabled] = useState(
       storedTransferSetting
     )
@@ -189,14 +198,23 @@ const userOnboardingFunc = () => {
       Array.isArray(services)
     )
     const confirmRef = useRef(null)
+    const hadServicesOnOpenRef = useRef(
+      Array.isArray(services) && services.length > 0
+    )
 
-    const step = STEPS[stepIndex]
+    const visibleSteps = useMemo(
+      () =>
+        hadServicesOnOpenRef.current
+          ? STEPS.filter((item) => item !== 'services')
+          : STEPS,
+      []
+    )
+    const step = visibleSteps[stepIndex]
     const selectedPreset = getOnboardingPreset(selectedPresetKey)
-    const starterServices = getStarterServicesForPreset(selectedPresetKey)
-    const hasExistingServices = Array.isArray(services) && services.length > 0
     const hasAnyEvent = Array.isArray(events) && events.length > 0
-    const isLastStep = stepIndex === STEPS.length - 1
-    const demoText = `Создадим учебную заявку без даты мероприятия. В её карточке добавим задачу «${selectedPreset.demo.nextActionTitle}» на завтра в 12:00, чтобы показать, как планировать работу с клиентом. Это пример — связываться с реальным клиентом не нужно.`
+    const isLastStep = stepIndex === visibleSteps.length - 1
+    const demoText = `Создадим учебную заявку на завтра с 14:00 до 15:00 в выбранном часовом поясе с первой услугой из вашего списка. В её карточке добавим задачу «${selectedPreset.demo.nextActionTitle}» на завтра в 12:00, чтобы показать, как планировать работу с клиентом. Это пример — связываться с реальным клиентом не нужно.`
+    const areServicesValid = areOnboardingServicesValid(serviceDrafts)
 
     const errors = useMemo(
       () => ({
@@ -212,9 +230,10 @@ const userOnboardingFunc = () => {
     const isStepValid = useMemo(() => {
       if (step === 'profile') return !errors.firstName && !errors.secondName
       if (step === 'environment') return !errors.town && !errors.timeZone
-      if (step === 'specialization') return !errors.preset
+      if (step === 'specialization') return !errors.preset && servicesLoaded
+      if (step === 'services') return areServicesValid
       return true
-    }, [errors, step])
+    }, [areServicesValid, errors, servicesLoaded, step])
 
     useEffect(() => {
       setDeclineButtonShow(false)
@@ -342,46 +361,55 @@ const userOnboardingFunc = () => {
       return true
     }, [isDarkTheme, setSiteSettings, siteSettings, timeZone, town])
 
-    const createStarterServices = useCallback(async () => {
-      if (!itemsFunc?.service?.set) return
-      if (Array.isArray(services) && services.length > 0) {
-        snackbar.info(
-          'Вижу, что у вас уже есть созданные услуги. Создание новых услуг из пресета может испортить структуру, поэтому лучше добавьте услуги вручную.'
-        )
-        await saveCustom({ [STARTER_SERVICES_MANUAL_KEY]: true })
-        return
-      }
-
-      const createdServices = []
-      for (const service of starterServices) {
-        const created = await itemsFunc.service.set(service, false, true)
-        if (created?._id) createdServices.push(created)
-      }
-
-      if (createdServices.length > 0) {
-        setServices((prev) => {
-          const existingIds = new Set((prev ?? []).map((item) => item?._id))
-          return [
-            ...(prev ?? []),
-            ...createdServices.filter((item) => !existingIds.has(item._id)),
-          ]
-        })
-        snackbar.success('Стартовые услуги созданы')
-        await saveCustom({ [STARTER_SERVICES_CREATED_KEY]: true })
-      }
-    }, [
-      itemsFunc?.service,
-      saveCustom,
-      services,
-      setServices,
-      snackbar,
-      starterServices,
-    ])
-
     const saveSpecialization = useCallback(async () => {
-      await saveCustom({ [ACTIVITY_PRESET_KEY]: selectedPresetKey })
+      const saved = await saveCustom({ [ACTIVITY_PRESET_KEY]: selectedPresetKey })
+      if (!saved) return false
+      if (hadServicesOnOpenRef.current) return true
+      if (
+        !serviceDrafts ||
+        (serviceDraftPresetRef.current !== selectedPresetKey &&
+          !serviceDrafts.some((service) => service._id))
+      ) {
+        const initialServices = services?.length
+          ? services
+          : selectedPresetKey === 'other'
+            ? [{ title: '', description: '', duration: 0, price: 0 }]
+            : getStarterServicesForPreset(selectedPresetKey)
+        setServiceDrafts(initialServices.map((service) => ({
+          ...service,
+          draftKey: ++serviceKeyRef.current,
+        })))
+      }
+      serviceDraftPresetRef.current = selectedPresetKey
       return true
-    }, [saveCustom, selectedPresetKey])
+    }, [saveCustom, selectedPresetKey, serviceDrafts, services])
+
+    const saveServices = useCallback(async () => {
+      if (!areServicesValid || !itemsFunc?.service?.set) return false
+      for (const draft of serviceDrafts) {
+        const saved = await itemsFunc.service.set({
+          _id: draft._id,
+          title: draft.title.trim(),
+          description: draft.description ?? '',
+          price: Number(draft.price),
+          duration: Number(draft.duration),
+          images: draft.images ?? [],
+          groupId: draft.groupId ?? null,
+        }, false, true)
+        if (!saved?._id) {
+          snackbar.error('Не удалось сохранить услугу. Попробуйте ещё раз.')
+          return false
+        }
+        // Keep each saved ID so a retry after a partial failure updates it.
+        setServiceDrafts((prev) => prev.map((item) =>
+          item.draftKey === draft.draftKey
+            ? { ...saved, draftKey: item.draftKey }
+            : item
+        ))
+      }
+      const saved = await saveCustom({ [STARTER_SERVICES_CREATED_KEY]: true })
+      return Boolean(saved)
+    }, [areServicesValid, itemsFunc?.service, saveCustom, serviceDrafts, snackbar])
 
     const saveTransferSetting = useCallback(async () => {
       await saveCustom({
@@ -393,18 +421,15 @@ const userOnboardingFunc = () => {
     const createDemoEvent = useCallback(async () => {
       if (!createDemoRequest || hasAnyEvent || !itemsFunc?.event?.set) return
 
-      const serviceIds = Array.isArray(services)
-        ? services
-            .slice(0, 2)
-            .map((service) => service?._id)
-            .filter(Boolean)
-        : []
+      const firstServiceId = serviceDrafts?.[0]?._id ?? services?.[0]?._id
+      if (!firstServiceId) throw new Error('Не сохранена первая услуга')
       const created = await itemsFunc.event.set(
-        buildDemoEventPayload(selectedPresetKey, serviceIds),
+        buildDemoEventPayload(selectedPresetKey, [firstServiceId], { timeZone }),
         false,
         true
       )
 
+      if (!created?._id) throw new Error('Не удалось создать учебную заявку')
       if (created?._id) {
         setEvents((prev) => {
           const existingIds = new Set((prev ?? []).map((item) => item?._id))
@@ -419,8 +444,10 @@ const userOnboardingFunc = () => {
       itemsFunc?.event,
       saveCustom,
       selectedPresetKey,
+      serviceDrafts,
       services,
       setEvents,
+      timeZone,
     ])
 
     const completeWizard = useCallback(async () => {
@@ -455,6 +482,7 @@ const userOnboardingFunc = () => {
         if (step === 'profile') return await saveProfile()
         if (step === 'environment') return await saveEnvironment()
         if (step === 'specialization') return await saveSpecialization()
+        if (step === 'services') return await saveServices()
         if (step === 'transfer') return await saveTransferSetting()
         return true
       } catch (error) {
@@ -468,6 +496,7 @@ const userOnboardingFunc = () => {
       isStepValid,
       saveEnvironment,
       saveProfile,
+      saveServices,
       saveSpecialization,
       saveTransferSetting,
       snackbar,
@@ -490,8 +519,15 @@ const userOnboardingFunc = () => {
         }
         return
       }
-      setStepIndex((value) => Math.min(value + 1, STEPS.length - 1))
-    }, [closeModal, completeWizard, isLastStep, saveCurrentStep, snackbar])
+      setStepIndex((value) => Math.min(value + 1, visibleSteps.length - 1))
+    }, [
+      closeModal,
+      completeWizard,
+      isLastStep,
+      saveCurrentStep,
+      snackbar,
+      visibleSteps.length,
+    ])
 
     useEffect(() => {
       confirmRef.current = handleConfirm
@@ -508,7 +544,7 @@ const userOnboardingFunc = () => {
       <div className="mb-4 flex flex-col gap-2">
         <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
           <span>
-            Шаг {stepIndex + 1} из {STEPS.length}
+            Шаг {stepIndex + 1} из {visibleSteps.length}
           </span>
           {stepIndex > 0 && (
             <button
@@ -521,8 +557,13 @@ const userOnboardingFunc = () => {
             </button>
           )}
         </div>
-        <div className="grid grid-cols-6 gap-1">
-          {STEPS.map((item, index) => (
+        <div
+          className="grid gap-1"
+          style={{
+            gridTemplateColumns: `repeat(${visibleSteps.length}, minmax(0, 1fr))`,
+          }}
+        >
+          {visibleSteps.map((item, index) => (
             <div
               key={item}
               className={cn(
@@ -692,38 +733,103 @@ const userOnboardingFunc = () => {
             </button>
           ))}
         </div>
+      </FormWrapper>
+    )
+
+    const updateServiceDraft = (draftKey, field, value) =>
+      setServiceDrafts((prev) => prev.map((service) =>
+        service.draftKey === draftKey ? { ...service, [field]: value } : service
+      ))
+
+    const renderServicesStep = () => (
+      <FormWrapper className="flex flex-col gap-3">
         <Notice tone="neutral" className="rounded-md">
-          Группа - это полка, услуга - конкретное предложение. Если услуг мало,
-          оставьте их без группы, а структуру усложните позже.
+          Услуга — это то, что у вас заказывают. Измените предложенные услуги или
+          добавьте свои. Для продолжения нужна хотя бы одна услуга с названием.
+          Цену и продолжительность можно оставить нулевыми и уточнить позже.
+          Список сохранится по кнопке «Далее».
         </Notice>
-        {hasExistingServices ? (
-          <Notice tone="warning" className="rounded-md">
-            Вижу, что у вас уже есть созданные услуги. Создание новых услуг из
-            пресета может испортить структуру, поэтому лучше добавьте услуги
-            вручную.
-          </Notice>
-        ) : (
-          <div className="rounded-md border border-gray-200 bg-white px-3 py-2">
-            <div className="mb-2 text-sm font-semibold text-gray-900">
-              Стартовые услуги для пресета «{selectedPreset.shortTitle}»
+        {serviceDrafts?.map((service, index) => (
+          <div
+            key={service.draftKey}
+            className="flex min-w-0 flex-col gap-3 rounded-md border border-gray-200 bg-white p-3"
+          >
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="font-semibold text-gray-900">Услуга {index + 1}</span>
+              {!service._id && (
+                <button
+                  type="button"
+                  className="min-h-10 cursor-pointer px-2 text-danger hover:underline"
+                  disabled={isSaving}
+                  onClick={() => setServiceDrafts((prev) =>
+                    prev.filter((item) => item.draftKey !== service.draftKey)
+                  )}
+                  aria-label={`Убрать услугу ${index + 1}`}
+                >
+                  Убрать
+                </button>
+              )}
             </div>
-            <div className="flex flex-col gap-1.5">
-              {starterServices.map((service) => (
-                <div key={service.title} className="text-sm text-gray-600">
-                  {service.title}
-                </div>
-              ))}
+            <Input
+              label="Название услуги"
+              value={service.title}
+              onChange={(value) => updateServiceDraft(service.draftKey, 'title', value)}
+              error={!String(service.title ?? '').trim() ? 'Укажите название услуги' : null}
+              disabled={isSaving}
+              required
+              fullWidth
+              noMargin
+            />
+            <Textarea
+              label="Описание"
+              value={service.description ?? ''}
+              onChange={(value) => updateServiceDraft(service.draftKey, 'description', value)}
+              rows={2}
+              noMargin
+            />
+            <div className="grid min-w-0 grid-cols-1 gap-3 tablet:grid-cols-2">
+              <Input
+                label="Цена"
+                type="number"
+                value={service.price}
+                onChange={(value) => updateServiceDraft(service.draftKey, 'price', value)}
+                disabled={isSaving}
+                min={0}
+                postfix="₽"
+                fullWidth
+                noMargin
+              />
+              <Input
+                label="Продолжительность (мин.)"
+                type="number"
+                value={service.duration}
+                onChange={(value) => updateServiceDraft(service.draftKey, 'duration', value)}
+                disabled={isSaving}
+                min={0}
+                fullWidth
+                noMargin
+              />
             </div>
-            <button
-              type="button"
-              className="action-icon-button action-icon-button--warning mt-3 inline-flex h-9 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
-              onClick={createStarterServices}
-              disabled={isSaving || !servicesLoaded}
-            >
-              Создать услуги из пресета
-            </button>
           </div>
+        ))}
+        {!serviceDrafts?.length && (
+          <Notice tone="warning" className="rounded-md">
+            Добавьте хотя бы одну услугу, чтобы продолжить настройку.
+          </Notice>
         )}
+        <button
+          type="button"
+          className="action-icon-button action-icon-button--warning inline-flex min-h-10 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
+          disabled={isSaving}
+          onClick={() => {
+            const draftKey = ++serviceKeyRef.current
+            setServiceDrafts((prev) => [...(prev ?? []), {
+              draftKey, title: '', description: '', price: 0, duration: 0,
+            }])
+          }}
+        >
+          Добавить услугу
+        </button>
       </FormWrapper>
     )
 
@@ -830,6 +936,7 @@ const userOnboardingFunc = () => {
       if (step === 'profile') return renderProfileStep()
       if (step === 'environment') return renderEnvironmentStep()
       if (step === 'specialization') return renderSpecializationStep()
+      if (step === 'services') return renderServicesStep()
       if (step === 'transfer') return renderTransferStep()
       if (step === 'statuses') return renderStatusesStep()
       return renderFinishStep()

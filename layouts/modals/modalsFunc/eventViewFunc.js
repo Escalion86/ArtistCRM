@@ -853,7 +853,6 @@ const eventViewFunc = (eventId) => {
 
   return {
     title: `Мероприятие`,
-    confirmButtonName: 'Записаться',
     Children: EventViewModal,
   }
 }

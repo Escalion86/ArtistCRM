@@ -14,7 +14,7 @@ import { useClientsQuery } from '@helpers/useClientsQuery'
 import { useEventsQuery } from '@helpers/useEventsQuery'
 import DropDown from '@components/DropDown'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCheck, faFilter } from '@fortawesome/free-solid-svg-icons'
+import { faCheck, faFilter, faUser, faUserPlus } from '@fortawesome/free-solid-svg-icons'
 import { getEventStatusFlags } from '@helpers/eventStatusFilter'
 
 const normalizeDigits = (value) => String(value ?? '').replace(/[^\d]/g, '')
@@ -203,7 +203,7 @@ const ClientsContent = ({ onHeaderCountChange }) => {
                 <FontAwesomeIcon icon={faFilter} className="h-4 w-4" />
                 Фильтры
                 {clientFilter !== 'all' ? (
-                  <span className="text-[#c75f00]">1</span>
+                  <span className="text-[var(--ui-primary)]">1</span>
                 ) : null}
               </button>
             }
@@ -240,8 +240,27 @@ const ClientsContent = ({ onHeaderCountChange }) => {
             rowProps={{}}
             style={{ height: '100%', width: '100%' }}
           />
+        ) : clients.length === 0 ? (
+          <EmptyState
+            bordered={false}
+            icon={<FontAwesomeIcon icon={faUserPlus} className="h-5 w-5" />}
+            title="Пока нет ни одного клиента"
+            hint="Клиенты появляются автоматически из заявок. Можно добавить клиента и вручную."
+            actionLabel="Добавить клиента"
+            onAction={() => modalsFunc.client?.add()}
+          />
         ) : (
-          <EmptyState text="Клиенты не найдены" bordered={false} />
+          <EmptyState
+            bordered={false}
+            icon={<FontAwesomeIcon icon={faUser} className="h-5 w-5" />}
+            title="Клиенты не найдены"
+            hint="Попробуйте изменить поисковый запрос или сбросить фильтр."
+            actionLabel="Сбросить поиск и фильтр"
+            onAction={() => {
+              setSearch('')
+              setClientFilter('all')
+            }}
+          />
         )}
       </SectionCard>
     </div>

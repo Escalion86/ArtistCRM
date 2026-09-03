@@ -14,7 +14,7 @@ import { motion } from 'framer-motion'
 import { signOut } from 'next-auth/react'
 import Link from 'next/link'
 // import { useRouter } from 'next/router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import Avatar from './Avatar'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
@@ -74,7 +74,7 @@ const MenuItem = ({ onClick, icon, title, href }) => {
 const UserMenu = () => {
   const setMenuOpen = useSetAtom(menuOpenAtom)
   const [isUserMenuOpened, setIsUserMenuOpened] = useState(false)
-  const [turnOnHandleMouseOver, setTurnOnHandleMouseOver] = useState(true)
+  const containerRef = useRef(null)
   const [nowTs] = useState(() => Date.now())
   const loggedUser = useAtomValue(loggedUserAtom)
   const tariffs = useAtomValue(tariffsAtom)
@@ -137,31 +137,48 @@ const UserMenu = () => {
 
   // const router = useRouter()
 
-  const handleMouseOver = () => {
-    if (turnOnHandleMouseOver) {
-      setMenuOpen(false)
-      setIsUserMenuOpened(true)
-    }
-  }
+  useEffect(() => {
+    if (!isUserMenuOpened) return undefined
 
-  const handleMouseOut = () => setIsUserMenuOpened(false)
+    const handleClickOutside = (event) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
+        setIsUserMenuOpened(false)
+      }
+    }
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setIsUserMenuOpened(false)
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isUserMenuOpened])
 
   return (
-    <div
-      className="z-50 flex items-start justify-end h-16"
-      onMouseOver={handleMouseOver}
-      onMouseOut={handleMouseOut}
-      onClick={() => {
-        setTurnOnHandleMouseOver(false)
-        setIsUserMenuOpened(!isUserMenuOpened)
-        const timer = setTimeout(() => {
-          setTurnOnHandleMouseOver(true)
-          clearTimeout(timer)
-        }, 500)
-      }}
-    >
+    <div ref={containerRef} className="z-50 flex items-start justify-end h-16">
       <div className="relative mt-2.5 flex w-12 flex-col items-end">
-        <Avatar user={loggedUser} className="z-10" />
+        <button
+          type="button"
+          aria-label="Меню пользователя"
+          aria-expanded={isUserMenuOpened}
+          aria-haspopup="true"
+          className="cursor-pointer rounded-full"
+          onClick={() => {
+            setMenuOpen(false)
+            setIsUserMenuOpened((prev) => !prev)
+          }}
+        >
+          <Avatar user={loggedUser} className="z-10" />
+        </button>
         {warningInfo && (
           <div className="absolute z-20 flex items-center justify-center w-5 h-5 bg-red-600 rounded-full shadow -top-1 -right-2">
             <FontAwesomeIcon
@@ -234,11 +251,13 @@ const UserMenu = () => {
             href="/cabinet/tariff-select"
             icon={faTags}
             title="Смена тарифа"
+            onClick={() => setIsUserMenuOpened(false)}
           />
           <MenuItem
             href="/cabinet/profile"
             icon={faUserAlt}
             title="Профиль"
+            onClick={() => setIsUserMenuOpened(false)}
           />
           {/* {getParentDir(router.asPath) === 'cabinet' && (
               <MenuItem href="/" icon={faHome} title="Главная страница сайта" />

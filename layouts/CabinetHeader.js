@@ -40,7 +40,7 @@ const CabinetHeader = ({ title = '', titleLink, icon, count = null }) => {
               <span className="truncate">{title}</span>
             )}
             {Number.isFinite(count) ? (
-              <span className="shrink-0 text-xs font-semibold text-[#315da8]">
+              <span className="shrink-0 text-xs font-semibold text-[var(--ui-primary)]">
                 {count}
               </span>
             ) : null}

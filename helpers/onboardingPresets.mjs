@@ -1,3 +1,10 @@
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc.js'
+import timezone from 'dayjs/plugin/timezone.js'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
 const emptyServiceBase = {
   description: '',
   images: [],
@@ -201,20 +208,37 @@ export const getStarterServicesForPreset = (key) =>
     images: [],
   }))
 
-export const buildDemoEventPayload = (key, serviceIds = []) => {
+export const areOnboardingServicesValid = (services) =>
+  Boolean(
+    services?.length &&
+      services.every(
+        (service) =>
+          String(service?.title ?? '').trim() &&
+          Number.isFinite(Number(service?.price)) &&
+          Number(service.price) >= 0 &&
+          Number.isFinite(Number(service?.duration)) &&
+          Number(service.duration) >= 0
+      )
+  )
+
+export const buildDemoEventPayload = (
+  key,
+  serviceIds = [],
+  { now = new Date(), timeZone = dayjs.tz.guess() } = {}
+) => {
   const preset = getOnboardingPreset(key)
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  tomorrow.setHours(12, 0, 0, 0)
+  const tomorrow = dayjs(now).tz(timeZone).add(1, 'day').format('YYYY-MM-DD')
+  const atHour = (hour) =>
+    dayjs.tz(`${tomorrow} ${hour}:00:00`, timeZone).toISOString()
 
   return {
     eventType: preset.demo.eventType,
     description: preset.demo.description,
     status: 'draft',
-    servicesIds: serviceIds.filter(Boolean),
-    requestCreatedAt: new Date().toISOString(),
-    eventDate: null,
-    dateEnd: null,
+    servicesIds: serviceIds.filter(Boolean).slice(0, 1),
+    requestCreatedAt: new Date(now).toISOString(),
+    eventDate: atHour(14),
+    dateEnd: atHour(15),
     contractSum: 0,
     waitDeposit: false,
     depositDueAt: null,
@@ -228,7 +252,7 @@ export const buildDemoEventPayload = (key, serviceIds = []) => {
       {
         title: preset.demo.nextActionTitle,
         description: preset.demo.nextActionDescription,
-        date: tomorrow.toISOString(),
+        date: atHour(12),
         done: false,
       },
     ],
