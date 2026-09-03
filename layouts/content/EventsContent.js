@@ -163,21 +163,15 @@ const DayEventsModal = ({ eventItems, additionalItems, openEvent }) => (
     {eventItems.length > 0 ? (
       <>
         <div className="text-sm font-semibold text-gray-700">Мероприятия</div>
-        {eventItems.map((item, index) => (
-          <button
-            key={`month-day-event-${item.eventId}-${index}`}
-            type="button"
-            className="ui-surface-card ui-surface-card--interactive flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left"
-            onClick={() => openEvent?.(item.eventId)}
-          >
-            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">
-              {item.title}
-            </span>
-            <span className="shrink-0 text-xs text-gray-600">
-              {getCalendarItemTimeLabel(item.date)}
-            </span>
-          </button>
-        ))}
+        <div className="grid min-w-0">
+          {eventItems.map((item) => (
+            <EventCard
+              key={item.eventId}
+              eventId={item.eventId}
+              event={item.event}
+            />
+          ))}
+        </div>
       </>
     ) : null}
     {additionalItems.length > 0 ? (
@@ -1217,6 +1211,7 @@ const EventsContent = ({
       pushByDate(event?.eventDate, {
         type: 'event',
         eventId: event?._id,
+        event,
         title: event?.eventType || 'Мероприятие',
         description: event?.description || '',
         date: event?.eventDate ?? null,

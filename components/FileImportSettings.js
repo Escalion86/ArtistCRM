@@ -214,14 +214,16 @@ const FileImportSettings = () => {
           мероприятий.
         </p>
       </div>
-      <ol className="grid grid-cols-3 gap-2 text-sm" aria-label="Этапы импорта">
+      <ol className="file-import-progress" aria-label="Этапы импорта">
         {['Анализ и уточнения', 'Стоимость', 'Импорт'].map((label, index) => (
           <li
             key={label}
             aria-current={stage === index + 1 ? 'step' : undefined}
-            className={`rounded border p-2 ${stage === index + 1 ? 'border-current font-semibold' : 'border-gray-500 opacity-60'}`}
+            className="file-import-progress__step"
+            data-complete={stage > index + 1 ? 'true' : undefined}
           >
-            {index + 1}. {label}
+            <span className="shrink-0">{index + 1}.</span>
+            <span>{label}</span>
           </li>
         ))}
       </ol>
