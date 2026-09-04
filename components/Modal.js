@@ -82,10 +82,10 @@ const Modal = ({
     >
       <div
         className={cn(
-          'relative z-10 flex max-h-[100vh] w-full flex-col bg-white shadow-xl',
+          'relative z-10 flex max-h-[100dvh] w-full flex-col bg-white shadow-xl',
           // Mobile-first: fullscreen on <768px, centered with border-radius on >=768px
           'm-0 max-h-full rounded-none',
-          'md:m-4 md:max-h-[calc(100vh-32px)] md:rounded-2xl',
+          'md:m-4 md:max-h-[calc(100dvh-32px)] md:rounded-2xl',
           sizeClasses[size] || sizeClasses.md,
           isParty ? 'border-sky-100 md:border' : 'border-gray-200 md:border'
         )}

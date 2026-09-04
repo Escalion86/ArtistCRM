@@ -65,12 +65,18 @@ const TransactionDateRangeFilter = ({
       if (!clickedPanel && !clickedButton) setOpen(false)
     }
 
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
     document.addEventListener('mousedown', onClickOutside)
+    document.addEventListener('keydown', onKeyDown)
     window.addEventListener('resize', updatePanelPosition)
     window.addEventListener('scroll', updatePanelPosition, true)
 
     return () => {
       document.removeEventListener('mousedown', onClickOutside)
+      document.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('resize', updatePanelPosition)
       window.removeEventListener('scroll', updatePanelPosition, true)
     }
@@ -126,7 +132,7 @@ const TransactionDateRangeFilter = ({
         top: panelPosition?.top ?? 48,
         width: panelPosition?.width ?? 'calc(100vw - 1.5rem)',
       }}
-      className="tablet:p-4 fixed z-50 max-h-[calc(100vh-5rem)] origin-top overflow-y-auto rounded-2xl border border-[var(--surface-toolbar-border)] bg-white p-3 shadow-[0_18px_36px_rgba(17,24,39,0.14)] transition-all duration-150"
+      className="tablet:p-4 fixed z-50 max-h-[calc(100dvh-5rem)] origin-top overflow-y-auto rounded-2xl border border-[var(--surface-toolbar-border)] bg-white p-3 shadow-[0_18px_36px_rgba(17,24,39,0.14)] transition-all duration-150"
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0 text-base leading-5 font-bold text-gray-900">

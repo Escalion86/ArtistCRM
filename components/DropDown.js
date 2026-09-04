@@ -230,7 +230,7 @@ const DropDown = ({
               left: menuPosition?.left,
               right: menuPosition?.right,
               maxWidth: 'calc(100vw - 16px)',
-              maxHeight: 'calc(100vh - 16px)',
+              maxHeight: 'calc(100dvh - 16px)',
               overflowY: 'auto',
             }
           : undefined
