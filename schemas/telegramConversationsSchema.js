@@ -57,6 +57,10 @@ const telegramConversationsSchema = {
     type: Number,
     default: 0,
   },
+  lastPushAt: {
+    type: Date,
+    default: null,
+  },
 }
 
 export default telegramConversationsSchema

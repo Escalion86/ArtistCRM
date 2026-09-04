@@ -575,6 +575,8 @@ const notifyVkMessage = async ({ tenantId, event, conversation, normalized }) =>
     messageText: normalized.comment,
     clientId: conversation?.clientId || event?.clientId,
     clientName: conversation?.clientName || normalized.name,
+    conversationId: conversation?._id,
+    unreadCount: conversation?.unreadCount || 0,
     associatedEvent: event,
   }).catch((error) => {
     console.error('Не удалось отправить push о сообщении VK', error)

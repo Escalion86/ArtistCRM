@@ -1,8 +1,20 @@
 import Clients from '@models/Clients'
 import Events from '@models/Events'
+import TelegramConversations from '@models/TelegramConversations'
+import VkConversations from '@models/VkConversations'
+import AvitoConversations from '@models/AvitoConversations'
 import getPersonFullName from '@helpers/getPersonFullName'
 import { buildIncomingMessagePushPayload } from '@helpers/incomingMessageNotification'
-import { sendMultiChannelPushToTenant } from '@server/multiChannelPush'
+import { sendPushToTenant } from '@server/pushNotifications'
+import { sendExpoPushToTenant } from '@server/expoPushNotifications'
+import { aggregatePushResults } from './pushResultAggregation.js'
+import { shouldSendExpoPushForConversation } from './messengerPushThrottle.js'
+
+const CONVERSATION_MODELS = {
+  telegram: TelegramConversations,
+  vk: VkConversations,
+  avito: AvitoConversations,
+}
 
 const resolveNearestClientEvent = async ({
   tenantId,
@@ -76,6 +88,8 @@ export const notifyIncomingClientMessage = async ({
   clientName,
   associatedEvent,
   associatedEventId,
+  conversationId,
+  unreadCount = 0,
 }) => {
   if (!tenantId || !provider) return null
 
@@ -93,13 +107,37 @@ export const notifyIncomingClientMessage = async ({
     clientId,
     clientName: context.clientName,
     event: context.event,
+    conversationId,
+    unreadCount,
   })
 
-  return sendMultiChannelPushToTenant({
-    tenantId,
-    payload,
-    source: `messenger_${provider}`,
-  })
+  const ConversationModel = CONVERSATION_MODELS[provider] || null
+  let expoAllowed = true
+  if (ConversationModel && conversationId) {
+    const conversation = await ConversationModel.findOne({
+      _id: conversationId,
+      tenantId,
+    })
+      .select('lastPushAt')
+      .lean()
+    expoAllowed = shouldSendExpoPushForConversation({
+      lastPushAt: conversation?.lastPushAt,
+    })
+    if (expoAllowed) {
+      await ConversationModel.updateOne(
+        { _id: conversationId, tenantId },
+        { $set: { lastPushAt: new Date() } }
+      )
+    }
+  }
+
+  const [web, expo] = await Promise.all([
+    sendPushToTenant({ tenantId, payload, source: `messenger_${provider}` }),
+    expoAllowed
+      ? sendExpoPushToTenant({ tenantId, payload })
+      : Promise.resolve(null),
+  ])
+  return aggregatePushResults(web, expo)
 }
 
 export { resolveClientMessageContext, resolveNearestClientEvent }

@@ -49,6 +49,10 @@ const vkConversationsSchema = {
     type: Number,
     default: 0,
   },
+  lastPushAt: {
+    type: Date,
+    default: null,
+  },
   raw: {
     type: Schema.Types.Mixed,
     default: null,

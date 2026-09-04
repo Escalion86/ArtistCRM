@@ -103,6 +103,8 @@ export const POST = async (req, { params }) => {
         clientId: result.client?._id || result.conversation?.clientId,
         clientName: result.conversation?.clientName || '',
         associatedEventId: result.conversation?.eventId,
+        conversationId: result.conversation?._id,
+        unreadCount: result.conversation?.unreadCount || 0,
       }).catch((error) => {
         console.error('Не удалось отправить push о сообщении Telegram', error)
       })
