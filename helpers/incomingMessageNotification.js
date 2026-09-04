@@ -27,6 +27,22 @@ const formatEventDate = (value) => {
   })
 }
 
+const pluralizeMessages = (count) => {
+  const mod100 = count % 100
+  const mod10 = count % 10
+  if (mod100 >= 11 && mod100 <= 14) return 'новых сообщений'
+  if (mod10 === 1) return 'новое сообщение'
+  if (mod10 >= 2 && mod10 <= 4) return 'новых сообщения'
+  return 'новых сообщений'
+}
+
+export const formatUnreadCount = (count) => {
+  const value = Number(count)
+  if (!Number.isFinite(value) || value <= 1) return ''
+  const rounded = Math.floor(value)
+  return `${rounded} ${pluralizeMessages(rounded)}`
+}
+
 export const buildIncomingMessagePushPayload = ({
   provider,
   messageId,
@@ -35,14 +51,23 @@ export const buildIncomingMessagePushPayload = ({
   clientName,
   event,
   notificationKind = 'message',
+  conversationId,
+  unreadCount = 0,
 }) => {
   const providerLabel = PROVIDER_LABELS[provider] || normalizeText(provider, 'CRM')
   const safeClientName = normalizeText(clientName, 'Клиент')
   const eventId = String(event?._id || '')
   const eventTitle = normalizeText(event?.eventType, 'Мероприятие')
   const eventDate = formatEventDate(event?.eventDate)
-  const bodyParts = [safeClientName]
+  const isRecording = notificationKind === 'recording'
+  const safeUnreadCount = Number.isFinite(Number(unreadCount))
+    ? Math.max(0, Math.floor(Number(unreadCount)))
+    : 0
+  const isFirstInSeries = safeUnreadCount <= 1
 
+  const bodyParts = [safeClientName]
+  const unreadPart = isRecording ? '' : formatUnreadCount(safeUnreadCount)
+  if (unreadPart) bodyParts.push(unreadPart)
   if (messageText) bodyParts.push(truncateText(messageText))
   if (eventId) {
     bodyParts.push(
@@ -50,7 +75,10 @@ export const buildIncomingMessagePushPayload = ({
     )
   }
 
-  const isRecording = notificationKind === 'recording'
+  const conversationKey = String(
+    clientId || conversationId || messageId || Date.now()
+  )
+
   return {
     title: isRecording
       ? `Получена запись звонка · ${safeClientName}`
@@ -58,10 +86,12 @@ export const buildIncomingMessagePushPayload = ({
     body: bodyParts.join(' • '),
     icon: '/icons/AppImages/android/android-launchericon-192-192.png',
     badge: '/icons/notification-badge.svg',
-    tag: `${isRecording ? 'call-recording' : 'incoming-message'}-${provider}-${
-      messageId || Date.now()
-    }`,
-    requireInteraction: true,
+    tag: isRecording
+      ? `call-recording-${provider}-${messageId || Date.now()}`
+      : `incoming-message-${provider}-${conversationKey}`,
+    renotify: false,
+    silent: isRecording ? false : !isFirstInSeries,
+    requireInteraction: isRecording ? true : isFirstInSeries,
     data: {
       url: eventId
         ? `/cabinet/eventsUpcoming?openEvent=${eventId}`
@@ -69,6 +99,8 @@ export const buildIncomingMessagePushPayload = ({
       clientId: String(clientId || ''),
       eventId,
       provider,
+      conversationKey,
+      unreadCount: safeUnreadCount,
       type: isRecording ? 'telephony_recording' : 'incoming_messenger_message',
     },
   }
