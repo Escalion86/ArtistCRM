@@ -286,6 +286,28 @@ const clientMessengerFunc = (clientId) => {
     }, [load])
 
     useEffect(() => {
+      if (!clientId) return undefined
+      const postToServiceWorker = (type) => {
+        if (typeof navigator === 'undefined') return
+        const controller = navigator.serviceWorker?.controller
+        if (!controller) return
+        controller.postMessage({
+          type,
+          conversationKey: String(clientId),
+        })
+      }
+      postToServiceWorker('messenger:active')
+      const intervalId = setInterval(
+        () => postToServiceWorker('messenger:active'),
+        15000
+      )
+      return () => {
+        clearInterval(intervalId)
+        postToServiceWorker('messenger:inactive')
+      }
+    }, [clientId])
+
+    useEffect(() => {
       bottomRef.current?.scrollIntoView({ block: 'end' })
     }, [loading, messages.length])
 
