@@ -1,9 +1,15 @@
-const SERVICE_WORKER_VERSION = 'artistcrm-custom-sw-v2'
+import { shouldSuppressIncomingMessagePush } from './swPushSuppression.js'
+
+const SERVICE_WORKER_VERSION = 'artistcrm-custom-sw-v3'
 
 const SERVICE_WORKER_SCRIPT = `
 const SERVICE_WORKER_VERSION = '${SERVICE_WORKER_VERSION}'
 const APP_SHELL_CACHE = 'crm-app-shell-v2'
 const RUNTIME_CACHE = 'crm-runtime-v2'
+const ACTIVE_CONVERSATIONS = {}
+// Логика живёт в server/swPushSuppression.js (там же тесты);
+// сюда функция инжектируется исходником, чтобы SW был самодостаточным.
+const shouldSuppressIncomingMessagePush = ${shouldSuppressIncomingMessagePush.toString()}
 const APP_SHELL_URLS = [
   '/',
   '/manifest.json',
@@ -26,6 +32,12 @@ const isStaticAssetPath = (pathname) =>
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     event.waitUntil(self.skipWaiting())
+  }
+  if (event.data?.type === 'messenger:active' && event.data.conversationKey) {
+    ACTIVE_CONVERSATIONS[String(event.data.conversationKey)] = Date.now()
+  }
+  if (event.data?.type === 'messenger:inactive' && event.data.conversationKey) {
+    delete ACTIVE_CONVERSATIONS[String(event.data.conversationKey)]
   }
 })
 
@@ -187,6 +199,12 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  if (
+    shouldSuppressIncomingMessagePush(payload, ACTIVE_CONVERSATIONS, Date.now())
+  ) {
+    return
+  }
+
   const title = payload?.title || 'Новое уведомление'
   const options = {
     body: payload?.body || '',
@@ -198,6 +216,7 @@ self.addEventListener('push', (event) => {
     data: payload?.data || {},
     actions: Array.isArray(payload?.actions) ? payload.actions : [],
     renotify: Boolean(payload?.renotify),
+    silent: Boolean(payload?.silent),
     requireInteraction: Boolean(payload?.requireInteraction),
   }
 
