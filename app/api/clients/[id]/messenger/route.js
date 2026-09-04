@@ -292,19 +292,19 @@ export const PATCH = async (req, { params }) => {
     hasIntegrationAccess(access, 'avito')
       ? AvitoConversations.updateMany(
           { tenantId, clientId, unreadCount: { $gt: 0 } },
-          { $set: { unreadCount: 0 } }
+          { $set: { unreadCount: 0, lastPushAt: null } }
         )
       : Promise.resolve(),
     hasIntegrationAccess(access, 'vk')
       ? VkConversations.updateMany(
           { tenantId, clientId, unreadCount: { $gt: 0 } },
-          { $set: { unreadCount: 0 } }
+          { $set: { unreadCount: 0, lastPushAt: null } }
         )
       : Promise.resolve(),
     hasIntegrationAccess(access, 'telegram')
       ? TelegramConversations.updateMany(
           { tenantId, clientId, unreadCount: { $gt: 0 } },
-          { $set: { unreadCount: 0 } }
+          { $set: { unreadCount: 0, lastPushAt: null } }
         )
       : Promise.resolve(),
   ])

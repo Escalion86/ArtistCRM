@@ -60,7 +60,10 @@ export const PATCH = async (req, { params }) => {
     const status = String(body.status || '').trim()
     if (['open', 'closed', 'ignored'].includes(status)) update.status = status
   }
-  if (body.markRead === true) update.unreadCount = 0
+  if (body.markRead === true) {
+    update.unreadCount = 0
+    update.lastPushAt = null
+  }
 
   const conversation = await AvitoConversations.findOneAndUpdate(
     { _id: id, tenantId },
