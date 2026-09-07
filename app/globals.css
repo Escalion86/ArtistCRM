@@ -1239,6 +1239,96 @@ body.theme-dark .MuiIconButton-root {
   color: #94a3b8;
 }
 
+/* Тёмная тема: поле и выпадающий календарь/часы выбора даты/времени (MUI X pickers) */
+body.theme-dark .MuiPickersInputBase-root,
+body.theme-dark .MuiPickersOutlinedInput-root,
+body.theme-dark .MuiPickersSectionList-section {
+  background-color: transparent;
+  color: #e2e8f0;
+}
+
+body.theme-dark .MuiPickersPopper-root .MuiPaper-root,
+body.theme-dark .MuiDialog-root .MuiPaper-root:has(.MuiPickersLayout-root) {
+  background-color: #1c1712;
+  background-image: none;
+  color: #e2e8f0;
+}
+
+body.theme-dark .MuiPickersLayout-root .MuiTypography-root,
+body.theme-dark .MuiPickersCalendarHeader-label,
+body.theme-dark .MuiDayCalendar-weekDayLabel,
+body.theme-dark .MuiPickersToolbarText-root {
+  color: #e2e8f0;
+}
+
+body.theme-dark .MuiPickersToolbarText-root.Mui-selected {
+  color: var(--ui-primary);
+}
+
+body.theme-dark .MuiPickersDay-root,
+body.theme-dark .MuiPickersMonth-monthButton,
+body.theme-dark .MuiPickersYear-yearButton,
+body.theme-dark .MuiClockNumber-root,
+body.theme-dark .MuiMultiSectionDigitalClock-root .MuiMenuItem-root {
+  color: #e2e8f0;
+}
+
+body.theme-dark .MuiPickersDay-root:hover,
+body.theme-dark .MuiPickersMonth-monthButton:hover,
+body.theme-dark .MuiPickersYear-yearButton:hover,
+body.theme-dark .MuiMultiSectionDigitalClock-root .MuiMenuItem-root:hover {
+  background-color: rgba(201, 168, 106, 0.16);
+}
+
+body.theme-dark .MuiPickersDay-root.Mui-selected,
+body.theme-dark .MuiPickersDay-root.Mui-selected:hover,
+body.theme-dark .MuiPickersMonth-monthButton.Mui-selected,
+body.theme-dark .MuiPickersYear-yearButton.Mui-selected,
+body.theme-dark .MuiMultiSectionDigitalClock-root .MuiMenuItem-root.Mui-selected {
+  background-color: var(--ui-primary);
+  color: var(--ui-primary-text);
+}
+
+body.theme-dark .MuiPickersDay-today {
+  border-color: rgba(226, 232, 240, 0.5);
+}
+
+body.theme-dark .MuiClock-pin,
+body.theme-dark .MuiClockPointer-root,
+body.theme-dark .MuiClockPointer-thumb {
+  background-color: var(--ui-primary);
+  border-color: var(--ui-primary);
+}
+
+body.theme-dark .MuiPickersLayout-root .MuiDivider-root {
+  border-color: rgba(226, 232, 240, 0.16);
+}
+
+body.theme-dark .MuiPickersPopper-root .MuiDialogActions-root .MuiButton-root,
+body.theme-dark .MuiDialog-root .MuiPaper-root:has(.MuiPickersLayout-root) .MuiButton-root {
+  color: #e2e8f0;
+}
+
+/* Тёмная тема: нативные поля даты/времени */
+body.theme-dark input[type='date'],
+body.theme-dark input[type='time'],
+body.theme-dark input[type='datetime-local'] {
+  background-color: #17130f;
+  color: #e2e8f0;
+}
+
+body.theme-dark input.bg-transparent,
+body.theme-dark input[type='date'].bg-transparent,
+body.theme-dark input[type='time'].bg-transparent {
+  background-color: transparent;
+}
+
+body.theme-dark input[type='time']::-webkit-calendar-picker-indicator,
+body.theme-dark input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.2);
+  opacity: 0.9;
+}
+
 /* FAB создания заявки: иконки наследуют цвет кнопки/пункта (перекрывает тёмную тему выше) */
 .create-event-fab .MuiSvgIcon-root,
 body.theme-dark .create-event-fab .MuiSvgIcon-root,
