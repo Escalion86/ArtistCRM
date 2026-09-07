@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UX-05 — Нижняя мобильная навигация (макет)</title>
+<style>
+  :root {
+    --sand: #c9a86a;
+    --sand-light: #ebd3a5;
+    --gold: #9a6b27;
+    --danger: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #2b2620;
+    color: #f7efe1;
+    padding: 28px 16px 48px;
+  }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  .lead { color: #cbbfa8; font-size: 13px; margin-bottom: 22px; max-width: 900px; line-height: 1.5; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 8px 18px;
+    font-size: 12px; color: #cbbfa8; margin-bottom: 26px; max-width: 980px;
+  }
+  .legend b { color: var(--sand); font-weight: 600; }
+  .row { display: flex; flex-wrap: wrap; gap: 36px; align-items: flex-start; }
+
+  /* ---------- Телефон ---------- */
+  .phone {
+    width: 300px; border-radius: 30px; padding: 8px;
+    background: #0b0906;
+    box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 0 0 2px #3a3227;
+  }
+  .screen {
+    position: relative; height: 620px; border-radius: 22px; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .caption { margin-top: 10px; text-align: center; font-size: 13px; color: #cbbfa8; }
+  .caption b { color: #f7efe1; }
+
+  /* ---------- Шапка ---------- */
+  .appbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; font-weight: 700; font-size: 15px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .appbar .count { color: var(--sand); font-size: 12px; font-weight: 600; }
+  .burger { width: 22px; opacity: .85; }
+
+  /* ---------- Карточки ---------- */
+  .cards { flex: 1; padding: 10px 10px 0; overflow: hidden; }
+  .card {
+    border-radius: 14px; padding: 10px 12px; margin-bottom: 10px;
+    border: 1px solid rgba(255,255,255,.05);
+  }
+  .card .title { display: flex; justify-content: space-between; align-items: flex-start; font-size: 13px; font-weight: 700; line-height: 1.35; }
+  .card .dots { opacity: .55; font-size: 15px; padding-left: 8px; }
+  .card .mid { display: flex; gap: 10px; margin-top: 8px; }
+  .date {
+    width: 52px; flex: none; text-align: center; border-radius: 8px;
+    padding: 5px 0; font-size: 10px; line-height: 1.25;
+  }
+  .date b { display: block; font-size: 17px; }
+  .card .price { margin-left: auto; font-size: 13px; font-weight: 700; align-self: center; }
+  .card .client { margin-top: 8px; font-size: 12px; opacity: .85; }
+  .actions { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+  .act {
+    width: 26px; height: 26px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+  }
+  .spacer-note {
+    margin: 2px 4px 0; font-size: 10px; opacity: .45; text-align: center; padding-bottom: 8px;
+  }
+
+  /* ---------- Нижняя панель ---------- */
+  .bottombar {
+    position: relative; display: flex; align-items: stretch;
+    height: 62px; padding-bottom: 6px;
+  }
+  .bb-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; font-size: 9.5px; position: relative; cursor: pointer;
+  }
+  .bb-item svg { width: 21px; height: 21px; }
+  .bb-badge {
+    position: absolute; top: 6px; left: calc(50% + 4px);
+    min-width: 15px; height: 15px; padding: 0 4px; border-radius: 999px;
+    background: var(--danger); color: #fff; font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .bb-fab {
+    flex: 1; display: flex; align-items: flex-start; justify-content: center; position: relative;
+  }
+  .bb-fab .circle {
+    width: 50px; height: 50px; border-radius: 50%; margin-top: -16px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,.45), 0 0 0 5px rgba(0,0,0,.15);
+    cursor: pointer; transition: transform .15s ease;
+  }
+  .bb-fab .circle svg { width: 24px; height: 24px; }
+  .safe-hint { text-align: center; font-size: 8.5px; opacity: .35; padding-bottom: 3px; }
+
+  /* ---------- Меню создания ---------- */
+  .backdrop { position: absolute; inset: 0; background: rgba(16,13,10,.5); z-index: 5; }
+  .create-menu {
+    position: absolute; left: 0; right: 0; bottom: 74px; z-index: 6;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .pill {
+    display: flex; align-items: center; gap: 9px;
+    border-radius: 999px; padding: 9px 16px 9px 12px;
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,.35);
+  }
+  .pill svg { width: 15px; height: 15px; }
+  .rot { transform: rotate(45deg); }
+
+  /* ---------- Темы ---------- */
+  .dark .screen { background: #14110d; color: #f7efe1; }
+  .dark .card { background: #1e1914; }
+  .dark .date { background: rgba(201,168,106,.14); color: var(--sand); }
+  .dark .bottombar { background: #3b2f1d; color: rgba(247,239,225,.62); }
+  .dark .bb-item.active { color: var(--sand); }
+  .dark .bb-fab .circle { background: var(--sand); color: #fff; }
+  .dark .pill { background: #26201a; color: #f7efe1; border: 1px solid rgba(255,255,255,.08); }
+  .dark .pill svg { color: var(--sand); }
+  .dark .price { color: #7ee2a8; }
+  .dark .appbar { background: #17130f; }
+
+  .light .screen { background: #f4f1ea; color: #29241c; }
+  .light .card { background: #ffffff; border-color: rgba(0,0,0,.06); }
+  .light .date { background: rgba(154,107,39,.12); color: var(--gold); }
+  .light .bottombar { background: var(--gold); color: rgba(255,255,255,.72); }
+  .light .bb-item.active { color: #ffffff; }
+  .light .bb-fab .circle { background: #ffffff; color: var(--gold); box-shadow: 0 8px 20px rgba(0,0,0,.3), 0 0 0 5px rgba(255,255,255,.18); }
+  .light .price { color: #15803d; }
+  .light .appbar { background: #faf7f0; border-color: rgba(0,0,0,.06); }
+</style>
+</head>
+<body>
+
+<h1>UX-05 · Нижняя мобильная навигация — макет</h1>
+<p class="lead">
+  Фиксированная панель внизу экрана на мобильных ширинах (phoneV/phoneH). На планшете и десктопе — без изменений.
+  Центральная «+» поднимает то же меню создания, что FAB; на телефоне FAB убирается.
+</p>
+<div class="legend">
+  <span><b>1</b> — активный раздел подсвечен акцентом</span>
+  <span><b>2</b> — бейдж просроченных контактов</span>
+  <span><b>3</b> — «+» приподнята над панелью</span>
+  <span><b>4</b> — фон панели = цвет сайдбара (в обеих темах)</span>
+  <span><b>5</b> — под карточками отступ, чтобы панель ничего не перекрывала</span>
+</div>
+
+<div class="row">
+
+  <!-- 1. Тёмная тема, обычное состояние -->
+  <div class="phone dark">
+    <div class="screen">
+      <div class="appbar">
+        <svg class="burger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Предстоящие мероприятия <span class="count">11</span>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <div class="title">Корпоратив · Встреча гостей, Стандартная <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">пн<b>07</b>сент<br/>08:05</div>
+            <div class="price">80 000 / 160 000 ₽</div>
+          </div>
+          <div class="client">Ксения Малахова</div>
+          <div class="actions">
+            <div class="act" style="background:#16a34a">☎</div>
+            <div class="act" style="background:#22c55e">W</div>
+            <div class="act" style="background:#3b82f6">✈</div>
+            <div class="act" style="background:#f59e0b">A</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title">Корпоратив · Встреча гостей <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">чт<b>10</b>сент<br/>00:00</div>
+            <div class="price">14 000 ₽</div>
+          </div>
+          <div class="client">Дмитрий Кокорин · Абакан</div>
+          <div class="actions">
+            <div class="act" style="background:#16a34a">☎</div>
+            <div class="act" style="background:#22c55e">W</div>
+            <div class="act" style="background:#3b82f6">✈</div>
+          </div>
+        </div>
+        <div class="card" style="opacity:.55">
+          <div class="title">Свадьба · Банкет <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">сб<b>12</b>сент<br/>16:00</div>
+            <div class="price">45 000 ₽</div>
+          </div>
+          <div class="client">Анна и Игорь</div>
+        </div>
+        <div class="spacer-note">↑ отступ под панель — последняя карточка не перекрывается</div>
+      </div>
+      <nav class="bottombar">
+        <div class="bb-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/><path d="m9 14.5 2 2 4-4"/></svg>
+          Мероприятия
+          <span class="bb-badge">3</span>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.4 3.6-5 7-5s6.2 1.6 7 5"/></svg>
+          Клиенты
+        </div>
+        <div class="bb-fab">
+          <div class="circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19M16.5 14.5h2"/></svg>
+          Финансы
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          Меню
+        </div>
+      </nav>
+    </div>
+    <div class="caption"><b>1.</b> Обычное состояние (тёмная тема)</div>
+  </div>
+
+  <!-- 2. Тёмная тема, меню создания открыто -->
+  <div class="phone dark">
+    <div class="screen">
+      <div class="appbar">
+        <svg class="burger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Предстоящие мероприятия <span class="count">11</span>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <div class="title">Корпоратив · Встреча гостей, Стандартная <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">пн<b>07</b>сент<br/>08:05</div>
+            <div class="price">80 000 / 160 000 ₽</div>
+          </div>
+          <div class="client">Ксения Малахова</div>
+        </div>
+        <div class="card">
+          <div class="title">Корпоратив · Встреча гостей <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">чт<b>10</b>сент<br/>00:00</div>
+            <div class="price">14 000 ₽</div>
+          </div>
+          <div class="client">Дмитрий Кокорин · Абакан</div>
+        </div>
+      </div>
+      <div class="backdrop"></div>
+      <div class="create-menu">
+        <div class="pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 12v6M9 15h6"/></svg>
+          Заявка
+        </div>
+        <div class="pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/><path d="m9 14.5 2 2 4-4"/></svg>
+          Подтверждено
+        </div>
+        <div class="pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+          Голосом
+        </div>
+        <div class="pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 12h6M9 16h6"/></svg>
+          Свободным текстом
+        </div>
+      </div>
+      <nav class="bottombar">
+        <div class="bb-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/><path d="m9 14.5 2 2 4-4"/></svg>
+          Мероприятия
+          <span class="bb-badge">3</span>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.4 3.6-5 7-5s6.2 1.6 7 5"/></svg>
+          Клиенты
+        </div>
+        <div class="bb-fab">
+          <div class="circle rot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19M16.5 14.5h2"/></svg>
+          Финансы
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          Меню
+        </div>
+      </nav>
+    </div>
+    <div class="caption"><b>2.</b> Тап по «+» — то же меню, что у FAB</div>
+  </div>
+
+  <!-- 3. Светлая тема -->
+  <div class="phone light">
+    <div class="screen">
+      <div class="appbar">
+        <svg class="burger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Предстоящие мероприятия <span class="count" style="color:var(--gold)">11</span>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <div class="title">Корпоратив · Встреча гостей, Стандартная <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">пн<b>07</b>сент<br/>08:05</div>
+            <div class="price">80 000 / 160 000 ₽</div>
+          </div>
+          <div class="client">Ксения Малахова</div>
+          <div class="actions">
+            <div class="act" style="background:#16a34a">☎</div>
+            <div class="act" style="background:#22c55e">W</div>
+            <div class="act" style="background:#3b82f6">✈</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title">Корпоратив · Встреча гостей <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">чт<b>10</b>сент<br/>00:00</div>
+            <div class="price">14 000 ₽</div>
+          </div>
+          <div class="client">Дмитрий Кокорин · Абакан</div>
+        </div>
+      </div>
+      <nav class="bottombar">
+        <div class="bb-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/><path d="m9 14.5 2 2 4-4"/></svg>
+          Мероприятия
+          <span class="bb-badge">3</span>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.4 3.6-5 7-5s6.2 1.6 7 5"/></svg>
+          Клиенты
+        </div>
+        <div class="bb-fab">
+          <div class="circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19M16.5 14.5h2"/></svg>
+          Финансы
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          Меню
+        </div>
+      </nav>
+    </div>
+    <div class="caption"><b>3.</b> Светлая тема (панель в цвете сайдбара)</div>
+  </div>
+
+</div>
+
+</body>
+</html>

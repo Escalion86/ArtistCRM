@@ -106,8 +106,8 @@ const eventAdditionalEventsFunc = (eventId) => {
       const target = sourceItems[index]
       if (!target) return
       modalsFunc?.confirm?.({
-        title: 'Удаление доп. события',
-        text: 'Удалить это доп. событие?',
+        title: 'Удаление задачи',
+        text: 'Удалить эту задачу?',
         onConfirm: async () => {
           await deleteAdditionalEvent(index)
         },
@@ -152,12 +152,12 @@ const eventAdditionalEventsFunc = (eventId) => {
             className="rounded"
             onClick={handleCreateAdditionalEvent}
           >
-            Создать доп. событие
+            Создать задачу
           </AppButton>
         </div>
         {additionalEvents.length === 0 ? (
           <SurfaceCard className="text-sm text-gray-500">
-            Доп. событий пока нет
+            Задач пока нет
           </SurfaceCard>
         ) : (
           <div className="flex flex-col gap-3">
@@ -191,7 +191,7 @@ const eventAdditionalEventsFunc = (eventId) => {
   }
 
   return {
-    title: 'Доп. события',
+    title: 'Задачи/События',
     confirmButtonName: 'Закрыть',
     onConfirm: true,
     showDecline: false,

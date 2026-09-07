@@ -58,7 +58,7 @@ const SYNC_FIELD_OPTIONS = Object.freeze([
   { key: 'showContractSum', label: 'Договорная сумма' },
   { key: 'showFinanceComment', label: 'Комментарий по финансам' },
   { key: 'showTransactions', label: 'Транзакции по мероприятию' },
-  { key: 'showAdditionalEvents', label: 'Доп. события и напоминания' },
+  { key: 'showAdditionalEvents', label: 'Задачи/События и напоминания' },
   { key: 'showNavigationLinks', label: 'Ссылки навигации по адресу' },
   { key: 'showEventLink', label: 'Ссылка на мероприятие в CRM' },
 ])

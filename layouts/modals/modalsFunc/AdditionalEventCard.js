@@ -158,7 +158,7 @@ const AdditionalEventCard = ({
                   <button
                     type="button"
                     className="text-general flex h-8 min-h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-transparent p-0 transition hover:border-general/30 hover:bg-general/10"
-                    aria-label="Открыть меню доп. события"
+                    aria-label="Открыть меню задачи"
                   >
                     <FontAwesomeIcon
                       icon={faEllipsisV}

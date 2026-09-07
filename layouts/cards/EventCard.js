@@ -270,7 +270,7 @@ const EventCard = ({
         const date = item?.date ? new Date(item.date) : null
         if (!date || Number.isNaN(date.getTime())) return null
         return {
-          title: item?.title || 'Доп. событие',
+          title: item?.title || 'Задача',
           date,
         }
       })

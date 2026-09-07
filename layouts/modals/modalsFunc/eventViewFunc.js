@@ -492,8 +492,8 @@ const eventViewFunc = (eventId) => {
         : []
       if (!sourceItems[index]) return
       modalsFunc.confirm({
-        title: 'Удаление доп. события',
-        text: 'Удалить это доп. событие?',
+        title: 'Удаление задачи',
+        text: 'Удалить эту задачу?',
         onConfirm: async () => {
           await deleteAdditionalEvent(index)
         },
@@ -778,7 +778,7 @@ const eventViewFunc = (eventId) => {
             )}
 
             {additionalEvents.length > 0 && (
-              <SectionBlock title="Доп. события">
+              <SectionBlock title="Задачи/События">
                 <div className="flex flex-col gap-3">
                   {additionalEventGroups.map((group) => (
                     <section key={group.key} className="flex flex-col gap-2">

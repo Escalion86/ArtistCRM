@@ -16,12 +16,20 @@ const TabContext = ({
     if (child?.props?.tabName) {
       const tabName = child.props.tabName
       const tabAddToLabel = child.props.tabAddToLabel
+      const tabBadge = child.props.tabBadge
       tabs.push(
         <Tab
           key={tabName}
           label={
             <div className="flex flex-col">
-              <div>{tabName}</div>
+              <div className="flex items-center justify-center gap-1.5">
+                <span>{tabName}</span>
+                {typeof tabBadge === 'number' && tabBadge > 0 && (
+                  <span className="bg-danger flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-bold text-white">
+                    {tabBadge}
+                  </span>
+                )}
+              </div>
               {tabAddToLabel && <div>{tabAddToLabel}</div>}
             </div>
           }

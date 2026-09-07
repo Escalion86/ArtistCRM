@@ -11,7 +11,7 @@ export const eventKeys = {
   depositExpectedAmount: 'Сумма задатка',
   description: 'Комментарий',
   eventType: 'Что за событие',
-  additionalEvents: 'Доп. события',
+  additionalEvents: 'Задачи/События',
   financeComment: 'Комментарий по финансам',
   contractLinks: 'Ссылки на договора',
   invoiceLinks: 'Ссылки на счета',

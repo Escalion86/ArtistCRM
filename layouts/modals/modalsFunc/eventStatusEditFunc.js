@@ -175,7 +175,7 @@ const eventStatusEditFunc = (eventId) => {
         modalsFunc.add({
           title: 'Подтверждение закрытия/отмены',
           text:
-            'Закрытие или отмена мероприятия приведет к отмене и удалению невыполненных доп. событий:\n' +
+            'Закрытие или отмена мероприятия приведет к отмене и удалению невыполненных задач:\n' +
             pendingAdditionalEvents
               .map(
                 (item, index) =>
@@ -264,7 +264,7 @@ const eventStatusEditFunc = (eventId) => {
         )}
         {isClosing && hasPendingAdditionalEvents && (
           <div className="text-xs text-gray-500">
-            Закрытие недоступно: сначала отметьте выполненными все доп. события.
+            Закрытие недоступно: сначала отметьте выполненными все задачи.
           </div>
         )}
         {/* {!canSetClosed && (

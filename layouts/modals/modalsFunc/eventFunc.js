@@ -608,6 +608,29 @@ const eventFunc = (
         : ''
     }, [eventDate, dateEnd])
 
+    // UX-13: счётчики незаполненных/ошибочных полей по вкладкам формы
+    const tabErrorCounts = useMemo(() => {
+      const generalCount =
+        (eventDate ? 0 : 1) +
+        (eventType?.trim() ? 0 : 1) +
+        (servicesIds && servicesIds.length > 0 ? 0 : 1) +
+        (showColleagueTransferControls && isTransferred && !colleagueId
+          ? 1
+          : 0) +
+        (dateRangeError ? 1 : 0)
+      const clientCount = clientId ? 0 : 1
+      return { general: generalCount, client: clientCount }
+    }, [
+      clientId,
+      colleagueId,
+      dateRangeError,
+      eventDate,
+      eventType,
+      isTransferred,
+      servicesIds,
+      showColleagueTransferControls,
+    ])
+
     const defaultDurationMinutes = useMemo(() => {
       const minutes = Number(
         siteSettings?.custom?.defaultEventDurationMinutes ?? 60
@@ -916,7 +939,7 @@ const eventFunc = (
             }
           )
           openAdditionalEventModal(null, {
-            title: 'Добавить доп. событие',
+            title: 'Добавить задачу',
             introText: `Рекомендуется добавить напоминание "Что решили клиенты" на ${suggestedLabel}. Вы можете изменить детали ниже.`,
             sourceItem: {
               title: 'Что решили клиенты',
@@ -1621,7 +1644,7 @@ const eventFunc = (
         scrollButtons={false}
         allowScrollButtonsMobile={false}
       >
-        <TabPanel tabName="Общие">
+        <TabPanel tabName="Общие" tabBadge={tabErrorCounts.general}>
           <FormWrapper>
             {hasAiHighlightedFields ? (
               <div className="ai-filled-hint mb-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800">
@@ -1846,7 +1869,10 @@ const eventFunc = (
           </FormWrapper>
         </TabPanel>
 
-        <TabPanel tabName="Клиент и Контакты">
+        <TabPanel
+          tabName="Клиент и Контакты"
+          tabBadge={tabErrorCounts.client}
+        >
           <FormWrapper>
             <div className={formLockedClassName}>
               <AiFieldHighlight active={isAiFieldHighlighted('clientId')}>
@@ -1891,7 +1917,7 @@ const eventFunc = (
                 }}
                 onAddContact={handleOtherContactAdd}
               />
-              <LabeledContainer label="Доп. события">
+              <LabeledContainer label="Задачи/События">
                 <div className="flex w-full flex-col gap-2">
                   <div className="flex w-full justify-end">
                     <AddIconButton

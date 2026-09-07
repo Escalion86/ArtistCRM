@@ -1241,7 +1241,9 @@ body.theme-dark .MuiIconButton-root {
 
 /* FAB создания заявки: иконки наследуют цвет кнопки/пункта (перекрывает тёмную тему выше) */
 .create-event-fab .MuiSvgIcon-root,
-body.theme-dark .create-event-fab .MuiSvgIcon-root {
+body.theme-dark .create-event-fab .MuiSvgIcon-root,
+.mobile-bottomnav .MuiSvgIcon-root,
+body.theme-dark .mobile-bottomnav .MuiSvgIcon-root {
   color: inherit;
 }
 
@@ -3806,4 +3808,330 @@ body.theme-dark .statistics-tooltip {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ---------- Мобильная нижняя навигация (UX-05) ---------- */
+.mobile-bottomnav {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  align-items: stretch;
+  min-height: 60px;
+  padding-bottom: env(safe-area-inset-bottom);
+  background-color: var(--sidebar-bg);
+  color: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.18);
+}
+
+body.theme-dark .mobile-bottomnav {
+  color: rgba(247, 239, 225, 0.62);
+}
+
+.mobile-bottomnav-item {
+  position: relative;
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 6px 2px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.mobile-bottomnav-item.active {
+  color: #ffffff;
+}
+
+body.theme-dark .mobile-bottomnav-item.active {
+  color: var(--ui-primary);
+}
+
+.mobile-bottomnav-label {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Явный размер иконок: FontAwesome задаёт им height:1em и перебивает tailwind-классы */
+.mobile-bottomnav-item .mobile-bottomnav-ico {
+  width: 30px;
+  height: 30px;
+}
+
+.mobile-bottomnav-badge {
+  position: absolute;
+  top: -5px;
+  left: calc(50% + 2px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-bottomnav-row-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-bottomnav-fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  margin-top: -16px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: #ffffff;
+  color: var(--sidebar-bg);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+body.theme-dark .mobile-bottomnav-fab {
+  background: var(--ui-primary);
+  color: #ffffff;
+}
+
+.mobile-bottomnav-submenu-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mobile-bottomnav-submenu-row:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.theme-dark .mobile-bottomnav-submenu-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.mobile-bottomnav-submenu-row.current {
+  color: var(--ui-primary);
+  background: color-mix(in srgb, var(--ui-primary) 14%, transparent);
+}
+
+.mobile-bottomnav-sheet {
+  max-height: 62vh;
+}
+
+.mobile-bottomnav-sheet-header {
+  padding: 10px 12px 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.5;
+}
+
+.mobile-bottomnav-sheet-chevron {
+  width: 12px;
+  height: 12px;
+  margin-left: auto;
+  opacity: 0.55;
+  transition: transform 0.18s ease;
+}
+
+.mobile-bottomnav-sheet-toggle.expanded .mobile-bottomnav-sheet-chevron {
+  transform: rotate(90deg);
+}
+
+.mobile-bottomnav-submenu-row--sub {
+  padding-left: 34px;
+}
+
+/* ---------- Страница/модалка «Важное» (attention) ---------- */
+.attention-section {
+  scroll-margin-top: 10px;
+  border-left-width: 3px;
+}
+
+.attention-section--overdue {
+  border-left-color: #dc2626;
+}
+
+.attention-section--today {
+  border-left-color: #d97706;
+}
+
+.attention-section--tomorrow {
+  border-left-color: #2563eb;
+}
+
+.attention-section--messages {
+  border-left-color: #7c3aed;
+}
+
+.attention-section--events {
+  border-left-color: var(--ui-primary, #c9a86a);
+}
+
+.attention-summary {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.attention-summary::-webkit-scrollbar {
+  display: none;
+}
+
+.attention-summary-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #ece5d8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: inherit;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(60, 45, 20, 0.05);
+}
+
+body.theme-dark .attention-summary-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.attention-summary-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.attention-swipe-row {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.attention-swipe-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  width: 156px;
+}
+
+.attention-swipe-actions button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  padding: 0 4px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.attention-swipe-actions .ok {
+  background: #16a34a;
+}
+
+.attention-swipe-actions .move {
+  background: #2563eb;
+}
+
+.attention-swipe-actions .del {
+  flex: 0 0 44px;
+  background: #dc2626;
+}
+
+.attention-swipe-content {
+  position: relative;
+}
+
+.attention-msg-avatar {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ebd3a5, #c9a86a);
+  color: #5c4a26;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.attention-evt-date {
+  width: 44px;
+  flex: none;
+  border-radius: 9px;
+  background: #f6efe0;
+  padding: 4px 0;
+  text-align: center;
+}
+
+body.theme-dark .attention-evt-date {
+  background: rgba(201, 168, 106, 0.15);
+}
+
+.attention-evt-date .d {
+  color: #9a6b27;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+body.theme-dark .attention-evt-date .d {
+  color: #ebd3a5;
+}
+
+.attention-evt-date .m {
+  color: #8a7a5c;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
 }

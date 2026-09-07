@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Страница «Важное» — полировка (макет)</title>
+<style>
+  :root {
+    --sand: #c9a86a;
+    --sand-light: #ebd3a5;
+    --gold: #9a6b27;
+    --danger: #dc2626;
+    --amber: #d97706;
+    --blue: #2563eb;
+    --green: #16a34a;
+    --paper: #fffefa;
+    --ink: #2b2620;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #2b2620;
+    color: #f7efe1;
+    padding: 28px 16px 48px;
+  }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  .lead { color: #cbbfa8; font-size: 13px; margin-bottom: 18px; max-width: 980px; line-height: 1.5; }
+  .legend {
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 12.5px; color: #cbbfa8; margin-bottom: 26px; max-width: 980px; line-height: 1.45;
+  }
+  .legend b { color: var(--sand); font-weight: 600; }
+  .row { display: flex; flex-wrap: wrap; gap: 36px; align-items: flex-start; }
+
+  /* ---------- Телефон ---------- */
+  .phone {
+    width: 300px; border-radius: 30px; padding: 8px; flex: none;
+    background: #0b0906;
+    box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 0 0 2px #3a3227;
+  }
+  .screen {
+    position: relative; height: 640px; border-radius: 22px; overflow: hidden;
+    display: flex; flex-direction: column;
+    background: var(--paper); color: var(--ink);
+  }
+  .caption { margin-top: 10px; text-align: center; font-size: 13px; color: #cbbfa8; line-height: 1.4; }
+  .caption b { color: #f7efe1; }
+
+  /* ---------- Шапка ---------- */
+  .appbar {
+    display: flex; align-items: center; gap: 10px; flex: none;
+    padding: 12px 14px; font-weight: 700; font-size: 15px;
+    background: #fff;
+    border-bottom: 1px solid #efe9dd;
+  }
+  .appbar .att-ico {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--danger); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800;
+  }
+
+  /* ---------- Контент ---------- */
+  .canvas { flex: 1; overflow: hidden; padding: 10px 10px 0; }
+
+  /* Саммари-лента */
+  .summary {
+    display: flex; gap: 6px; margin-bottom: 10px;
+  }
+  .sum-chip {
+    display: flex; align-items: center; gap: 5px;
+    border-radius: 999px; padding: 5px 10px;
+    font-size: 11px; font-weight: 700; white-space: nowrap;
+    background: #fff; border: 1px solid #ece5d8;
+    box-shadow: 0 1px 2px rgba(60,45,20,.05);
+  }
+  .sum-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .sum-chip.hot { border-color: rgba(220,38,38,.35); }
+
+  /* Секции-карточки */
+  .section {
+    background: #fff; border-radius: 14px; margin-bottom: 10px;
+    border: 1px solid #ece5d8;
+    border-left: 4px solid var(--accent, var(--sand));
+    box-shadow: 0 2px 6px rgba(60,45,20,.06);
+    overflow: hidden;
+  }
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px 7px;
+  }
+  .section-head .name { font-size: 13px; font-weight: 800; letter-spacing: .01em; }
+  .count-chip {
+    min-width: 20px; height: 20px; border-radius: 999px; padding: 0 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: #fff;
+    background: var(--accent, var(--sand));
+  }
+  .section-body { padding: 0 8px 8px; display: flex; flex-direction: column; gap: 6px; }
+
+  /* Задача */
+  .task {
+    position: relative;
+    border-radius: 10px; border: 1px solid #f0eadf;
+    background: #fffdf8;
+    padding: 8px 10px;
+  }
+  .task .t-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .task .t-title { font-size: 12.5px; font-weight: 700; line-height: 1.3; }
+  .task .t-date { font-size: 10.5px; font-weight: 700; color: var(--accent, #8a7a5c); white-space: nowrap; }
+  .task .t-meta { font-size: 10.5px; color: #8a7a5c; margin-top: 3px; line-height: 1.35; }
+  .task .t-actions { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; }
+  .mini-chip {
+    border: 1px solid #e7ddc9; background: #fff; color: #6b5a3e;
+    border-radius: 999px; padding: 4px 9px; font-size: 10.5px; font-weight: 700;
+  }
+  .task.done { opacity: .55; }
+  .task.done .t-title { text-decoration: line-through; }
+
+  /* Свайп */
+  .swipe-wrap { position: relative; border-radius: 10px; overflow: hidden; }
+  .swipe-actions {
+    position: absolute; top: 0; right: 0; bottom: 0;
+    display: flex; align-items: stretch;
+  }
+  .swipe-actions .act {
+    width: 48px; display: flex; flex-direction: column; gap: 3px;
+    align-items: center; justify-content: center;
+    color: #fff; font-size: 9px; font-weight: 800;
+  }
+  .act.ok { background: var(--green); }
+  .act.move { background: var(--blue); }
+  .act.del { background: var(--danger); }
+  .act .ico { font-size: 15px; }
+  .swipe-task {
+    position: relative; border-radius: 10px;
+    width: calc(100% - 144px);
+    border: 1px solid #f0eadf; background: #fffdf8; padding: 8px 10px;
+    overflow: hidden;
+  }
+  .swipe-task .t-title,
+  .swipe-task .t-meta {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  }
+  .swipe-hint {
+    position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+    font-size: 14px; color: #b3a483;
+  }
+
+  /* Сообщения */
+  .msg { display: flex; gap: 9px; border-radius: 10px; border: 1px solid #f0eadf; background: #fffdf8; padding: 8px 10px; }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
+    background: linear-gradient(135deg, var(--sand-light), var(--sand));
+    color: #5c4a26; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800;
+  }
+  .msg .m-main { min-width: 0; flex: 1; }
+  .msg .m-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .msg .m-name { font-size: 12.5px; font-weight: 700; }
+  .msg .m-badge { background: var(--danger); color: #fff; border-radius: 999px; min-width: 17px; height: 17px; padding: 0 5px; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+  .msg .m-sub { font-size: 10px; color: #8a7a5c; margin-top: 1px; }
+  .msg .m-text { font-size: 11px; color: #5c5142; margin-top: 4px; line-height: 1.35; }
+  .msg .m-btn { margin-top: 6px; display: inline-block; background: var(--sand); color: #3f3120; border-radius: 8px; padding: 5px 10px; font-size: 10.5px; font-weight: 800; }
+
+  /* Мероприятия */
+  .evt { display: flex; gap: 9px; align-items: center; border-radius: 10px; border: 1px solid #f0eadf; background: #fffdf8; padding: 7px 10px; }
+  .evt .e-date {
+    flex: none; width: 40px; text-align: center; border-radius: 8px;
+    background: #f6efe0; padding: 4px 0;
+  }
+  .evt .e-date .d { font-size: 14px; font-weight: 800; color: var(--gold); }
+  .evt .e-date .m { font-size: 8.5px; font-weight: 700; color: #8a7a5c; text-transform: uppercase; }
+  .evt .e-name { font-size: 12px; font-weight: 700; }
+  .evt .e-meta { font-size: 10px; color: #8a7a5c; }
+
+  /* ---------- Нижняя панель ---------- */
+  .bottomnav {
+    flex: none; display: flex; align-items: flex-start;
+    background: #241d12; padding: 8px 4px 10px;
+    border-top: 1px solid rgba(255,255,255,.07);
+  }
+  .bn-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: rgba(255,255,255,.55); font-size: 8.5px; font-weight: 700;
+  }
+  .bn-item .ico { font-size: 16px; }
+  .bn-item.active { color: var(--sand-light); }
+  .bn-fab {
+    flex: 1; display: flex; justify-content: center;
+  }
+  .bn-fab .circle {
+    width: 44px; height: 44px; margin-top: -14px; border-radius: 50%;
+    background: var(--sand); color: #fff; font-size: 22px; font-weight: 400;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 18px rgba(0,0,0,.35);
+  }
+  .bn-badge {
+    position: absolute; top: -4px; right: -7px;
+    background: var(--danger); color: #fff; border-radius: 999px;
+    min-width: 15px; height: 15px; padding: 0 4px;
+    font-size: 9px; font-weight: 800;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .bn-ico-wrap { position: relative; }
+
+  .arrow-note {
+    position: absolute; right: -26px; top: 24px;
+    color: var(--sand); font-size: 11px; font-weight: 700;
+    transform: rotate(-8deg);
+  }
+</style>
+</head>
+<body>
+  <h1>Страница «Важное» — полировка (макет, не код)</h1>
+  <div class="lead">
+    Три экрана: общий вид страницы, свайп-действия у задач, блок сообщений и мероприятий.
+    Светлая тема, ширина телефона 300px. Внизу — текущая нижняя панель с активной «Важное».
+  </div>
+  <div class="legend">
+    <div><b>1. Саммари-лента сверху</b> — цветные чипы «Просрочено 3 · Сегодня 2 · …», тап по чипу скроллит к секции. Сразу видно масштаб без скролла.</div>
+    <div><b>2. Секции с цветным ребром</b> — красный = просрочено, янтарь = сегодня, синий = завтра: секцию узнаёшь по цвету, не читая заголовок.</div>
+    <div><b>3. Свайп влево по задаче</b> — действия «Готово», «+1 день», «Удалить» (на десктопе — те же действия по кнопке ⋮). Быстрые переносы остаются чипами внутри карточки.</div>
+    <div><b>4. Сообщения с аватаром-инициалом</b> — имя, канал, превью текста, бейдж непрочитанных; тап по карточке открывает диалог.</div>
+  </div>
+
+  <div class="row">
+
+    <!-- ======== Экран 1: общий вид ======== -->
+    <div>
+      <div class="phone">
+        <div class="screen">
+          <div class="appbar"><span class="att-ico">!</span>Важное</div>
+          <div class="canvas">
+            <div class="summary">
+              <span class="sum-chip hot"><span class="dot" style="background:var(--danger)"></span>3 просроч.</span>
+              <span class="sum-chip"><span class="dot" style="background:var(--amber)"></span>2 сегодня</span>
+              <span class="sum-chip"><span class="dot" style="background:var(--blue)"></span>1 завтра</span>
+              <span class="sum-chip"><span class="dot" style="background:#7c3aed"></span>5 сообщ.</span>
+            </div>
+
+            <div class="section" style="--accent:var(--danger)">
+              <div class="section-head"><span class="name">Просрочено</span><span class="count-chip">3</span></div>
+              <div class="section-body">
+                <div class="task">
+                  <div class="t-top">
+                    <div class="t-title">Позвонить Анне — подтвердить выезд</div>
+                    <div class="t-date">вчера 18:00</div>
+                  </div>
+                  <div class="t-meta">День рождения · 12 сен, 17:00 · ресторан «Меридиан»</div>
+                  <div class="t-actions">
+                    <span class="mini-chip">+1 день</span>
+                    <span class="mini-chip">+3 дня</span>
+                    <span class="mini-chip">Сейчас</span>
+                  </div>
+                </div>
+                <div class="task">
+                  <div class="t-top">
+                    <div class="t-title">Просрочен задаток</div>
+                    <div class="t-date" style="color:var(--danger)">5 000 ₽</div>
+                  </div>
+                  <div class="t-meta">Корпоратив «Восток» · 14 сен, 19:00</div>
+                </div>
+                <div class="task">
+                  <div class="t-top">
+                    <div class="t-title">Отправить реквизиты Татьяне</div>
+                    <div class="t-date">2 дня назад</div>
+                  </div>
+                  <div class="t-meta">Свадьба · 20 сен, 15:00</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section" style="--accent:var(--amber)">
+              <div class="section-head"><span class="name">Сегодня</span><span class="count-chip">2</span></div>
+              <div class="section-body">
+                <div class="task">
+                  <div class="t-top">
+                    <div class="t-title">Отправить договор Ольге</div>
+                    <div class="t-date">15:00</div>
+                  </div>
+                  <div class="t-meta">Юбилей · 21 сен, 18:00</div>
+                </div>
+                <div class="task">
+                  <div class="t-top">
+                    <div class="t-title">Подтвердить тайминг с площадкой</div>
+                    <div class="t-date">19:00</div>
+                  </div>
+                  <div class="t-meta">Корпоратив «Восток» · 14 сен</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bottomnav">
+            <div class="bn-item"><span class="ico">🗓</span>Мероприятия</div>
+            <div class="bn-item active"><span class="bn-ico-wrap"><span class="ico">⭕</span><span class="bn-badge">3</span></span>Важное</div>
+            <div class="bn-fab"><span class="circle">+</span></div>
+            <div class="bn-item"><span class="ico">💰</span>Финансы</div>
+            <div class="bn-item"><span class="ico">☰</span>Меню</div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><b>1. Общий вид.</b><br/>Саммари-лента + секции с цветным ребром</div>
+    </div>
+
+    <!-- ======== Экран 2: свайп ======== -->
+    <div>
+      <div class="phone">
+        <div class="screen">
+          <div class="appbar"><span class="att-ico">!</span>Важное</div>
+          <div class="canvas">
+            <div class="section" style="--accent:var(--danger)">
+              <div class="section-head"><span class="name">Просрочено</span><span class="count-chip">3</span></div>
+              <div class="section-body">
+                <div class="swipe-wrap">
+                  <div class="swipe-actions">
+                    <span class="act ok"><span class="ico">✓</span>Готово</span>
+                    <span class="act move"><span class="ico">→</span>+1 день</span>
+                    <span class="act del"><span class="ico">🗑</span></span>
+                  </div>
+                  <div class="swipe-task">
+                    <div class="t-top">
+                      <div class="t-title">Позвонить Анне — подтвердить выезд</div>
+                      <div class="t-date">вчера 18:00</div>
+                    </div>
+                    <div class="t-meta">День рождения · 12 сен, 17:00</div>
+                  </div>
+                </div>
+                <div class="task">
+                  <div class="t-top">
+                    <div class="t-title">Просрочен задаток</div>
+                    <div class="t-date" style="color:var(--danger)">5 000 ₽</div>
+                  </div>
+                  <div class="t-meta">Корпоратив «Восток» · 14 сен, 19:00</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section" style="--accent:var(--amber)">
+              <div class="section-head"><span class="name">Сегодня</span><span class="count-chip">2</span></div>
+              <div class="section-body">
+                <div class="task done">
+                  <div class="t-top">
+                    <div class="t-title">Созвон с ведущим по сценарию</div>
+                    <div class="t-date" style="color:var(--green)">✓ 11:20</div>
+                  </div>
+                  <div class="t-meta">Выполнено · Свадьба · 20 сен</div>
+                </div>
+                <div class="task">
+                  <div class="t-top">
+                    <div class="t-title">Отправить договор Ольге</div>
+                    <div class="t-date">15:00</div>
+                  </div>
+                  <div class="t-meta">Юбилей · 21 сен, 18:00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bottomnav">
+            <div class="bn-item"><span class="ico">🗓</span>Мероприятия</div>
+            <div class="bn-item active"><span class="bn-ico-wrap"><span class="ico">⭕</span><span class="bn-badge">3</span></span>Важное</div>
+            <div class="bn-fab"><span class="circle">+</span></div>
+            <div class="bn-item"><span class="ico">💰</span>Финансы</div>
+            <div class="bn-item"><span class="ico">☰</span>Меню</div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><b>2. Свайп влево.</b><br/>Готово / +1 день / Удалить; выполненные<br/>серые и зачёркнутые внизу секции</div>
+    </div>
+
+    <!-- ======== Экран 3: сообщения и мероприятия ======== -->
+    <div>
+      <div class="phone">
+        <div class="screen">
+          <div class="appbar"><span class="att-ico">!</span>Важное</div>
+          <div class="canvas">
+            <div class="section" style="--accent:#7c3aed">
+              <div class="section-head"><span class="name">Неотвеченные сообщения</span><span class="count-chip">5</span></div>
+              <div class="section-body">
+                <div class="msg">
+                  <div class="avatar">ИП</div>
+                  <div class="m-main">
+                    <div class="m-top"><span class="m-name">Игорь Петров</span><span class="m-badge">2</span></div>
+                    <div class="m-sub">Telegram · сегодня 12:41</div>
+                    <div class="m-text">Добрый день! А свободна ли дата 28 сентября? Хотим корпоратив на 40 человек…</div>
+                    <span class="m-btn" style="color:#3f3120">Открыть диалог</span>
+                  </div>
+                </div>
+                <div class="msg">
+                  <div class="avatar" style="background:linear-gradient(135deg,#d3e5c8,#a8c69a);color:#3c5a2e">СК</div>
+                  <div class="m-main">
+                    <div class="m-top"><span class="m-name">Светлана К.</span><span class="m-badge">3</span></div>
+                    <div class="m-sub">WhatsApp · вчера 21:05</div>
+                    <div class="m-text">Подскажите, можно ли сдвинуть начало на час позже?</div>
+                    <span class="m-btn" style="color:#3f3120">Открыть диалог</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section" style="--accent:var(--blue)">
+              <div class="section-head"><span class="name">Мероприятия на 3 дня</span><span class="count-chip">2</span></div>
+              <div class="section-body">
+                <div class="evt">
+                  <div class="e-date"><div class="d">12</div><div class="m">сен</div></div>
+                  <div>
+                    <div class="e-name">День рождения · Анна</div>
+                    <div class="e-meta">17:00 · ресторан «Меридиан»</div>
+                  </div>
+                </div>
+                <div class="evt">
+                  <div class="e-date"><div class="d">14</div><div class="m">сен</div></div>
+                  <div>
+                    <div class="e-name">Корпоратив «Восток»</div>
+                    <div class="e-meta">19:00 · ул. Лесная, 5</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bottomnav">
+            <div class="bn-item"><span class="ico">🗓</span>Мероприятия</div>
+            <div class="bn-item active"><span class="bn-ico-wrap"><span class="ico">⭕</span><span class="bn-badge">3</span></span>Важное</div>
+            <div class="bn-fab"><span class="circle">+</span></div>
+            <div class="bn-item"><span class="ico">💰</span>Финансы</div>
+            <div class="bn-item"><span class="ico">☰</span>Меню</div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><b>3. Сообщения и мероприятия.</b><br/>Аватар-инициал, канал, превью текста;<br/>дата мероприятия — бейдж-календарик</div>
+    </div>
+
+  </div>
+</body>
+</html>

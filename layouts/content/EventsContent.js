@@ -6,11 +6,8 @@ import { List, useListRef } from 'react-window'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import EventAvailableIcon from '@mui/icons-material/EventAvailable'
 import FilterAltIcon from '@mui/icons-material/FilterAlt'
-import MicIcon from '@mui/icons-material/Mic'
 import NoteAddIcon from '@mui/icons-material/NoteAdd'
-import TextSnippetIcon from '@mui/icons-material/TextSnippet'
 import ViewListIcon from '@mui/icons-material/ViewList'
 import ContentHeader from '@components/ContentHeader'
 import CreateEventFab from '@components/CreateEventFab'
@@ -20,20 +17,16 @@ import EmptyState from '@components/EmptyState'
 import CabinetFilterChip from '@components/CabinetFilterChip'
 import MutedText from '@components/MutedText'
 import SectionCard from '@components/SectionCard'
-import TextDraftModal from '@components/TextDraftModal'
-import VoiceDraftOverlay from '@components/VoiceDraftOverlay'
+import useEventCreateMenu from '@helpers/useEventCreateMenu'
+import windowDimensionsTailwindSelector from '@state/selectors/windowDimensionsTailwindSelector'
 // import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useAtomValue } from 'jotai'
-import { useQueryClient } from '@tanstack/react-query'
 import { modalsFuncAtom, modalsAtom } from '@state/atoms'
 import EventCard from '@layouts/cards/EventCard'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import {
-  getAdditionalEventsListBySegments,
   eventHasAdditionalSegment,
   getAdditionalEventsSummary,
-  // getUpcomingEventsByDays,
-  getSoonNoDepositEvents,
 } from '@helpers/additionalEvents'
 import AppButton from '@components/AppButton'
 import useUiDensity from '@helpers/useUiDensity'
@@ -44,9 +37,6 @@ import {
   useLoadMorePastEventsMutation,
 } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
-import { getUserTariffAccess } from '@helpers/tariffAccess'
-import loggedUserAtom from '@state/atoms/loggedUserAtom'
-import tariffsAtom from '@state/atoms/tariffsAtom'
 import { getEventStatusFlags } from '@helpers/eventStatusFilter'
 import {
   createEventListFiltersState,
@@ -55,7 +45,6 @@ import {
   readEventListFiltersState,
   writeEventListFiltersState,
 } from '@helpers/eventListFilters'
-import { queryKeys } from '@helpers/queryKeys'
 
 // Неделя в календаре месяца начинается с понедельника (локально для этого экрана,
 // общий DAYS_OF_WEEK в helpers/constants остаётся с воскресенья для форматтеров дат)
@@ -179,7 +168,7 @@ const DayEventsModal = ({ eventItems, additionalItems, openEvent }) => (
     {additionalItems.length > 0 ? (
       <>
         <div className="mt-2 text-sm font-semibold text-gray-700">
-          Доп. события
+          Задачи/События
         </div>
         {additionalItems.map((item, index) => (
           <div
@@ -416,18 +405,12 @@ const EventsContent = ({
   })
   // const siteSettings = useAtomValue(siteSettingsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
-  const queryClient = useQueryClient()
   const modals = useAtomValue(modalsAtom)
-  const loggedUser = useAtomValue(loggedUserAtom)
-  const tariffs = useAtomValue(tariffsAtom)
-  const tariffAccess = useMemo(
-    () => getUserTariffAccess(loggedUser, tariffs),
-    [loggedUser, tariffs]
-  )
-  const allowVoiceDraft = Boolean(tariffAccess?.allowAi)
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const device = useAtomValue(windowDimensionsTailwindSelector)
+  const isPhone = device === 'phoneV' || device === 'phoneH'
   const listRef = useListRef()
   const openHandledRef = useRef(false)
   const upcomingOverviewActionHandledRef = useRef(false)
@@ -445,13 +428,10 @@ const EventsContent = ({
     () => createEventListFiltersState(filter).transferredMode
   )
   const [additionalQuickFilter, setAdditionalQuickFilter] = useState('')
-  const [voiceDraftOpen, setVoiceDraftOpen] = useState(false)
-  const [textDraftOpen, setTextDraftOpen] = useState(false)
   const [pastHasMore, setPastHasMore] = useState(false)
   const [pastNextBefore, setPastNextBefore] = useState(null)
   const [pastLoadingMore, setPastLoadingMore] = useState(false)
   const [serverFilteredCount, setServerFilteredCount] = useState(null)
-  const [pastActiveClosableCount, setPastActiveClosableCount] = useState(0)
   const skipEventFiltersPersistRef = useRef(true)
   const statusFilterKeys = useMemo(() => getStatusFilterKeys(filter), [filter])
   const itemHeight = isCompact ? 194 : 206
@@ -623,47 +603,6 @@ const EventsContent = ({
     () => getAdditionalEventsSummary(filteredByStatus),
     [filteredByStatus]
   )
-  const upcomingOverviewBadges = useMemo(() => {
-    const now = new Date()
-    const segmentedAdditional = getAdditionalEventsListBySegments(events, now)
-    const overdueNoDepositCount = getSoonNoDepositEvents(
-      events,
-      transactions,
-      now,
-      3
-    ).length
-    // const upcomingEvents3Days = getUpcomingEventsByDays(events, 3, now)
-
-    return [
-      {
-        key: 'overdue',
-        title: 'Просрочено',
-        value:
-          Number(segmentedAdditional?.overdue?.length || 0) +
-          Number(overdueNoDepositCount || 0),
-        className: 'bg-red-600 text-white',
-      },
-      {
-        key: 'today',
-        title: 'Сегодня',
-        value: Number(segmentedAdditional?.today?.length || 0),
-        className: 'bg-amber-500 text-white',
-      },
-      {
-        key: 'tomorrow',
-        title: 'Завтра',
-        value: Number(segmentedAdditional?.tomorrow?.length || 0),
-        className: 'bg-blue-600 text-white',
-      },
-      // {
-      //   key: 'upcoming3days',
-      //   title: 'Мероприятия на 3 дня',
-      //   value: Number(upcomingEvents3Days?.length || 0),
-      //   className: 'bg-emerald-600 text-white',
-      // },
-    ].filter((item) => item.value > 0)
-  }, [events, transactions])
-
   const filteredByAdditionalQuick = useMemo(() => {
     if (!additionalQuickFilter) return filteredByStatus
     const now = new Date()
@@ -887,34 +826,6 @@ const EventsContent = ({
   // Автоматические всплывающие напоминания при входе убраны (UX-03):
   // вместо них работают бейджи и кнопка «Требует внимания».
 
-  useEffect(() => {
-    if (filter !== 'upcoming') return
-
-    let isActive = true
-
-    ;(async () => {
-      try {
-        const response = await getData(
-          '/api/events?scope=past&countOnly=1&statusFinished=true&statusClosed=false&statusTransferred=false&statusCanceled=false',
-          null,
-          null,
-          null,
-          true
-        )
-        const totalCount = Number(response?.meta?.totalCount)
-        if (!isActive) return
-        setPastActiveClosableCount(Number.isFinite(totalCount) ? totalCount : 0)
-      } catch (error) {
-        if (!isActive) return
-        setPastActiveClosableCount(0)
-      }
-    })()
-
-    return () => {
-      isActive = false
-    }
-  }, [filter])
-
   const filterName =
     filter === 'upcoming'
       ? 'Предстоящие'
@@ -1098,7 +1009,7 @@ const EventsContent = ({
         pushByDate(item?.date, {
           type: 'additional',
           eventId: event?._id,
-          title: item?.title || `Доп. событие #${index + 1}`,
+          title: item?.title || `Задача #${index + 1}`,
           description: item?.description || '',
           date: item?.date ?? null,
           index,
@@ -1308,139 +1219,21 @@ const EventsContent = ({
     sortedEvents.length + (filter === 'past' && pastHasMore ? 1 : 0)
 
   const getEventRowHeight = useCallback(
-    // Последняя строка — спейсер 96px под плавающую кнопку создания
-    (index) => (index >= listContentRowCount ? 96 : itemHeight),
-    [listContentRowCount, itemHeight]
+    // Последняя строка — спейсер под плавающую кнопку создания
+    // (на телефоне FAB скрыт, а нижняя навигация в потоке — хватает 16px)
+    (index) => (index >= listContentRowCount ? (isPhone ? 16 : 96) : itemHeight),
+    [listContentRowCount, itemHeight, isPhone]
   )
 
-  const createMenuDisabled = !modalsFunc.event?.create
-
-  const handleCreateRequest = useCallback(() => {
-    modalsFunc.event?.create?.('draft')
-  }, [modalsFunc])
-
-  const handleCreateActiveEvent = useCallback(() => {
-    modalsFunc.event?.create?.('active')
-  }, [modalsFunc])
-
-  const handleCreateByVoice = useCallback(() => {
-    setVoiceDraftOpen(true)
-  }, [])
-
-  const handleCreateByText = useCallback(() => {
-    setTextDraftOpen(true)
-  }, [])
-
-  const cacheAiClient = useCallback(
-    (client) => {
-      if (!client?._id) return
-      queryClient.setQueryData(queryKeys.client(client._id), client)
-      queryClient.setQueriesData({ queryKey: ['clients'] }, (current) => {
-        if (!Array.isArray(current)) return current
-        const exists = current.some(
-          (item) => String(item?._id) === String(client._id)
-        )
-        if (!exists) return [...current, client]
-        return current.map((item) =>
-          String(item?._id) === String(client._id) ? client : item
-        )
-      })
-      queryClient.invalidateQueries({ queryKey: queryKeys.clients() })
-    },
-    [queryClient]
-  )
-
-  const handleVoiceDraft = useCallback(
-    (fields, transcript, aiFilledFields, client, aiWarnings) => {
-      setVoiceDraftOpen(false)
-      cacheAiClient(client)
-      modalsFunc.event?.create?.(fields?.status || 'draft', {
-        initialEvent: {
-          ...fields,
-          status: fields?.status || 'draft',
-          description:
-            fields?.description ||
-            (transcript ? `Голосовой ввод: ${transcript}` : ''),
-        },
-        aiFilledFields,
-        aiWarnings,
-        initialClient: client,
-      })
-    },
-    [cacheAiClient, modalsFunc]
-  )
-
-  const handleTextDraft = useCallback(
-    (fields, sourceText, aiFilledFields, client, aiWarnings) => {
-      setTextDraftOpen(false)
-      cacheAiClient(client)
-      modalsFunc.event?.create?.(fields?.status || 'draft', {
-        initialEvent: {
-          ...fields,
-          status: fields?.status || 'draft',
-          description: fields?.description || sourceText,
-        },
-        aiFilledFields,
-        aiWarnings,
-        initialClient: client,
-      })
-    },
-    [cacheAiClient, modalsFunc]
-  )
-
-  const fabItems = useMemo(() => {
-    if (createMenuDisabled) return []
-    const items = [
-      {
-        key: 'request',
-        label: 'Заявка',
-        icon: <NoteAddIcon fontSize="small" />,
-        onClick: handleCreateRequest,
-      },
-      {
-        key: 'active',
-        label: 'Подтверждено',
-        icon: <EventAvailableIcon fontSize="small" />,
-        onClick: handleCreateActiveEvent,
-      },
-    ]
-    if (allowVoiceDraft) {
-      items.push({
-        key: 'voice',
-        label: 'Голосом',
-        icon: <MicIcon fontSize="small" />,
-        onClick: handleCreateByVoice,
-      })
-      items.push({
-        key: 'text',
-        label: 'Свободным текстом',
-        icon: <TextSnippetIcon fontSize="small" />,
-        onClick: handleCreateByText,
-      })
-    }
-    return items
-  }, [
-    createMenuDisabled,
-    allowVoiceDraft,
-    handleCreateRequest,
-    handleCreateActiveEvent,
-    handleCreateByVoice,
-    handleCreateByText,
-  ])
+  const {
+    items: fabItems,
+    draftModals,
+    createRequest: handleCreateRequest,
+  } = useEventCreateMenu()
 
   return (
     <div className="tablet:gap-3 flex h-full flex-col gap-x-2">
-      {voiceDraftOpen ? (
-        <VoiceDraftOverlay
-          onClose={() => setVoiceDraftOpen(false)}
-          onDraft={handleVoiceDraft}
-        />
-      ) : null}
-      <TextDraftModal
-        open={textDraftOpen}
-        onClose={() => setTextDraftOpen(false)}
-        onDraft={handleTextDraft}
-      />
+      {draftModals}
       <CreateEventFab items={fabItems} />
       <ContentHeader>
         <div className="flex w-full min-w-0 items-center gap-2">
@@ -1543,62 +1336,12 @@ const EventsContent = ({
           </div>
         </div>
       </ContentHeader>
-      {filter === 'upcoming' || filter === 'past' ? (
+      {filter === 'past' ? (
         <ContentHeader>
           <SectionCard className="event-quick-filters bg-white/95 p-2 shadow-sm">
             <div className="flex flex-wrap items-center gap-2">
               <div className="tablet:w-auto tablet:flex-1 tablet:justify-end flex w-full items-center justify-start">
                 <div className="phoneH:flex-row tablet:w-auto flex w-full flex-row gap-x-2">
-                  {filter === 'upcoming' ? (
-                    <AppButton
-                      variant="primary"
-                      size="sm"
-                      className="event-quick-filter-chip tablet:text-sm w-auto min-w-0 flex-none rounded-md px-3 text-xs font-semibold"
-                      onClick={() => modalsFunc.event?.upcomingOverview?.()}
-                    >
-                      <span className="inline-flex min-w-0 items-center justify-center gap-2">
-                        <span className="tablet:inline hidden">
-                          Требует внимания
-                        </span>
-                        <span className="tablet:hidden">Внимание</span>
-                        {upcomingOverviewBadges.length > 0 ? (
-                          <span className="inline-flex items-center gap-1">
-                            {upcomingOverviewBadges.map((badge) => (
-                              <span
-                                key={badge.key}
-                                title={badge.title}
-                                className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] leading-none font-semibold shadow-sm ${badge.className}`}
-                              >
-                                {badge.value}
-                              </span>
-                            ))}
-                          </span>
-                        ) : null}
-                      </span>
-                    </AppButton>
-                  ) : null}
-                  {filter === 'upcoming' && pastActiveClosableCount > 0 ? (
-                    <AppButton
-                      variant="secondary"
-                      size="sm"
-                      className="event-quick-filter-chip tablet:text-sm w-auto min-w-0 flex-none rounded-md px-3 text-xs font-semibold"
-                      onClick={() =>
-                        router.push(
-                          '/cabinet/eventsPast?statusFinished=true&statusClosed=false&statusTransferred=false&statusCanceled=false'
-                        )
-                      }
-                    >
-                      <span className="inline-flex min-w-0 items-center justify-center gap-2">
-                        <span className="tablet:inline hidden">
-                          Закрыть прошедшие мероприятия
-                        </span>
-                        <span className="tablet:hidden">Закрыть прошедшие</span>
-                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[11px] leading-none font-semibold text-white shadow-sm">
-                          {pastActiveClosableCount}
-                        </span>
-                      </span>
-                    </AppButton>
-                  ) : null}
                   {filter === 'past'
                     ? PAST_QUICK_FILTERS.map((item) => (
                         <AppButton
@@ -1722,7 +1465,7 @@ const EventsContent = ({
                     {monthTitle}
                   </div>
                   <MutedText className="text-xs">
-                    Мероприятий: {monthMeta.events} | Доп. событий:{' '}
+                    Мероприятий: {monthMeta.events} | Задач:{' '}
                     {monthMeta.additional}
                   </MutedText>
                 </div>

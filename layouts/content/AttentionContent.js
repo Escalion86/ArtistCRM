@@ -1,0 +1,22 @@
+'use client'
+
+import { UpcomingEventsOverview } from '@layouts/modals/modalsFunc/upcomingEventsOverviewFunc'
+
+const noop = () => {}
+
+/**
+ * Страница «Важное» (/cabinet/attention).
+ * Рендерит тот же обзор, что и модалка «Требует внимания»:
+ * просроченные/сегодняшние/завтрашние задачи и события, просроченные задатки,
+ * неотвеченные сообщения, состояние синхронизации и мероприятия на 3 дня.
+ * closeModal здесь не нужен — переходы открывают модалки поверх страницы.
+ */
+const AttentionContent = () => (
+  <div className="h-full min-h-0 overflow-y-auto p-3 laptop:p-4">
+    <div className="mx-auto w-full max-w-3xl">
+      <UpcomingEventsOverview closeModal={noop} />
+    </div>
+  </div>
+)
+
+export default AttentionContent

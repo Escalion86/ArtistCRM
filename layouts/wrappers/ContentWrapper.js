@@ -3,7 +3,7 @@ import SideBar from '@layouts/SideBar'
 const ContentWrapper = ({ children, page }) => {
   return (
     <div
-      className="relative flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] max-w-[100vw]"
+      className="relative flex h-full max-h-full min-h-0 max-w-[100vw]"
       style={{
         gridArea: 'content',
         // gridTemplateRows: 'auto',

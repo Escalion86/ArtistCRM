@@ -177,7 +177,7 @@ const openEventAdditionalEventEditorModal = ({
   }
 
   modalsFunc.add({
-    title: title ?? `${index !== null ? 'Редактирование' : 'Создание'} доп. события`,
+    title: title ?? `${index !== null ? 'Редактирование' : 'Создание'} задачи`,
     confirmButtonName,
     declineButtonName,
     showDecline: true,

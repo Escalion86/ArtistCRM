@@ -207,14 +207,14 @@ const formatAdditionalEventsForMainDescription = (additionalEvents = []) => {
           })
         : 'без даты'
       const statusPrefix = item.done ? '[выполнено]' : '[в работе]'
-      const parts = [title || 'Доп. событие']
+      const parts = [title || 'Задача']
       if (description) parts.push(description)
       return `- ${statusPrefix} ${dateLabel}: ${parts.join(' — ')}`
     })
     .filter(Boolean)
 
   if (lines.length === 0) return ''
-  return `Доп. события:\n${lines.join('\n')}`
+  return `Задачи/События:\n${lines.join('\n')}`
 }
 
 const getCalendarContext = async (user) => {

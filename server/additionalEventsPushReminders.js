@@ -1,4 +1,4 @@
-﻿import Events from '@models/Events'
+import Events from '@models/Events'
 import SiteSettings from '@models/SiteSettings'
 import PushReminderLogs from '@models/PushReminderLogs'
 import { logPushDelivery } from '@server/pushNotifications'
@@ -144,7 +144,7 @@ const buildSummaryPayload = ({
     const addParts = []
     if (overdueAddCount > 0) addParts.push(`${overdueAddCount} просрочено`)
     if (todayAddCount > 0) addParts.push(`${todayAddCount} сегодня`)
-    lines.push(`📌 Доп. события: ${addParts.join(', ')}`)
+    lines.push(`📌 Задачи/События: ${addParts.join(', ')}`)
 
     // Show overdue first, then today's
     const allAddItems = [
@@ -188,7 +188,7 @@ const buildSummaryPayload = ({
     renotify: false,
     requireInteraction: hasOverdue,
     data: {
-      url: '/cabinet/eventsUpcoming?openAction=upcomingOverview',
+      url: '/cabinet/attention',
       type: 'push_reminder_summary',
       totalCount: totalItems,
       needsClosingCount,
@@ -345,7 +345,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
           eventId: String(event._id),
           eventTitle,
           additionalTitle:
-            String(item?.title || 'Доп. событие').trim() || 'Доп. событие',
+            String(item?.title || 'Задача').trim() || 'Задача',
           date,
         })
         continue
@@ -359,7 +359,7 @@ const sendAdditionalEventsPushReminders = async ({ now = new Date() } = {}) => {
           eventId: String(event._id),
           eventTitle,
           additionalTitle:
-            String(item?.title || 'Доп. событие').trim() || 'Доп. событие',
+            String(item?.title || 'Задача').trim() || 'Задача',
           date,
         })
       }

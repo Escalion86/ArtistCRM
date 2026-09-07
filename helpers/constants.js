@@ -1,6 +1,5 @@
 import {
   faBan,
-  faCalendarAlt,
   faCheck,
   faClock,
   faGenderless,
@@ -36,6 +35,7 @@ import {
 import {
   faChartLine,
   faCog,
+  faExclamationCircle,
   faFileLines,
   faFileImport,
   faList,
@@ -563,6 +563,13 @@ export const pages = [
   //   roleAccess: CONTENTS['userStatistics'].roleAccess,
   // },
   {
+    id: 34,
+    group: 2,
+    name: 'Важное',
+    href: 'attention',
+    icon: faExclamationCircle,
+  },
+  {
     id: 4,
     group: 2,
     name: 'Предстоящие',
@@ -589,13 +596,6 @@ export const pages = [
     name: 'Список клиентов',
     href: 'clients',
     icon: faUser,
-  },
-  {
-    id: 15,
-    group: 4,
-    name: 'События клиентов',
-    href: 'clientEvents',
-    icon: faCalendarAlt,
   },
   {
     id: 14,
@@ -636,7 +636,7 @@ export const pages = [
   {
     id: 20,
     group: 6,
-    name: 'Настройки',
+    name: 'Общие настройки',
     href: 'settings',
     icon: faCog,
   },

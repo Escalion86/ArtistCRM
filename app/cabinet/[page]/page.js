@@ -68,6 +68,8 @@ export default async function Cabinet({ params }) {
       ? resolvedParams.page
       : 'eventsUpcoming'
   if (page === 'requests') return redirect('/cabinet/eventsUpcoming')
+  // «События клиентов» переехали в раздел «Важное»
+  if (page === 'clientEvents') return redirect('/cabinet/attention')
 
   if (!session) return redirect('/login')
   if (page === 'export') return redirect('/cabinet/import?tab=export')

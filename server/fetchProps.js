@@ -90,11 +90,11 @@ const ensureLegacyTenantBackfill = async (tenantObjectId) => {
 const PAST_EVENTS_INITIAL_LIMIT = 120
 const USER_LIST_PAGES = new Set(['users', 'profile', 'questionnaire', 'dev'])
 const EVENTS_PAYLOAD_PAGES = new Set([
+  'attention',
   'eventsUpcoming',
   'eventsPast',
   'events',
   'clients',
-  'clientEvents',
   'transactions',
   'statistics',
   'export',
@@ -111,6 +111,7 @@ const CLIENTS_PAYLOAD_PAGES = new Set([
   'dev',
 ])
 const TRANSACTIONS_PAYLOAD_PAGES = new Set([
+  'attention',
   'eventsUpcoming',
   'eventsPast',
   'events',
@@ -214,7 +215,7 @@ const buildEventsPayload = async (tenantId, page) => {
     }
   }
 
-  if (page === 'eventsUpcoming') {
+  if (page === 'eventsUpcoming' || page === 'attention') {
     const items = await Events.find({
       tenantId,
       ...buildUpcomingCompletionQuery(now),

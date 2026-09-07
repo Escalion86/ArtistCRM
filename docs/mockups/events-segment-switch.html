@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Переключатель «Предстоящие / Прошедшие» — макет</title>
+<style>
+  :root {
+    --sand: #c9a86a;
+    --gold: #9a6b27;
+    --danger: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #2b2620;
+    color: #f7efe1;
+    padding: 28px 16px 48px;
+  }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  .lead { color: #cbbfa8; font-size: 13px; margin-bottom: 22px; max-width: 940px; line-height: 1.55; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 8px 18px;
+    font-size: 12px; color: #cbbfa8; margin-bottom: 26px; max-width: 980px;
+  }
+  .legend b { color: var(--sand); font-weight: 600; }
+  .row { display: flex; flex-wrap: wrap; gap: 36px; align-items: flex-start; }
+
+  /* ---------- Телефон ---------- */
+  .phone {
+    width: 300px; border-radius: 30px; padding: 8px;
+    background: #0b0906;
+    box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 0 0 2px #3a3227;
+  }
+  .screen {
+    position: relative; height: 620px; border-radius: 22px; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .caption { margin-top: 10px; text-align: center; font-size: 13px; color: #cbbfa8; max-width: 300px; }
+  .caption b { color: #f7efe1; }
+
+  /* ---------- Шапка приложения ---------- */
+  .appbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; font-weight: 700; font-size: 15px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .appbar .count { color: var(--sand); font-size: 12px; font-weight: 600; }
+  .burger { width: 22px; opacity: .85; }
+
+  /* ---------- Сегмент-переключатель ---------- */
+  .seg-wrap { padding: 10px 10px 8px; }
+  .seg {
+    display: flex; gap: 3px; padding: 3px; border-radius: 999px;
+  }
+  .seg-btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    height: 33px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    border: none; cursor: pointer; background: transparent; font-family: inherit;
+    white-space: nowrap;
+  }
+  .seg-count {
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* ---------- Строка фильтров ---------- */
+  .filters-row { display: flex; align-items: center; gap: 8px; padding: 0 10px 8px; }
+  .filter-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 12px; border-radius: 8px;
+    font-size: 11.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .filter-btn svg { width: 14px; height: 14px; }
+  .icon-btn {
+    width: 32px; height: 32px; border-radius: 8px; margin-left: auto;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  /* ---------- Быстрые чипы ---------- */
+  .chips-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 10px 10px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 29px; padding: 0 11px; border-radius: 8px;
+    font-size: 11.5px; font-weight: 600; cursor: pointer;
+  }
+  .chip .c-badge {
+    min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px;
+    font-size: 10px; font-weight: 700; background: var(--danger); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .chip .c-soft {
+    min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px;
+    font-size: 10px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* ---------- Карточки ---------- */
+  .cards { flex: 1; padding: 2px 10px 0; overflow: hidden; }
+  .card {
+    border-radius: 14px; padding: 10px 12px; margin-bottom: 10px;
+    border: 1px solid rgba(255,255,255,.05);
+  }
+  .card .title { display: flex; justify-content: space-between; align-items: flex-start; font-size: 13px; font-weight: 700; line-height: 1.35; }
+  .card .dots { opacity: .55; font-size: 15px; padding-left: 8px; }
+  .card .mid { display: flex; gap: 10px; margin-top: 8px; }
+  .date {
+    width: 52px; flex: none; text-align: center; border-radius: 8px;
+    padding: 5px 0; font-size: 10px; line-height: 1.25;
+  }
+  .date b { display: block; font-size: 17px; }
+  .card .price { margin-left: auto; font-size: 13px; font-weight: 700; align-self: center; }
+  .card .client { margin-top: 8px; font-size: 12px; opacity: .85; }
+  .statusline { margin-top: 8px; font-size: 11px; font-weight: 600; }
+
+  /* ---------- Нижняя панель ---------- */
+  .bottombar {
+    position: relative; display: flex; align-items: stretch;
+    height: 62px; padding-bottom: 6px;
+  }
+  .bb-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; font-size: 9.5px; position: relative; cursor: pointer;
+  }
+  .bb-item svg { width: 21px; height: 21px; }
+  .bb-badge {
+    position: absolute; top: 6px; left: calc(50% + 4px);
+    min-width: 15px; height: 15px; padding: 0 4px; border-radius: 999px;
+    background: var(--danger); color: #fff; font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .bb-fab { flex: 1; display: flex; align-items: flex-start; justify-content: center; }
+  .bb-fab .circle {
+    width: 50px; height: 50px; border-radius: 50%; margin-top: -16px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,.45), 0 0 0 5px rgba(0,0,0,.15);
+    cursor: pointer;
+  }
+  .bb-fab .circle svg { width: 24px; height: 24px; }
+
+  /* ---------- Десктоп-полоса ---------- */
+  h2 { font-size: 16px; margin: 40px 0 6px; }
+  .lead2 { color: #cbbfa8; font-size: 12.5px; margin-bottom: 16px; max-width: 940px; line-height: 1.5; }
+  .desktop { width: min(940px, 100%); border-radius: 14px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 14px 40px rgba(0,0,0,.4); }
+  .d-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
+  .d-header .seg { width: 340px; flex: none; }
+  .d-header .seg-btn { height: 32px; font-size: 12.5px; }
+  .d-title { font-size: 14px; font-weight: 700; margin-left: 6px; }
+  .d-title span { font-size: 11.5px; font-weight: 600; opacity: .6; margin-left: 6px; }
+
+  /* ---------- Тёмная тема ---------- */
+  .dark .screen { background: #14110d; color: #f7efe1; }
+  .dark .appbar { background: #17130f; }
+  .dark .seg { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07); }
+  .dark .seg-btn { color: rgba(247,239,225,.55); }
+  .dark .seg-btn.active { background: var(--sand); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+  .dark .seg-btn.active .seg-count { background: rgba(255,255,255,.24); color: #fff; }
+  .dark .seg-btn:not(.active) .seg-count { background: rgba(255,255,255,.09); color: rgba(247,239,225,.65); }
+  .dark .filter-btn { background: transparent; border: 1px solid rgba(255,255,255,.18); color: #f7efe1; }
+  .dark .icon-btn { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); color: rgba(247,239,225,.8); }
+  .dark .chip-primary { background: var(--sand); color: #fff; }
+  .dark .chip-secondary { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); color: rgba(247,239,225,.85); }
+  .dark .chip-secondary .c-soft { background: rgba(255,255,255,.12); color: rgba(247,239,225,.85); }
+  .dark .card { background: #1e1914; }
+  .dark .date { background: rgba(201,168,106,.14); color: var(--sand); }
+  .dark .price { color: #7ee2a8; }
+  .dark .statusline { color: #f0b429; }
+  .dark .statusline.ok { color: #7ee2a8; }
+  .dark .statusline.bad { color: #f87171; }
+  .dark .bottombar { background: #3b2f1d; color: rgba(247,239,225,.62); }
+  .dark .bb-item.active { color: var(--sand); }
+  .dark .bb-fab .circle { background: var(--sand); color: #fff; }
+  .dark.d-header, .dark .d-header { background: #17130f; color: #f7efe1; }
+  .desktop.dark { border: 1px solid rgba(255,255,255,.07); }
+
+  /* ---------- Светлая тема ---------- */
+  .light .screen { background: #f4f1ea; color: #29241c; }
+  .light .appbar { background: #faf7f0; border-color: rgba(0,0,0,.06); }
+  .light .appbar .count { color: var(--gold); }
+  .light .seg { background: rgba(0,0,0,.06); border: 1px solid rgba(0,0,0,.05); }
+  .light .seg-btn { color: #7a7160; }
+  .light .seg-btn.active { background: var(--gold); color: #fff; box-shadow: 0 2px 6px rgba(154,107,39,.35); }
+  .light .seg-btn.active .seg-count { background: rgba(255,255,255,.26); color: #fff; }
+  .light .seg-btn:not(.active) .seg-count { background: rgba(0,0,0,.09); color: #6b6152; }
+  .light .filter-btn { background: #fff; border: 1px solid rgba(0,0,0,.14); color: #29241c; }
+  .light .icon-btn { background: #fff; border: 1px solid rgba(0,0,0,.1); color: #6b6152; }
+  .light .chip-primary { background: var(--gold); color: #fff; }
+  .light .chip-secondary { background: #fff; border: 1px solid rgba(0,0,0,.1); color: #4d4638; }
+  .light .chip-secondary .c-soft { background: rgba(0,0,0,.08); color: #4d4638; }
+  .light .card { background: #ffffff; border-color: rgba(0,0,0,.06); }
+  .light .date { background: rgba(154,107,39,.12); color: var(--gold); }
+  .light .price { color: #15803d; }
+  .light .statusline { color: #b45309; }
+  .light .statusline.ok { color: #15803d; }
+  .light .statusline.bad { color: #dc2626; }
+  .light .bottombar { background: var(--gold); color: rgba(255,255,255,.72); }
+  .light .bb-item.active { color: #ffffff; }
+  .light .bb-fab .circle { background: #ffffff; color: var(--gold); box-shadow: 0 8px 20px rgba(0,0,0,.3), 0 0 0 5px rgba(255,255,255,.18); }
+  .light .d-header { background: #faf7f0; color: #29241c; }
+  .desktop.light { border: 1px solid rgba(0,0,0,.1); }
+</style>
+</head>
+<body>
+
+<h1>Переключатель «Предстоящие / Прошедшие» — макет</h1>
+<p class="lead">
+  Сегмент-переключатель на странице мероприятий: один тап меняет список (маршруты <i>eventsUpcoming ↔ eventsPast</i> сохраняются,
+  работают прямые ссылки и фильтры в URL). На телефоне — на всю ширину над строкой «Фильтры», на десктопе — в шапке слева.
+  Внутри сегментов — счётчики, чтобы информативность не терялась.
+</p>
+<div class="legend">
+  <span><b>1</b> — активный сегмент залит акцентом (--ui-primary)</span>
+  <span><b>2</b> — счётчики мероприятий внутри сегментов</span>
+  <span><b>3</b> — переключатель всегда наверху: до прошедших 1 тап</span>
+  <span><b>4</b> — быстрые чипы под переключателем зависят от выбранного списка</span>
+</div>
+
+<div class="row">
+
+  <!-- 1. Тёмная тема: Предстоящие -->
+  <div class="phone dark">
+    <div class="screen">
+      <div class="appbar">
+        <svg class="burger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Предстоящие мероприятия <span class="count">11</span>
+      </div>
+      <div class="seg-wrap">
+        <div class="seg">
+          <button class="seg-btn active">Предстоящие <span class="seg-count">11</span></button>
+          <button class="seg-btn">Прошедшие <span class="seg-count">24</span></button>
+        </div>
+      </div>
+      <div class="filters-row">
+        <button class="filter-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7v5l-4 2v-7z"/></svg>
+          Фильтры
+        </button>
+        <div class="icon-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/></svg>
+        </div>
+      </div>
+      <div class="chips-row">
+        <div class="chip chip-primary">Внимание <span class="c-badge">3</span></div>
+        <div class="chip chip-secondary">Закрыть прошедшие <span class="c-badge">2</span></div>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <div class="title">Корпоратив · Встреча гостей, Стандартная <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">пн<b>07</b>сент<br/>08:05</div>
+            <div class="price">80 000 / 160 000 ₽</div>
+          </div>
+          <div class="client">Ксения Малахова</div>
+        </div>
+        <div class="card">
+          <div class="title">Корпоратив · Встреча гостей <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">чт<b>10</b>сент<br/>00:00</div>
+            <div class="price">14 000 ₽</div>
+          </div>
+          <div class="client">Дмитрий Кокорин · Абакан</div>
+        </div>
+        <div class="card" style="opacity:.55">
+          <div class="title">Свадьба · Банкет <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">сб<b>12</b>сент<br/>16:00</div>
+            <div class="price">45 000 ₽</div>
+          </div>
+          <div class="client">Анна и Игорь</div>
+        </div>
+      </div>
+      <nav class="bottombar">
+        <div class="bb-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/><path d="m9 14.5 2 2 4-4"/></svg>
+          Мероприятия
+          <span class="bb-badge">3</span>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.4 3.6-5 7-5s6.2 1.6 7 5"/></svg>
+          Клиенты
+        </div>
+        <div class="bb-fab">
+          <div class="circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19M16.5 14.5h2"/></svg>
+          Финансы
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          Меню
+        </div>
+      </nav>
+    </div>
+    <div class="caption"><b>1.</b> «Предстоящие» активны (тёмная тема)</div>
+  </div>
+
+  <!-- 2. Тёмная тема: Прошедшие -->
+  <div class="phone dark">
+    <div class="screen">
+      <div class="appbar">
+        <svg class="burger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Прошедшие мероприятия <span class="count">24</span>
+      </div>
+      <div class="seg-wrap">
+        <div class="seg">
+          <button class="seg-btn">Предстоящие <span class="seg-count">11</span></button>
+          <button class="seg-btn active">Прошедшие <span class="seg-count">24</span></button>
+        </div>
+      </div>
+      <div class="filters-row">
+        <button class="filter-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7v5l-4 2v-7z"/></svg>
+          Фильтры
+        </button>
+        <div class="icon-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/></svg>
+        </div>
+      </div>
+      <div class="chips-row">
+        <div class="chip chip-primary">Нужно закрыть <span class="c-badge">2</span></div>
+        <div class="chip chip-secondary">Закрытые <span class="c-soft">20</span></div>
+        <div class="chip chip-secondary">Отмененные <span class="c-soft">2</span></div>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <div class="title">День рождения · Караоке-вечер <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">сб<b>30</b>авг<br/>19:00</div>
+            <div class="price">35 000 ₽</div>
+          </div>
+          <div class="statusline">● Проведено · нужно закрыть</div>
+        </div>
+        <div class="card">
+          <div class="title">Свадьба · Выездная церемония <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">пт<b>22</b>авг<br/>15:00</div>
+            <div class="price">120 000 ₽</div>
+          </div>
+          <div class="statusline">● Проведено · нужно закрыть</div>
+        </div>
+        <div class="card" style="opacity:.55">
+          <div class="title">Юбилей · Банкет <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">вс<b>17</b>авг<br/>13:00</div>
+            <div class="price">60 000 ₽</div>
+          </div>
+          <div class="statusline ok">● Закрыто</div>
+        </div>
+      </div>
+      <nav class="bottombar">
+        <div class="bb-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/><path d="m9 14.5 2 2 4-4"/></svg>
+          Мероприятия
+          <span class="bb-badge">3</span>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.4 3.6-5 7-5s6.2 1.6 7 5"/></svg>
+          Клиенты
+        </div>
+        <div class="bb-fab">
+          <div class="circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19M16.5 14.5h2"/></svg>
+          Финансы
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          Меню
+        </div>
+      </nav>
+    </div>
+    <div class="caption"><b>2.</b> Тап по «Прошедшие» — другой список и свои чипы</div>
+  </div>
+
+  <!-- 3. Светлая тема: Предстоящие -->
+  <div class="phone light">
+    <div class="screen">
+      <div class="appbar">
+        <svg class="burger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Предстоящие мероприятия <span class="count">11</span>
+      </div>
+      <div class="seg-wrap">
+        <div class="seg">
+          <button class="seg-btn active">Предстоящие <span class="seg-count">11</span></button>
+          <button class="seg-btn">Прошедшие <span class="seg-count">24</span></button>
+        </div>
+      </div>
+      <div class="filters-row">
+        <button class="filter-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7v5l-4 2v-7z"/></svg>
+          Фильтры
+        </button>
+        <div class="icon-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/></svg>
+        </div>
+      </div>
+      <div class="chips-row">
+        <div class="chip chip-primary">Внимание <span class="c-badge">3</span></div>
+        <div class="chip chip-secondary">Закрыть прошедшие <span class="c-badge">2</span></div>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <div class="title">Корпоратив · Встреча гостей, Стандартная <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">пн<b>07</b>сент<br/>08:05</div>
+            <div class="price">80 000 / 160 000 ₽</div>
+          </div>
+          <div class="client">Ксения Малахова</div>
+        </div>
+        <div class="card">
+          <div class="title">Корпоратив · Встреча гостей <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">чт<b>10</b>сент<br/>00:00</div>
+            <div class="price">14 000 ₽</div>
+          </div>
+          <div class="client">Дмитрий Кокорин · Абакан</div>
+        </div>
+        <div class="card" style="opacity:.55">
+          <div class="title">Свадьба · Банкет <span class="dots">⋮</span></div>
+          <div class="mid">
+            <div class="date">сб<b>12</b>сент<br/>16:00</div>
+            <div class="price">45 000 ₽</div>
+          </div>
+          <div class="client">Анна и Игорь</div>
+        </div>
+      </div>
+      <nav class="bottombar">
+        <div class="bb-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/><path d="m9 14.5 2 2 4-4"/></svg>
+          Мероприятия
+          <span class="bb-badge">3</span>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.4 3.6-5 7-5s6.2 1.6 7 5"/></svg>
+          Клиенты
+        </div>
+        <div class="bb-fab">
+          <div class="circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19M16.5 14.5h2"/></svg>
+          Финансы
+        </div>
+        <div class="bb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          Меню
+        </div>
+      </nav>
+    </div>
+    <div class="caption"><b>3.</b> Светлая тема</div>
+  </div>
+
+</div>
+
+<h2>На десктопе</h2>
+<p class="lead2">
+  Переключатель встаёт в строку шапки контента слева (фиксированная компактная ширина, не на весь экран),
+  «Фильтры» и переключение список/календарь остаются на своих местах.
+</p>
+
+<div class="desktop dark">
+  <div class="d-header">
+    <div class="seg">
+      <button class="seg-btn active">Предстоящие <span class="seg-count">11</span></button>
+      <button class="seg-btn">Прошедшие <span class="seg-count">24</span></button>
+    </div>
+    <button class="filter-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7v5l-4 2v-7z"/></svg>
+      Фильтры
+    </button>
+    <div class="icon-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/></svg>
+    </div>
+    <div class="d-title">Мероприятия <span>тёмная тема</span></div>
+  </div>
+</div>
+
+<div class="desktop light">
+  <div class="d-header">
+    <div class="seg">
+      <button class="seg-btn">Предстоящие <span class="seg-count">11</span></button>
+      <button class="seg-btn active">Прошедшие <span class="seg-count">24</span></button>
+    </div>
+    <button class="filter-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7v5l-4 2v-7z"/></svg>
+      Фильтры
+    </button>
+    <div class="icon-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/></svg>
+    </div>
+    <div class="d-title">Мероприятия <span>светлая тема</span></div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -397,7 +397,7 @@ const CardButtons = ({
             else modalsFunc.event?.additionalEvents?.(item._id)
           }}
           color="blue"
-          tooltipText="Доп. события"
+          tooltipText="Задачи/События"
           badges={additionalEventsBadges}
         />
       )}

@@ -3,13 +3,17 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import AddIcon from '@mui/icons-material/Add'
+import { useAtomValue } from 'jotai'
+import windowDimensionsTailwindSelector from '@state/selectors/windowDimensionsTailwindSelector'
 
 /**
  * Плавающая кнопка создания (FAB) с выбором типа записи.
  * items: [{ key, label, icon, onClick }]
+ * На телефонах (phoneV/phoneH) скрыта — создание вынесено в нижнюю навигацию.
  */
 const CreateEventFab = ({ items = [], title = 'Добавить заявку или мероприятие' }) => {
   const [open, setOpen] = useState(false)
+  const device = useAtomValue(windowDimensionsTailwindSelector)
 
   useEffect(() => {
     if (!open) return undefined
@@ -21,6 +25,7 @@ const CreateEventFab = ({ items = [], title = 'Добавить заявку и�
   }, [open])
 
   if (!items.length) return null
+  if (device === 'phoneV' || device === 'phoneH') return null
 
   return (
     <>

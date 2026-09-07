@@ -96,8 +96,8 @@ const openEventAdditionalEventViewModal = ({
           }}
           onDelete={() =>
             modalsFunc.confirm({
-              title: 'Удаление доп. события',
-              text: 'Удалить это доп. событие?',
+              title: 'Удаление задачи',
+              text: 'Удалить эту задачу?',
               onConfirm: async () => {
                 await onDelete?.(index)
                 closeModal?.()
