@@ -3819,7 +3819,7 @@ body.theme-dark .statistics-tooltip {
   min-height: 60px;
   padding-bottom: env(safe-area-inset-bottom);
   background-color: var(--sidebar-bg);
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.92);
   box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.18);
 }
 
@@ -3918,6 +3918,8 @@ body.theme-dark .mobile-bottomnav-fab {
   color: #ffffff;
 }
 
+/* Цвет задаём явно: панели лежат внутри .mobile-bottomnav, у которой светлый
+   текcт под золотой фон, — inherit давал белый текст на белой карточке */
 .mobile-bottomnav-submenu-row {
   display: flex;
   width: 100%;
@@ -3928,7 +3930,7 @@ body.theme-dark .mobile-bottomnav-fab {
   border: none;
   border-radius: 9px;
   background: transparent;
-  color: inherit;
+  color: var(--ui-secondary-text);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -3946,6 +3948,11 @@ body.theme-dark .mobile-bottomnav-submenu-row:hover {
 .mobile-bottomnav-submenu-row.current {
   color: var(--ui-primary);
   background: color-mix(in srgb, var(--ui-primary) 14%, transparent);
+}
+
+/* Кнопки меню создания («+»): тот же случай inherit-светлого текста на белой пилюле */
+.mobile-bottomnav-create-item {
+  color: var(--ui-secondary-text);
 }
 
 .mobile-bottomnav-sheet {

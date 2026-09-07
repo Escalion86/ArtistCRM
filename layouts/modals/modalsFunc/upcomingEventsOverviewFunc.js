@@ -47,6 +47,7 @@ import {
   moveDateToDayOffset,
 } from '@helpers/upcomingEventsOverview'
 import AdditionalEventCard from './AdditionalEventCard'
+import EventCard from '@layouts/cards/EventCard'
 import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
 import openEventAdditionalEventViewModal from './eventAdditionalEventViewModal'
 
@@ -102,9 +103,6 @@ const getInitials = (name) =>
     .slice(0, 2)
     .join('')
     .toUpperCase()
-
-const formatMonthShort = (date) =>
-  date.toLocaleString('ru-RU', { month: 'short' }).replace('.', '')
 
 // Свайп влево по задаче открывает действия «Готово», «+1 день», «Удалить».
 // На десктопе те же действия есть в меню ⋮ карточки.
@@ -1032,80 +1030,38 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
         className="attention-section attention-section--events"
         title="Мероприятия на 3 дня"
         titleClassName="card-title"
-        titleRight={<StatusChip tone="upcoming">{upcomingEvents.length}</StatusChip>}
+        titleRight={
+          <StatusChip tone="upcoming">{upcomingEvents.length}</StatusChip>
+        }
       >
         {upcomingEvents.length === 0 ? (
           <div className="mt-2 text-sm text-gray-500">
             В ближайшие 3 дня мероприятий нет
           </div>
         ) : (
-          <div className="mt-2 flex flex-col gap-2">
-            {upcomingEvents.slice(0, 12).map((event) => {
-              const eventDate = parseDateSafe(event?.eventDate)
-              return (
-                <div
-                  key={event._id}
-                  className="flex items-start gap-2.5 rounded border border-gray-200 px-3 py-2"
-                >
-                  {eventDate ? (
-                    <div className="attention-evt-date" aria-hidden="true">
-                      <div className="d">{eventDate.getDate()}</div>
-                      <div className="m">{formatMonthShort(eventDate)}</div>
-                    </div>
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-gray-900">
-                      {getEventTitle(event)}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {event?.eventDate
-                        ? formatDateTime(event.eventDate, true, false, true, false)
-                        : 'Дата не указана'}
-                    </div>
-                    {getEventAddressLine(event) ? (
-                      <div className="text-xs text-gray-600">
-                        {getEventAddressLine(event)}
-                      </div>
-                    ) : null}
-                    {event?.description ? (
-                      <div className="text-xs text-gray-600">
-                        {normalizeText(event.description)}
-                      </div>
-                    ) : null}
-                    <QuickActionButtons
-                      wrapperClassName="mt-2"
-                      actions={[
-                        {
-                          key: 'open-event',
-                          label: 'Открыть мероприятие',
-                          variant: 'secondary',
-                          className: 'w-full tablet:w-auto',
-                          onClick: () => openEvent(event._id),
-                        },
-                      ]}
-                    />
-                  </div>
-                </div>
-              )
-            })}
+          <div className="mt-2 grid min-w-0">
+            {upcomingEvents.slice(0, 12).map((event) => (
+              <EventCard
+                key={event._id}
+                eventId={event._id}
+                event={event}
+                transactions={transactions}
+              />
+            ))}
           </div>
         )}
       </ModalSection>
 
-      <ModalSection
-        id="attention-client-events"
-        className="attention-section attention-section--client-events"
-        title="События клиентов"
-        titleClassName="card-title"
-        titleRight={
-          <StatusChip tone="upcoming">{clientEvents.length}</StatusChip>
-        }
-      >
-        {clientEvents.length === 0 ? (
-          <div className="mt-2 text-sm text-gray-500">
-            У клиентов пока нет значимых дат
-          </div>
-        ) : (
+      {clientEvents.length > 0 ? (
+        <ModalSection
+          id="attention-client-events"
+          className="attention-section attention-section--client-events"
+          title="События клиентов"
+          titleClassName="card-title"
+          titleRight={
+            <StatusChip tone="upcoming">{clientEvents.length}</StatusChip>
+          }
+        >
           <div className="mt-2 flex flex-col gap-2">
             {clientEvents.slice(0, 12).map((item) => (
               <button
@@ -1138,8 +1094,8 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
               </button>
             ))}
           </div>
-        )}
-      </ModalSection>
+        </ModalSection>
+      ) : null}
     </div>
   )
 }

@@ -1,6 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import EventStatusPicker from '@components/ValuePicker/EventStatusPicker'
+import Button from '@components/Button'
 import Input from '@components/Input'
+import Notice from '@components/Notice'
 import { DEFAULT_EVENT } from '@helpers/constants'
 // import isEventExpiredFunc from '@helpers/isEventExpired'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
@@ -14,7 +16,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import { useEventQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
-import { getCloseBlockedByObligationsMessage } from '@helpers/transactionObligation'
+import { formatMoney } from '@helpers/formatMoney'
+import { OBLIGATION_PAYMENT_METHOD } from '@helpers/transactionObligation'
 
 const normalizeCancelReasons = (list = []) =>
   Array.from(
@@ -108,6 +111,50 @@ const eventStatusEditFunc = (eventId) => {
       [event?.additionalEvents]
     )
     const hasPendingAdditionalEvents = pendingAdditionalEvents.length > 0
+    const contractSum = Number(event?.contractSum ?? 0)
+    const firstObligationTransaction = useMemo(
+      () =>
+        eventTransactions.find(
+          (transaction) =>
+            String(transaction?.paymentMethod || '').trim() ===
+            OBLIGATION_PAYMENT_METHOD
+        ),
+      [eventTransactions]
+    )
+    const closeBlockReasons = useMemo(() => {
+      if (status === 'closed') return []
+      const reasons = []
+      if (closeState.hasObligations)
+        reasons.push(
+          'есть транзакции с обязательствами — переведите их на другой метод оплаты и укажите фактическую дату совершения'
+        )
+      if (event?.isByContract && !hasTaxes)
+        reasons.push('не добавлена транзакция «Налоги»')
+      if (contractSum > closeState.incomeTotal)
+        reasons.push(
+          `сумма поступлений меньше договорной (внесено ${formatMoney(
+            closeState.incomeTotal
+          )} из ${formatMoney(contractSum)})`
+        )
+      if (hasPendingAdditionalEvents)
+        reasons.push('не все задачи мероприятия отмечены выполненными')
+      return reasons
+    }, [
+      closeState.hasObligations,
+      closeState.incomeTotal,
+      contractSum,
+      event?.isByContract,
+      hasPendingAdditionalEvents,
+      hasTaxes,
+      status,
+    ])
+    const openTransactionFromBlock = () => {
+      if (closeState.hasObligations && firstObligationTransaction?._id)
+        modalsFunc.transaction?.edit(eventId, firstObligationTransaction._id, {
+          contractSum,
+        })
+      else modalsFunc.transaction?.add(eventId, { contractSum })
+    }
     const statusDisabledValues = useMemo(() => {
       if (status === 'closed') return []
       if (!canClose || hasPendingAdditionalEvents) return ['closed']
@@ -253,19 +300,27 @@ const eventStatusEditFunc = (eventId) => {
             noMargin
           />
         )}
-        {isClosing && !canClose && (
-          <div className="text-xs text-gray-500">
-            {closeState.hasObligations
-              ? getCloseBlockedByObligationsMessage()
-              : event?.isByContract && !hasTaxes
-              ? 'Закрытие недоступно: добавьте транзакцию Налоги.'
-              : 'Закрытие недоступно, пока сумма поступлений меньше договорной.'}
-          </div>
+        {closeBlockReasons.length > 0 && (
+          <Notice tone="warning" className="text-sm">
+            <div className="font-semibold">Статус «Закрыто» недоступен:</div>
+            <ul className="ml-4 list-disc">
+              {closeBlockReasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          </Notice>
         )}
-        {isClosing && hasPendingAdditionalEvents && (
-          <div className="text-xs text-gray-500">
-            Закрытие недоступно: сначала отметьте выполненными все задачи.
-          </div>
+        {closeBlockReasons.length > 0 && !canClose && (
+          <Button
+            thin
+            className="self-start"
+            name={
+              closeState.hasObligations
+                ? 'Изменить транзакцию-обязательство'
+                : 'Внести транзакцию'
+            }
+            onClick={openTransactionFromBlock}
+          />
         )}
         {/* {!canSetClosed && (
           <>

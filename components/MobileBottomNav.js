@@ -313,7 +313,7 @@ const MobileBottomNav = () => {
                     delay: index * 0.03,
                     ease: 'easeOut',
                   }}
-                  className="ui-surface-card flex min-h-11 cursor-pointer items-center gap-2.5 rounded-full py-2.5 pr-5 pl-4 text-sm font-semibold whitespace-nowrap"
+                  className="ui-surface-card mobile-bottomnav-create-item flex min-h-11 cursor-pointer items-center gap-2.5 rounded-full py-2.5 pr-5 pl-4 text-sm font-semibold whitespace-nowrap"
                   onClick={() => {
                     setOpenPanel(null)
                     item.onClick?.()
