@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
-import Input from '@components/Input'
+import InputDuration from '@components/InputDuration'
 import IconCheckBox from '@components/IconCheckBox'
 import ComboBox from '@components/ComboBox'
 import MutedText from '@components/MutedText'
@@ -240,18 +240,13 @@ const SettingsContent = () => {
           fullWidth
           noMargin
         />
-        <Input
-          label="Стандартная длительность мероприятия, мин"
-          type="number"
+        <InputDuration
+          label="Стандартная длительность мероприятия"
           min={15}
           max={1440}
-          step={5}
           value={defaultEventDuration}
           onChange={setDefaultEventDuration}
           noMargin
-          fullWidth
-          showArrows
-          className="max-w-80"
         />
         <LabeledContainer label="Передача заказов коллеге" noMargin>
           <div className="flex flex-col gap-2">

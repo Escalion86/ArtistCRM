@@ -2,6 +2,7 @@
 import ErrorsList from '@components/ErrorsList'
 import FormWrapper from '@components/FormWrapper'
 import Input from '@components/Input'
+import InputDuration from '@components/InputDuration'
 import InputImages from '@components/InputImages'
 import Select from '@components/Select'
 import Textarea from '@components/Textarea'
@@ -155,16 +156,14 @@ const serviceFunc = (serviceId, clone = false, onSuccess) => {
             error={errors.description}
             rows={4}
           />
-          <Input
-            label="Продолжительность (мин.)"
-            type="number"
+          <InputDuration
+            label="Продолжительность"
             value={duration}
             onChange={(value) => {
               removeError('duration')
               setDuration(value)
             }}
             min={0}
-            step={5}
           />
           <Input
             label="Цена"

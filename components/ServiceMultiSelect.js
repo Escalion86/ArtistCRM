@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import PropTypes from 'prop-types'
+import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import CheckBox from '@components/CheckBox'
 import AddIconButton from '@components/AddIconButton'
+import IconActionButton from '@components/IconActionButton'
 import InputWrapper from '@components/InputWrapper'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
@@ -33,6 +35,7 @@ const ServiceMultiSelect = ({
   services: propServices,
   atom,
   onCreate,
+  onEdit,
   error,
   required,
   onClearError,
@@ -57,11 +60,14 @@ const ServiceMultiSelect = ({
     )
   }
 
-  const toggleGroup = (groupId) => {
-    setExpandedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }))
+  const toggleGroup = (groupId, currentExpanded) => {
+    setExpandedGroups((prev) => ({ ...prev, [groupId]: !currentExpanded }))
   }
 
-  const withoutGroupExpanded = expandedGroups['__without_group'] !== false
+  // Groups are collapsed by default and expanded only when they contain
+  // at least one selected service (unless the user toggled them manually)
+  const isGroupExpanded = (groupId, hasSelected) =>
+    expandedGroups[groupId] ?? hasSelected
 
   // Group services
   const grouped = {}
@@ -105,6 +111,44 @@ const ServiceMultiSelect = ({
     groupsWithServices.length > 0 ||
     sortedWithoutGroup.length > 0
 
+  // If there is only one section total (one group or only «Без группы»),
+  // grouping headers and collapsing are pointless — render a flat list
+  const sectionsCount =
+    groupsWithServices.length + (sortedWithoutGroup.length > 0 ? 1 : 0)
+  const isFlatList = sectionsCount <= 1
+  const flatServices = isFlatList
+    ? [...allServices].sort((a, b) =>
+        (a.title || '').localeCompare(b.title || '', 'ru')
+      )
+    : []
+
+  const renderServiceRow = (service) => (
+    <div key={service._id} className="flex items-center gap-x-1">
+      <CheckBox
+        checked={selectedIds.includes(service._id)}
+        label={
+          isParty
+            ? service.title
+            : `${service.title}${service.price ? ` — ${service.price} ₽` : ''}`
+        }
+        big={isParty}
+        noMargin
+        wrapperClassName="min-w-0 flex-1"
+        onClick={() => toggleService(service._id)}
+        tone={tone}
+      />
+      {onEdit && (
+        <IconActionButton
+          icon={faPencilAlt}
+          onClick={() => onEdit(service._id)}
+          title={`Редактировать услугу «${service.title}»`}
+          size="xs"
+          variant="neutral"
+        />
+      )}
+    </div>
+  )
+
   return (
     <InputWrapper label="Услуги" required={required} error={error} tone={tone}>
       <div className="flex items-center w-full gap-x-1">
@@ -113,62 +157,70 @@ const ServiceMultiSelect = ({
         >
           {!hasServices ? (
             <div className="text-sm text-gray-500">Услуги не добавлены</div>
+          ) : isFlatList ? (
+            <div className="flex flex-col gap-1">
+              {flatServices.map((service) => renderServiceRow(service))}
+            </div>
           ) : (
             <>
               {/* Services without group */}
-              {sortedWithoutGroup.length > 0 && (
-                <div className="flex flex-col gap-0.5">
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup('__without_group')}
-                    className={cn(
-                      'flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-sm font-semibold transition',
-                      isParty
-                        ? 'text-sky-700 hover:bg-sky-50'
-                        : 'text-gray-500 hover:bg-gray-100'
-                    )}
-                  >
-                    <ChevronIcon open={withoutGroupExpanded} />
-                    <span>Без группы</span>
-                    <span className="text-xs font-normal text-gray-400">
-                      {(() => {
-                        const selected = sortedWithoutGroup.filter((s) =>
-                          selectedIds.includes(s._id)
-                        ).length
-                        return selected > 0
-                          ? `(Выбрано ${selected}/${sortedWithoutGroup.length})`
-                          : `(${sortedWithoutGroup.length})`
-                      })()}
-                    </span>
-                  </button>
-                  {withoutGroupExpanded && (
-                    <div className="flex flex-col gap-1 pl-5">
-                      {sortedWithoutGroup.map((service) => (
-                        <CheckBox
-                          key={service._id}
-                          checked={selectedIds.includes(service._id)}
-                          label={service.title}
-                          big={isParty}
-                          noMargin
-                          onClick={() => toggleService(service._id)}
-                          tone={tone}
-                        />
-                      ))}
+              {sortedWithoutGroup.length > 0 &&
+                (() => {
+                  const withoutGroupExpanded = isGroupExpanded(
+                    '__without_group',
+                    sortedWithoutGroup.some((s) => selectedIds.includes(s._id))
+                  )
+                  return (
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggleGroup('__without_group', withoutGroupExpanded)
+                        }
+                        className={cn(
+                          'flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-sm font-semibold transition',
+                          isParty
+                            ? 'text-sky-700 hover:bg-sky-50'
+                            : 'text-gray-500 hover:bg-gray-100'
+                        )}
+                      >
+                        <ChevronIcon open={withoutGroupExpanded} />
+                        <span>Без группы</span>
+                        <span className="text-xs font-normal text-gray-400">
+                          {(() => {
+                            const selected = sortedWithoutGroup.filter((s) =>
+                              selectedIds.includes(s._id)
+                            ).length
+                            return selected > 0
+                              ? `(Выбрано ${selected}/${sortedWithoutGroup.length})`
+                              : `(${sortedWithoutGroup.length})`
+                          })()}
+                        </span>
+                      </button>
+                      {withoutGroupExpanded && (
+                        <div className="flex flex-col gap-1 pl-5">
+                          {sortedWithoutGroup.map((service) =>
+                            renderServiceRow(service)
+                          )}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+                  )
+                })()}
 
               {/* Groups with services */}
               {groupsWithServices.map((group) => {
-                const isExpanded = expandedGroups[group._id] !== false // default expanded
                 const servicesInGroup = grouped[group._id] || []
+                const isExpanded = isGroupExpanded(
+                  group._id,
+                  servicesInGroup.some((s) => selectedIds.includes(s._id))
+                )
 
                 return (
                   <div key={group._id} className="flex flex-col gap-0.5">
                     <button
                       type="button"
-                      onClick={() => toggleGroup(group._id)}
+                      onClick={() => toggleGroup(group._id, isExpanded)}
                       className={cn(
                         'flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-sm font-semibold transition',
                         isParty
@@ -192,21 +244,9 @@ const ServiceMultiSelect = ({
 
                     {isExpanded && (
                       <div className="flex flex-col gap-1 pl-5">
-                        {servicesInGroup.map((service) => (
-                          <CheckBox
-                            key={service._id}
-                            checked={selectedIds.includes(service._id)}
-                            label={
-                              isParty
-                                ? service.title
-                                : `${service.title}${service.price ? ` — ${service.price} ₽` : ''}`
-                            }
-                            big={isParty}
-                            noMargin
-                            onClick={() => toggleService(service._id)}
-                            tone={tone}
-                          />
-                        ))}
+                        {servicesInGroup.map((service) =>
+                          renderServiceRow(service)
+                        )}
                       </div>
                     )}
                   </div>
@@ -236,6 +276,7 @@ ServiceMultiSelect.propTypes = {
   services: PropTypes.array,
   atom: PropTypes.object,
   onCreate: PropTypes.func,
+  onEdit: PropTypes.func,
   error: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
   required: PropTypes.bool,
   onClearError: PropTypes.func,
@@ -247,6 +288,7 @@ ServiceMultiSelect.defaultProps = {
   services: null,
   atom: null,
   onCreate: null,
+  onEdit: null,
   error: null,
   required: false,
   onClearError: null,

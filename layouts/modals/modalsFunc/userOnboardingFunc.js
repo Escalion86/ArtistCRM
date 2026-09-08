@@ -2,6 +2,7 @@ import ComboBox from '@components/ComboBox'
 import FormWrapper from '@components/FormWrapper'
 import IconCheckBox from '@components/IconCheckBox'
 import Input from '@components/Input'
+import InputDuration from '@components/InputDuration'
 import InputImages from '@components/InputImages'
 import Notice from '@components/Notice'
 import OnboardingStatusGuide from '@components/OnboardingStatusGuide'
@@ -799,14 +800,12 @@ const userOnboardingFunc = () => {
                 fullWidth
                 noMargin
               />
-              <Input
-                label="Продолжительность (мин.)"
-                type="number"
+              <InputDuration
+                label="Продолжительность"
                 value={service.duration}
                 onChange={(value) => updateServiceDraft(service.draftKey, 'duration', value)}
                 disabled={isSaving}
                 min={0}
-                fullWidth
                 noMargin
               />
             </div>

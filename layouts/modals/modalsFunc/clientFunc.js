@@ -106,14 +106,8 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
     const setClient = useAtomValue(itemsFuncAtom).client.set
     const modalsFunc = useAtomValue(modalsFuncAtom)
 
-    const [firstName, setFirstName] = useState(
-      client?.firstName ?? DEFAULT_CLIENT.firstName
-    )
-    const [secondName, setSecondName] = useState(
-      client?.secondName ?? DEFAULT_CLIENT.secondName
-    )
-    const [thirdName, setThirdName] = useState(
-      client?.thirdName ?? DEFAULT_CLIENT.thirdName
+    const [fullName, setFullName] = useState(
+      getPersonFullName(client ?? DEFAULT_CLIENT)
     )
     const [phone, setPhone] = useState(
       client?.phone ?? options?.initialPhone ?? DEFAULT_CLIENT.phone
@@ -207,9 +201,7 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
 
     const isFormChanged = useMemo(
       () =>
-        (client?.firstName ?? DEFAULT_CLIENT.firstName) !== firstName ||
-        (client?.secondName ?? DEFAULT_CLIENT.secondName) !== secondName ||
-        (client?.thirdName ?? DEFAULT_CLIENT.thirdName) !== thirdName ||
+        getPersonFullName(client ?? DEFAULT_CLIENT) !== fullName ||
         (client?.phone ?? DEFAULT_CLIENT.phone) !== phone ||
         (client?.whatsapp ?? DEFAULT_CLIENT.whatsapp) !== whatsapp ||
         (client?.telegram ?? DEFAULT_CLIENT.telegram) !== telegram ||
@@ -240,10 +232,8 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
         (client?.legalAddress ?? DEFAULT_CLIENT.legalAddress) !== legalAddress,
       [
         client,
-        firstName,
+        fullName,
         phone,
-        secondName,
-        thirdName,
         whatsapp,
         telegram,
         instagram,
@@ -271,8 +261,8 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
         whatsapp,
       })
       let customError = false
-      if (!firstName || !firstName.trim()) {
-        addError({ firstName: 'Укажите имя' })
+      if (!fullName || !fullName.trim()) {
+        addError({ firstName: 'Укажите ФИО' })
         customError = true
       }
       const hasAnyContact =
@@ -328,9 +318,9 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
         const result = await setClient(
           {
             _id: client?._id,
-            firstName: firstName.trim(),
-            secondName: secondName.trim(),
-            thirdName: thirdName.trim(),
+            firstName: fullName.trim(),
+            secondName: '',
+            thirdName: '',
             phone: phone ?? null,
             whatsapp: whatsapp ?? null,
             telegram: telegram.trim(),
@@ -364,10 +354,8 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
       checkErrors,
       client?._id,
       closeModal,
-      firstName,
+      fullName,
       phone,
-      secondName,
-      thirdName,
       whatsapp,
       telegram,
       instagram,
@@ -468,17 +456,15 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
     return (
       <FormWrapper>
         <Input
-          label="Имя"
-          value={firstName}
+          label="ФИО"
+          value={fullName}
           onChange={(value) => {
             removeError('firstName')
-            setFirstName(value)
+            setFullName(value)
           }}
           required
           error={errors.firstName}
         />
-        <Input label="Фамилия" value={secondName} onChange={setSecondName} />
-        <Input label="Отчество" value={thirdName} onChange={setThirdName} />
         <div className="mt-3 flex items-end gap-2">
           <PhoneInput
             label="Телефон"

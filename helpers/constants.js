@@ -564,7 +564,7 @@ export const pages = [
   // },
   {
     id: 34,
-    group: 2,
+    group: 1,
     name: 'Важное',
     href: 'attention',
     icon: faExclamationCircle,
@@ -752,6 +752,11 @@ export const pagesGroups = [
   //   name: 'Моя статистика',
   //   icon: faTrophy,
   // },
+  {
+    id: 1,
+    name: 'Важное',
+    icon: faExclamationCircle,
+  },
   {
     id: 2,
     name: 'Мероприятия',

@@ -1483,6 +1483,11 @@ const eventFunc = (
       )
     }
 
+    const openServiceEditModal = (serviceId) => {
+      if (!serviceId) return
+      modalsFunc.add(serviceFunc(serviceId))
+    }
+
     const selectedColleague = useMemo(
       () =>
         colleagueId && colleagues.length
@@ -1724,6 +1729,7 @@ const eventFunc = (
                     setServicesIds(value)
                   }}
                   onCreate={openServiceCreateModal}
+                  onEdit={openServiceEditModal}
                   error={errors.servicesIds}
                   required
                   onClearError={() => removeError('servicesIds')}

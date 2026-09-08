@@ -178,15 +178,14 @@ const Menu = ({
                         )}
                       >
                         <FontAwesomeIcon icon={item.icon} size="2x" />
-                        {/* {item.items.length > 1 &&
-                          typeof groupsBadges[item.id] === 'number' &&
-                          groupsBadges[item.id] > 0 && (
-                            <div className="absolute flex items-center justify-center w-5 h-5 text-xs text-white rounded-full min-w-5 min-h-5 bg-danger -right-2 -top-1">
-                              {groupsBadges[item.id] <= 99
-                                ? groupsBadges[item.id]
-                                : '!'}
+                        {typeof pageBadges?.[item.items[0].href] === 'number' &&
+                          pageBadges[item.items[0].href] > 0 && (
+                            <div className="bg-danger absolute -top-1 -right-2 flex h-5 min-h-5 w-5 min-w-5 items-center justify-center rounded-full text-xs text-white">
+                              {pageBadges[item.items[0].href] <= 99
+                                ? pageBadges[item.items[0].href]
+                                : '99+'}
                             </div>
-                          )} */}
+                          )}
                       </div>
                       <h3 className="ml-3 flex-1 text-left font-semibold tracking-wide whitespace-nowrap uppercase">
                         {item.items[0].name}
@@ -370,7 +369,7 @@ const SideBar = ({ page }) => {
             pendingPage={pendingPage}
             onNavigate={handleNavigate}
             pageBadges={{
-              eventsUpcoming: overdueAdditionalCount,
+              attention: overdueAdditionalCount,
               feedback: supportSummary.data?.data?.unreadCount || 0,
             }}
             impersonationActive={loggedUser?.impersonation?.active === true}

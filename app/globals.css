@@ -690,13 +690,53 @@ body.theme-dark *::-webkit-scrollbar-thumb:hover {
   background: rgba(203, 213, 225, 0.5);
 }
 
+/* Тёмная тема: песочный фон + светлая иконка.
+   Правила с body.theme-dark имеют большую специфичность, чем варианты
+   .action-icon-button--* в @layer components, поэтому варианты задаём явно. */
 body.theme-dark .action-icon-button {
-  --aib-border: #cbd5e1;
-  --aib-bg: #e2e8f0;
-  --aib-text: #0f172a;
-  --aib-border-hover: #94a3b8;
-  --aib-bg-hover: #cbd5e1;
-  --aib-text-hover: #0f172a;
+  --aib-border: #c9a86a;
+  --aib-bg: #a07c44;
+  --aib-text: #fdf3df;
+  --aib-border-hover: #ebd3a5;
+  --aib-bg-hover: #bd9557;
+  --aib-text-hover: #fffdf7;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+body.theme-dark .action-icon-button--warning {
+  --aib-border: #c9a86a;
+  --aib-bg: #a07c44;
+  --aib-text: #fdf3df;
+  --aib-border-hover: #ebd3a5;
+  --aib-bg-hover: #bd9557;
+  --aib-text-hover: #fffdf7;
+}
+
+body.theme-dark .action-icon-button--neutral {
+  --aib-border: rgba(201, 168, 106, 0.45);
+  --aib-bg: #2a2216;
+  --aib-text: #f1e7d4;
+  --aib-border-hover: rgba(235, 211, 165, 0.75);
+  --aib-bg-hover: #3a2f1e;
+  --aib-text-hover: #ebd3a5;
+}
+
+body.theme-dark .action-icon-button--success {
+  --aib-border: #4c9a68;
+  --aib-bg: #245136;
+  --aib-text: #c9efd7;
+  --aib-border-hover: #6bbd88;
+  --aib-bg-hover: #2f6745;
+  --aib-text-hover: #e6f9ed;
+}
+
+body.theme-dark .action-icon-button--danger {
+  --aib-border: #c06655;
+  --aib-bg: #6b2a22;
+  --aib-text: #f8d2cb;
+  --aib-border-hover: #d98876;
+  --aib-bg-hover: #84352b;
+  --aib-text-hover: #fde9e5;
 }
 
 .support-surface {

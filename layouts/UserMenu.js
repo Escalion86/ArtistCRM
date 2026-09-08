@@ -1,8 +1,10 @@
 import {
   // faHome,
   // faListAlt,
+  faArrowLeft,
   faCircleExclamation,
   faSignOutAlt,
+  faSpinner,
   faTags,
   faUserAlt,
 } from '@fortawesome/free-solid-svg-icons'
@@ -23,6 +25,7 @@ import { getNounDays } from '@helpers/getNoun'
 import { modalsFuncAtom } from '@state/atoms'
 import Button from '@components/Button'
 import getPersonFullName from '@helpers/getPersonFullName'
+import switchImpersonation from '@helpers/switchImpersonation'
 // import { faCalendarAlt } from '@fortawesome/free-regular-svg-icons'
 
 const variants = {
@@ -46,17 +49,33 @@ const variants = {
   },
 }
 
-const MenuItem = ({ onClick, icon, title, href }) => {
+const MenuItem = ({ onClick, icon, title, href, danger, iconSpin }) => {
   const Component = (
     <div
       onClick={onClick}
-      className="flex items-center px-3 py-2 duration-300 bg-white border border-gray-300 cursor-pointer group gap-x-2 hover:bg-gray-500"
+      className={cn(
+        'group flex cursor-pointer items-center gap-x-2 border px-3 py-2 duration-300',
+        danger
+          ? 'border-red-700 bg-red-600 hover:bg-red-700'
+          : 'border-gray-300 bg-white hover:bg-gray-500'
+      )}
     >
       <FontAwesomeIcon
         icon={icon}
-        className="w-5 h-5 text-general group-hover:text-white"
+        className={cn(
+          'h-5 w-5',
+          danger ? 'text-white' : 'text-general group-hover:text-white',
+          iconSpin && 'animate-spin'
+        )}
       />
-      <span className="text-black prevent-select-text whitespace-nowrap group-hover:text-white">
+      <span
+        className={cn(
+          'prevent-select-text whitespace-nowrap',
+          danger
+            ? 'font-semibold text-white'
+            : 'text-black group-hover:text-white'
+        )}
+      >
         {title}
       </span>
     </div>
@@ -79,6 +98,22 @@ const UserMenu = () => {
   const loggedUser = useAtomValue(loggedUserAtom)
   const tariffs = useAtomValue(tariffsAtom)
   const modalsFunc = useAtomValue(modalsFuncAtom)
+
+  const impersonationActive = loggedUser?.impersonation?.active === true
+  const [restoring, setRestoring] = useState(false)
+  const [restoreError, setRestoreError] = useState('')
+
+  const handleRestore = async () => {
+    if (restoring) return
+    setRestoring(true)
+    setRestoreError('')
+    try {
+      await switchImpersonation({ restore: true })
+    } catch (error) {
+      setRestoreError(error?.message || 'Не удалось вернуться в свой кабинет')
+      setRestoring(false)
+    }
+  }
 
   const selectedTariffTitle = useMemo(() => {
     if (!loggedUser?.tariffId) return 'Тариф не выбран'
@@ -267,11 +302,31 @@ const UserMenu = () => {
             ) : (
               <MenuItem href="/cabinet" icon={faListAlt} title="Мой кабинет" />
             )} */}
-          <MenuItem
-            onClick={signOut}
-            icon={faSignOutAlt}
-            title="Выйти из учетной записи"
-          />
+          {impersonationActive ? (
+            <>
+              {restoreError ? (
+                <div
+                  className="border border-red-700 bg-red-600 px-3 py-2 text-xs leading-tight text-white"
+                  role="alert"
+                >
+                  {restoreError}
+                </div>
+              ) : null}
+              <MenuItem
+                danger
+                onClick={handleRestore}
+                icon={restoring ? faSpinner : faArrowLeft}
+                iconSpin={restoring}
+                title={restoring ? 'Возвращаемся…' : 'Вернуться в свой кабинет'}
+              />
+            </>
+          ) : (
+            <MenuItem
+              onClick={signOut}
+              icon={faSignOutAlt}
+              title="Выйти из учетной записи"
+            />
+          )}
         </motion.div>
         {/* )} */}
       </div>
