@@ -19,10 +19,7 @@ const AddressPicker = ({
   onCreateTown,
   allowTownCreate = true,
   noWrapper = false,
-  tone = 'default',
-  fieldsVariant = 'artist',
 }) => {
-  const isPartyFields = fieldsVariant === 'party'
   const townItems = useMemo(() => {
     const items = new Set()
     townOptions.forEach((town) => {
@@ -63,168 +60,142 @@ const AddressPicker = ({
       onScroll={handleAddressScroll}
       style={{ overscrollBehaviorX: 'none' }}
     >
-        <FormWrapper className="flex flex-wrap mt-3 gap-x-2 gap-y-3">
-          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1">
-            <ComboBox
-              label="Город"
-              items={townItems}
-              value={address.town}
-              onChange={(town) => onChange({ ...address, town: town ?? '' })}
-              placeholder="Выберите город"
-              tone={tone}
-              noMargin
-              fullWidth
-              error={errors?.address?.town}
-              className="w-full min-w-0"
-            />
-            {allowTownCreate && (
+      <FormWrapper className="mt-3 flex flex-wrap gap-x-2 gap-y-3">
+        <ComboBox
+          label="Город"
+          items={townItems}
+          value={address.town}
+          onChange={(town) => onChange({ ...address, town: town ?? '' })}
+          placeholder="Выберите город"
+          noMargin
+          fullWidth
+          error={errors?.address?.town}
+          className="w-full min-w-0"
+          postfix={
+            allowTownCreate && (
               <AddIconButton
                 onClick={handleCreateTown}
                 title="Добавить город"
-                size="md"
-                tone={tone}
+                size="sm"
               />
-            )}
-          </div>
-        </FormWrapper>
-        <FormWrapper className="grid grid-cols-2 mt-1 gap-x-2 gap-y-3">
-          <Input
-            label="Улица"
-            type="text"
-            value={address.street}
-            onChange={(street) => onChange({ ...address, street })}
-            error={errors?.address?.street}
-            noMargin
-            className="w-full min-w-0"
-            fullWidth
-            tone={tone}
-          />
-          <Input
-            label="Дом"
-            type="text"
-            value={address.house}
-            onChange={(house) => onChange({ ...address, house })}
-            error={errors?.address?.house}
-            noMargin
-            className="w-full min-w-0"
-            fullWidth
-            tone={tone}
-          />
-        </FormWrapper>
-        {isPartyFields ? (
-          <FormWrapper className="grid grid-cols-1 mt-1 gap-x-2 gap-y-3 sm:grid-cols-2">
-            <Input
-              label="Квартира / офис / комната"
-              type="text"
-              value={address.room}
-              onChange={(room) => onChange({ ...address, room })}
-              error={errors?.address?.room}
-              noMargin
-              className="w-full min-w-0"
-              fullWidth
-              tone={tone}
-            />
-          </FormWrapper>
-        ) : (
-          <FormWrapper className="grid grid-cols-3 mt-1 gap-x-2 gap-y-3">
-            <Input
-              label="Подъезд"
-              type="text"
-              value={address.entrance}
-              onChange={(entrance) => onChange({ ...address, entrance })}
-              error={errors?.address?.entrance}
-              noMargin
-              className="w-full min-w-0"
-              fullWidth
-              tone={tone}
-            />
-            <Input
-              label="Этаж"
-              type="text"
-              value={address.floor}
-              onChange={(floor) => onChange({ ...address, floor })}
-              error={errors?.address?.floor}
-              noMargin
-              className="w-full min-w-0"
-              fullWidth
-              tone={tone}
-            />
-            <Input
-              label="Кв. / Офис"
-              type="text"
-              value={address.flat}
-              onChange={(flat) => onChange({ ...address, flat })}
-              error={errors?.address?.flat}
-              noMargin
-              className="w-full min-w-0"
-              fullWidth
-              tone={tone}
-            />
-          </FormWrapper>
-        )}
-        <Input
-          label={isPartyFields ? 'Комментарий' : 'Уточнения по адресу'}
-          type="text"
-          value={address.comment}
-          onChange={(comment) => onChange({ ...address, comment })}
-          noMargin
-          error={errors?.address?.comment}
-          fullWidth
-          className="mt-1"
-          tone={tone}
+            )
+          }
         />
-        {!isPartyFields && (
-          <>
-            <FormWrapper className="grid grid-cols-2 mt-1 gap-x-2 gap-y-3">
-              <Input
-                label="Широта"
-                type="text"
-                value={address.latitude}
-                onChange={(latitude) => onChange({ ...address, latitude })}
-                error={errors?.address?.latitude}
-                noMargin
-                className="w-full min-w-0"
-                fullWidth
-                tone={tone}
-              />
-              <Input
-                label="Долгота"
-                type="text"
-                value={address.longitude}
-                onChange={(longitude) => onChange({ ...address, longitude })}
-                error={errors?.address?.longitude}
-                noMargin
-                className="w-full min-w-0"
-                fullWidth
-                tone={tone}
-              />
-            </FormWrapper>
+      </FormWrapper>
+      <FormWrapper className="mt-1 grid grid-cols-2 gap-x-2 gap-y-3">
+        <Input
+          label="Улица"
+          type="text"
+          value={address.street}
+          onChange={(street) => onChange({ ...address, street })}
+          error={errors?.address?.street}
+          noMargin
+          className="w-full min-w-0"
+          fullWidth
+        />
+        <Input
+          label="Дом"
+          type="text"
+          value={address.house}
+          onChange={(house) => onChange({ ...address, house })}
+          error={errors?.address?.house}
+          noMargin
+          className="w-full min-w-0"
+          fullWidth
+        />
+      </FormWrapper>
+      {
+        <FormWrapper className="mt-1 grid grid-cols-3 gap-x-2 gap-y-3">
+          <Input
+            label="Подъезд"
+            type="text"
+            value={address.entrance}
+            onChange={(entrance) => onChange({ ...address, entrance })}
+            error={errors?.address?.entrance}
+            noMargin
+            className="w-full min-w-0"
+            fullWidth
+          />
+          <Input
+            label="Этаж"
+            type="text"
+            value={address.floor}
+            onChange={(floor) => onChange({ ...address, floor })}
+            error={errors?.address?.floor}
+            noMargin
+            className="w-full min-w-0"
+            fullWidth
+          />
+          <Input
+            label="Кв. / Офис"
+            type="text"
+            value={address.flat}
+            onChange={(flat) => onChange({ ...address, flat })}
+            error={errors?.address?.flat}
+            noMargin
+            className="w-full min-w-0"
+            fullWidth
+          />
+        </FormWrapper>
+      }
+      <Input
+        label={'Уточнения по адресу'}
+        type="text"
+        value={address.comment}
+        onChange={(comment) => onChange({ ...address, comment })}
+        noMargin
+        error={errors?.address?.comment}
+        fullWidth
+        className="mt-1"
+      />
+      {
+        <>
+          <FormWrapper className="mt-1 grid grid-cols-2 gap-x-2 gap-y-3">
             <Input
-              label="Ссылка 2ГИС"
-              type="link"
-              value={address.link2Gis}
-              onChange={(link2Gis) => onChange({ ...address, link2Gis })}
-              error={errors?.address?.link2Gis}
+              label="Широта"
+              type="text"
+              value={address.latitude}
+              onChange={(latitude) => onChange({ ...address, latitude })}
+              error={errors?.address?.latitude}
               noMargin
-              className="mt-0.5"
+              className="w-full min-w-0"
               fullWidth
-              tone={tone}
             />
             <Input
-              label="Ссылка Yandex Navigator"
-              type="link"
-              value={address.linkYandexNavigator}
-              onChange={(linkYandexNavigator) =>
-                onChange({ ...address, linkYandexNavigator })
-              }
-              error={errors?.address?.linkYandexNavigator}
+              label="Долгота"
+              type="text"
+              value={address.longitude}
+              onChange={(longitude) => onChange({ ...address, longitude })}
+              error={errors?.address?.longitude}
               noMargin
-              className="mt-0.5"
+              className="w-full min-w-0"
               fullWidth
-              tone={tone}
             />
-          </>
-        )}
+          </FormWrapper>
+          <Input
+            label="Ссылка 2ГИС"
+            type="link"
+            value={address.link2Gis}
+            onChange={(link2Gis) => onChange({ ...address, link2Gis })}
+            error={errors?.address?.link2Gis}
+            noMargin
+            className="mt-0.5"
+            fullWidth
+          />
+          <Input
+            label="Ссылка Yandex Navigator"
+            type="link"
+            value={address.linkYandexNavigator}
+            onChange={(linkYandexNavigator) =>
+              onChange({ ...address, linkYandexNavigator })
+            }
+            error={errors?.address?.linkYandexNavigator}
+            noMargin
+            className="mt-0.5"
+            fullWidth
+          />
+        </>
+      }
     </div>
   )
 
@@ -241,7 +212,6 @@ const AddressPicker = ({
       required={required}
       paddingY={false}
       paddingX="small"
-      tone={tone}
     >
       {content}
     </InputWrapper>

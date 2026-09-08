@@ -1844,6 +1844,20 @@ body.theme-dark .cabinet-canvas {
   }
 }
 
+.address-suggest-option:hover,
+.address-suggest-option:focus-visible,
+.address-suggest-option--active {
+  background-color: #eff6ff;
+  color: #1e3a8a;
+}
+
+body.theme-dark .address-suggest-option:hover,
+body.theme-dark .address-suggest-option:focus-visible,
+body.theme-dark .address-suggest-option--active {
+  background-color: #3b3022;
+  color: #f5ead7;
+}
+
 body.theme-dark .ui-notice--success {
   border-color: rgba(52, 211, 153, 0.42);
   background-color: rgba(6, 78, 59, 0.28);

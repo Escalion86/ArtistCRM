@@ -21,6 +21,7 @@ test('cabinet hydration falls back to page scope', () => {
     'upcoming'
   )
   assert.equal(resolveCabinetEventsScope({ page: 'eventsPast' }), 'past')
+  assert.equal(resolveCabinetEventsScope({ page: 'attention' }), 'upcoming')
   assert.equal(resolveCabinetEventsScope({ page: 'settings' }), 'all')
 })
 

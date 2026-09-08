@@ -13,21 +13,16 @@ const Select = ({
   disabled = false,
   className,
   wrapperClassName,
-  tone = 'default',
   fullWidth = false,
   noMargin = false,
   smallMargin = false,
   ...props
 }) => {
-  const isParty = tone === 'party'
-
   const borderColorClass = error
     ? 'border-danger'
-    : isParty
-      ? 'border-sky-200 focus-within:border-sky-500 hover:border-sky-400'
-      : 'border-input focus-within:border-general hover:border-general'
+    : 'border-input focus-within:border-general hover:border-general'
 
-  const labelColorClass = isParty ? 'text-sky-700' : 'input-label'
+  const labelColorClass = 'input-label'
 
   return (
     <InputWrapper
@@ -39,7 +34,6 @@ const Select = ({
       className={cn('w-48', fullWidth ? 'w-full' : '', className)}
       noMargin={noMargin}
       smallMargin={smallMargin}
-      tone={tone}
     >
       <div className="relative flex-1">
         <select
@@ -66,9 +60,9 @@ const Select = ({
         </select>
 
         {/* Custom arrow */}
-        <div className="absolute text-gray-400 -translate-y-1/2 pointer-events-none top-1/2 right-2">
+        <div className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-gray-400">
           <svg
-            className="w-4 h-4"
+            className="h-4 w-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

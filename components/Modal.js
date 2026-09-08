@@ -12,7 +12,6 @@ const Modal = ({
   title,
   children,
   footer,
-  tone = 'default',
   size = 'md',
   disableBackdropClick = false,
 }) => {
@@ -61,8 +60,6 @@ const Modal = ({
   if (typeof window === 'undefined') return null
   if (!open) return null
 
-  const isParty = tone === 'party'
-
   const sizeClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
@@ -87,7 +84,7 @@ const Modal = ({
           'm-0 max-h-full rounded-none',
           'md:m-4 md:max-h-[calc(100dvh-32px)] md:rounded-2xl',
           sizeClasses[size] || sizeClasses.md,
-          isParty ? 'border-sky-100 md:border' : 'border-gray-200 md:border'
+          'border-gray-200 md:border'
         )}
         onClick={(e) => e.stopPropagation()}
       >
@@ -96,9 +93,7 @@ const Modal = ({
           <div
             className={cn(
               'relative flex items-center border-b px-4 py-3 text-lg font-semibold',
-              isParty
-                ? 'border-sky-100 text-sky-900'
-                : 'border-gray-200 text-gray-900'
+              'border-gray-200 text-gray-900'
             )}
           >
             {title}
@@ -108,25 +103,23 @@ const Modal = ({
               onClick={onClose}
               className={cn(
                 'absolute right-2 grid h-8 w-8 place-items-center rounded-md transition-colors',
-                isParty
-                  ? 'text-sky-500 hover:bg-sky-50 hover:text-sky-700'
-                  : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
               )}
             >
-              <FontAwesomeIcon icon={faXmark} className="w-4 h-4" />
+              <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
             </button>
           </div>
         )}
 
         {/* Body */}
-        <div className="flex-1 px-4 py-3 overflow-y-auto">{children}</div>
+        <div className="flex-1 overflow-y-auto px-4 py-3">{children}</div>
 
         {/* Footer */}
         {footer && (
           <div
             className={cn(
               'flex items-center justify-end gap-2 border-t px-4 py-3 [&_button]:min-w-20',
-              isParty ? 'border-sky-100' : 'border-gray-200'
+              'border-gray-200'
             )}
           >
             {footer}

@@ -101,6 +101,7 @@ const EVENTS_PAYLOAD_PAGES = new Set([
   'dev',
 ])
 const CLIENTS_PAYLOAD_PAGES = new Set([
+  'attention',
   'eventsUpcoming',
   'eventsPast',
   'events',

@@ -39,7 +39,7 @@ test('политика содержит требования Google Limited Use 
 })
 
 test('политика объясняет отключение Google Calendar и удаление данных', () => {
-  assert.match(privacySource, /отключить интеграцию/i)
+  assert.match(privacySource, /независимо отключить синхронизацию или\s+импорт/i)
   assert.match(privacySource, /отозвать доступ/i)
   assert.match(privacySource, /Escalion86@gmail\.com/)
   assert.match(privacySource, /удален/i)
@@ -59,11 +59,11 @@ test('описание отключения соответствует факт�
     assert.match(disconnectRouteSource, new RegExp(`${field}:`))
   }
 
-  assert.doesNotMatch(disconnectRouteSource, /calendarName:\s*['"]/)
-  assert.match(privacySource, /OAuth-токены[^.]*удаляются/i)
-  assert.match(privacySource, /идентификатор\s+календаря\s+удаляется/i)
-  assert.match(privacySource, /название календаря\s+может\s+сохраняться/i)
-  assert.doesNotMatch(privacySource, /связь с выбранным календарем\s+удаляется/i)
+  assert.match(disconnectRouteSource, /calendarName:\s*''/)
+  assert.match(privacySource, /После отключения удаляются\s+OAuth-токены/i)
+  assert.match(privacySource, /идентификатор календаря только\s+соответствующего подключения/i)
+  assert.match(privacySource, /второе подключение продолжает\s+работать/i)
+  assert.doesNotMatch(disconnectRouteSource, /dbUser\.googleCalendarImport\s*=/)
 })
 
 test('политика правдиво раскрывает использование Яндекс Метрики', () => {

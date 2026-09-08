@@ -33,25 +33,19 @@ const InputWrapper = forwardRef(
       smallMargin = false,
       comment,
       commentClassName,
-      tone = 'default',
+
       ...props
     },
     ref
   ) => {
-    const isParty = tone === 'party'
     const hasErrorText = Boolean(error && showErrorText)
 
-    const borderColorClass = error
-      ? 'border-danger'
-      : isParty
-        ? 'border-sky-200'
-        : 'border-input'
+    const borderColorClass = error ? 'border-danger' : 'border-input'
 
-    const focusBorderClass = isParty
-      ? 'focus-within:border-sky-500 hover:border-sky-400 [&:not(:focus-within)]:hover:border-sky-300'
-      : 'focus-within:border-general hover:border-general [&:not(:focus-within)]:hover:border-opacity-50'
+    const focusBorderClass =
+      'focus-within:border-general hover:border-general [&:not(:focus-within)]:hover:border-opacity-50'
 
-    const labelColorClass = isParty ? 'text-sky-700' : 'input-label'
+    const labelColorClass = 'input-label'
 
     const marginClass = noMargin
       ? ''

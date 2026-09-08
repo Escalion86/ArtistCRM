@@ -24,7 +24,6 @@ const ComboBox = ({
   smallMargin,
   error,
   required,
-  tone = 'default',
   postfix,
   postfixClassName,
 }) => {
@@ -59,7 +58,6 @@ const ComboBox = ({
       error={error}
       required={required}
       value={value}
-      tone={tone}
       postfix={postfix}
       postfixClassName={postfixClassName}
     >

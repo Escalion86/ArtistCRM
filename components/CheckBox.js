@@ -15,9 +15,7 @@ const CheckBox = ({
   type = 'checkbox',
   noMargin,
   disabled,
-  tone = 'default',
 }) => {
-  const isParty = tone === 'party'
   if (readOnly && !checked) return null
 
   return (
@@ -48,9 +46,7 @@ const CheckBox = ({
             readOnly
               ? 'bg-gray-500'
               : !disabled
-                ? isParty
-                  ? 'cursor-pointer checked:bg-blue-500'
-                  : 'checked:bg-general cursor-pointer'
+                ? 'checked:bg-general cursor-pointer'
                 : '',
             'appearance-none border from-blue-900 checked:border-transparent focus:outline-none',
             big
@@ -82,8 +78,6 @@ const CheckBox = ({
   )
 }
 
-CheckBox.defaultProps = {
-  tone: 'default',
-}
+CheckBox.defaultProps = {}
 
 export default CheckBox

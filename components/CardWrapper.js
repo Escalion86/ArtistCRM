@@ -8,9 +8,13 @@ const CardWrapper = ({
   role,
   tabIndex,
   onClick,
+  noHorizontalPadding = false,
   children,
 }) => (
-  <div style={style} className={cn('px-2 py-2', outerClassName)}>
+  <div
+    style={style}
+    className={cn(noHorizontalPadding ? '' : 'px-2', 'py-2', outerClassName)}
+  >
     <div
       role={role}
       tabIndex={tabIndex}

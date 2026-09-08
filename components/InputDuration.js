@@ -10,21 +10,18 @@ const parseNonNegativeInt = (raw) => {
   return Number(digits)
 }
 
-const ArrowButton = ({ icon, onClick, disabled, tone }) => {
-  const isParty = tone === 'party'
+const ArrowButton = ({ icon, onClick, disabled }) => {
   return (
     <div
       className={cn(
         'flex items-center px-1 duration-300',
         disabled
           ? 'text-disabled cursor-not-allowed'
-          : isParty
-            ? 'text-blue-500 hover:text-blue-600 cursor-pointer'
-            : 'text-general hover:text-success cursor-pointer'
+          : 'text-general hover:text-success cursor-pointer'
       )}
       onClick={disabled ? undefined : onClick}
     >
-      <FontAwesomeIcon icon={icon} className="w-4 h-4 min-h-4" />
+      <FontAwesomeIcon icon={icon} className="h-4 min-h-4 w-4" />
     </div>
   )
 }
@@ -41,7 +38,6 @@ const InputDuration = ({
   noMargin = false,
   className,
   inputClassName,
-  tone = 'default',
 }) => {
   const parsed = Number(value)
   const total = Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0
@@ -63,7 +59,7 @@ const InputDuration = ({
   }
 
   const inputBaseClass = cn(
-    'h-7 w-12 self-center bg-transparent px-1 text-center text-black hide-number-spin focus:outline-none',
+    'hide-number-spin h-7 w-12 self-center bg-transparent px-1 text-center text-black focus:outline-none',
     disabled ? 'text-disabled cursor-not-allowed' : '',
     inputClassName
   )
@@ -102,12 +98,10 @@ const InputDuration = ({
       fitWidth
       noMargin={noMargin}
       paddingY={false}
-      tone={tone}
     >
       <div className="flex items-stretch self-stretch">
         <ArrowButton
           icon={faArrowDown}
-          tone={tone}
           disabled={!canDecreaseHours}
           onClick={() => emit(hours - 1, minutes)}
         />
@@ -124,7 +118,6 @@ const InputDuration = ({
         />
         <ArrowButton
           icon={faArrowUp}
-          tone={tone}
           disabled={!canIncreaseHours}
           onClick={() => emit(hours + 1, minutes)}
         />
@@ -133,7 +126,6 @@ const InputDuration = ({
         <div className={thickDividerClass} />
         <ArrowButton
           icon={faArrowDown}
-          tone={tone}
           disabled={!canDecreaseMinutes}
           onClick={() => emit(hours, minutes - 1)}
         />
@@ -149,10 +141,7 @@ const InputDuration = ({
           onChange={(e) => {
             const parsedMinutes = parseNonNegativeInt(e.target.value)
             if (parsedMinutes >= 60) {
-              emit(
-                hours + Math.floor(parsedMinutes / 60),
-                parsedMinutes % 60
-              )
+              emit(hours + Math.floor(parsedMinutes / 60), parsedMinutes % 60)
             } else {
               emit(hours, parsedMinutes)
             }
@@ -160,7 +149,6 @@ const InputDuration = ({
         />
         <ArrowButton
           icon={faArrowUp}
-          tone={tone}
           disabled={!canIncreaseMinutes}
           onClick={() => emit(hours, minutes + 1)}
         />

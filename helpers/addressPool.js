@@ -30,17 +30,7 @@ const getAddressPoolSignature = (
     'comment',
   ]
 ) =>
-  fields
-    .map((field) => normalizeAddressPoolString(address?.[field]))
-    .join('|')
-
-const normalizePartyPoolAddress = (address) => ({
-  town: normalizeAddressPoolString(address?.town),
-  street: normalizeAddressPoolString(address?.street),
-  house: normalizeAddressPoolString(address?.house),
-  room: normalizeAddressPoolString(address?.room),
-  comment: normalizeAddressPoolString(address?.comment),
-})
+  fields.map((field) => normalizeAddressPoolString(address?.[field])).join('|')
 
 const normalizeTownList = (towns = []) =>
   Array.from(
@@ -53,6 +43,5 @@ export {
   formatAddressPoolShort,
   getAddressPoolSignature,
   normalizeAddressPoolString,
-  normalizePartyPoolAddress,
   normalizeTownList,
 }

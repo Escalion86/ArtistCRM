@@ -11,13 +11,7 @@ const AddIconButton = ({
   className,
   iconClassName,
   type = 'button',
-  tone = 'default',
 }) => {
-  const isParty = tone === 'party'
-  const partyClass = isParty
-    ? 'border border-sky-100 bg-sky-600 text-white hover:bg-sky-700'
-    : ''
-  const finalClassName = [className, partyClass].filter(Boolean).join(' ')
   return (
     <IconActionButton
       icon={faPlus}
@@ -26,7 +20,7 @@ const AddIconButton = ({
       disabled={disabled}
       size={size}
       variant={variant}
-      className={finalClassName}
+      className={className}
       iconClassName={iconClassName}
       type={type}
     />
@@ -42,7 +36,6 @@ AddIconButton.propTypes = {
   className: PropTypes.string,
   iconClassName: PropTypes.string,
   type: PropTypes.oneOf(['button', 'submit', 'reset']),
-  tone: PropTypes.oneOf(['default', 'party']),
 }
 
 AddIconButton.defaultProps = {
@@ -54,7 +47,6 @@ AddIconButton.defaultProps = {
   className: '',
   iconClassName: '',
   type: 'button',
-  tone: 'default',
 }
 
 export default AddIconButton

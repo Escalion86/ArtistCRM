@@ -71,7 +71,11 @@ const SEGMENT_META = {
 
 const normalizeText = (value, fallback = '') => {
   if (!value) return fallback
-  return String(value).replace(/<[^>]+>/g, '').trim() || fallback
+  return (
+    String(value)
+      .replace(/<[^>]+>/g, '')
+      .trim() || fallback
+  )
 }
 
 const parseDateSafe = (value) => {
@@ -192,12 +196,9 @@ const SwipeableTaskRow = ({ onDone, onPostpone, onDelete, children }) => {
 export const UpcomingEventsOverview = ({ closeModal }) => {
   const { data: eventsPayload } = useEventsQuery({
     scope: 'upcoming',
-    enabled: false,
   })
   const events = useMemo(() => eventsPayload?.data ?? [], [eventsPayload?.data])
-  const { data: transactions = [] } = useTransactionsQuery(undefined, {
-    enabled: false,
-  })
+  const { data: transactions = [] } = useTransactionsQuery()
   const { data: clients = [] } = useClientsQuery()
   const {
     data: messengerSummary,
@@ -214,7 +215,16 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
     typeof navigator === 'undefined' ? true : navigator.onLine
   )
 
-  const now = useMemo(() => new Date(), [])
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const refreshNow = () => setNow(new Date())
+    const timer = setInterval(refreshNow, 60_000)
+    window.addEventListener('focus', refreshNow)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('focus', refreshNow)
+    }
+  }, [])
   const segmentedAdditional = useMemo(
     () => getAdditionalEventsListBySegments(events, now),
     [events, now]
@@ -227,7 +237,10 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
     () => getUpcomingEventsByDays(events, 3, now),
     [events, now]
   )
-  const clientEvents = useMemo(() => buildClientEvents(clients), [clients])
+  const clientEvents = useMemo(
+    () => buildClientEvents(clients, now),
+    [clients, now]
+  )
   const unreadItems = useMemo(
     () =>
       Array.isArray(messengerSummary?.unreadItems)
@@ -282,36 +295,37 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
       tomorrow: [],
     }
     ;(Array.isArray(events) ? events : []).forEach((event) => {
-      ;(Array.isArray(event?.additionalEvents) ? event.additionalEvents : []).forEach(
-        (item, index) => {
-          if (!item?.done) return
-          const doneToday = isSameDay(item?.doneAt, now)
-          let segment = getAdditionalEventSegment(item?.date, now)
-          if (!segment || !(segment in doneBySegment)) {
-            // Задача без даты или с датой «позднее»: показываем, только если
-            // выполнена сегодня — чтобы действие можно было отменить.
-            if (!doneToday) return
-            segment = 'today'
-          }
-          if (segment === 'overdue' && !doneToday) return
-          doneBySegment[segment].push({
-            eventId: event?._id,
-            eventDate: event?.eventDate ?? null,
-            eventType: event?.eventType ?? '',
-            eventStatus: event?.status ?? '',
-            eventAddress: event?.address ?? null,
-            eventTown: event?.address?.town ?? '',
-            eventDescription: event?.description ?? '',
-            title: item?.title ?? '',
-            description: item?.description ?? '',
-            date: item?.date ?? null,
-            doneAt: item?.doneAt ?? null,
-            index,
-            done: true,
-            reminderType: 'additional_done',
-          })
+      ;(Array.isArray(event?.additionalEvents)
+        ? event.additionalEvents
+        : []
+      ).forEach((item, index) => {
+        if (!item?.done) return
+        const doneToday = isSameDay(item?.doneAt, now)
+        let segment = getAdditionalEventSegment(item?.date, now)
+        if (!segment || !(segment in doneBySegment)) {
+          // Задача без даты или с датой «позднее»: показываем, только если
+          // выполнена сегодня — чтобы действие можно было отменить.
+          if (!doneToday) return
+          segment = 'today'
         }
-      )
+        if (segment === 'overdue' && !doneToday) return
+        doneBySegment[segment].push({
+          eventId: event?._id,
+          eventDate: event?.eventDate ?? null,
+          eventType: event?.eventType ?? '',
+          eventStatus: event?.status ?? '',
+          eventAddress: event?.address ?? null,
+          eventTown: event?.address?.town ?? '',
+          eventDescription: event?.description ?? '',
+          title: item?.title ?? '',
+          description: item?.description ?? '',
+          date: item?.date ?? null,
+          doneAt: item?.doneAt ?? null,
+          index,
+          done: true,
+          reminderType: 'additional_done',
+        })
+      })
     })
 
     Object.keys(doneBySegment).forEach((key) => {
@@ -321,7 +335,9 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
     return {
       overdue: overdue.concat(doneBySegment.overdue),
       today: withType(segmentedAdditional.today).concat(doneBySegment.today),
-      tomorrow: withType(segmentedAdditional.tomorrow).concat(doneBySegment.tomorrow),
+      tomorrow: withType(segmentedAdditional.tomorrow).concat(
+        doneBySegment.tomorrow
+      ),
     }
   }, [events, now, overdueNoDepositEvents, segmentedAdditional])
 
@@ -366,7 +382,9 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
     )
     if (!sourceItem) return
     const nextAdditionalEvents = additionalEvents.map((item, idx) =>
-      idx === additionalEventIndex ? { ...item, date: date.toISOString() } : item
+      idx === additionalEventIndex
+        ? { ...item, date: date.toISOString() }
+        : item
     )
     const actionKey = `${eventId}-${additionalEventIndex}`
     try {
@@ -648,7 +666,9 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
           className="attention-section attention-section--close-past"
           title="Закрытие мероприятий"
           titleClassName="card-title"
-          titleRight={<StatusChip tone="overdue">{pastClosableCount}</StatusChip>}
+          titleRight={
+            <StatusChip tone="overdue">{pastClosableCount}</StatusChip>
+          }
         >
           <div className="mt-2 rounded border border-gray-200 px-3 py-2">
             <div className="text-sm font-semibold text-gray-900">
@@ -661,7 +681,7 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
             <AppButton
               variant="secondary"
               size="sm"
-              className="mt-2 w-full tablet:w-auto"
+              className="tablet:w-auto mt-2 w-full"
               onClick={openClosePastEvents}
             >
               Закрыть прошедшие мероприятия
@@ -679,7 +699,9 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
             className={`attention-section attention-section--${key}`}
             title={meta.title}
             titleClassName="card-title"
-            titleRight={<StatusChip tone={meta.tone}>{items.length}</StatusChip>}
+            titleRight={
+              <StatusChip tone={meta.tone}>{items.length}</StatusChip>
+            }
           >
             {items.length === 0 ? (
               <div className="mt-2 text-sm text-gray-500">{meta.emptyText}</div>
@@ -702,7 +724,7 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
                           ...item,
                           displayDate:
                             item.reminderType === 'additional_done'
-                              ? item.doneAt ?? item.date
+                              ? (item.doneAt ?? item.date)
                               : item.date,
                           displayDateLabel:
                             item.reminderType === 'additional_done'
@@ -780,10 +802,17 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
                             toggleAdditionalEventDone(item.eventId, item.index)
                           }
                           onPostpone={() =>
-                            shiftAdditionalEventDate(item.eventId, item.index, 1)
+                            shiftAdditionalEventDate(
+                              item.eventId,
+                              item.index,
+                              1
+                            )
                           }
                           onDelete={() =>
-                            confirmDeleteAdditionalEvent(item.eventId, item.index)
+                            confirmDeleteAdditionalEvent(
+                              item.eventId,
+                              item.index
+                            )
                           }
                         >
                           {card}
@@ -892,7 +921,7 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
                   key={item.key}
                   className={`rounded border border-gray-200 px-3 py-2 ${
                     canOpenClientMessenger
-                      ? 'cursor-pointer transition-colors hover:border-general'
+                      ? 'hover:border-general cursor-pointer transition-colors'
                       : ''
                   }`}
                   role={canOpenClientMessenger ? 'button' : undefined}
@@ -1021,7 +1050,7 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
             <AppButton
               variant="secondary"
               size="sm"
-              className="mt-2 w-full tablet:w-auto"
+              className="tablet:w-auto mt-2 w-full"
               disabled={syncButtonDisabled}
               onClick={requestSync}
             >
@@ -1052,6 +1081,7 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
                 eventId={event._id}
                 event={event}
                 transactions={transactions}
+                noHorizontalPadding
               />
             ))}
           </div>
@@ -1073,7 +1103,7 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
               <button
                 key={`${item.client?._id}-${item.title}-${item.nextDate.toISOString()}`}
                 type="button"
-                className="flex cursor-pointer items-start justify-between gap-3 rounded border border-gray-200 px-3 py-2 text-left transition-colors hover:border-general"
+                className="hover:border-general flex cursor-pointer items-start justify-between gap-3 rounded border border-gray-200 px-3 py-2 text-left transition-colors"
                 onClick={() => openClientCard(item.client?._id)}
               >
                 <div className="min-w-0">

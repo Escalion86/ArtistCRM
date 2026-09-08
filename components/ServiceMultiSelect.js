@@ -39,7 +39,6 @@ const ServiceMultiSelect = ({
   error,
   required,
   onClearError,
-  tone = 'default',
 }) => {
   // Determine data source: prefer prop services, otherwise use atom
   const atomToUse = atom || servicesAtom
@@ -47,7 +46,6 @@ const ServiceMultiSelect = ({
   const allServices = propServices || atomServices || []
   const serviceGroups = useAtomValue(serviceGroupsAtom)
   const selectedIds = Array.isArray(value) ? value : []
-  const isParty = tone === 'party'
   const [expandedGroups, setExpandedGroups] = useState({})
 
   const toggleService = (serviceId) => {
@@ -126,16 +124,10 @@ const ServiceMultiSelect = ({
     <div key={service._id} className="flex items-center gap-x-1">
       <CheckBox
         checked={selectedIds.includes(service._id)}
-        label={
-          isParty
-            ? service.title
-            : `${service.title}${service.price ? ` — ${service.price} ₽` : ''}`
-        }
-        big={isParty}
+        label={`${service.title}${service.price ? ` — ${service.price} ₽` : ''}`}
         noMargin
         wrapperClassName="min-w-0 flex-1"
         onClick={() => toggleService(service._id)}
-        tone={tone}
       />
       {onEdit && (
         <IconActionButton
@@ -150,7 +142,7 @@ const ServiceMultiSelect = ({
   )
 
   return (
-    <InputWrapper label="Услуги" required={required} error={error} tone={tone}>
+    <InputWrapper label="Услуги" required={required} error={error}>
       <div className="flex w-full gap-x-1">
         <div className={cn('flex flex-1 flex-col gap-1')}>
           {!hasServices ? (
@@ -177,9 +169,7 @@ const ServiceMultiSelect = ({
                         }
                         className={cn(
                           'flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-sm font-semibold transition',
-                          isParty
-                            ? 'text-sky-700 hover:bg-sky-50'
-                            : 'text-gray-500 hover:bg-gray-100'
+                          'text-gray-500 hover:bg-gray-100'
                         )}
                       >
                         <ChevronIcon open={withoutGroupExpanded} />
@@ -221,9 +211,7 @@ const ServiceMultiSelect = ({
                       onClick={() => toggleGroup(group._id, isExpanded)}
                       className={cn(
                         'flex w-full items-center gap-1.5 rounded px-1 py-1 text-left text-sm font-semibold transition',
-                        isParty
-                          ? 'text-sky-700 hover:bg-sky-50'
-                          : 'text-gray-700 hover:bg-gray-100'
+                        'text-gray-700 hover:bg-gray-100'
                       )}
                     >
                       <ChevronIcon open={isExpanded} />
@@ -259,7 +247,6 @@ const ServiceMultiSelect = ({
               onClick={onCreate}
               title="Добавить услугу"
               size="sm"
-              tone={tone}
             />
           </div>
         )}
@@ -280,7 +267,6 @@ ServiceMultiSelect.propTypes = {
   error: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
   required: PropTypes.bool,
   onClearError: PropTypes.func,
-  tone: PropTypes.oneOf(['default', 'party']),
 }
 
 ServiceMultiSelect.defaultProps = {
@@ -292,7 +278,6 @@ ServiceMultiSelect.defaultProps = {
   error: null,
   required: false,
   onClearError: null,
-  tone: 'default',
 }
 
 export default ServiceMultiSelect

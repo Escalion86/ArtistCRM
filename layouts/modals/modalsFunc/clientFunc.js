@@ -268,7 +268,7 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
       const hasAnyContact =
         Boolean(normalizePhoneValue(phone)) ||
         Boolean(normalizePhoneValue(whatsapp)) ||
-        Boolean(String(email || '').trim()) ||
+        Boolean(String(client?.email || '').trim()) ||
         Boolean(String(telegram || '').trim()) ||
         Boolean(String(instagram || '').trim()) ||
         Boolean(String(vk || '').trim())
@@ -353,6 +353,7 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
       addError,
       checkErrors,
       client?._id,
+      client?.email,
       closeModal,
       fullName,
       phone,

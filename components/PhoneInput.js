@@ -83,9 +83,7 @@ const PhoneInput = ({
   error,
   showErrorText,
   copyPasteButtons = false,
-  tone = 'default',
 }) => {
-  const isParty = tone === 'party'
   const phoneDisplayValue = formatPhoneDigits(value)
   const hasPhoneValue = Boolean(phoneDisplayValue)
   const normalizedDigits = normalizePhoneDigits(value)
@@ -112,19 +110,17 @@ const PhoneInput = ({
       noMargin={noMargin}
       error={error}
       showErrorText={showErrorText}
-      tone={tone}
       wrapperClassName={
-        disabled
-          ? 'text-disabled cursor-not-allowed'
-          : isParty
-            ? 'text-sky-700'
-            : 'text-white'
+        disabled ? 'text-disabled cursor-not-allowed' : 'text-white'
       }
     >
-      <div className={cn('flex items-center w-full', hasPhoneValue ? 'gap-2' : 'gap-0')}>
-        {hasPhoneValue && (
-          <div className={cn('text-gray-500', isParty && 'text-sky-700')}>+7</div>
+      <div
+        className={cn(
+          'flex w-full items-center',
+          hasPhoneValue ? 'gap-2' : 'gap-0'
         )}
+      >
+        {hasPhoneValue && <div className={'text-gray-500'}>+7</div>}
         <input
           ref={inputRef}
           type="tel"
@@ -135,14 +131,8 @@ const PhoneInput = ({
             'w-full bg-transparent px-1 focus:outline-hidden',
             required && (!value || String(value).length !== 11)
               ? 'border-red-700'
-              : isParty
-                ? 'border-sky-200 focus:border-sky-500'
-                : 'border-gray-400',
-            disabled
-              ? 'text-disabled cursor-not-allowed'
-              : isParty
-                ? 'text-sky-900'
-                : 'text-input'
+              : 'border-gray-400',
+            disabled ? 'text-disabled cursor-not-allowed' : 'text-input'
           )}
           value={phoneDisplayValue}
           onKeyDown={(e) => {
@@ -153,10 +143,9 @@ const PhoneInput = ({
               target.value,
               selectionStart
             )
-            const digitsInsideSelection = countDigitsBeforeCaret(
-              target.value,
-              selectionEnd
-            ) - digitsBeforeSelection
+            const digitsInsideSelection =
+              countDigitsBeforeCaret(target.value, selectionEnd) -
+              digitsBeforeSelection
 
             if (selectionStart !== selectionEnd) {
               if (digitsInsideSelection === 0) return
@@ -224,7 +213,7 @@ const PhoneInput = ({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="flex items-center justify-center text-gray-600 transition border border-gray-300 rounded cursor-pointer h-7 w-7 hover:bg-gray-50"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-50"
               onClick={() => {
                 if (!navigator?.clipboard) return
                 navigator.clipboard.readText().then((text) => {
@@ -246,7 +235,7 @@ const PhoneInput = ({
             </button>
             <button
               type="button"
-              className="flex items-center justify-center text-gray-600 transition border border-gray-300 rounded cursor-pointer h-7 w-7 hover:bg-gray-50"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-50"
               onClick={() => {
                 if (!value) return
                 const raw = String(value).replace(/[^\d]/g, '')

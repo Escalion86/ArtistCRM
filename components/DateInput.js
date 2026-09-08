@@ -10,21 +10,16 @@ const DateInput = ({
   disabled = false,
   className,
   labelClassName,
-  tone = 'default',
   fullWidth = false,
   noMargin = false,
   smallMargin = false,
   ...props
 }) => {
-  const isParty = tone === 'party'
-
   const borderColorClass = error
     ? 'border-danger'
-    : isParty
-      ? 'border-sky-200 focus-within:border-sky-500 hover:border-sky-400'
-      : 'border-input focus-within:border-general hover:border-general'
+    : 'border-input focus-within:border-general hover:border-general'
 
-  const labelColorClass = isParty ? 'text-sky-700' : 'input-label'
+  const labelColorClass = 'input-label'
 
   // Преобразуем dayjs/Date/string в YYYY-MM-DD
   const toInputValue = (val) => {
@@ -68,7 +63,6 @@ const DateInput = ({
       className={cn('w-48', fullWidth ? 'w-full' : '', className)}
       noMargin={noMargin}
       smallMargin={smallMargin}
-      tone={tone}
     >
       <input
         type="date"

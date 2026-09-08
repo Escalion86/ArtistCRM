@@ -1,11 +1,12 @@
 'use client'
 
 import cn from 'classnames'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import { faTimes } from '@fortawesome/free-solid-svg-icons/faTimes'
 import { formatAddressPoolShort } from '@helpers/addressPool'
+import Notice from './Notice'
 
 const MIN_QUERY_LENGTH = 4
 const DEBOUNCE_MS = 600
@@ -15,10 +16,10 @@ const CLIENT_CACHE_MAX = 50
 const hasConcreteAddress = (address) =>
   Boolean(
     address?.street ||
-      address?.house ||
-      address?.flat ||
-      address?.room ||
-      address?.comment
+    address?.house ||
+    address?.flat ||
+    address?.room ||
+    address?.comment
   )
 
 const AddressSuggestField = ({
@@ -42,18 +43,28 @@ const AddressSuggestField = ({
   const [activeIndex, setActiveIndex] = useState(-1)
 
   const cacheRef = useRef(new Map())
-  const abortRef = useRef(null)
-  const debounceRef = useRef(null)
+  const selectionRef = useRef(null)
+  const selectedAddressRef = useRef(null)
   const unavailableRef = useRef(false)
+  const confirmationId = useId()
 
   const formattedAddress = useMemo(
     () => formatAddressPoolShort(address),
     [address]
   )
+  const needsConfirmation = Boolean(
+    query.trim() && query.trim() !== formattedAddress
+  )
+  const showConfirmation = needsConfirmation && !isOpen
 
   // Синхронизация режима с внешним address (AI-черновик, загрузка события)
   useEffect(() => {
-    setMode(hasConcreteAddress(address) ? 'view' : 'search')
+    setMode(
+      hasConcreteAddress(address) ||
+        (address && address === selectedAddressRef.current)
+        ? 'view'
+        : 'search'
+    )
   }, [address])
 
   const poolMatches = useMemo(() => {
@@ -89,104 +100,90 @@ const AddressSuggestField = ({
     setActiveIndex(-1)
   }, [options])
 
-  const setClientCache = (key, value) => {
-    if (cacheRef.current.size >= CLIENT_CACHE_MAX) cacheRef.current.clear()
-    cacheRef.current.set(key, value)
-  }
-
-  // Best effort: при стирании символов используем кэш более длинного запроса
-  const findPrefixCache = (normalizedQuery) => {
-    let best = null
-    for (const [key, value] of cacheRef.current.entries()) {
-      if (
-        key.startsWith(normalizedQuery) &&
-        (!best || key.length > best.key.length)
-      ) {
-        best = { key, value }
-      }
-    }
-    if (!best) return null
-    const filtered = best.value.filter((suggestion) =>
-      suggestion.label.toLowerCase().includes(normalizedQuery)
-    )
-    return filtered.length > 0 ? filtered : null
-  }
-
-  const fetchSuggestions = async (value) => {
-    const normalizedQuery = value.trim().toLowerCase()
-    if (unavailableRef.current) return
-
-    const exact = cacheRef.current.get(normalizedQuery)
-    if (exact) {
-      setSuggestions(exact)
-      return
-    }
-    const prefixFiltered = findPrefixCache(normalizedQuery)
-    if (prefixFiltered) {
-      setSuggestions(prefixFiltered)
-      return
-    }
-
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-    setLoading(true)
-    setSuggestFailed(false)
-    try {
-      const res = await fetch('/api/address/suggest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: value.trim(), town: defaultTown }),
-        signal: controller.signal,
-      })
-      const json = await res.json().catch(() => null)
-      if (!res.ok || !json?.success) {
-        setSuggestFailed(true)
-        setSuggestions([])
-        return
-      }
-      const data = json.data ?? {}
-      if (data.unavailable) {
-        unavailableRef.current = true
-        setSuggestions([])
-        return
-      }
-      const next = data.suggestions ?? []
-      setSuggestions(next)
-      setClientCache(normalizedQuery, next)
-    } catch (fetchError) {
-      if (fetchError?.name !== 'AbortError') {
-        setSuggestFailed(true)
-        setSuggestions([])
-      }
-    } finally {
-      // Отменённый запрос не трогает loading: им владеет более новый запрос
-      if (!controller.signal.aborted) setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    const normalizedQuery = query.trim()
-    if (normalizedQuery.length < MIN_QUERY_LENGTH) {
-      setSuggestions([])
-      return undefined
+    const value = query.trim()
+    setSuggestions([])
+    setSuggestFailed(false)
+    setLoading(false)
+    if (value.length < MIN_QUERY_LENGTH || unavailableRef.current) return
+
+    const cacheKey = JSON.stringify([
+      value.toLowerCase(),
+      defaultTown.trim().toLowerCase(),
+    ])
+    const cached = cacheRef.current.get(cacheKey)
+    if (cached) {
+      setSuggestions(cached)
+      return
     }
-    debounceRef.current = setTimeout(
-      () => fetchSuggestions(normalizedQuery),
-      DEBOUNCE_MS
-    )
-    return () => clearTimeout(debounceRef.current)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query])
+
+    const controller = new AbortController()
+    setLoading(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/address/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: value.trim(), town: defaultTown }),
+          signal: controller.signal,
+        })
+        const json = await res.json().catch(() => null)
+        if (controller.signal.aborted) return
+        if (!res.ok || !json?.success) {
+          setSuggestFailed(true)
+          setSuggestions([])
+          return
+        }
+        const data = json.data ?? {}
+        if (data.unavailable) {
+          unavailableRef.current = true
+          setSuggestions([])
+          return
+        }
+        const next = data.suggestions ?? []
+        setSuggestions(next)
+        if (cacheRef.current.size >= CLIENT_CACHE_MAX) cacheRef.current.clear()
+        cacheRef.current.set(cacheKey, next)
+      } catch (fetchError) {
+        if (!controller.signal.aborted && fetchError?.name !== 'AbortError') {
+          setSuggestFailed(true)
+          setSuggestions([])
+        }
+      } finally {
+        // Отменённый запрос не трогает loading: им владеет более новый запрос
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    }, DEBOUNCE_MS)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [query, defaultTown])
+
+  // Ручное изменение, очистка и размонтирование отменяют уточнение координат.
+  useEffect(() => {
+    if (address !== selectedAddressRef.current) selectionRef.current?.abort()
+  }, [address])
+  useEffect(() => () => selectionRef.current?.abort(), [])
 
   const handleSelectPool = (addr) => {
-    onChange?.({ ...addr })
+    selectionRef.current?.abort()
+    const nextAddress = { ...addr }
+    selectedAddressRef.current = nextAddress
+    onChange?.(nextAddress)
+    setMode('view')
     setIsOpen(false)
     setQuery('')
   }
 
   const handleSelectSuggestion = async (suggestion) => {
+    selectionRef.current?.abort()
+    const controller = new AbortController()
+    selectionRef.current = controller
+    const nextAddress = { ...address, ...suggestion.address }
+    selectedAddressRef.current = nextAddress
+    onChange?.(nextAddress)
+    setMode('view')
     setIsOpen(false)
     setQuery('')
     // Уточняющий запрос ради координат; при ошибке — адрес из подсказки
@@ -195,12 +192,18 @@ const AddressSuggestField = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'select', query: suggestion.label }),
+        signal: controller.signal,
       })
       const json = await res.json().catch(() => null)
+      if (controller.signal.aborted) return
       const selected = json?.success ? json?.data?.selected : null
-      onChange?.({ ...address, ...(selected?.address ?? suggestion.address) })
+      if (selected?.address) {
+        const refinedAddress = { ...nextAddress, ...selected.address }
+        selectedAddressRef.current = refinedAddress
+        onChange?.(refinedAddress)
+      }
     } catch {
-      onChange?.({ ...address, ...suggestion.address })
+      // Адрес уже выбран; ошибка уточнения координат не должна его очищать.
     }
   }
 
@@ -208,6 +211,7 @@ const AddressSuggestField = ({
     if (option.type === 'pool') handleSelectPool(option.payload)
     else if (option.type === 'suggest') handleSelectSuggestion(option.payload)
     else {
+      selectionRef.current?.abort()
       setIsOpen(false)
       onManualInput?.()
     }
@@ -236,8 +240,8 @@ const AddressSuggestField = ({
 
   const optionClassName = (index) =>
     cn(
-      'flex min-h-[48px] w-full cursor-pointer items-center px-3 text-left text-sm hover:bg-blue-50',
-      index === activeIndex && 'bg-blue-50'
+      'address-suggest-option flex min-h-[48px] w-full cursor-pointer items-center px-3 text-left text-sm',
+      index === activeIndex && 'address-suggest-option--active'
     )
 
   if (mode === 'view') {
@@ -250,10 +254,12 @@ const AddressSuggestField = ({
           <button
             type="button"
             title="Изменить адрес"
-            className="flex min-h-[36px] min-w-[36px] cursor-pointer items-center justify-center p-1.5 text-gray-500 hover:text-general"
+            className="hover:text-general flex min-h-[36px] min-w-[36px] cursor-pointer items-center justify-center p-1.5 text-gray-500"
             onClick={() => {
-              setQuery('')
+              selectionRef.current?.abort()
+              setQuery(formattedAddress)
               setMode('search')
+              setIsOpen(true)
             }}
           >
             <FontAwesomeIcon icon={faPencilAlt} className="h-4 w-4" />
@@ -262,7 +268,13 @@ const AddressSuggestField = ({
             type="button"
             title="Очистить адрес"
             className="flex min-h-[36px] min-w-[36px] cursor-pointer items-center justify-center p-1.5 text-gray-500 hover:text-red-500"
-            onClick={() => onChange?.(null)}
+            onClick={() => {
+              selectionRef.current?.abort()
+              selectedAddressRef.current = null
+              setQuery('')
+              setIsOpen(false)
+              onChange?.(null)
+            }}
           >
             <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
           </button>
@@ -270,7 +282,7 @@ const AddressSuggestField = ({
         {error && <div className="text-xs text-red-500">{error}</div>}
         <button
           type="button"
-          className="cursor-pointer self-start text-sm text-general hover:underline"
+          className="text-general cursor-pointer self-start text-sm hover:underline"
           onClick={() => onManualInput?.()}
         >
           {manualOpen ? 'Свернуть детали адреса' : 'Дополнить адрес'}
@@ -280,18 +292,24 @@ const AddressSuggestField = ({
   }
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setIsOpen(false)
+      }}
+    >
       <input
         type="text"
         value={query}
         placeholder={placeholder}
+        aria-describedby={showConfirmation ? confirmationId : undefined}
         className={cn(
           'min-h-[40px] w-full rounded border-2 bg-white px-2 py-1 text-sm outline-none',
           error ? 'border-danger' : 'border-input focus:border-general'
         )}
         onFocus={() => setIsOpen(true)}
-        onBlur={() => setTimeout(() => setIsOpen(false), 150)}
         onChange={(event) => {
+          selectionRef.current?.abort()
           setQuery(event.target.value)
           setActiveIndex(-1)
           setIsOpen(true)
@@ -299,8 +317,28 @@ const AddressSuggestField = ({
         onKeyDown={handleKeyDown}
       />
       {error && <div className="mt-1 text-xs text-red-500">{error}</div>}
+      {showConfirmation && (
+        <Notice tone="warning" className="mt-1 text-sm" id={confirmationId}>
+          <div>
+            Текст ещё не подтверждён. Выберите адрес из списка или нажмите
+            «Использовать введённый текст».
+          </div>
+          <div className="mt-1">
+            {hasConcreteAddress(address)
+              ? 'Без подтверждения сохранится прежний адрес.'
+              : 'Без подтверждения введённый текст не сохранится в адресе.'}
+          </div>
+          <button
+            type="button"
+            className="min-h-[44px] cursor-pointer py-2 text-left font-semibold underline"
+            onClick={() => handleSelectPool({ comment: query.trim() })}
+          >
+            Использовать введённый текст
+          </button>
+        </Notice>
+      )}
       {isOpen && (
-        <div className="absolute left-0 right-0 z-20 mt-1 max-h-64 overflow-y-auto rounded border border-gray-200 bg-white shadow-lg">
+        <div className="absolute right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded border border-gray-200 bg-white shadow-lg">
           {poolMatches.length > 0 && (
             <div className="px-3 pt-2 text-xs font-semibold text-gray-400">
               Мои адреса
@@ -314,8 +352,8 @@ const AddressSuggestField = ({
               className={optionClassName(index)}
               onMouseDown={(event) => {
                 event.preventDefault()
-                handleSelectOption(option)
               }}
+              onClick={() => handleSelectOption(option)}
             >
               {formatAddressPoolShort(option.payload)}
             </button>
@@ -355,12 +393,12 @@ const AddressSuggestField = ({
                   type="button"
                   className={cn(
                     optionClassName(index),
-                    'border-t border-gray-100 text-general'
+                    'text-general border-t border-gray-100'
                   )}
                   onMouseDown={(event) => {
                     event.preventDefault()
-                    handleSelectOption(option)
                   }}
+                  onClick={() => handleSelectOption(option)}
                 >
                   Ввести вручную
                 </button>
@@ -373,8 +411,8 @@ const AddressSuggestField = ({
                 className={optionClassName(index)}
                 onMouseDown={(event) => {
                   event.preventDefault()
-                  handleSelectOption(option)
                 }}
+                onClick={() => handleSelectOption(option)}
               >
                 {option.payload.label}
               </button>

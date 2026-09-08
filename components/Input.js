@@ -24,7 +24,10 @@ const normalizePhoneDigits = (value) => {
   const digits = String(value || '').replace(/[^\d]/g, '')
   if (!digits) return ''
 
-  if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8')))
+  if (
+    digits.length === 11 &&
+    (digits.startsWith('7') || digits.startsWith('8'))
+  )
     return digits.slice(1)
 
   return digits.slice(0, 10)
@@ -64,12 +67,11 @@ const Input = forwardRef(
       dataList,
       copyPasteButtons = false,
       normalizePastedValue,
-      tone = 'default',
+
       decimalScale,
     },
     ref
   ) => {
-    const isParty = tone === 'party'
     const isPhone = type === 'phone'
     const prefixValue = isPhone && prefix === undefined ? '+7' : prefix
     const phoneMask = [
@@ -122,10 +124,8 @@ const Input = forwardRef(
     }
 
     // Определяем цвета для стрелочек в зависимости от темы
-    const arrowTextColor = isParty ? 'text-blue-500' : 'text-general'
-    const arrowHoverColor = isParty
-      ? 'hover:text-blue-600'
-      : 'hover:text-success'
+    const arrowTextColor = 'text-general'
+    const arrowHoverColor = 'hover:text-success'
 
     return (
       <InputWrapper
@@ -150,7 +150,6 @@ const Input = forwardRef(
         noMargin={noMargin}
         smallMargin={smallMargin}
         showDisabledIcon={showDisabledIcon}
-        tone={tone}
         comment={
           maxLength ? `${String(value)?.length} / ${maxLength}` : undefined
         }
@@ -170,7 +169,7 @@ const Input = forwardRef(
             )}
             onClick={() => changeNumberByStep(-1)}
           >
-            <FontAwesomeIcon icon={faArrowDown} className="w-4 h-4 min-h-4" />
+            <FontAwesomeIcon icon={faArrowDown} className="h-4 min-h-4 w-4" />
           </div>
         )}
 
@@ -302,10 +301,10 @@ const Input = forwardRef(
           </datalist>
         )}
         {copyPasteButtons && !disabled && type !== 'number' && !isPhone && (
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
-              className="flex items-center justify-center text-gray-600 transition border border-gray-300 rounded cursor-pointer h-7 w-7 hover:bg-gray-50"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-50"
               onClick={() => {
                 if (!navigator?.clipboard) return
                 navigator.clipboard.readText().then((text) => {
@@ -322,7 +321,7 @@ const Input = forwardRef(
             </button>
             <button
               type="button"
-              className="flex items-center justify-center text-gray-600 transition border border-gray-300 rounded cursor-pointer h-7 w-7 hover:bg-gray-50"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-gray-300 text-gray-600 transition hover:bg-gray-50"
               onClick={() => {
                 copyToClipboard(String(value ?? ''))
               }}
@@ -342,7 +341,7 @@ const Input = forwardRef(
             )}
             onClick={() => changeNumberByStep(1)}
           >
-            <FontAwesomeIcon icon={faArrowUp} className="w-4 h-4 min-h-4" />
+            <FontAwesomeIcon icon={faArrowUp} className="h-4 min-h-4 w-4" />
           </div>
         )}
       </InputWrapper>

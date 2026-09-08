@@ -1,6 +1,6 @@
 'use client'
 
-// import cn from 'classnames'
+import cn from 'classnames'
 import { useAtomValue } from 'jotai'
 import { useMemo } from 'react'
 import { isEventImportChecked } from '@helpers/fileImport.mjs'
@@ -114,6 +114,7 @@ const EventCard = ({
   style,
   event: eventProp,
   transactions: transactionsProp,
+  noHorizontalPadding = false,
 }) => {
   const { data: cachedEvent } = useEventQuery(eventId, eventProp)
   const event = eventProp ?? cachedEvent
@@ -329,9 +330,10 @@ const EventCard = ({
   return (
     <CardWrapper
       style={style}
-      outerClassName="px-2 py-1"
+      outerClassName={cn(noHorizontalPadding ? '' : 'px-2', 'py-1')}
       onClick={() => !loading && modalsFunc.event?.view(event._id)}
       className="event-card-shell card-body-pad laptop:flex-row laptop:items-start laptop:gap-4 flex min-h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg py-3 pr-3 pl-4"
+      noHorizontalPadding
     >
       <CardOverlay loading={loading} error={error} />
       <CardActions className="!top-0 !right-0">
@@ -380,10 +382,18 @@ const EventCard = ({
             <FontAwesomeIcon
               icon={faTriangleExclamation}
               className="h-4 w-4 shrink-0 text-amber-500"
-              aria-label={event.importedFromFile ? 'Импорт из файла не проверен' : 'Проверка мероприятия не завершена'}
+              aria-label={
+                event.importedFromFile
+                  ? 'Импорт из файла не проверен'
+                  : 'Проверка мероприятия не завершена'
+              }
             />
           ) : null}
-          {event.importedFromFile ? <span className="text-xs" title={event.fileImportName}>Из файла{needsCheck ? ' · Не проверено' : ''}</span> : null}
+          {event.importedFromFile ? (
+            <span className="text-xs" title={event.fileImportName}>
+              Из файла{needsCheck ? ' · Не проверено' : ''}
+            </span>
+          ) : null}
           {hasCalendarError ? (
             <FontAwesomeIcon
               icon={faCalendarXmark}

@@ -27,14 +27,12 @@ const AddressPoolPicker = ({
   allowTownCreate = true,
   poolAddresses: controlledPoolAddresses,
   onSaveAddress,
-  tone = 'default',
-  fieldsVariant = 'artist',
+
   outerClassName,
   contentClassName,
   saveButtonLabel = 'Сохранить в пул',
   savedLabel = '✓ В пуле',
 }) => {
-  const isParty = tone === 'party'
   const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
   const [showManualInput, setShowManualInput] = useState(false)
 
@@ -88,7 +86,6 @@ const AddressPoolPicker = ({
         paddingY={false}
         paddingX={false}
         noBorder
-        tone={tone}
       >
         <div className={cn('mt-0.5 mb-1 min-w-0 flex-1', contentClassName)}>
           <div className="flex flex-col">
@@ -113,8 +110,6 @@ const AddressPoolPicker = ({
                   allowTownCreate={allowTownCreate}
                   errors={errors}
                   noWrapper
-                  tone={tone}
-                  fieldsVariant={fieldsVariant}
                 />
                 <div className="flex items-center gap-x-2">
                   {canSaveToPool && !isAddressInPool && (

@@ -18,11 +18,7 @@ const getNextAnnualDate = (value, now) => {
   if (Number.isNaN(source.getTime())) return null
 
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  let next = new Date(
-    today.getFullYear(),
-    source.getMonth(),
-    source.getDate()
-  )
+  let next = new Date(today.getFullYear(), source.getMonth(), source.getDate())
   if (next.getTime() < today.getTime()) {
     next = new Date(
       today.getFullYear() + 1,
@@ -36,8 +32,7 @@ const getNextAnnualDate = (value, now) => {
 
 // Ближайшие значимые даты клиентов (дни рождения, годовщины и т.п.),
 // отсортированные по нарастанию даты
-export const buildClientEvents = (clients) => {
-  const now = new Date()
+export const buildClientEvents = (clients, now = new Date()) => {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
   return (Array.isArray(clients) ? clients : [])
