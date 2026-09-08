@@ -124,6 +124,7 @@
 - `DOMAIN`
 - Дополнительно для телефонии/ботов: `TELEFONIP`, `PHONE_SMS_SEND_WEBHOOK`, `TELEGRAM_TOKEN`
 - Дополнительно для биллинга (YooKassa/Tochka): `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`, `TOCHKA_API_TOKEN`, `TOCHKA_MERCHANT_ID`
+- Дополнительно для подсказок адресов: `DADATA_API_KEY`
 
 ## Известные особенности кода
 - `server/CRUD.js` содержит рабочие экспортируемые функции календаря и legacy-обработчик; в App Router активно используются именно экспортируемые функции (`updateEventInCalendar`, `deleteEventFromCalendar`).
