@@ -87,6 +87,9 @@
 - Импорт из Google Calendar: `app/api/events/google-sync/route.js`, парсинг в `helpers/googleCalendarParsers.js`.
 - Публичные лиды/API/Tilda: `app/api/public/lead/route.js`, `app/api/public/lead/tilda/route.js`, документация `docs/PUBLIC_LEADS_API.md`.
 - Документы DOCX: `helpers/generateContractTemplate.js`, `helpers/generateActTemplate.js`, `helpers/exportDocxFromTemplate.js`, `docs/DOCX_DOCUMENTS_GUIDE.md`.
+- Поле адреса/локации с DaData-подсказками: `components/AddressSuggestField.js`, `components/AddressPoolPicker.js`, `server/dadataSuggest.mjs`, `app/api/address/suggest/route.js` (без `DADATA_API_KEY` — graceful fallback на пул адресов и ручной ввод).
+- Страница «Важное» (`/cabinet/attention`) и мобильная нижняя навигация: `layouts/content/AttentionContent.js`, `layouts/modals/modalsFunc/upcomingEventsOverviewFunc.js` (общий компонент обзора), `components/MobileBottomNav.js`, `helpers/useEventCreateMenu.js`.
+- Базовые поля ввода (статичный лейбл `.input-label`, индикатор обязательности): `components/InputWrapper.js` — обёртка для `Input`, `ComboBox`, `DateInput`, `TimeInput`, `PhoneInput`, `Select`, `InputDuration` и др.
 
 ## Важное по событиям и календарю
 - Каноничные статусы события: `draft`, `active`, `canceled`, `closed`.
