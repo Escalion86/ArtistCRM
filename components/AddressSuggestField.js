@@ -67,18 +67,28 @@ const AddressSuggestField = ({
     return filtered.slice(0, MAX_POOL_ITEMS)
   }, [poolAddresses, query])
 
-  // Плоский список опций дропдауна для клавиатурной навигации
+  // Строки подсказок видны только при этих условиях —
+  // клавиатурный список обязан совпадать с рендером
+  const showSuggestRows =
+    query.trim().length >= MIN_QUERY_LENGTH && !loading && !suggestFailed
+
+  // Плоский список опций дропдауна: единый источник для рендера и навигации
   const options = useMemo(() => {
-    const list = [
-      ...poolMatches.map((addr) => ({ type: 'pool', payload: addr })),
-      ...suggestions.map((suggestion) => ({
-        type: 'suggest',
-        payload: suggestion,
-      })),
-    ]
+    const list = poolMatches.map((addr) => ({ type: 'pool', payload: addr }))
+    if (showSuggestRows) {
+      suggestions.forEach((suggestion) => {
+        list.push({ type: 'suggest', payload: suggestion })
+      })
+    }
     list.push({ type: 'manual' })
     return list
-  }, [poolMatches, suggestions])
+  }, [poolMatches, showSuggestRows, suggestions])
+
+  // Сброс выделения при любом изменении списка опций,
+  // чтобы activeIndex не мог указывать за границы списка
+  useEffect(() => {
+    setActiveIndex(-1)
+  }, [options])
 
   const setClientCache = (key, value) => {
     if (cacheRef.current.size >= CLIENT_CACHE_MAX) cacheRef.current.clear()
@@ -215,9 +225,12 @@ const AddressSuggestField = ({
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
       setActiveIndex((index) => Math.max(index - 1, 0))
-    } else if (event.key === 'Enter' && activeIndex >= 0) {
+    } else if (event.key === 'Enter') {
+      // Блокируем неявный submit формы всегда, пока открыт дропдаун
       event.preventDefault()
-      handleSelectOption(options[activeIndex])
+      if (activeIndex >= 0 && options[activeIndex]) {
+        handleSelectOption(options[activeIndex])
+      }
     }
   }
 
@@ -266,8 +279,6 @@ const AddressSuggestField = ({
     )
   }
 
-  let optionIndex = -1
-
   return (
     <div className="relative mt-2.5">
       <input
@@ -296,23 +307,20 @@ const AddressSuggestField = ({
               Мои адреса
             </div>
           )}
-          {poolMatches.map((addr) => {
-            optionIndex += 1
-            const index = optionIndex
-            return (
-              <button
-                key={`pool-${formatAddressPoolShort(addr)}`}
-                type="button"
-                className={optionClassName(index)}
-                onMouseDown={(event) => {
-                  event.preventDefault()
-                  handleSelectPool(addr)
-                }}
-              >
-                {formatAddressPoolShort(addr)}
-              </button>
-            )
-          })}
+          {/* Строки рендерятся ровно из options: сначала пул, затем подсказки и «Ввести вручную» */}
+          {options.slice(0, poolMatches.length).map((option, index) => (
+            <button
+              key={`pool-${formatAddressPoolShort(option.payload)}`}
+              type="button"
+              className={optionClassName(index)}
+              onMouseDown={(event) => {
+                event.preventDefault()
+                handleSelectOption(option)
+              }}
+            >
+              {formatAddressPoolShort(option.payload)}
+            </button>
+          ))}
           {query.trim().length >= MIN_QUERY_LENGTH && (
             <>
               {loading && (
@@ -323,25 +331,6 @@ const AddressSuggestField = ({
                   Подсказки временно недоступны
                 </div>
               )}
-              {!loading &&
-                !suggestFailed &&
-                suggestions.map((suggestion) => {
-                  optionIndex += 1
-                  const index = optionIndex
-                  return (
-                    <button
-                      key={`suggest-${suggestion.label}`}
-                      type="button"
-                      className={optionClassName(index)}
-                      onMouseDown={(event) => {
-                        event.preventDefault()
-                        handleSelectSuggestion(suggestion)
-                      }}
-                    >
-                      {suggestion.label}
-                    </button>
-                  )
-                })}
               {!loading &&
                 !suggestFailed &&
                 suggestions.length === 0 &&
@@ -358,26 +347,40 @@ const AddressSuggestField = ({
                 Введите улицу и дом, например: Ленинградская 12
               </div>
             )}
-          {(() => {
-            optionIndex += 1
-            const index = optionIndex
+          {options.slice(poolMatches.length).map((option, offset) => {
+            const index = poolMatches.length + offset
+            if (option.type === 'manual') {
+              return (
+                <button
+                  key="manual"
+                  type="button"
+                  className={cn(
+                    optionClassName(index),
+                    'border-t border-gray-100 text-general'
+                  )}
+                  onMouseDown={(event) => {
+                    event.preventDefault()
+                    handleSelectOption(option)
+                  }}
+                >
+                  Ввести вручную
+                </button>
+              )
+            }
             return (
               <button
+                key={`suggest-${option.payload.label}`}
                 type="button"
-                className={cn(
-                  optionClassName(index),
-                  'border-t border-gray-100 text-general'
-                )}
+                className={optionClassName(index)}
                 onMouseDown={(event) => {
                   event.preventDefault()
-                  setIsOpen(false)
-                  onManualInput?.()
+                  handleSelectOption(option)
                 }}
               >
-                Ввести вручную
+                {option.payload.label}
               </button>
             )
-          })()}
+          })}
         </div>
       )}
     </div>
