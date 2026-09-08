@@ -27,7 +27,6 @@ const AddressSuggestField = ({
   onChange,
   poolAddresses = [],
   defaultTown = '',
-  manualOpen = false,
   onManualInput,
   error,
   placeholder = 'Начните вводить адрес или выберите из своих',
@@ -285,7 +284,7 @@ const AddressSuggestField = ({
           className="text-general cursor-pointer self-start text-sm hover:underline"
           onClick={() => onManualInput?.()}
         >
-          {manualOpen ? 'Свернуть детали адреса' : 'Дополнить адрес'}
+          Дополнить адрес
         </button>
       </div>
     )
