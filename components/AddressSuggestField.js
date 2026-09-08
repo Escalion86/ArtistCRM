@@ -45,7 +45,6 @@ const AddressSuggestField = ({
   const abortRef = useRef(null)
   const debounceRef = useRef(null)
   const unavailableRef = useRef(false)
-  const inputRef = useRef(null)
 
   const formattedAddress = useMemo(
     () => formatAddressPoolShort(address),
@@ -161,7 +160,8 @@ const AddressSuggestField = ({
         setSuggestions([])
       }
     } finally {
-      setLoading(false)
+      // Отменённый запрос не трогает loading: им владеет более новый запрос
+      if (!controller.signal.aborted) setLoading(false)
     }
   }
 
@@ -250,7 +250,7 @@ const AddressSuggestField = ({
           <button
             type="button"
             title="Изменить адрес"
-            className="cursor-pointer p-2 text-gray-500 hover:text-general"
+            className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center p-2 text-gray-500 hover:text-general"
             onClick={() => {
               setQuery('')
               setMode('search')
@@ -261,7 +261,7 @@ const AddressSuggestField = ({
           <button
             type="button"
             title="Очистить адрес"
-            className="cursor-pointer p-2 text-gray-500 hover:text-red-500"
+            className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center p-2 text-gray-500 hover:text-red-500"
             onClick={() => onChange?.(null)}
           >
             <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
@@ -282,7 +282,6 @@ const AddressSuggestField = ({
   return (
     <div className="relative mt-2.5">
       <input
-        ref={inputRef}
         type="text"
         value={query}
         placeholder={placeholder}
@@ -310,7 +309,7 @@ const AddressSuggestField = ({
           {/* Строки рендерятся ровно из options: сначала пул, затем подсказки и «Ввести вручную» */}
           {options.slice(0, poolMatches.length).map((option, index) => (
             <button
-              key={`pool-${formatAddressPoolShort(option.payload)}`}
+              key={`pool-${index}-${formatAddressPoolShort(option.payload)}`}
               type="button"
               className={optionClassName(index)}
               onMouseDown={(event) => {
