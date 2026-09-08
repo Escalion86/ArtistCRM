@@ -27,9 +27,7 @@ const Select = ({
       ? 'border-sky-200 focus-within:border-sky-500 hover:border-sky-400'
       : 'border-input focus-within:border-general hover:border-general'
 
-  const labelColorClass = isParty
-    ? 'text-sky-700 peer-focus:text-sky-700 peer-placeholder-shown:text-disabled'
-    : 'text-general peer-focus:text-general peer-placeholder-shown:text-disabled'
+  const labelColorClass = isParty ? 'text-sky-700' : 'input-label'
 
   return (
     <InputWrapper
@@ -42,12 +40,11 @@ const Select = ({
       noMargin={noMargin}
       smallMargin={smallMargin}
       tone={tone}
-      floatingLabel={false}
     >
       <div className="relative flex-1">
         <select
           className={cn(
-            'peer w-full cursor-pointer appearance-none bg-transparent px-1 pr-6 text-black outline-none',
+            'w-full cursor-pointer appearance-none bg-transparent px-1 pr-6 text-black outline-none',
             disabled ? 'text-disabled cursor-not-allowed bg-gray-50' : '',
             wrapperClassName
           )}

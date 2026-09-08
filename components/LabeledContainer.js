@@ -10,17 +10,19 @@ const LabeledContainer = ({
   return (
     <div
       className={cn(
-        'border-input relative w-full rounded border-2 bg-white px-2 pt-3 pb-2',
-        noMargin ? '' : 'mt-3.5 mb-1',
+        'flex w-full flex-col gap-1',
+        noMargin ? '' : 'mt-2 mb-1',
         className
       )}
     >
       {label ? (
-        <div className="text-general absolute -top-[8px] left-2 h-5 bg-white px-1 text-sm leading-[12px]">
+        <div className="input-label px-1 text-xs font-semibold select-none">
           {label}
         </div>
       ) : null}
-      <div className={cn('w-full', contentClassName)}>{children}</div>
+      <div className="border-input w-full rounded border-2 bg-white px-2 pt-2 pb-2">
+        <div className={cn('w-full', contentClassName)}>{children}</div>
+      </div>
     </div>
   )
 }

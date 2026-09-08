@@ -86,8 +86,8 @@ const AddressPoolPicker = ({
         className={wrapperClassName}
         required={required}
         paddingY={false}
-        paddingX="small"
-        centerLabel={true}
+        paddingX={false}
+        noBorder
         tone={tone}
       >
         <div className={cn('mt-0.5 mb-1 min-w-0 flex-1', contentClassName)}>

@@ -24,9 +24,7 @@ const TimeInput = ({
       ? 'border-sky-200 focus-within:border-sky-500 hover:border-sky-400'
       : 'border-input focus-within:border-general hover:border-general'
 
-  const labelColorClass = isParty
-    ? 'text-sky-700 peer-focus:text-sky-700 peer-placeholder-shown:text-disabled'
-    : 'text-general peer-focus:text-general peer-placeholder-shown:text-disabled'
+  const labelColorClass = isParty ? 'text-sky-700' : 'input-label'
 
   // Преобразуем dayjs/Date/string в HH:mm
   const toInputValue = (val) => {
@@ -71,12 +69,11 @@ const TimeInput = ({
       noMargin={noMargin}
       smallMargin={smallMargin}
       tone={tone}
-      floatingLabel={false}
     >
       <input
         type="time"
         className={cn(
-          'peer w-full flex-1 bg-transparent px-1 py-1 outline-none',
+          'w-full flex-1 bg-transparent px-1 py-1 outline-none',
           'min-h-[36px] rounded border-2',
           borderColorClass,
           disabled

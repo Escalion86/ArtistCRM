@@ -285,9 +285,15 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
       ;(Array.isArray(event?.additionalEvents) ? event.additionalEvents : []).forEach(
         (item, index) => {
           if (!item?.done) return
-          const segment = getAdditionalEventSegment(item?.date, now)
-          if (!segment || !(segment in doneBySegment)) return
-          if (segment === 'overdue' && !isSameDay(item?.doneAt, now)) return
+          const doneToday = isSameDay(item?.doneAt, now)
+          let segment = getAdditionalEventSegment(item?.date, now)
+          if (!segment || !(segment in doneBySegment)) {
+            // Задача без даты или с датой «позднее»: показываем, только если
+            // выполнена сегодня — чтобы действие можно было отменить.
+            if (!doneToday) return
+            segment = 'today'
+          }
+          if (segment === 'overdue' && !doneToday) return
           doneBySegment[segment].push({
             eventId: event?._id,
             eventDate: event?.eventDate ?? null,

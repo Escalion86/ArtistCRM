@@ -242,15 +242,15 @@ const AddressSuggestField = ({
 
   if (mode === 'view') {
     return (
-      <div className="mt-2.5 flex flex-col gap-y-1">
-        <div className="flex min-h-[48px] items-center gap-x-2 rounded border border-gray-300 bg-white px-3">
+      <div className="flex flex-col gap-y-1">
+        <div className="border-input flex min-h-[40px] items-center gap-x-2 rounded border-2 bg-white px-2">
           <span className="min-w-0 flex-1 truncate text-sm">
             {formattedAddress}
           </span>
           <button
             type="button"
             title="Изменить адрес"
-            className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center p-2 text-gray-500 hover:text-general"
+            className="flex min-h-[36px] min-w-[36px] cursor-pointer items-center justify-center p-1.5 text-gray-500 hover:text-general"
             onClick={() => {
               setQuery('')
               setMode('search')
@@ -261,7 +261,7 @@ const AddressSuggestField = ({
           <button
             type="button"
             title="Очистить адрес"
-            className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center p-2 text-gray-500 hover:text-red-500"
+            className="flex min-h-[36px] min-w-[36px] cursor-pointer items-center justify-center p-1.5 text-gray-500 hover:text-red-500"
             onClick={() => onChange?.(null)}
           >
             <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
@@ -280,14 +280,14 @@ const AddressSuggestField = ({
   }
 
   return (
-    <div className="relative mt-2.5">
+    <div className="relative">
       <input
         type="text"
         value={query}
         placeholder={placeholder}
         className={cn(
-          'h-[48px] w-full rounded border bg-white px-3 text-sm outline-none',
-          error ? 'border-red-400' : 'border-gray-300 focus:border-general'
+          'min-h-[40px] w-full rounded border-2 bg-white px-2 py-1 text-sm outline-none',
+          error ? 'border-danger' : 'border-input focus:border-general'
         )}
         onFocus={() => setIsOpen(true)}
         onBlur={() => setTimeout(() => setIsOpen(false), 150)}

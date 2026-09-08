@@ -337,6 +337,15 @@ body .border-input {
   border-color: lab(85.1236 -0.612259 -3.7138);
 }
 
+/* Заголовки полей ввода: тёмно-песочный в светлой теме, светло-песочный в тёмной */
+.input-label {
+  color: #8a6d3b;
+}
+
+body.theme-dark .input-label {
+  color: #d4b886;
+}
+
 body.theme-dark .border-input {
   border-color: #484034;
 }
@@ -372,6 +381,20 @@ body.theme-dark .text-gray-600 {
 
 body.theme-dark .text-gray-500 {
   color: #64748b;
+}
+
+/* Выполненные задачи/события (карточки additionalEvents) в тёмной теме */
+body.theme-dark .bg-emerald-50\/70,
+body.theme-dark .bg-emerald-50\/60 {
+  background-color: rgba(6, 78, 59, 0.35);
+}
+
+body.theme-dark .border-emerald-200 {
+  border-color: #065f46;
+}
+
+body.theme-dark .text-emerald-700 {
+  color: #6ee7b7;
 }
 
 body.theme-dark .menu-btn__burger,

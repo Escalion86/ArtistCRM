@@ -241,7 +241,6 @@ const AddressPicker = ({
       required={required}
       paddingY={false}
       paddingX="small"
-      centerLabel={true}
       tone={tone}
     >
       {content}

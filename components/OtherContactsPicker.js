@@ -18,7 +18,7 @@ const OtherContactsPicker = ({
   onAddContact,
   label = 'Прочие контакты',
 }) => (
-  <InputWrapper label={label} fullWidth centerLabel>
+  <InputWrapper label={label} fullWidth>
     <div className="flex w-full flex-col gap-2">
       {contacts.map((contact, index) => {
         const contactClient = clients.find(

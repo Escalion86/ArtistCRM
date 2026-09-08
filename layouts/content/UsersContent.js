@@ -151,7 +151,7 @@ const UsersContent = () => {
           placeholder="Введите имя, телефон или контакт"
           noMargin
         />
-        <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
+        <label className="input-label flex flex-col gap-1 text-xs font-semibold">
           Источник регистрации
           <NativeSelect
             value={sourceFilter}
@@ -169,7 +169,7 @@ const UsersContent = () => {
             ))}
           </NativeSelect>
         </label>
-        <label className="flex flex-col gap-1 text-xs font-semibold text-gray-500">
+        <label className="input-label flex flex-col gap-1 text-xs font-semibold">
           Сортировка
           <NativeSelect
             value={sortMode}
@@ -201,7 +201,7 @@ const UsersContent = () => {
                     key={key}
                     className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
                   >
-                    <div className="text-xs font-semibold text-gray-500">
+                    <div className="input-label text-xs font-semibold">
                       {label}
                     </div>
                     <div className="mt-1 text-xl font-semibold text-gray-900">

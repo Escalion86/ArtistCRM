@@ -130,9 +130,9 @@ const PhoneInput = ({
           type="tel"
           inputMode="numeric"
           disabled={disabled}
-          placeholder=" "
+          placeholder="+7 (999) 123-45-67"
           className={cn(
-            'peer w-full bg-transparent px-1 placeholder-transparent focus:outline-hidden',
+            'w-full bg-transparent px-1 focus:outline-hidden',
             required && (!value || String(value).length !== 11)
               ? 'border-red-700'
               : isParty

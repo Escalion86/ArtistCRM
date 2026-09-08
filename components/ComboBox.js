@@ -25,6 +25,8 @@ const ComboBox = ({
   error,
   required,
   tone = 'default',
+  postfix,
+  postfixClassName,
 }) => {
   const preparedItems = useMemo(
     () =>
@@ -58,6 +60,8 @@ const ComboBox = ({
       required={required}
       value={value}
       tone={tone}
+      postfix={postfix}
+      postfixClassName={postfixClassName}
     >
       <NativeSelect
         wrapperClassName="flex flex-1 max-w-full"

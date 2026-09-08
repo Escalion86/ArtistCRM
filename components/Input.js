@@ -51,7 +51,7 @@ const Input = forwardRef(
       required,
       step,
       defaultValue,
-      floatingLabel = true,
+      placeholder,
       showErrorText = false,
       fullWidth = false,
       paddingY = 'small',
@@ -94,7 +94,8 @@ const Input = forwardRef(
       if (value === null || value === undefined) return ''
       return normalizePhoneDigits(value)
     })()
-    const placeholderValue = floatingLabel ? ' ' : label
+    const placeholderValue =
+      placeholder ?? (isPhone ? '+7 (999) 123-45-67' : label)
     const isDecimalNumber =
       type === 'number' && Number.isInteger(decimalScale) && decimalScale > 0
     const resolvedStep =
@@ -136,7 +137,6 @@ const Input = forwardRef(
           type === 'number' && !fullWidth ? 'max-w-fit' : ''
         )}
         required={required}
-        floatingLabel={floatingLabel}
         error={error}
         showErrorText={showErrorText}
         paddingY={paddingY}
@@ -177,7 +177,7 @@ const Input = forwardRef(
         {isPhone ? (
           <MaskedInput
             className={cn(
-              'peer h-7 flex-1 bg-transparent px-1 text-black placeholder-transparent focus:outline-none',
+              'h-7 flex-1 bg-transparent px-1 text-black focus:outline-none',
               disabled ? 'text-disabled cursor-not-allowed' : '',
               inputClassName
             )}
@@ -217,7 +217,7 @@ const Input = forwardRef(
             inputMode={isDecimalNumber ? 'decimal' : undefined}
             step={resolvedStep}
             className={cn(
-              'peer h-7 flex-1 bg-transparent px-1 text-black placeholder-transparent focus:outline-none',
+              'h-7 flex-1 bg-transparent px-1 text-black focus:outline-none',
               type === 'number'
                 ? `hide-number-spin ${fullWidth ? '' : 'max-w-22'} text-center`
                 : '',

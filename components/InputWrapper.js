@@ -13,7 +13,6 @@ const InputWrapper = forwardRef(
       className,
       required,
       children,
-      floatingLabel = true,
       error,
       showErrorText,
       paddingY = true,
@@ -40,6 +39,7 @@ const InputWrapper = forwardRef(
     ref
   ) => {
     const isParty = tone === 'party'
+    const hasErrorText = Boolean(error && showErrorText)
 
     const borderColorClass = error
       ? 'border-danger'
@@ -51,134 +51,149 @@ const InputWrapper = forwardRef(
       ? 'focus-within:border-sky-500 hover:border-sky-400 [&:not(:focus-within)]:hover:border-sky-300'
       : 'focus-within:border-general hover:border-general [&:not(:focus-within)]:hover:border-opacity-50'
 
-    const labelColorClass = isParty
-      ? 'text-sky-700 peer-focus:text-sky-700 peer-placeholder-shown:text-disabled'
-      : 'text-general peer-focus:text-general peer-placeholder-shown:text-disabled'
+    const labelColorClass = isParty ? 'text-sky-700' : 'input-label'
+
+    const marginClass = noMargin
+      ? ''
+      : hasErrorText || comment
+        ? 'mt-2 mb-4'
+        : smallMargin
+          ? 'mt-1'
+          : 'mt-2 mb-1'
+
+    const isRequiredFilled =
+      (value !== null && typeof value === 'object' && value.length > 0) ||
+      (typeof value !== 'object' && (value || value === false))
+
+    const requiredIconClass = cn(
+      'h-2.5 w-2.5',
+      isRequiredFilled ? 'text-disabled' : 'text-danger'
+    )
 
     return (
       <div
         className={cn(
-          'relative flex h-fit items-stretch bg-white',
-          paddingX === 'small' ? 'px-1' : paddingX ? 'px-2' : 'px-0',
-          noMargin ? '' : smallMargin ? 'mt-3' : 'mt-3.5 mb-1',
-          noBorder
-            ? 'tablet:min-h-[40px] min-h-[36px]'
-            : `tablet:min-h-[44px] [&:not(:focus-within)]:hover:border-opacity-50 min-h-[40px] rounded border-2 ${borderColorClass} ${focusBorderClass}`,
+          'flex flex-col',
+          label ? 'gap-1' : '',
+          marginClass,
           fullWidth ? 'w-full' : '',
           fitWidth ? 'w-fit' : '',
-          paddingY === 'small'
-            ? 'pt-1.5 pb-1'
-            : paddingY === 'big'
-              ? 'pt-2.5 pb-2'
-              : paddingY
-                ? 'pt-2 pb-1.5'
-                : '',
-          disabled ? 'cursor-not-allowed' : '',
           hidden ? 'hidden' : '',
-          (error && showErrorText) || comment ? 'mb-4' : '',
           className
         )}
         ref={ref}
         {...props}
       >
+        {label && (
+          <div
+            className={cn(
+              'flex items-center gap-1 px-1 text-xs font-semibold select-none',
+              centerLabel ? 'justify-center' : '',
+              disabled ? 'cursor-not-allowed' : '',
+              labelColorClass,
+              labelClassName
+            )}
+          >
+            {label}
+            {required && (
+              <FontAwesomeIcon
+                className={requiredIconClass}
+                icon={faAsterisk}
+                size="1x"
+              />
+            )}
+          </div>
+        )}
         <div
           className={cn(
-            '[&:has(:focus)_.groupe]:max-w-full',
-            'tablet:min-h-[28px] flex min-h-[24px] w-full items-center',
-            wrapperClassName,
+            'relative flex h-fit items-stretch bg-white',
+            paddingX === 'small' ? 'px-1' : paddingX ? 'px-2' : 'px-0',
+            noBorder
+              ? 'min-h-[36px]'
+              : `[&:not(:focus-within)]:hover:border-opacity-50 min-h-[40px] rounded border-2 ${borderColorClass} ${focusBorderClass}`,
+            paddingY === 'small'
+              ? 'pt-1.5 pb-1'
+              : paddingY === 'big'
+                ? 'pt-2.5 pb-2'
+                : paddingY
+                  ? 'pt-2 pb-1.5'
+                  : '',
             disabled ? 'cursor-not-allowed' : ''
           )}
         >
-          {prefix && (
+          <div
+            className={cn(
+              '[&:has(:focus)_.groupe]:max-w-full',
+              'tablet:min-h-[28px] flex min-h-[24px] w-full items-center',
+              wrapperClassName,
+              disabled ? 'cursor-not-allowed' : ''
+            )}
+          >
+            {prefix && (
+              <div
+                className={cn(
+                  'groupe text-disabled items-center overflow-hidden pl-1 transition-all',
+                  value ? 'max-w-full' : 'max-w-0',
+                  prefixClassName
+                )}
+              >
+                {prefix}
+              </div>
+            )}
+            {children}
+
+            {(postfix || disabled) && (
+              <div
+                className={cn(
+                  'text-disabled flex items-center gap-x-1',
+                  postfixClassName
+                )}
+              >
+                {postfix}
+                {disabled && showDisabledIcon && (
+                  <FontAwesomeIcon
+                    className="text-disabled h-4 w-4"
+                    icon={faBan}
+                    size="1x"
+                  />
+                )}
+              </div>
+            )}
+          </div>
+          {required && !label && (
             <div
               className={cn(
-                'groupe text-disabled items-center overflow-hidden pl-1 transition-all',
-                value ? 'max-w-full' : 'max-w-0',
-                prefixClassName
+                'absolute -top-[9px] right-1 flex h-4 items-center bg-white px-1 text-xs',
+                isRequiredFilled ? 'text-disabled' : 'text-danger'
               )}
             >
-              {prefix}
+              <FontAwesomeIcon
+                className={cn('h-2.5 w-2.5')}
+                icon={faAsterisk}
+                size="1x"
+              />
             </div>
           )}
-          {children}
-
-          {(postfix || disabled) && (
+          {hasErrorText && (
             <div
               className={cn(
-                'text-disabled flex items-center gap-x-1 pr-1',
-                postfixClassName
+                'text-danger absolute -bottom-[15px] left-1 bg-white px-1 text-xs leading-[12px] whitespace-nowrap'
               )}
             >
-              {postfix}
-              {disabled && showDisabledIcon && (
-                <FontAwesomeIcon
-                  className="w-4 h-4 text-disabled"
-                  icon={faBan}
-                  size="1x"
-                />
-              )}
+              {error}
             </div>
           )}
-
-          {label && (
+          {comment && (
             <div
               className={cn(
-                'pointer-events-none absolute rounded bg-white px-1 text-sm transition-all select-none peer-focus:leading-[12px]',
-                'h-5 leading-[12px] peer-placeholder-shown:leading-[14px]',
-                'flex items-center',
-                required
-                  ? 'max-w-[calc(100%-16px)] peer-placeholder-shown:max-w-full peer-focus:max-w-[calc(100%-16px)]'
-                  : '',
-                centerLabel ? 'left-1/2 -translate-x-1/2' : 'left-2',
-                floatingLabel
-                  ? `-top-[12px] peer-placeholder-shown:top-[calc(50%-10px)] peer-placeholder-shown:text-base peer-focus:-top-[12px] peer-focus:text-sm ${labelColorClass}`
-                  : `-top-[12px] ${labelColorClass}`,
-                disabled ? 'cursor-not-allowed' : '',
-                labelClassName
+                'absolute right-1 -bottom-[15px] bg-white px-1 text-xs leading-[12px] whitespace-nowrap',
+                commentClassName
               )}
             >
-              {label}
+              {comment}
             </div>
           )}
         </div>
-        {required && (
-          <div
-            className={cn(
-              'absolute -top-[9px] right-1 flex h-4 items-center bg-white px-1 text-xs',
-              (value !== null &&
-                typeof value === 'object' &&
-                value.length > 0) ||
-                (typeof value !== 'object' && (value || value === false))
-                ? 'text-disabled'
-                : 'text-danger'
-            )}
-          >
-            <FontAwesomeIcon
-              className={cn('h-2.5 w-2.5')}
-              icon={faAsterisk}
-              size="1x"
-            />
-          </div>
-        )}
-        {error && showErrorText && (
-          <div
-            className={cn(
-              'text-danger absolute -bottom-[15px] left-1 bg-white px-1 text-xs leading-[12px] whitespace-nowrap'
-            )}
-          >
-            {error}
-          </div>
-        )}
-        {comment && (
-          <div
-            className={cn(
-              'absolute right-1 -bottom-[15px] bg-white px-1 text-xs leading-[12px] whitespace-nowrap',
-              commentClassName
-            )}
-          >
-            {comment}
-          </div>
-        )}
       </div>
     )
   }

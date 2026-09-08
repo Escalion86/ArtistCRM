@@ -151,10 +151,8 @@ const ServiceMultiSelect = ({
 
   return (
     <InputWrapper label="Услуги" required={required} error={error} tone={tone}>
-      <div className="flex items-center w-full gap-x-1">
-        <div
-          className={cn('flex flex-1 flex-col gap-1', isParty ? 'pl-1' : '')}
-        >
+      <div className="flex w-full gap-x-1">
+        <div className={cn('flex flex-1 flex-col gap-1')}>
           {!hasServices ? (
             <div className="text-sm text-gray-500">Услуги не добавлены</div>
           ) : isFlatList ? (
@@ -256,12 +254,14 @@ const ServiceMultiSelect = ({
           )}
         </div>
         {onCreate && (
-          <AddIconButton
-            onClick={onCreate}
-            title="Добавить услугу"
-            size={isParty ? 'sm' : 'md'}
-            tone={tone}
-          />
+          <div className="flex min-h-full flex-col">
+            <AddIconButton
+              onClick={onCreate}
+              title="Добавить услугу"
+              size="sm"
+              tone={tone}
+            />
+          </div>
         )}
       </div>
     </InputWrapper>

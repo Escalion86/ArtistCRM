@@ -15,7 +15,7 @@ const ArrowButton = ({ icon, onClick, disabled, tone }) => {
   return (
     <div
       className={cn(
-        'px-1 duration-300',
+        'flex items-center px-1 duration-300',
         disabled
           ? 'text-disabled cursor-not-allowed'
           : isParty
@@ -63,12 +63,16 @@ const InputDuration = ({
   }
 
   const inputBaseClass = cn(
-    'h-7 w-12 bg-transparent px-1 text-center text-black hide-number-spin focus:outline-none',
+    'h-7 w-12 self-center bg-transparent px-1 text-center text-black hide-number-spin focus:outline-none',
     disabled ? 'text-disabled cursor-not-allowed' : '',
     inputClassName
   )
 
-  const suffixClass = 'text-disabled select-none pr-1 text-sm'
+  const suffixClass = 'text-disabled flex select-none items-center px-1 text-sm'
+
+  // Разделители на всю высоту поля, цвет как у рамки (border-input)
+  const thinDividerClass = 'w-0 shrink-0 self-stretch border-l border-input'
+  const thickDividerClass = 'w-0 shrink-0 self-stretch border-l-2 border-input'
 
   const arrowsDisabled = disabled
   const effectiveMin = typeof min === 'number' ? min : 0
@@ -97,10 +101,10 @@ const InputDuration = ({
       disabled={disabled}
       fitWidth
       noMargin={noMargin}
-      paddingY="small"
+      paddingY={false}
       tone={tone}
     >
-      <div className="flex items-center rounded bg-gray-100">
+      <div className="flex items-stretch self-stretch">
         <ArrowButton
           icon={faArrowDown}
           tone={tone}
@@ -111,7 +115,7 @@ const InputDuration = ({
           type="number"
           inputMode="numeric"
           min={0}
-          className={cn('peer', inputBaseClass)}
+          className={inputBaseClass}
           value={hours}
           disabled={disabled}
           placeholder=" "
@@ -124,9 +128,9 @@ const InputDuration = ({
           disabled={!canIncreaseHours}
           onClick={() => emit(hours + 1, minutes)}
         />
+        <div className={thinDividerClass} />
         <span className={suffixClass}>ч</span>
-      </div>
-      <div className="ml-2 flex items-center rounded bg-gray-100">
+        <div className={thickDividerClass} />
         <ArrowButton
           icon={faArrowDown}
           tone={tone}

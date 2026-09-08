@@ -1736,7 +1736,7 @@ const eventFunc = (
                 />
               </AiFieldHighlight>
               <AiFieldHighlight active={isAiFieldHighlighted('eventType')}>
-                <div className="mt-4 flex items-end gap-x-1">
+                <div className="mt-4">
                   <ComboBox
                     label="Что за событие?"
                     items={eventTypeOptions}
@@ -1752,11 +1752,13 @@ const eventFunc = (
                     className="min-w-38 flex-1"
                     error={errors.eventType}
                     required
-                  />
-                  <AddIconButton
-                    onClick={handleCreateEventType}
-                    title="Добавить тип события"
-                    size="md"
+                    postfix={
+                      <AddIconButton
+                        onClick={handleCreateEventType}
+                        title="Добавить тип события"
+                        size="sm"
+                      />
+                    }
                   />
                 </div>
               </AiFieldHighlight>
