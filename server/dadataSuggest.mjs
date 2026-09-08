@@ -4,6 +4,7 @@ const CACHE_TTL_MS = 30 * 60 * 1000
 const CACHE_MAX_ENTRIES = 500
 const REQUEST_TIMEOUT_MS = 4000
 const MIN_QUERY_LENGTH = 4
+const MAX_QUERY_LENGTH = 300
 const SUGGEST_COUNT = 7
 
 // In-memory кэш: key -> { expiresAt, payload }
@@ -75,7 +76,8 @@ const requestDaData = async (body) => {
 
 const suggestAddresses = async ({ query, town }) => {
   if (!isDadataConfigured()) return { unavailable: true, suggestions: [] }
-  const normalizedQuery = trimValue(query)
+  // DaData отклоняет query длиннее 300 символов (HTTP 413) — обрезаем до ключа кэша
+  const normalizedQuery = trimValue(query).slice(0, MAX_QUERY_LENGTH)
   if (normalizedQuery.length < MIN_QUERY_LENGTH) {
     return { unavailable: false, suggestions: [] }
   }
@@ -105,7 +107,7 @@ const suggestAddresses = async ({ query, town }) => {
 // предыдущего ответа — только так гарантированно заполняются geo_lat/geo_lon.
 const selectAddress = async ({ query }) => {
   if (!isDadataConfigured()) return null
-  const normalizedQuery = trimValue(query)
+  const normalizedQuery = trimValue(query).slice(0, MAX_QUERY_LENGTH)
   if (!normalizedQuery) return null
   const cacheKey = `select|${normalizedQuery.toLowerCase()}`
   const cached = getCached(cacheKey)
