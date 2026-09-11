@@ -11,6 +11,12 @@ import path from 'node:path'
 import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
 import { getSyncOperationFingerprint } from '../../server/mobile/syncOperations.js'
+import { runWebCoreSmoke } from '../web/coreSmoke.mjs'
+import { runBrowserSmoke } from '../web/browserSmoke.mjs'
+import { runRestartSmoke } from '../web/restartSmoke.mjs'
+import { runPublicLeadSmoke } from '../web/publicLeadSmoke.mjs'
+import { runDocumentsHttpSmoke } from '../server/documentsHttpSmoke.mjs'
+import { runPaymentProcessingSmoke } from '../server/paymentProcessingSmoke.cjs'
 
 const projectRoot = path.resolve(import.meta.dirname, '..', '..')
 const mongodBinary = process.env.MONGOD_BINARY || 'mongod'
@@ -93,7 +99,7 @@ const authHeaders = (accessToken) => ({
 test(
   'HTTP integration: mobile auth, tenant isolation и files',
   {
-    timeout: 120_000,
+    timeout: process.env.PLAYWRIGHT_MODULE ? 240_000 : 120_000,
     skip: mongodAvailable
       ? false
       : 'mongod не установлен; задайте MONGOD_BINARY для HTTP integration-тестов',
@@ -121,6 +127,7 @@ test(
         url: req.url || '',
         headers: req.headers,
         body: Buffer.concat(chunks).toString('utf8'),
+        bytes: Buffer.concat(chunks),
       }
       if (req.url === '/api') {
         cloudRequests.push(captured)
@@ -782,6 +789,7 @@ test(
             MONGODB_URI: mongoUri,
             MONGODB_DBNAME: dbName,
             NEXTAUTH_SECRET: 'mobile-http-integration-secret',
+            NEXTAUTH_URL: baseUrl,
             ESCALIONCLOUD_PASSWORD: 'integration-password',
             ESCALIONCLOUD_API_URL: `http://127.0.0.1:${cloudPort}/api`,
             AVITO_API_BASE_URL: `http://127.0.0.1:${cloudPort}/avito`,
@@ -800,6 +808,10 @@ test(
             GOOGLE_OAUTH_TOKEN_URL: `http://127.0.0.1:${cloudPort}/google-token`,
             GOOGLE_CALENDAR_API_BASE_URL: `http://127.0.0.1:${cloudPort}`,
             OPENAI_API_KEY: '',
+            AITUNNEL_KEY: '',
+            DEEPSEEK_API_KEY: '',
+            AI_ANALYSIS_API_URL: `http://127.0.0.1:${cloudPort}/ai`,
+            AI_TRANSCRIPTION_API_URL: `http://127.0.0.1:${cloudPort}/transcription`,
           },
           stdio: ['ignore', 'pipe', 'pipe'],
           windowsHide: true,
@@ -1129,7 +1141,7 @@ test(
             })
           )
           assert.equal(draft.response.status, 200, JSON.stringify(draft.body))
-          assert.equal(draft.body.fields.eventType, 'свадьба')
+          assert.equal(draft.body.fields.eventType, 'Свадьба')
           assert.equal(draft.body.fields.contractSum, 50_000)
           assert.equal(draft.body.fields.waitDeposit, true)
 
@@ -1762,6 +1774,7 @@ test(
             tokenB,
             'POST',
             {
+              provider: 'aitunnel',
               key: aiKey,
               transcriptionModel: 'whisper-mobile',
               analysisModel: 'analysis-mobile',
@@ -3434,6 +3447,38 @@ test(
           }
         }
       )
+      await t.test('web credentials → клиент → заявка → оплаты → закрытие, tenant isolation', async () => {
+        const webTenantA = new mongoose.Types.ObjectId()
+        const webTenantB = new mongoose.Types.ObjectId()
+        const webTariffId = new mongoose.Types.ObjectId()
+        await db.collection('tariffs').insertOne({
+          _id: webTariffId, title: 'Web smoke', eventsPerMonth: 100, allowDocuments: true,
+        })
+        await db.collection('users').insertMany([
+          { _id: webTenantA, tenantId: webTenantA, phone: '79000000881', password: passwordHash, tariffId: webTariffId, role: 'user', archive: false },
+          { _id: webTenantB, tenantId: webTenantB, phone: '79000000882', password: passwordHash, tariffId: webTariffId, role: 'user', archive: false },
+        ])
+        await runWebCoreSmoke({ baseUrl, password, tenantA: webTenantA, tenantB: webTenantB, phoneA: '79000000881', phoneB: '79000000882' })
+      })
+      await t.test('browser: вход и гидратация на desktop и телефоне', {
+        skip: process.env.PLAYWRIGHT_MODULE ? false : 'PLAYWRIGHT_MODULE не настроен',
+      }, async () => {
+        await runBrowserSmoke({ baseUrl, phone: '79000000881', password })
+      })
+      await t.test('Public Leads и Tilda: ключи, tenant, дедупликация и очистка секретов', async () => {
+        await runPublicLeadSmoke({ baseUrl, db })
+      })
+      await t.test('browser: offline-очередь после перезапуска процесса', {
+        skip: process.env.PLAYWRIGHT_MODULE ? false : 'PLAYWRIGHT_MODULE не настроен',
+      }, async () => {
+        await runRestartSmoke({ baseUrl, phone: '79000000881', password })
+      })
+      await t.test('documents: договор/акт, реквизиты, tenant и тариф', async () => {
+        await runDocumentsHttpSmoke({ baseUrl, db, password, passwordHash, cloudRequests })
+      })
+      await t.test('billing: повтор, неверная сумма и параллельные начисления', async () => {
+        await runPaymentProcessingSmoke({ db })
+      })
     } finally {
       await terminate(appProcess)
       await new Promise((resolve) => cloudServer.close(resolve))

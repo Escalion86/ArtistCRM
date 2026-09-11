@@ -933,11 +933,22 @@ const EventsContent = ({
     setAdditionalQuickFilter('')
   }, [filter])
 
-  const setPastQuickFilter = useCallback((preset) => {
-    setStatusFilter(preset.statusFilter)
-    setTransferredMode(preset.transferredMode)
-    setAdditionalQuickFilter('')
-  }, [])
+  const setPastQuickFilter = useCallback(
+    (preset) => {
+      const isActivePreset =
+        preset.transferredMode === transferredMode &&
+        Object.entries(preset.statusFilter).every(
+          ([key, value]) => Boolean(statusFilter[key]) === value
+        )
+
+      setStatusFilter(
+        isActivePreset ? getStatusFilterDefaults('past') : preset.statusFilter
+      )
+      setTransferredMode(isActivePreset ? 'all' : preset.transferredMode)
+      setAdditionalQuickFilter('')
+    },
+    [statusFilter, transferredMode]
+  )
 
   const activePastQuickFilter = useMemo(() => {
     if (filter !== 'past') return ''

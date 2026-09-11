@@ -79,6 +79,14 @@ const resolveClientMessageContext = async ({
   return { clientName: resolvedClientName, event: nearestEvent }
 }
 
+const isClientMessengerPushMuted = async ({ tenantId, clientId }) => {
+  if (!tenantId || !clientId) return false
+  const client = await Clients.findOne({ _id: clientId, tenantId })
+    .select('messengerPushMuted')
+    .lean()
+  return client?.messengerPushMuted === true
+}
+
 export const notifyIncomingClientMessage = async ({
   tenantId,
   provider,
@@ -92,6 +100,9 @@ export const notifyIncomingClientMessage = async ({
   unreadCount = 0,
 }) => {
   if (!tenantId || !provider) return null
+  if (await isClientMessengerPushMuted({ tenantId, clientId })) {
+    return { suppressed: true, reason: 'client_messenger_push_muted' }
+  }
 
   const context = await resolveClientMessageContext({
     tenantId,
@@ -140,4 +151,8 @@ export const notifyIncomingClientMessage = async ({
   return aggregatePushResults(web, expo)
 }
 
-export { resolveClientMessageContext, resolveNearestClientEvent }
+export {
+  isClientMessengerPushMuted,
+  resolveClientMessageContext,
+  resolveNearestClientEvent,
+}

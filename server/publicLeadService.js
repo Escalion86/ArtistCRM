@@ -54,7 +54,12 @@ const normalizePublicLeadApiKeys = (custom) => {
   return normalized
 }
 
-const normalizePhone = (value) => String(value ?? '').replace(/\D/g, '')
+const normalizePhone = (value) => {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  if (digits.length === 10) return `7${digits}`
+  if (digits.length === 11 && digits.startsWith('8')) return `7${digits.slice(1)}`
+  return digits
+}
 
 const parseDateValue = (value) => {
   if (!value) return null
@@ -169,7 +174,16 @@ const upsertPublicLeadClient = async ({
 
   let client = null
   if (phoneNumber) {
-    client = await Clients.findOne({ tenantId, phone: phoneNumber })
+    // Старые записи могли храниться с 8 или без кода страны.
+    const phoneVariants =
+      phoneDigits.length === 11 && phoneDigits.startsWith('7')
+        ? [
+            phoneNumber,
+            Number(`8${phoneDigits.slice(1)}`),
+            Number(phoneDigits.slice(1)),
+          ]
+        : [phoneNumber]
+    client = await Clients.findOne({ tenantId, phone: { $in: phoneVariants } })
   }
 
   if (!client) {

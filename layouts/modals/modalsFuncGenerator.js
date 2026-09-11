@@ -38,6 +38,7 @@ import userBillingFunc from './modalsFunc/userBillingFunc'
 import userTopupFunc from './modalsFunc/userTopupFunc'
 import userTopupInfoFunc from './modalsFunc/userTopupInfoFunc'
 import userOnboardingFunc from './modalsFunc/userOnboardingFunc'
+import firstRunTourFunc from './modalsFunc/firstRunTourFunc'
 import changePasswordFunc from './modalsFunc/changePasswordFunc'
 import userPasswordChangeFunc from './modalsFunc/userPasswordChangeFunc'
 import userTariffChangeFunc from './modalsFunc/userTariffChangeFunc'
@@ -319,6 +320,7 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
       topupInfo: (userId) => addModal(userTopupInfoFunc(userId)),
       onboarding: () => addModal(userOnboardingFunc()),
       firstRunWizard: () => addModal(userOnboardingFunc()),
+      firstRunTour: () => addModal(firstRunTourFunc()),
       changePassword: () => addModal(changePasswordFunc()),
       passwordChange: (userId) =>
         canManageUsers ? addModal(userPasswordChangeFunc(userId)) : null,

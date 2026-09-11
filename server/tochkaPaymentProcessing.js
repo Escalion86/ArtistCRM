@@ -28,12 +28,15 @@ const decodeJwtPart = (value) => {
 
 const getWebhookPublicKey = () => {
   const envJwk = String(process.env.TOCHKA_WEBHOOK_PUBLIC_JWK || '').trim()
-  if (envJwk) return crypto.createPublicKey({ key: JSON.parse(envJwk), format: 'jwk' })
+  if (envJwk)
+    return crypto.createPublicKey({ key: JSON.parse(envJwk), format: 'jwk' })
   return crypto.createPublicKey({ key: TOCHKA_WEBHOOK_JWK, format: 'jwk' })
 }
 
 const verifyTochkaWebhookJwt = (jwt) => {
-  const parts = String(jwt || '').trim().split('.')
+  const parts = String(jwt || '')
+    .trim()
+    .split('.')
   if (parts.length !== 3) throw new Error('invalid_jwt')
 
   const header = decodeJwtPart(parts[0])
@@ -122,7 +125,11 @@ const processSucceededTochkaPayment = async ({ payment, providerPayment }) => {
     if (freshPayment?.status === 'succeeded') {
       return { ok: true, alreadyProcessed: true }
     }
-    return { ok: false, error: 'payment_not_pending', status: freshPayment?.status || '' }
+    return {
+      ok: false,
+      error: 'payment_not_pending',
+      status: freshPayment?.status || '',
+    }
   }
   payment = lockedPayment
 
@@ -132,9 +139,23 @@ const processSucceededTochkaPayment = async ({ payment, providerPayment }) => {
       ? getSbpBonusAmount(payment.amount)
       : 0
 
-  user.balance =
-    Number(user.balance ?? 0) + Number(payment.amount ?? 0) + bonusAmount
-  await user.save()
+  // Баланс может одновременно меняться другим платежом или списанием.
+  await Users.updateOne(
+    { _id: user._id },
+    [
+      {
+        $set: {
+          balance: {
+            $add: [
+              { $ifNull: ['$balance', 0] },
+              Number(payment.amount ?? 0) + bonusAmount,
+            ],
+          },
+        },
+      },
+    ],
+    { updatePipeline: true }
+  )
 
   payment.rawProviderStatus = providerPayment?.status || ''
   payment.paymentMethodType = methodInfo.type
@@ -195,7 +216,11 @@ const processSucceededTochkaPayment = async ({ payment, providerPayment }) => {
   return { ok: true, bonusAmount }
 }
 
-const syncTochkaPayment = async ({ providerPaymentId, paymentId, providerPayment }) => {
+const syncTochkaPayment = async ({
+  providerPaymentId,
+  paymentId,
+  providerPayment,
+}) => {
   const query = { provider: 'tochka' }
   if (providerPaymentId) query.providerPaymentId = providerPaymentId
   else if (paymentId) query._id = paymentId
@@ -208,11 +233,15 @@ const syncTochkaPayment = async ({ providerPaymentId, paymentId, providerPayment
   }
 
   const paymentInfo =
-    providerPayment || extractTochkaPayment(await getTochkaPayment(payment.providerPaymentId))
+    providerPayment ||
+    extractTochkaPayment(await getTochkaPayment(payment.providerPaymentId))
   payment.rawProviderStatus = paymentInfo?.status || ''
 
   if (paymentInfo?.status === 'APPROVED') {
-    return processSucceededTochkaPayment({ payment, providerPayment: paymentInfo })
+    return processSucceededTochkaPayment({
+      payment,
+      providerPayment: paymentInfo,
+    })
   }
 
   if (['EXPIRED', 'REFUNDED'].includes(paymentInfo?.status)) {

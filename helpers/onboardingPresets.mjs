@@ -171,6 +171,102 @@ export const ONBOARDING_ACTIVITY_PRESETS = Object.freeze([
     },
   },
   {
+    key: 'repair_home',
+    title: 'Ремонт, монтаж и бытовые услуги',
+    shortTitle: 'Ремонт и монтаж',
+    description: 'Электрик, маляр, сантехник, сборщик мебели, мастер по ремонту, клининг.',
+    starterServices: [
+      {
+        title: 'Ремонтные и монтажные работы',
+        description: 'Укажите свои работы: электромонтаж, покраска стен, сантехника или сборка мебели.',
+        duration: 0,
+        price: 0,
+      },
+      {
+        title: 'Выезд и диагностика',
+        description: 'Осмотр объекта, замеры и согласование объёма работ.',
+        duration: 60,
+        price: 0,
+      },
+      {
+        title: 'Бытовые услуги',
+        description: 'Уборка, мелкий ремонт или другая помощь по дому.',
+        duration: 0,
+        price: 0,
+      },
+    ],
+    demo: {
+      eventType: 'Работы в квартире',
+      description: 'Учебная заявка: клиент хочет заказать работы в квартире. Нужно уточнить адрес, объём, материалы, сроки и стоимость.',
+      nextActionTitle: 'Уточнить объём работ',
+      nextActionDescription: 'Уточнить адрес, объём работ и материалы, согласовать выезд и условия оплаты.',
+    },
+  },
+  {
+    key: 'transport_delivery',
+    title: 'Перевозки и доставка',
+    shortTitle: 'Перевозки',
+    description: 'Грузоперевозчик, курьер, помощь с переездом.',
+    starterServices: [
+      {
+        title: 'Перевозка / доставка',
+        description: 'Уточните маршрут, состав груза и условия доставки.',
+        duration: 0,
+        price: 0,
+      },
+      {
+        title: 'Помощь с переездом',
+        description: 'Перевозка вещей с согласованием объёма и времени.',
+        duration: 0,
+        price: 0,
+      },
+      {
+        title: 'Погрузка и разгрузка',
+        description: 'Дополнительная помощь с учётом веса, этажей и наличия лифта.',
+        duration: 0,
+        price: 0,
+      },
+    ],
+    demo: {
+      eventType: 'Перевозка мебели',
+      description: 'Учебная заявка: клиент хочет перевезти мебель. Нужно уточнить адреса, состав груза, этажи, время и стоимость.',
+      nextActionTitle: 'Уточнить маршрут и груз',
+      nextActionDescription: 'Согласовать адреса, объём груза, погрузку, время подачи и условия оплаты.',
+    },
+  },
+  {
+    key: 'digital_services',
+    title: 'Дизайн, разработка и маркетинг',
+    shortTitle: 'Дизайн и IT',
+    description: 'Дизайнер, разработчик сайтов, SMM-специалист, маркетолог.',
+    starterServices: [
+      {
+        title: 'Работа над проектом',
+        description: 'Назовите свою услугу: дизайн, разработка сайта или продвижение.',
+        duration: 0,
+        price: 0,
+      },
+      {
+        title: 'Обсуждение задачи / бриф',
+        description: 'Встреча для уточнения целей, объёма работ, сроков и бюджета.',
+        duration: 60,
+        price: 0,
+      },
+      {
+        title: 'Сопровождение проекта',
+        description: 'Поддержка, обновления или ведение продвижения за согласованный период.',
+        duration: 0,
+        price: 0,
+      },
+    ],
+    demo: {
+      eventType: 'Обсуждение нового проекта',
+      description: 'Учебная заявка: клиент хочет заказать проект. Нужно уточнить задачу, результат, сроки, бюджет и этапы оплаты.',
+      nextActionTitle: 'Согласовать бриф',
+      nextActionDescription: 'Уточнить задачу, материалы клиента, сроки, бюджет и условия предоплаты.',
+    },
+  },
+  {
     key: 'other',
     title: 'Другое / настрою сам',
     shortTitle: 'Другое',
@@ -262,7 +358,7 @@ export const buildDemoEventPayload = (
 export const getStatusEducationItems = (key) => {
   const preset = getOnboardingPreset(key)
   const confirmedWord =
-    preset.key === 'custom_products' || preset.key === 'other'
+    ['custom_products', 'repair_home', 'transport_delivery', 'digital_services', 'other'].includes(preset.key)
       ? 'заказ'
       : 'мероприятие'
 

@@ -3,6 +3,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
+import { modalsFuncAtom } from '@state/atoms'
+import AppButton from '@components/AppButton'
 import InputDuration from '@components/InputDuration'
 import IconCheckBox from '@components/IconCheckBox'
 import ComboBox from '@components/ComboBox'
@@ -22,11 +24,7 @@ import {
   SERVER_SYNC_QUEUE_CHANGED_EVENT,
 } from '@helpers/serverSyncQueue'
 import { useSiteSettingsQuery } from '@helpers/useEntityQueries'
-import {
-  FIRST_RUN_WIZARD_COMPLETED_KEY,
-  FIRST_RUN_WIZARD_SHOW_TOKEN_KEY,
-  SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY,
-} from '@helpers/firstRunWizard.mjs'
+import { SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY } from '@helpers/firstRunWizard.mjs'
 
 const TIME_ZONE_OPTIONS = [
   { value: 'UTC', name: 'UTC' },
@@ -44,6 +42,7 @@ const TIME_ZONE_OPTIONS = [
 ]
 
 const SettingsContent = () => {
+  const modals = useAtomValue(modalsFuncAtom)
   const { data: siteSettings = {} } = useSiteSettingsQuery()
   const [siteSettingsState, setSiteSettings] = useAtom(siteSettingsAtom)
   const [darkTheme, setDarkTheme] = useState(false)
@@ -164,7 +163,7 @@ const SettingsContent = () => {
         />
         {loggedUserActiveRole?.dev && (
           <LabeledContainer label="Конфиденциальность" noMargin>
-            <div className="flex flex-col w-full gap-3">
+            <div className="flex w-full flex-col gap-3">
               <IconCheckBox
                 label="Отключить синхронизацию с сервером"
                 checked={serverSyncDisabled}
@@ -201,7 +200,7 @@ const SettingsContent = () => {
                   </MutedText>
                   <button
                     type="button"
-                    className="flex items-center justify-center px-3 text-xs font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning h-9"
+                    className="action-icon-button action-icon-button--warning flex h-9 cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
                     onClick={() => {
                       clearServerSyncQueue()
                     }}
@@ -216,7 +215,7 @@ const SettingsContent = () => {
                   </MutedText>
                   <button
                     type="button"
-                    className="flex items-center justify-center px-3 text-xs font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning h-9"
+                    className="action-icon-button action-icon-button--warning flex h-9 cursor-pointer items-center justify-center rounded px-3 text-xs font-semibold"
                     onClick={() => {
                       if (typeof window === 'undefined') return
                       window.dispatchEvent(
@@ -269,33 +268,34 @@ const SettingsContent = () => {
               uncheckedIconColor={checkBoxColors.unchecked}
             />
             <MutedText className="text-gray-500">
-              Если включено, в редакторе заявки появятся поля «Передано
-              коллеге» и выбор коллеги. Если выключено, эти поля скрыты и
-              новые карточки ведутся как ваши собственные заказы.
+              Если включено, в редакторе заявки появятся поля «Передано коллеге»
+              и выбор коллеги. Если выключено, эти поля скрыты и новые карточки
+              ведутся как ваши собственные заказы.
             </MutedText>
           </div>
         </LabeledContainer>
-        <LabeledContainer label="Мастер запуска" noMargin>
-          <div className="flex items-center justify-between w-full gap-3">
+        <LabeledContainer label="Начало работы" noMargin>
+          <div className="flex w-full flex-col gap-3">
             <MutedText className="text-gray-500">
-              Снова откройте мастер первого запуска, чтобы обновить профиль,
-              город, специализацию, услуги и подсказки по статусам.
+              Обновите основные данные или попробуйте работу с заявкой на
+              учебном примере.
             </MutedText>
-            <button
-              type="button"
-              className="flex items-center justify-center h-10 px-3 text-sm font-semibold rounded cursor-pointer action-icon-button action-icon-button--warning"
-              onClick={() =>
-                saveSiteSettingsPatch({
-                  custom: {
-                    ...(siteSettingsState?.custom ?? {}),
-                    [FIRST_RUN_WIZARD_COMPLETED_KEY]: false,
-                    [FIRST_RUN_WIZARD_SHOW_TOKEN_KEY]: Date.now(),
-                  },
-                })
-              }
-            >
-              Запустить заново
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <AppButton
+                variant="secondary"
+                className="min-h-11 cursor-pointer"
+                onClick={() => modals.user?.firstRunWizard?.()}
+              >
+                Открыть мастер настройки
+              </AppButton>
+              <AppButton
+                variant="secondary"
+                className="min-h-11 cursor-pointer"
+                onClick={() => modals.user?.firstRunTour?.()}
+              >
+                Знакомство с CRM
+              </AppButton>
+            </div>
           </div>
         </LabeledContainer>
       </div>

@@ -6,11 +6,13 @@ test('serializeMobileClient не передаёт tenant, password и notificati
   const result = serializeMobileClient({
     _id: 'client-1',
     firstName: 'Анна',
+    messengerPushMuted: true,
     tenantId: 'tenant-secret',
     password: 'secret',
     notifications: { internal: true },
   })
   assert.equal(result.firstName, 'Анна')
+  assert.equal(result.messengerPushMuted, true)
   assert.equal('tenantId' in result, false)
   assert.equal('password' in result, false)
   assert.equal('notifications' in result, false)

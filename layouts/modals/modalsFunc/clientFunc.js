@@ -1,12 +1,14 @@
 import ErrorsList from '@components/ErrorsList'
 import DateInput from '@components/DateInput'
 import FormWrapper from '@components/FormWrapper'
+import CheckBox from '@components/CheckBox'
 import Input from '@components/Input'
 import InputWrapper from '@components/InputWrapper'
 import LabeledContainer from '@components/LabeledContainer'
 import PhoneInput from '@components/PhoneInput'
 import Textarea from '@components/Textarea'
 import { CLIENT_TYPES, DEFAULT_CLIENT } from '@helpers/constants'
+import { getCustomValue } from '@helpers/customSettings'
 import getPersonFullName from '@helpers/getPersonFullName'
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -18,6 +20,7 @@ import {
 import useErrors from '@helpers/useErrors'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { modalsFuncAtom } from '@state/atoms'
+import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { useClientQuery, useClientsQuery } from '@helpers/useClientsQuery'
@@ -105,6 +108,7 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
     )
     const setClient = useAtomValue(itemsFuncAtom).client.set
     const modalsFunc = useAtomValue(modalsFuncAtom)
+    const siteSettings = useAtomValue(siteSettingsAtom)
 
     const [fullName, setFullName] = useState(
       getPersonFullName(client ?? DEFAULT_CLIENT)
@@ -130,6 +134,9 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
         client?.preferredContactChannelOther ??
           DEFAULT_CLIENT.preferredContactChannelOther
       )
+    const [messengerPushMuted, setMessengerPushMuted] = useState(
+      client?.messengerPushMuted ?? DEFAULT_CLIENT.messengerPushMuted
+    )
     const [comment, setComment] = useState(
       client?.comment ?? DEFAULT_CLIENT.comment
     )
@@ -189,6 +196,19 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
       ]
     )
 
+    const enabledMessengerIntegrations = useMemo(() => {
+      const custom = siteSettings?.custom ?? {}
+      return [
+        getCustomValue(custom, 'telegramBusinessEnabled') === true &&
+          'Telegram',
+        getCustomValue(custom, 'avitoEnabled') === true && 'Avito',
+        getCustomValue(custom, 'vkGroupEnabled') === true && 'VK',
+      ].filter(Boolean)
+    }, [siteSettings?.custom])
+
+    const showMessengerNotificationSettings =
+      enabledMessengerIntegrations.length > 0
+
     const normalizePhoneValue = useCallback((value) => {
       if (!value) return null
       const digits = String(value).replace(/[^\d]/g, '')
@@ -212,6 +232,8 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
         (client?.preferredContactChannelOther ??
           DEFAULT_CLIENT.preferredContactChannelOther) !==
           preferredContactChannelOther ||
+        (client?.messengerPushMuted ?? DEFAULT_CLIENT.messengerPushMuted) !==
+          messengerPushMuted ||
         (client?.comment ?? DEFAULT_CLIENT.comment) !== comment ||
         JSON.stringify(
           normalizeSignificantDates(
@@ -240,6 +262,7 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
         vk,
         preferredContactChannel,
         preferredContactChannelOther,
+        messengerPushMuted,
         comment,
         significantDates,
         clientType,
@@ -331,6 +354,7 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
               preferredContactChannel === 'other'
                 ? preferredContactChannelOther.trim()
                 : '',
+            messengerPushMuted,
             comment: comment.trim(),
             significantDates: normalizeSignificantDates(significantDates),
             clientType,
@@ -363,6 +387,7 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
       vk,
       preferredContactChannel,
       preferredContactChannelOther,
+      messengerPushMuted,
       comment,
       significantDates,
       setClient,
@@ -581,6 +606,27 @@ const clientFunc = (clientId, clone = false, onSuccess, options = {}) => {
             onChange={setPreferredContactChannelOther}
             maxLength={100}
           />
+        )}
+        {showMessengerNotificationSettings && (
+          <InputWrapper label="Уведомления из мессенджеров" paddingY fitWidth>
+            <CheckBox
+              checked={messengerPushMuted}
+              onClick={() => setMessengerPushMuted((value) => !value)}
+              label={
+                <span>
+                  Не присылать push по входящим сообщениям этого клиента
+                  <span className="mt-1 block text-sm leading-5 text-gray-500">
+                    Включено для:{' '}
+                    {enabledMessengerIntegrations.join(', ')}. Сообщения
+                    останутся в переписке и в «Важном».
+                  </span>
+                </span>
+              }
+              noMargin
+              wrapperClassName="items-start"
+              labelClassName="text-sm text-gray-700"
+            />
+          </InputWrapper>
         )}
         <Textarea
           label="Комментарий"

@@ -202,12 +202,12 @@ const DevContent = () => {
             className="w-full sm:w-auto"
           />
         </div>
-        <div className="flex flex-col gap-3 rounded border border-amber-200 bg-amber-50 p-3">
-          <div className="text-sm text-amber-800">
+        <Notice tone="warning" className="flex flex-col gap-3 rounded p-3">
+          <div>
             Удалить все мероприятия, импортированные из Google Calendar, которые еще не
             отмечены как проверенные.
           </div>
-          <div className="text-xs text-amber-700">
+          <div className="text-xs">
             Удаление касается только данных в CRM и не затрагивает Google Calendar.
           </div>
           <Button
@@ -226,9 +226,9 @@ const DevContent = () => {
               Удалено мероприятий: <b>{cleanupResult.deleted ?? 0}</b>
             </Notice>
           )}
-        </div>
-        <div className="flex flex-col gap-3 rounded border border-sky-200 bg-sky-50 p-3">
-          <div className="text-sm text-sky-800">
+        </Notice>
+        <Notice tone="info" className="flex flex-col gap-3 rounded p-3">
+          <div>
             Экспортировать данные мероприятий для проверки парсинга (без
             организаторов, участников и ссылок).
           </div>
@@ -267,7 +267,7 @@ const DevContent = () => {
               )}
             </Notice>
           )}
-        </div>
+        </Notice>
         {error && (
           <Notice tone="error" role="alert" className="rounded-md">
             {error}
@@ -291,8 +291,8 @@ const DevContent = () => {
             )}
           </Notice>
         )}
-        <div className="flex flex-col gap-3 rounded border border-slate-200 bg-slate-50 p-3">
-          <div className="text-sm text-slate-800 font-semibold">
+        <Notice tone="neutral" className="flex flex-col gap-3 rounded p-3">
+          <div className="font-semibold">
             Генерация тестовых данных
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -372,9 +372,9 @@ const DevContent = () => {
               <div>Транзакции: <b>{generateResult.transactions ?? 0}</b></div>
             </Notice>
           )}
-        </div>
-        <div className="flex flex-col gap-3 rounded border border-violet-200 bg-violet-50 p-3">
-          <div className="text-sm text-violet-800">
+        </Notice>
+        <Notice tone="warning" className="flex flex-col gap-3 rounded p-3">
+          <div>
             Преобразовать все заявки из коллекции requests в мероприятия со статусом &quot;draft&quot;.
           </div>
           <Button
@@ -401,7 +401,7 @@ const DevContent = () => {
               </div>
             </Notice>
           )}
-        </div>
+        </Notice>
       </SectionCard>
     </div>
   )

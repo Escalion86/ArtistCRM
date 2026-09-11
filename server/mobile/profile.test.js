@@ -60,3 +60,9 @@ test('mobile profile serializer возвращает контакты без pas
   assert.equal(json.includes('oauth-secret'), false)
   assert.equal(json.includes('999'), false)
 })
+test('mobile profile preserves a combined name longer than the former first-name limit', () => {
+  const fullName = `${'А'.repeat(70)} ${'Б'.repeat(70)} ${'В'.repeat(70)}`
+  const result = normalizeMobileProfilePatch({ firstName: fullName, secondName: '', thirdName: '' })
+  assert.equal(result.update.firstName, fullName)
+  assert.equal(result.update.secondName, '')
+})

@@ -1,40 +1,39 @@
+import { useEffect, useRef, useState } from 'react'
+import { useAtom, useAtomValue } from 'jotai'
+import { useRouter } from 'next/navigation'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faSun } from '@fortawesome/free-solid-svg-icons/faSun'
+import { faMoon } from '@fortawesome/free-solid-svg-icons/faMoon'
 import ComboBox from '@components/ComboBox'
-import FormWrapper from '@components/FormWrapper'
-import IconCheckBox from '@components/IconCheckBox'
 import Input from '@components/Input'
 import InputDuration from '@components/InputDuration'
 import InputImages from '@components/InputImages'
-import Notice from '@components/Notice'
-import OnboardingStatusGuide from '@components/OnboardingStatusGuide'
 import PhoneInput from '@components/PhoneInput'
 import Textarea from '@components/Textarea'
-import { faTelegramPlane } from '@fortawesome/free-brands-svg-icons/faTelegramPlane'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import Notice from '@components/Notice'
+import { FirstRunTourModal } from './firstRunTourFunc'
 import { getData, postData } from '@helpers/CRUD'
+import getPersonFullName from '@helpers/getPersonFullName'
+import { buildSingleNamePatch } from '@helpers/personName.mjs'
 import {
   ONBOARDING_ACTIVITY_PRESETS,
   areOnboardingServicesValid,
-  buildDemoEventPayload,
-  getOnboardingPreset,
   getStarterServicesForPreset,
 } from '@helpers/onboardingPresets.mjs'
 import {
-  SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY,
+  FIRST_RUN_STEPS,
+  FIRST_RUN_STEP_KEY,
+  FIRST_RUN_TOUR_KEY,
+  getFirstRunStepIndex,
   buildFirstRunCompletionCustomPatch,
 } from '@helpers/firstRunWizard.mjs'
 import { reachGoalOnce } from '@helpers/metrikaGoals'
 import { normalizeTelegramInput } from '@helpers/socialInput'
-import { normalizeTelegramCommunityUrl } from '@helpers/onboardingCommunity.mjs'
-import useSnackbar from '@helpers/useSnackbar'
 import useOnboardingTown from '@helpers/useOnboardingTown'
-import eventsAtom from '@state/atoms/eventsAtom'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
 import servicesAtom from '@state/atoms/servicesAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
-import cn from 'classnames'
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 
 const TIME_ZONE_OPTIONS = [
   { value: 'UTC', name: 'UTC' },
@@ -51,912 +50,632 @@ const TIME_ZONE_OPTIONS = [
   { value: 'Asia/Kamchatka', name: 'UTC+12 Камчатка' },
 ]
 
-const ACTIVITY_PRESET_KEY = 'onboardingActivityPreset'
-const STARTER_SERVICES_CREATED_KEY = 'onboardingStarterServicesCreated'
-const DEMO_EVENT_CREATED_KEY = 'onboardingDemoEventCreated'
-const DEMO_EVENT_SKIPPED_KEY = 'onboardingDemoEventSkipped'
+const titles = [
+  'Как вас зовут?',
+  'Где вы работаете?',
+  'Чем вы занимаетесь?',
+  'Что у вас заказывают?',
+]
+const descriptions = [
+  'Укажите фамилию и имя, отчество.',
+  'Проверьте город и время, чтобы напоминания приходили вовремя.',
+  'Предложим подходящую услугу для начала работы.',
+  'Достаточно одной услуги. Стоимость и подробности можно уточнить позже.',
+]
 
-const STEPS = Object.freeze([
-  'profile',
-  'environment',
-  'specialization',
-  'services',
-  'transfer',
-  'statuses',
-  'finish',
-])
-
-const STEP_META = Object.freeze({
-  profile: {
-    title: 'Профиль',
-    description: 'Контакты попадут в документы, напоминания и карточку профиля.',
-  },
-  environment: {
-    title: 'Тема и время',
-    description: 'Город и часовой пояс нужны для корректных дат и напоминаний.',
-  },
-  specialization: {
-    title: 'Специализация',
-    description: 'Выберите сферу, чтобы получить подходящие примеры услуг.',
-  },
-  services: {
-    title: 'Услуги',
-    description: 'Отредактируйте список или добавьте свои услуги. Нужна хотя бы одна.',
-  },
-  transfer: {
-    title: 'Передача коллеге',
-    description: 'Настройка включает или скрывает поля передачи заказа.',
-  },
-  statuses: {
-    title: 'Статусы заявок',
-    description: 'Коротко о пути карточки от интереса до завершения.',
-  },
-  finish: {
-    title: 'Готово',
-    description: 'Мастер можно открыть снова в настройках.',
-  },
-})
-
-const normalizeTowns = (towns = []) =>
-  Array.from(
-    new Set(
-      towns
-        .map((town) => (typeof town === 'string' ? town.trim() : ''))
-        .filter(Boolean)
-    )
-  )
-
-const normalizePhoneValue = (value) =>
-  value ? String(value).replace(/[^\d]/g, '') : ''
-
-const getCustomValue = (custom, key) => {
-  if (!custom) return undefined
-  if (typeof custom.get === 'function') return custom.get(key)
-  return custom[key]
-}
-
-const getDetectedTimeZone = () => {
-  if (typeof Intl === 'undefined') return ''
+const detectTimeZone = () => {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || ''
-  } catch (error) {
-    return ''
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
   }
 }
 
-const mergeCustom = (siteSettings, patch) => ({
-  ...(siteSettings?.custom ?? {}),
-  ...(patch ?? {}),
-})
+export const FirstRunWizardModal = ({
+  closeModal,
+  setOnConfirmFunc,
+  setDisableConfirm,
+  setConfirmButtonName,
+  setTitle,
+  setCloseButtonShow,
+  setOnCloseButtonFunc,
+}) => {
+  const [user, setUser] = useAtom(loggedUserAtom)
+  const [settings, setSettings] = useAtom(siteSettingsAtom)
+  const isRepeatRun = useRef(settings?.custom?.firstRunWizardCompleted === true)
+  const closeRef = useRef(closeModal)
+  closeRef.current = closeModal
+  const [services, setServices] = useAtom(servicesAtom)
+  const items = useAtomValue(itemsFuncAtom)
+  const router = useRouter()
+  const [stepIndex, setStepIndex] = useState(() =>
+    getFirstRunStepIndex(settings?.custom)
+  )
+  const [phase, setPhase] = useState('setup')
+  const [fullName, setFullName] = useState(() => getPersonFullName(user))
+  const [phone, setPhone] = useState(user?.phone ?? '')
+  const [whatsapp, setWhatsapp] = useState(user?.whatsapp ?? '')
+  const [telegram, setTelegram] = useState(user?.telegram ?? '')
+  const [images, setImages] = useState(user?.images ?? [])
+  const [theme, setTheme] = useState(null)
 
-const userOnboardingFunc = () => {
-  const FirstRunWizardModal = ({
-    closeModal,
-    setOnConfirmFunc,
-    setDisableConfirm,
-    setConfirmButtonName,
-    setDeclineButtonShow,
-    setCloseButtonShow,
-    setTitle,
-  }) => {
-    const snackbar = useSnackbar()
-    const [loggedUser, setLoggedUser] = useAtom(loggedUserAtom)
-    const [siteSettings, setSiteSettings] = useAtom(siteSettingsAtom)
-    const [services, setServices] = useAtom(servicesAtom)
-    const events = useAtomValue(eventsAtom)
-    const setEvents = useSetAtom(eventsAtom)
-    const itemsFunc = useAtomValue(itemsFuncAtom)
+  useEffect(() => {
+    setTheme(document.body.classList.contains('theme-dark') ? 'dark' : 'light')
+  }, [])
 
-    const detectedTimeZone = useMemo(() => getDetectedTimeZone(), [])
-    const timeZoneOptions = useMemo(() => {
-      if (!detectedTimeZone) return TIME_ZONE_OPTIONS
-      const exists = TIME_ZONE_OPTIONS.some(
-        (item) => item.value === detectedTimeZone
-      )
-      if (exists) return TIME_ZONE_OPTIONS
-      return [
-        { value: detectedTimeZone, name: detectedTimeZone },
-        ...TIME_ZONE_OPTIONS,
-      ]
-    }, [detectedTimeZone])
+  const changeTheme = (value) => {
+    setTheme(value)
+    document.body.classList.toggle('theme-dark', value === 'dark')
+    try {
+      window.localStorage.setItem('theme', value)
+    } catch {
+      // The selected theme still applies for this session when storage is unavailable.
+    }
+  }
+  const { town, changeTown, isDetected } = useOnboardingTown(
+    settings?.defaultTown ?? '',
+    !user?.impersonation?.active
+  )
+  const [timeZone, setTimeZone] = useState(() =>
+    settings?.custom?.timeZoneConfirmed ? settings.timeZone : detectTimeZone()
+  )
+  const timeZoneOptions = TIME_ZONE_OPTIONS.some(
+    (item) => item.value === timeZone
+  )
+    ? TIME_ZONE_OPTIONS
+    : [...TIME_ZONE_OPTIONS, { value: timeZone, name: timeZone }]
+  const [preset, setPreset] = useState(
+    settings?.custom?.onboardingActivityPreset || 'events'
+  )
+  const [drafts, setDrafts] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [attempted, setAttempted] = useState(false)
+  const [error, setError] = useState('')
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  const lock = useRef(false)
+  useEffect(() => {
+    setCloseButtonShow?.(isRepeatRun.current)
+    if (isRepeatRun.current) {
+      setOnCloseButtonFunc?.(() => {
+        if (!lock.current) closeRef.current()
+      })
+    }
+  }, [setCloseButtonShow, setOnCloseButtonFunc])
+  const confirmRef = useRef(null)
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
+  const step = FIRST_RUN_STEPS[stepIndex]
 
-    const custom = siteSettings?.custom ?? {}
-    const storedPresetKey =
-      getCustomValue(custom, ACTIVITY_PRESET_KEY) || 'events'
-    const storedTransferSetting =
-      getCustomValue(custom, SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY) === true
-
-    const [stepIndex, setStepIndex] = useState(0)
-    const [firstName, setFirstName] = useState(loggedUser?.firstName ?? '')
-    const [secondName, setSecondName] = useState(loggedUser?.secondName ?? '')
-    const [thirdName, setThirdName] = useState(loggedUser?.thirdName ?? '')
-    const [phone, setPhone] = useState(loggedUser?.phone ?? '')
-    const [whatsapp, setWhatsapp] = useState(loggedUser?.whatsapp ?? null)
-    const [telegram, setTelegram] = useState(loggedUser?.telegram ?? '')
-    const [images, setImages] = useState(loggedUser?.images ?? [])
-    const { town, changeTown, isDetected: isTownDetected } = useOnboardingTown(
-      siteSettings?.defaultTown ?? '',
-      !loggedUser?.impersonation?.active
-    )
-    const [timeZone, setTimeZone] = useState(() => {
-      const current = siteSettings?.timeZone ?? 'Asia/Krasnoyarsk'
-      const confirmed = siteSettings?.custom?.timeZoneConfirmed === true
-      if (!confirmed && detectedTimeZone) return detectedTimeZone
-      return current
+  useEffect(() => {
+    if (Array.isArray(services)) return
+    let active = true
+    getData('/api/services').then((result) => {
+      if (!active) return
+      if (Array.isArray(result)) setServices(result)
+      else setLoadFailed(true)
     })
-    const [isDarkTheme, setIsDarkTheme] = useState(false)
-    const [selectedPresetKey, setSelectedPresetKey] = useState(storedPresetKey)
-    const [serviceDrafts, setServiceDrafts] = useState(null)
-    const serviceDraftPresetRef = useRef(null)
-    const serviceKeyRef = useRef(0)
-    const [transferEnabled, setTransferEnabled] = useState(
-      storedTransferSetting
+    return () => {
+      active = false
+    }
+  }, [services, setServices, loadAttempt])
+
+  useEffect(() => {
+    if (step !== 'services' || drafts !== null || !Array.isArray(services))
+      return
+    setDrafts(
+      (services.length
+        ? services
+        : getStarterServicesForPreset(preset).slice(0, 1)
+      ).map((service) => ({
+        ...service,
+        draftKey: service._id || crypto.randomUUID(),
+      }))
     )
-    const [createDemoRequest, setCreateDemoRequest] = useState(false)
-    const [telegramCommunityUrl, setTelegramCommunityUrl] = useState('')
-    const [isSaving, setIsSaving] = useState(false)
-    const [servicesLoaded, setServicesLoaded] = useState(
-      Array.isArray(services)
-    )
-    const confirmRef = useRef(null)
-    const hadServicesOnOpenRef = useRef(
-      Array.isArray(services) && services.length > 0
-    )
+  }, [step, drafts, services, preset])
 
-    const visibleSteps = useMemo(
-      () =>
-        hadServicesOnOpenRef.current
-          ? STEPS.filter((item) => item !== 'services')
-          : STEPS,
-      []
-    )
-    const step = visibleSteps[stepIndex]
-    const selectedPreset = getOnboardingPreset(selectedPresetKey)
-    const hasAnyEvent = Array.isArray(events) && events.length > 0
-    const isLastStep = stepIndex === visibleSteps.length - 1
-    const demoText = `Создадим учебную заявку на завтра с 14:00 до 15:00 в выбранном часовом поясе с первой услугой из вашего списка. В её карточке добавим задачу «${selectedPreset.demo.nextActionTitle}» на завтра в 12:00, чтобы показать, как планировать работу с клиентом. Это пример — связываться с реальным клиентом не нужно.`
-    const areServicesValid = areOnboardingServicesValid(serviceDrafts)
-
-    const errors = useMemo(
-      () => ({
-        firstName: !firstName.trim() ? 'Укажите имя' : null,
-        secondName: !secondName.trim() ? 'Укажите фамилию' : null,
-        town: !town.trim() ? 'Укажите город' : null,
-        timeZone: !timeZone ? 'Укажите часовой пояс' : null,
-        preset: !selectedPresetKey ? 'Выберите специализацию' : null,
-      }),
-      [firstName, secondName, town, timeZone, selectedPresetKey]
-    )
-
-    const isStepValid = useMemo(() => {
-      if (step === 'profile') return !errors.firstName && !errors.secondName
-      if (step === 'environment') return !errors.town && !errors.timeZone
-      if (step === 'specialization') return !errors.preset && servicesLoaded
-      if (step === 'services') return areServicesValid
-      return true
-    }, [areServicesValid, errors, servicesLoaded, step])
-
-    useEffect(() => {
-      setDeclineButtonShow(false)
-      setCloseButtonShow(false)
-      const storedTheme = localStorage.getItem('theme')
-      const isDark = storedTheme === 'dark'
-      setIsDarkTheme(isDark)
-      document.body.classList.toggle('theme-dark', isDark)
-    }, [setCloseButtonShow, setDeclineButtonShow])
-
-    useEffect(() => {
-      const meta = STEP_META[step]
-      setTitle(`Первичная настройка: ${meta.title}`)
-      setConfirmButtonName(isLastStep ? 'Завершить' : 'Далее')
-      setDisableConfirm(isSaving || !isStepValid)
-    }, [
-      isLastStep,
-      isSaving,
-      isStepValid,
-      setConfirmButtonName,
-      setDisableConfirm,
-      setTitle,
-      step,
-    ])
-
-    useEffect(() => {
-      if (servicesLoaded) return undefined
-      let cancelled = false
-      getData('/api/services').then((items) => {
-        if (cancelled) return
-        if (Array.isArray(items)) setServices(items)
-        setServicesLoaded(true)
-      })
-      return () => {
-        cancelled = true
-      }
-    }, [servicesLoaded, setServices])
-
-    useEffect(() => {
-      let cancelled = false
-      getData('/api/site/community').then((data) => {
-        if (cancelled) return
-        setTelegramCommunityUrl(
-          normalizeTelegramCommunityUrl(data?.telegramUrl)
-        )
-      })
-      return () => {
-        cancelled = true
-      }
-    }, [])
-
-    const saveCustom = useCallback(
-      async (customPatch) =>
-        postData(
-          '/api/site',
-          {
-            custom: mergeCustom(siteSettings, customPatch),
-          },
-          (data) => setSiteSettings(data),
-          null,
-          false,
-          null
-        ),
-      [setSiteSettings, siteSettings]
-    )
-
-    const saveProfile = useCallback(async () => {
-      if (!loggedUser?._id || !itemsFunc?.user?.set) return false
-      const updatedUser = await itemsFunc.user.set({
-        _id: loggedUser._id,
-        firstName: firstName.trim(),
-        secondName: secondName.trim(),
-        thirdName: thirdName.trim(),
-        phone: normalizePhoneValue(phone),
-        whatsapp: normalizePhoneValue(whatsapp) || null,
-        telegram: normalizeTelegramInput(telegram),
-        images,
-      })
-      if (updatedUser?._id) setLoggedUser(updatedUser)
-      return true
-    }, [
-      firstName,
-      images,
-      itemsFunc?.user,
-      loggedUser?._id,
-      phone,
-      secondName,
-      setLoggedUser,
-      telegram,
-      thirdName,
-      whatsapp,
-    ])
-
-    const saveEnvironment = useCallback(async () => {
-      const trimmedTown = town.trim()
-      const nextTowns = normalizeTowns([
-        ...(siteSettings?.towns ?? []),
-        trimmedTown,
-      ])
-
-      await postData(
-        '/api/site',
-        {
-          timeZone,
-          defaultTown: trimmedTown,
-          towns: nextTowns,
-          custom: mergeCustom(siteSettings, { timeZoneConfirmed: true }),
-        },
-        (data) => setSiteSettings(data),
-        null,
-        false,
-        null
+  const saveSettings = async (patch) => {
+    const next = await postData('/api/site', patch)
+    if (!next)
+      throw new Error(
+        'Не удалось сохранить настройку. Проверьте соединение и повторите.'
       )
-      fetch('/api/acquisition/activity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: 'onboarding_complete' }),
-        keepalive: true,
-      }).catch(() => null)
-      reachGoalOnce('onboarding_complete')
+    settingsRef.current = next
+    setSettings(next)
+    return next
+  }
+  const saveCustom = (patch) =>
+    saveSettings({ custom: { ...settingsRef.current?.custom, ...patch } })
+  const leave = async () => {
+    if (lock.current) return
+    lock.current = true
+    setBusy(true)
+    try {
+      await saveCustom({ [FIRST_RUN_TOUR_KEY]: 'skipped' })
+      closeModal()
+      router.push('/cabinet/attention')
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      lock.current = false
+      setBusy(false)
+    }
+  }
 
-      const themeValue = isDarkTheme ? 'dark' : 'light'
-      localStorage.setItem('theme', themeValue)
-      document.body.classList.toggle('theme-dark', isDarkTheme)
-      return true
-    }, [isDarkTheme, setSiteSettings, siteSettings, timeZone, town])
+  const valid =
+    step === 'profile'
+      ? Boolean(fullName.trim())
+      : step === 'environment'
+        ? Boolean(town.trim() && timeZone)
+        : step === 'specialization'
+          ? ONBOARDING_ACTIVITY_PRESETS.some((item) => item.key === preset)
+          : areOnboardingServicesValid(drafts)
 
-    const saveSpecialization = useCallback(async () => {
-      const saved = await saveCustom({ [ACTIVITY_PRESET_KEY]: selectedPresetKey })
-      if (!saved) return false
-      if (hadServicesOnOpenRef.current) return true
-      if (
-        !serviceDrafts ||
-        (serviceDraftPresetRef.current !== selectedPresetKey &&
-          !serviceDrafts.some((service) => service._id))
-      ) {
-        const initialServices = services?.length
-          ? services
-          : selectedPresetKey === 'other'
-            ? [{ title: '', description: '', duration: 0, price: 0 }]
-            : getStarterServicesForPreset(selectedPresetKey)
-        setServiceDrafts(initialServices.map((service) => ({
-          ...service,
-          draftKey: ++serviceKeyRef.current,
-        })))
-      }
-      serviceDraftPresetRef.current = selectedPresetKey
-      return true
-    }, [saveCustom, selectedPresetKey, serviceDrafts, services])
-
-    const saveServices = useCallback(async () => {
-      if (!areServicesValid || !itemsFunc?.service?.set) return false
-      for (const draft of serviceDrafts) {
-        const saved = await itemsFunc.service.set({
-          _id: draft._id,
-          title: draft.title.trim(),
-          description: draft.description ?? '',
-          price: Number(draft.price),
-          duration: Number(draft.duration),
-          images: draft.images ?? [],
-          groupId: draft.groupId ?? null,
-        }, false, true)
-        if (!saved?._id) {
-          snackbar.error('Не удалось сохранить услугу. Попробуйте ещё раз.')
-          return false
-        }
-        // Keep each saved ID so a retry after a partial failure updates it.
-        setServiceDrafts((prev) => prev.map((item) =>
-          item.draftKey === draft.draftKey
-            ? { ...saved, draftKey: item.draftKey }
-            : item
-        ))
-      }
-      const saved = await saveCustom({ [STARTER_SERVICES_CREATED_KEY]: true })
-      return Boolean(saved)
-    }, [areServicesValid, itemsFunc?.service, saveCustom, serviceDrafts, snackbar])
-
-    const saveTransferSetting = useCallback(async () => {
-      await saveCustom({
-        [SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY]: transferEnabled,
-      })
-      return true
-    }, [saveCustom, transferEnabled])
-
-    const createDemoEvent = useCallback(async () => {
-      if (!createDemoRequest || hasAnyEvent || !itemsFunc?.event?.set) return
-
-      const firstServiceId = serviceDrafts?.[0]?._id ?? services?.[0]?._id
-      if (!firstServiceId) throw new Error('Не сохранена первая услуга')
-      const created = await itemsFunc.event.set(
-        buildDemoEventPayload(selectedPresetKey, [firstServiceId], { timeZone }),
-        false,
-        true
-      )
-
-      if (!created?._id) throw new Error('Не удалось создать учебную заявку')
-      if (created?._id) {
-        setEvents((prev) => {
-          const existingIds = new Set((prev ?? []).map((item) => item?._id))
-          if (existingIds.has(created._id)) return prev
-          return [...(prev ?? []), created]
+  const saveStep = async () => {
+    if (lock.current) return
+    setAttempted(true)
+    setError('')
+    if (!valid) return
+    lock.current = true
+    setBusy(true)
+    try {
+      if (step === 'profile') {
+        const saved = await items?.user?.set({
+          _id: user._id,
+          ...buildSingleNamePatch(fullName),
+          phone: String(phone || '').replace(/[^\d]/g, ''),
+          whatsapp: String(whatsapp || '').replace(/[^\d]/g, '') || null,
+          telegram: normalizeTelegramInput(telegram),
+          images,
         })
-        await saveCustom({ [DEMO_EVENT_CREATED_KEY]: true })
+        if (!saved?._id)
+          throw new Error('Не удалось сохранить профиль. Повторите попытку.')
+        setUser(saved)
       }
-    }, [
-      createDemoRequest,
-      hasAnyEvent,
-      itemsFunc?.event,
-      saveCustom,
-      selectedPresetKey,
-      serviceDrafts,
-      services,
-      setEvents,
-      timeZone,
-    ])
-
-    const completeWizard = useCallback(async () => {
-      await createDemoEvent()
-      if (!createDemoRequest) {
-        await saveCustom({ [DEMO_EVENT_SKIPPED_KEY]: true })
+      if (step === 'environment') {
+        const city = town.trim()
+        await saveSettings({
+          defaultTown: city,
+          timeZone,
+          towns: [...new Set([...(settingsRef.current?.towns ?? []), city])],
+          custom: { ...settingsRef.current?.custom, timeZoneConfirmed: true },
+        })
       }
-      await postData(
-        '/api/site',
-        {
-          custom: buildFirstRunCompletionCustomPatch({
-            existing: siteSettings?.custom ?? {},
-          }),
-        },
-        (data) => setSiteSettings(data),
-        null,
-        false,
-        null
-      )
-    }, [
-      createDemoEvent,
-      createDemoRequest,
-      saveCustom,
-      setSiteSettings,
-      siteSettings?.custom,
-    ])
-
-    const saveCurrentStep = useCallback(async () => {
-      if (!isStepValid) return false
-      setIsSaving(true)
-      try {
-        if (step === 'profile') return await saveProfile()
-        if (step === 'environment') return await saveEnvironment()
-        if (step === 'specialization') return await saveSpecialization()
-        if (step === 'services') return await saveServices()
-        if (step === 'transfer') return await saveTransferSetting()
-        return true
-      } catch (error) {
-        console.error('First run wizard save error', error)
-        snackbar.error('Не удалось сохранить шаг настройки')
-        return false
-      } finally {
-        setIsSaving(false)
-      }
-    }, [
-      isStepValid,
-      saveEnvironment,
-      saveProfile,
-      saveServices,
-      saveSpecialization,
-      saveTransferSetting,
-      snackbar,
-      step,
-    ])
-
-    const handleConfirm = useCallback(async () => {
-      const saved = await saveCurrentStep()
-      if (!saved) return
-      if (isLastStep) {
-        setIsSaving(true)
-        try {
-          await completeWizard()
-          closeModal()
-        } catch (error) {
-          console.error('First run wizard complete error', error)
-          snackbar.error('Не удалось завершить мастер настройки')
-        } finally {
-          setIsSaving(false)
+      if (step === 'specialization')
+        await saveCustom({ onboardingActivityPreset: preset })
+      if (step === 'services') {
+        for (const draft of drafts) {
+          const saved = await items?.service?.set(
+            {
+              _id: draft._id,
+              title: draft.title.trim(),
+              description: draft.description ?? '',
+              price: Number(draft.price),
+              duration: Number(draft.duration),
+              images: draft.images ?? [],
+              groupId: draft.groupId ?? null,
+            },
+            false,
+            true
+          )
+          if (!saved?._id)
+            throw new Error('Не удалось сохранить услугу. Повторите попытку.')
+          // Preserve IDs immediately, including retries after a partial save.
+          setDrafts((prev) =>
+            prev.map((item) =>
+              item.draftKey === draft.draftKey
+                ? { ...saved, draftKey: item.draftKey }
+                : item
+            )
+          )
         }
-        return
+        await saveSettings({
+          custom: {
+            ...buildFirstRunCompletionCustomPatch({
+              existing: settingsRef.current?.custom,
+            }),
+            [FIRST_RUN_STEP_KEY]: null,
+            onboardingStarterServicesCreated: true,
+          },
+        })
+        fetch('/api/acquisition/activity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event: 'onboarding_complete' }),
+          keepalive: true,
+        }).catch(() => null)
+        reachGoalOnce('onboarding_complete')
+        setPhase('choice')
+      } else {
+        await saveCustom({
+          [FIRST_RUN_STEP_KEY]: FIRST_RUN_STEPS[stepIndex + 1],
+        })
+        setStepIndex((value) => value + 1)
       }
-      setStepIndex((value) => Math.min(value + 1, visibleSteps.length - 1))
-    }, [
-      closeModal,
-      completeWizard,
-      isLastStep,
-      saveCurrentStep,
-      snackbar,
-      visibleSteps.length,
-    ])
+      setAttempted(false)
+    } catch (error) {
+      setError(error.message || 'Не удалось сохранить шаг. Повторите попытку.')
+    } finally {
+      lock.current = false
+      setBusy(false)
+    }
+  }
+  confirmRef.current =
+    phase === 'setup'
+      ? saveStep
+      : () => {
+          setError('')
+          setPhase('tour')
+        }
 
-    useEffect(() => {
-      confirmRef.current = handleConfirm
-    }, [handleConfirm])
+  useEffect(() => {
+    setOnConfirmFunc(
+      phase === 'tour' ? undefined : () => confirmRef.current?.()
+    )
+  }, [phase, setOnConfirmFunc])
+  useEffect(() => {
+    setTitle(
+      phase === 'setup'
+        ? titles[stepIndex]
+        : phase === 'choice'
+          ? 'Всё готово к работе'
+          : 'Знакомство с CRM'
+    )
+    setConfirmButtonName(
+      phase === 'choice'
+        ? 'Показать на примере'
+        : stepIndex === 3
+          ? 'Сохранить и продолжить'
+          : 'Далее'
+    )
+    setDisableConfirm(
+      busy || (phase === 'setup' && step === 'services' && drafts === null)
+    )
+  }, [
+    phase,
+    stepIndex,
+    step,
+    drafts,
+    busy,
+    setTitle,
+    setConfirmButtonName,
+    setDisableConfirm,
+  ])
 
-    useEffect(() => {
-      setOnConfirmFunc(() => confirmRef.current?.())
-    }, [setOnConfirmFunc])
-
-    const goToPreviousStep = () =>
-      setStepIndex((value) => Math.max(value - 1, 0))
-
-    const renderProgress = () => (
-      <div className="mb-4 flex flex-col gap-2">
-        <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
-          <span>
-            Шаг {stepIndex + 1} из {visibleSteps.length}
-          </span>
-          {stepIndex > 0 && (
-            <button
-              type="button"
-              className="cursor-pointer text-gray-600 underline-offset-2 hover:underline"
-              onClick={goToPreviousStep}
-              disabled={isSaving}
-            >
-              Назад
-            </button>
-          )}
-        </div>
-        <div
-          className="grid gap-1"
-          style={{
-            gridTemplateColumns: `repeat(${visibleSteps.length}, minmax(0, 1fr))`,
-          }}
+  const updateDraft = (key, field, value) =>
+    setDrafts((prev) =>
+      prev.map((item) =>
+        item.draftKey === key ? { ...item, [field]: value } : item
+      )
+    )
+  if (phase === 'tour') return <FirstRunTourModal closeModal={closeModal} />
+  if (phase === 'choice')
+    return (
+      <div className="first-run flex flex-col gap-4">
+        <p>
+          Посмотрите на одной заявке, как не забыть о клиенте и вовремя получить
+          задаток.
+        </p>
+        <p className="first-run-muted text-sm">
+          Знакомство можно пропустить и открыть позже в настройках.
+        </p>
+        <button
+          className="first-run-link self-start"
+          type="button"
+          disabled={busy}
+          onClick={leave}
         >
-          {visibleSteps.map((item, index) => (
-            <div
-              key={item}
-              className={cn(
-                'h-1.5 rounded-full',
-                index <= stepIndex ? 'bg-general' : 'bg-gray-200'
-              )}
-            />
-          ))}
-        </div>
-        <Notice tone="neutral" className="rounded-md">
-          {STEP_META[step].description}
-        </Notice>
-      </div>
-    )
-
-    const renderProfileStep = () => (
-      <FormWrapper className="flex flex-col gap-3">
-        <Notice tone="info" className="rounded-md">
-          Заполните данные, по которым клиенты и документы будут узнавать вас.
-          Фото можно добавить сейчас или позже в настройках профиля.
-        </Notice>
-        <InputImages
-          label="Фото профиля"
-          directory="users"
-          images={images}
-          onChange={setImages}
-          maxImages={1}
-          fullWidth
-        />
-        <div className="grid grid-cols-1 gap-2 tablet:grid-cols-3">
-          <Input
-            label="Имя"
-            value={firstName}
-            onChange={setFirstName}
-            error={errors.firstName}
-            required
-            noMargin
-          />
-          <Input
-            label="Фамилия"
-            value={secondName}
-            onChange={setSecondName}
-            error={errors.secondName}
-            required
-            noMargin
-          />
-          <Input
-            label="Отчество"
-            value={thirdName}
-            onChange={setThirdName}
-            noMargin
-          />
-        </div>
-        <div className="grid grid-cols-1 gap-2 tablet:grid-cols-3">
-          <PhoneInput
-            label="Телефон"
-            value={phone}
-            onChange={setPhone}
-            noMargin
-          />
-          <PhoneInput
-            label="Whatsapp"
-            value={whatsapp}
-            onChange={setWhatsapp}
-            noMargin
-          />
-          <Input
-            prefix="@"
-            label="Telegram"
-            value={telegram}
-            onChange={(value) => setTelegram(normalizeTelegramInput(value))}
-            noMargin
-          />
-        </div>
-      </FormWrapper>
-    )
-
-    const renderEnvironmentStep = () => (
-      <FormWrapper className="flex flex-col gap-3">
-        <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2">
-          <button
-            type="button"
-            className={cn(
-              'cursor-pointer rounded-md border px-3 py-3 text-left text-sm transition',
-              !isDarkTheme
-                ? 'border-general bg-general/10 text-gray-900'
-                : 'border-gray-200 bg-white text-gray-700'
-            )}
-            onClick={() => {
-              setIsDarkTheme(false)
-              localStorage.setItem('theme', 'light')
-              document.body.classList.remove('theme-dark')
-            }}
-          >
-            <span className="block font-semibold">Светлая тема</span>
-            <span className="mt-1 block text-xs text-gray-500">
-              Спокойный режим для работы днем.
-            </span>
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'cursor-pointer rounded-md border px-3 py-3 text-left text-sm transition',
-              isDarkTheme
-                ? 'border-general bg-general/10 text-gray-900'
-                : 'border-gray-200 bg-white text-gray-700'
-            )}
-            onClick={() => {
-              setIsDarkTheme(true)
-              localStorage.setItem('theme', 'dark')
-              document.body.classList.add('theme-dark')
-            }}
-          >
-            <span className="block font-semibold">Темная тема</span>
-            <span className="mt-1 block text-xs text-gray-500">
-              Удобно вечером и на темных площадках.
-            </span>
-          </button>
-        </div>
-        <Input
-          label="Основной город"
-          value={town}
-          onChange={changeTown}
-          error={errors.town}
-          required
-          fullWidth
-          noMargin
-        />
-        {isTownDetected && (
-          <Notice tone="neutral" className="rounded-md text-sm" role="status">
-            Город определён по IP. Проверьте его и при необходимости исправьте:
-            VPN или мобильная сеть могут повлиять на точность.
+          Перейти в кабинет
+        </button>
+        {error && (
+          <Notice tone="error" role="alert">
+            {error}{' '}
+            <button
+              className="cursor-pointer underline"
+              type="button"
+              onClick={() => {
+                closeModal()
+                router.push('/cabinet/attention')
+              }}
+            >
+              Перейти без сохранения результата знакомства
+            </button>
           </Notice>
         )}
-        <ComboBox
-          label="Часовой пояс"
-          items={timeZoneOptions}
-          value={timeZone}
-          onChange={setTimeZone}
-          error={errors.timeZone}
-          required
-          fullWidth
-          noMargin
-        />
-      </FormWrapper>
+      </div>
     )
-
-    const renderSpecializationStep = () => (
-      <FormWrapper className="flex flex-col gap-3">
-        <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2">
-          {ONBOARDING_ACTIVITY_PRESETS.map((preset) => (
-            <button
-              type="button"
-              key={preset.key}
-              onClick={() => setSelectedPresetKey(preset.key)}
-              className={cn(
-                'cursor-pointer rounded-md border px-3 py-2 text-left text-sm transition hover:border-general',
-                selectedPreset.key === preset.key
-                  ? 'border-general bg-general/10 text-gray-900'
-                  : 'border-gray-200 bg-white text-gray-700'
-              )}
-            >
-              <span className="font-semibold">{preset.title}</span>
-              <span className="mt-0.5 block text-xs text-gray-500">
-                {preset.description}
-              </span>
-            </button>
-          ))}
-        </div>
-      </FormWrapper>
-    )
-
-    const updateServiceDraft = (draftKey, field, value) =>
-      setServiceDrafts((prev) => prev.map((service) =>
-        service.draftKey === draftKey ? { ...service, [field]: value } : service
-      ))
-
-    const renderServicesStep = () => (
-      <FormWrapper className="flex flex-col gap-3">
-        <Notice tone="neutral" className="rounded-md">
-          Услуга — это то, что у вас заказывают. Измените предложенные услуги или
-          добавьте свои. Для продолжения нужна хотя бы одна услуга с названием.
-          Цену и продолжительность можно оставить нулевыми и уточнить позже.
-          Список сохранится по кнопке «Далее».
-        </Notice>
-        {serviceDrafts?.map((service, index) => (
-          <div
-            key={service.draftKey}
-            className="flex min-w-0 flex-col gap-3 rounded-md border border-gray-200 bg-white p-3"
+  return (
+    <div className="first-run flex min-w-0 flex-col gap-4">
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span className="first-run-muted">
+          Настройка · {stepIndex + 1} из 4
+        </span>
+        {stepIndex > 0 && (
+          <button
+            type="button"
+            className="first-run-link"
+            disabled={busy}
+            onClick={() => {
+              setStepIndex((value) => value - 1)
+              setAttempted(false)
+              setError('')
+            }}
           >
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span className="font-semibold text-gray-900">Услуга {index + 1}</span>
-              {!service._id && (
-                <button
-                  type="button"
-                  className="min-h-10 cursor-pointer px-2 text-danger hover:underline"
-                  disabled={isSaving}
-                  onClick={() => setServiceDrafts((prev) =>
-                    prev.filter((item) => item.draftKey !== service.draftKey)
-                  )}
-                  aria-label={`Убрать услугу ${index + 1}`}
-                >
-                  Убрать
-                </button>
-              )}
-            </div>
+            Назад
+          </button>
+        )}
+      </div>
+      <p className="text-sm">{descriptions[stepIndex]}</p>
+      <fieldset disabled={busy} className="flex min-w-0 flex-col gap-4">
+        {step === 'profile' && (
+          <>
             <Input
-              label="Название услуги"
-              value={service.title}
-              onChange={(value) => updateServiceDraft(service.draftKey, 'title', value)}
-              error={!String(service.title ?? '').trim() ? 'Укажите название услуги' : null}
-              disabled={isSaving}
+              label="ФИО"
+              value={fullName}
+              onChange={setFullName}
               required
               fullWidth
               noMargin
+              autoComplete="name"
+              error={attempted && !fullName.trim() ? 'Укажите ФИО' : null}
+              showErrorText
             />
-            <Textarea
-              label="Описание"
-              value={service.description ?? ''}
-              onChange={(value) => updateServiceDraft(service.draftKey, 'description', value)}
-              rows={2}
-              noMargin
-            />
-            <div className="grid min-w-0 grid-cols-1 gap-3 tablet:grid-cols-2">
-              <Input
-                label="Цена"
-                type="number"
-                value={service.price}
-                onChange={(value) => updateServiceDraft(service.draftKey, 'price', value)}
-                disabled={isSaving}
-                min={0}
-                postfix="₽"
-                fullWidth
-                noMargin
-              />
-              <InputDuration
-                label="Продолжительность"
-                value={service.duration}
-                onChange={(value) => updateServiceDraft(service.draftKey, 'duration', value)}
-                disabled={isSaving}
-                min={0}
-                noMargin
-              />
-            </div>
-          </div>
-        ))}
-        {!serviceDrafts?.length && (
-          <Notice tone="warning" className="rounded-md">
-            Добавьте хотя бы одну услугу, чтобы продолжить настройку.
-          </Notice>
+            <details>
+              <summary className="first-run-link">Добавить подробности</summary>
+              <div className="mt-3 flex flex-col gap-3">
+                <InputImages
+                  label="Фото профиля"
+                  directory="users"
+                  images={images}
+                  onChange={setImages}
+                  maxImages={1}
+                  fullWidth
+                />
+                <PhoneInput
+                  label="Телефон"
+                  value={phone}
+                  onChange={setPhone}
+                  noMargin
+                />
+                <PhoneInput
+                  label="WhatsApp"
+                  value={whatsapp}
+                  onChange={setWhatsapp}
+                  noMargin
+                />
+                <Input
+                  label="Telegram"
+                  prefix="@"
+                  value={telegram}
+                  onChange={(value) =>
+                    setTelegram(normalizeTelegramInput(value))
+                  }
+                  noMargin
+                />
+              </div>
+            </details>
+          </>
         )}
-        <button
-          type="button"
-          className="action-icon-button action-icon-button--warning inline-flex min-h-10 cursor-pointer items-center justify-center rounded px-3 text-sm font-semibold"
-          disabled={isSaving}
-          onClick={() => {
-            const draftKey = ++serviceKeyRef.current
-            setServiceDrafts((prev) => [...(prev ?? []), {
-              draftKey, title: '', description: '', price: 0, duration: 0,
-            }])
-          }}
-        >
-          Добавить услугу
-        </button>
-      </FormWrapper>
-    )
-
-    const renderTransferStep = () => (
-      <FormWrapper className="flex flex-col gap-3">
-        <Notice tone="neutral" className="rounded-md">
-          Если вы иногда отдаете заказ другому исполнителю, включите настройку.
-          Тогда в редакторе заявки появятся поля «Передано коллеге» и выбор
-          коллеги.
-        </Notice>
-        <div className="grid grid-cols-1 gap-2 tablet:grid-cols-2">
-          <button
-            type="button"
-            className={cn(
-              'cursor-pointer rounded-md border px-3 py-3 text-left text-sm transition',
-              transferEnabled
-                ? 'border-general bg-general/10 text-gray-900'
-                : 'border-gray-200 bg-white text-gray-700'
-            )}
-            onClick={() => setTransferEnabled(true)}
-          >
-            <span className="block font-semibold">Да, бывает</span>
-            <span className="mt-1 block text-xs text-gray-500">
-              В карточке будут доступны передача и выбор коллеги.
-            </span>
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'cursor-pointer rounded-md border px-3 py-3 text-left text-sm transition',
-              !transferEnabled
-                ? 'border-general bg-general/10 text-gray-900'
-                : 'border-gray-200 bg-white text-gray-700'
-            )}
-            onClick={() => setTransferEnabled(false)}
-          >
-            <span className="block font-semibold">Нет, не передаю</span>
-            <span className="mt-1 block text-xs text-gray-500">
-              Поля передачи будут скрыты, чтобы не отвлекать.
-            </span>
-          </button>
-        </div>
-      </FormWrapper>
-    )
-
-    const renderStatusesStep = () => (
-      <FormWrapper className="flex flex-col gap-3">
-        <OnboardingStatusGuide />
-      </FormWrapper>
-    )
-
-    const renderFinishStep = () => (
-      <FormWrapper className="flex flex-col gap-3">
-        <Notice
-          tone="success"
-          role="status"
-          className="rounded-md py-3"
-        >
-          Спасибо за регистрацию. Основная настройка завершена. Подробнее со
-          всеми возможностями можно познакомиться в блоке меню настроек.
-        </Notice>
-        {!hasAnyEvent && (
-          <div className="rounded-md border border-gray-200 bg-white px-3 py-2">
-            <IconCheckBox
-              checked={createDemoRequest}
-              onClick={() => setCreateDemoRequest((value) => !value)}
-              label="Создать учебную заявку"
+        {step === 'environment' && (
+          <>
+            <div role="group" aria-label="Тема оформления">
+              <p className="mb-2 text-sm font-semibold">Тема оформления</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 'light', label: 'Светлая', icon: faSun },
+                  { value: 'dark', label: 'Тёмная', icon: faMoon },
+                ].map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    className="first-run-option first-run-theme-option"
+                    aria-pressed={theme === item.value}
+                    onClick={() => changeTheme(item.value)}
+                  >
+                    <FontAwesomeIcon icon={item.icon} className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Input
+              label="Основной город"
+              className="max-w-72"
+              value={town}
+              onChange={changeTown}
+              required
+              fullWidth
               noMargin
+              error={attempted && !town.trim() ? 'Укажите город' : null}
+              showErrorText
             />
-            <div className="mt-2 text-sm text-gray-600">{demoText}</div>
+            {isDetected && (
+              <p className="first-run-muted text-sm">
+                Город определён автоматически. Исправьте, если он указан
+                неточно.
+              </p>
+            )}
+            <ComboBox
+              label="Часовой пояс"
+              className="max-w-72"
+              items={timeZoneOptions}
+              value={timeZone}
+              onChange={setTimeZone}
+              required
+              fullWidth
+              noMargin
+              error={attempted && !timeZone ? 'Выберите часовой пояс' : null}
+            />
+          </>
+        )}
+        {step === 'specialization' && (
+          <div className="tablet:grid-cols-2 grid grid-cols-1 gap-2">
+            {ONBOARDING_ACTIVITY_PRESETS.map((item) => (
+              <button
+                type="button"
+                key={item.key}
+                aria-pressed={preset === item.key}
+                className="first-run-option"
+                onClick={() => {
+                  if (
+                    preset !== item.key &&
+                    !drafts?.some((draft) => draft._id)
+                  )
+                    setDrafts(null)
+                  setPreset(item.key)
+                }}
+              >
+                {item.title}
+              </button>
+            ))}
           </div>
         )}
-        {hasAnyEvent && (
-          <Notice tone="neutral" className="rounded-md">
-            У вас уже есть карточки, поэтому учебную заявку создавать не будем.
-          </Notice>
+        {step === 'services' && (
+          <>
+            {drafts === null && (
+              <p role="status">
+                {loadFailed
+                  ? 'Не удалось загрузить услуги.'
+                  : 'Загружаем услуги…'}
+              </p>
+            )}
+            {loadFailed && !Array.isArray(services) && (
+              <button
+                type="button"
+                className="first-run-link"
+                onClick={() => {
+                  setLoadFailed(false)
+                  setLoadAttempt((value) => value + 1)
+                }}
+              >
+                Повторить загрузку
+              </button>
+            )}
+            {drafts?.map((draft, index) => (
+              <section
+                className="first-run-card flex flex-col gap-3"
+                key={draft.draftKey}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">
+                    Услуга {index + 1}
+                  </span>
+                  {!draft._id && drafts.length > 1 && (
+                    <button
+                      type="button"
+                      className="first-run-link"
+                      onClick={() =>
+                        setDrafts((prev) =>
+                          prev.filter(
+                            (item) => item.draftKey !== draft.draftKey
+                          )
+                        )
+                      }
+                    >
+                      Убрать
+                    </button>
+                  )}
+                </div>
+                <Input
+                  label="Название услуги"
+                  value={draft.title}
+                  onChange={(value) =>
+                    updateDraft(draft.draftKey, 'title', value)
+                  }
+                  required
+                  fullWidth
+                  noMargin
+                  showErrorText
+                  error={
+                    attempted && !String(draft.title ?? '').trim()
+                      ? 'Укажите название услуги'
+                      : null
+                  }
+                />
+                <details>
+                  <summary className="first-run-link">
+                    Цена и подробности
+                  </summary>
+                  <div className="mt-3 flex flex-col gap-3">
+                    <Input
+                      label="Цена"
+                      value={draft.price}
+                      onChange={(value) =>
+                        updateDraft(draft.draftKey, 'price', value)
+                      }
+                      type="number"
+                      min={0}
+                      postfix="₽"
+                      className="w-fit max-w-full"
+                      noMargin
+                    />
+                    <InputDuration
+                      label="Продолжительность"
+                      value={draft.duration}
+                      onChange={(value) =>
+                        updateDraft(draft.draftKey, 'duration', value)
+                      }
+                      min={0}
+                      noMargin
+                    />
+                    <Textarea
+                      label="Описание"
+                      value={draft.description ?? ''}
+                      onChange={(value) =>
+                        updateDraft(draft.draftKey, 'description', value)
+                      }
+                      rows={2}
+                      noMargin
+                    />
+                  </div>
+                </details>
+              </section>
+            ))}
+            {drafts !== null && (
+              <button
+                type="button"
+                className="first-run-link self-start"
+                onClick={() =>
+                  setDrafts((prev) => [
+                    ...prev,
+                    {
+                      draftKey: crypto.randomUUID(),
+                      title: '',
+                      description: '',
+                      price: 0,
+                      duration: 0,
+                    },
+                  ])
+                }
+              >
+                Добавить ещё услугу
+              </button>
+            )}
+            {attempted && !valid && (
+              <Notice tone="warning">
+                Укажите название каждой услуги. Цена и продолжительность должны
+                быть неотрицательными числами.
+              </Notice>
+            )}
+          </>
         )}
-        {telegramCommunityUrl ? (
-          <Notice tone="info" className="rounded-md">
-            <div className="font-semibold">Оставайтесь на связи</div>
-            <div className="mt-1 text-sm">
-              Вступайте в группу ArtistCRM в Telegram: там можно задать любой
-              вопрос, получить помощь и предложить свою идею.
-            </div>
-            <a
-              href={telegramCommunityUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="action-icon-button action-icon-button--warning mt-3 inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded px-3 text-sm font-semibold"
-            >
-              <FontAwesomeIcon
-                icon={faTelegramPlane}
-                className="h-5 w-5 shrink-0 text-[#229ED9]"
-                aria-hidden="true"
-              />
-              <span>Вступить в группу Telegram</span>
-            </a>
-          </Notice>
-        ) : null}
-      </FormWrapper>
-    )
+      </fieldset>
+      {error && (
+        <Notice tone="error" role="alert">
+          {error}
+        </Notice>
+      )}
+    </div>
+  )
+}
 
-    const renderStep = () => {
-      if (step === 'profile') return renderProfileStep()
-      if (step === 'environment') return renderEnvironmentStep()
-      if (step === 'specialization') return renderSpecializationStep()
-      if (step === 'services') return renderServicesStep()
-      if (step === 'transfer') return renderTransferStep()
-      if (step === 'statuses') return renderStatusesStep()
-      return renderFinishStep()
-    }
-
-    return (
-      <div className="flex w-full flex-col">
-        {renderProgress()}
-        {renderStep()}
-      </div>
-    )
-  }
-
+export default function userOnboardingFunc() {
   return {
     title: 'Первичная настройка',
-    showDecline: false,
     closeButtonShow: false,
+    closeButtonName: 'Вернуться в кабинет',
     declineButtonShow: false,
     crossShow: false,
     Children: FirstRunWizardModal,
   }
 }
-
-export default userOnboardingFunc

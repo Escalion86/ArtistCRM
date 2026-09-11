@@ -2,10 +2,41 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   getEventCloseSuggestionState,
+  getEventCloseBlockedReason,
   shouldSuggestEventClosingOnDismiss,
 } from './eventCloseSuggestion.js'
 
 const finishedNow = new Date('2026-05-21T00:00:00.000Z')
+
+test('closing requires actual income, taxes for contracts and no obligations', () => {
+  const event = { contractSum: 10000, isByContract: false }
+  assert.match(getEventCloseBlockedReason(event, []), /сумма поступлений/)
+  assert.match(
+    getEventCloseBlockedReason(event, [{ type: 'income', amount: 3000 }]),
+    /сумма поступлений/
+  )
+  const paid = [{ type: 'income', amount: 10000 }]
+  assert.equal(getEventCloseBlockedReason(event, paid), '')
+  assert.match(
+    getEventCloseBlockedReason({ ...event, isByContract: true }, paid),
+    /Налоги/
+  )
+  assert.equal(
+    getEventCloseBlockedReason({ ...event, isByContract: true }, [
+      ...paid,
+      { type: 'expense', category: 'taxes', amount: 600 },
+    ]),
+    ''
+  )
+  assert.match(
+    getEventCloseBlockedReason(event, [
+      ...paid,
+      { paymentMethod: 'obligation', type: 'expense', amount: 1 },
+    ]),
+    /обязательствами/
+  )
+  assert.equal(getEventCloseBlockedReason({ contractSum: 0 }, []), '')
+})
 
 test('suggests closing for finished fully paid active event', () => {
   const result = getEventCloseSuggestionState(

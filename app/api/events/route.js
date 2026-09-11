@@ -21,6 +21,7 @@ import {
   parseDateValue,
 } from '@server/eventApiNormalization'
 import { recordCrmItemCreated } from '@server/acquisitionFunnel'
+import { getEventCloseBlockedReason } from '@helpers/eventCloseSuggestion'
 
 const getStatusValue = (payload) => {
   const status = payload?.status
@@ -380,6 +381,12 @@ export const POST = async (req) => {
   }
   const eventDate = parseDateValue(body.eventDate)
   const dateEnd = parseDateValue(body.dateEnd)
+  if (statusValue === 'closed') {
+    const error = getEventCloseBlockedReason(body)
+    if (error) {
+      return NextResponse.json({ success: false, error }, { status: 409 })
+    }
+  }
   if (eventDate && dateEnd && eventDate.getTime() > dateEnd.getTime()) {
     return NextResponse.json(
       {

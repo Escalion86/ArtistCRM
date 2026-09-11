@@ -1,7 +1,22 @@
 export const FIRST_RUN_WIZARD_COMPLETED_KEY = 'firstRunWizardCompleted'
 export const FIRST_RUN_WIZARD_SHOW_TOKEN_KEY = 'firstRunWizardShowToken'
-export const SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY =
-  'showColleagueTransferFields'
+export const FIRST_RUN_STEP_KEY = 'firstRunWizardStep'
+export const FIRST_RUN_TOUR_KEY = 'firstRunTourResult'
+export const FIRST_RUN_STEPS = [
+  'profile',
+  'environment',
+  'specialization',
+  'services',
+]
+
+export const getFirstRunStepIndex = (custom = {}) => {
+  if (getCustomValue(custom, FIRST_RUN_WIZARD_COMPLETED_KEY) === true) return 0
+  return Math.max(
+    0,
+    FIRST_RUN_STEPS.indexOf(getCustomValue(custom, FIRST_RUN_STEP_KEY))
+  )
+}
+export const SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY = 'showColleagueTransferFields'
 
 const getCustomValue = (custom, key) => {
   if (!custom) return undefined
@@ -29,10 +44,8 @@ export const buildFirstRunCompletionCustomPatch = ({ existing = {} } = {}) => ({
 })
 
 export const shouldShowColleagueTransferControls = (siteSettings) =>
-  getCustomValue(
-    siteSettings?.custom,
-    SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY
-  ) === true
+  getCustomValue(siteSettings?.custom, SHOW_COLLEAGUE_TRANSFER_FIELDS_KEY) ===
+  true
 
 export const getFirstRunStatusEducationItems = () => [
   {

@@ -13,6 +13,7 @@ import {
   readServerSyncQueue,
   replaceServerSyncQueue,
   SERVER_SYNC_FLUSH_NOW_EVENT,
+  SERVER_SYNC_QUEUE_CHANGED_EVENT,
   updateServerSyncQueueItem,
 } from '@helpers/serverSyncQueue'
 
@@ -94,15 +95,24 @@ const useServerSyncFetchGate = ({ serverSyncDisabled, snackbar }) => {
             : ''
       const url = new URL(inputUrl, window.location.origin)
 
-      appendServerSyncQueueItem({
-        id: `queue-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        url: `${url.pathname}${url.search}`,
-        method,
-        body: normalizeBody(init?.body),
-        headers: normalizeHeaders(init?.headers),
-        createdAt: new Date().toISOString(),
-        lastError: reason,
-      })
+      try {
+        appendServerSyncQueueItem({
+          id: `queue-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          url: `${url.pathname}${url.search}`,
+          method,
+          body: normalizeBody(init?.body),
+          headers: normalizeHeaders(init?.headers),
+          createdAt: new Date().toISOString(),
+          lastError: reason,
+        })
+      } catch (error) {
+        const message =
+          error?.message === 'SERVER_SYNC_QUEUE_FULL'
+            ? 'Очередь заполнена. Подключитесь к сети и повторите сохранение.'
+            : 'Не удалось сохранить изменение на устройстве. Не закрывайте форму и повторите сохранение.'
+        snackbar.error(message)
+        throw new Error(message, { cause: error })
+      }
     }
 
     const queuedResponse = () =>
@@ -174,16 +184,39 @@ const useServerSyncQueueFlush = ({
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
 
-    const flushQueue = async () => {
+    let retryTimer
+    let disposed = false
+    const scheduleRetry = () => {
+      window.clearTimeout(retryTimer)
+      if (disposed || serverSyncDisabled || !navigator.onLine) return
+      const retryTimes = readServerSyncQueue()
+        .filter((item) => item.status === 'failed' && item.nextRetryAt)
+        .map((item) => new Date(item.nextRetryAt).getTime())
+        .filter(Number.isFinite)
+      if (retryTimes.length === 0) return
+      retryTimer = window.setTimeout(
+        () => {
+          flushQueue()
+        },
+        Math.max(0, Math.min(...retryTimes) - Date.now())
+      )
+    }
+
+    const flushQueueUnlocked = async () => {
+      if (disposed) return
       if (syncFlushInProgressRef.current) return
       if (serverSyncDisabled || !navigator.onLine) return
 
       const initialQueue = readServerSyncQueue()
       if (initialQueue.length === 0) return
       const initialSummary = getServerSyncQueueSummary(initialQueue)
-      if (initialSummary.ready === 0) return
+      if (initialSummary.ready === 0) {
+        scheduleRetry()
+        return
+      }
 
       syncFlushInProgressRef.current = true
+      let queueProcessingCompleted = false
       try {
         let processed = 0
         let failed = 0
@@ -259,10 +292,30 @@ const useServerSyncQueueFlush = ({
             'Не удалось синхронизировать часть очереди. Повторим позже.'
           )
         }
+        queueProcessingCompleted = true
       } catch {
         snackbar.warning('Синхронизация очереди прервана')
       } finally {
         syncFlushInProgressRef.current = false
+        // При ошибке localStorage не запускаем бесконечный цикл немедленных
+        // повторов по просроченному nextRetryAt, который не удалось обновить.
+        if (queueProcessingCompleted) scheduleRetry()
+      }
+    }
+
+    // localStorage общий для всех вкладок. Локального ref недостаточно,
+    // чтобы две вкладки не отправили один POST одновременно.
+    const flushQueue = async () => {
+      if (navigator.locks?.request) {
+        await navigator.locks.request(
+          'artistcrm-server-sync',
+          { ifAvailable: true },
+          async (lock) => {
+            if (lock) await flushQueueUnlocked()
+          }
+        )
+      } else {
+        await flushQueueUnlocked()
       }
     }
 
@@ -271,11 +324,15 @@ const useServerSyncQueueFlush = ({
     }
     window.addEventListener('online', handleFlush)
     window.addEventListener(SERVER_SYNC_FLUSH_NOW_EVENT, handleFlush)
+    window.addEventListener(SERVER_SYNC_QUEUE_CHANGED_EVENT, handleFlush)
     flushQueue()
 
     return () => {
+      disposed = true
+      window.clearTimeout(retryTimer)
       window.removeEventListener('online', handleFlush)
       window.removeEventListener(SERVER_SYNC_FLUSH_NOW_EVENT, handleFlush)
+      window.removeEventListener(SERVER_SYNC_QUEUE_CHANGED_EVENT, handleFlush)
     }
   }, [queryClient, serverSyncDisabled, snackbar])
 }

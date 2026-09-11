@@ -16,6 +16,7 @@ export type Client = {
   instagram?: string
   preferredContactChannel?: 'phone' | 'telegram' | 'whatsapp' | 'max' | 'vk' | 'other' | ''
   preferredContactChannelOther?: string
+  messengerPushMuted?: boolean
   comment?: string
   clientType?: string
   town?: string

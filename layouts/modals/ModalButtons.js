@@ -56,7 +56,8 @@ const ModalButtons = ({
               size="md"
               className="modal-action-button rounded"
               onClick={onConfirm2Click}
-              disabled={disableConfirm}
+              disabled={disableConfirm || confirmPending}
+              aria-busy={confirmPending}
             >
               {confirmName2}
             </AppButton>

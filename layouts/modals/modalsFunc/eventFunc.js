@@ -1141,7 +1141,7 @@ const eventFunc = (
           })
           return
         }
-        proceedSave()
+        return proceedSave()
       }
     }
 

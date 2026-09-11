@@ -7,7 +7,7 @@ import dbConnect from '@server/dbConnect'
 import getRequestContext from '@server/getRequestContext'
 import getUserTariffAccess from '@server/getUserTariffAccess'
 import createHistorySafely from '@server/historyAudit'
-import { DOCX_MIME, renderDocxTemplate } from '@server/documentGeneration'
+import { DOCX_MIME, formatDocumentDate, renderDocxTemplate } from '@server/documentGeneration'
 import { mobileError, mobileSuccess } from '@server/mobile/routeHelpers'
 import { POST as uploadToCloud } from '../../../../../../escalioncloud/route'
 import { normalizeDocumentTemplatesFromSettings } from '@helpers/documentTemplates'
@@ -23,15 +23,6 @@ const CLOUD_UPLOADS_URL = 'https://cloud.escalion.ru/uploads'
 
 const getCustomValue = (custom, key) =>
   typeof custom?.get === 'function' ? custom.get(key) : custom?.[key]
-
-const formatDocumentDate = (value) => {
-  const date = value ? new Date(`${value}T12:00:00`) : new Date()
-  if (Number.isNaN(date.getTime())) return null
-  return {
-    iso: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
-    label: `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`,
-  }
-}
 
 const normalizeUpload = (item, directory, fallbackName) => {
   const path = String(item?.path || item?.filePath || '').trim()

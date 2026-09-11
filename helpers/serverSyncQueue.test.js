@@ -2,13 +2,62 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  appendServerSyncQueueItem,
   createServerSyncQueueItem,
   getReadyServerSyncQueueItems,
   getServerSyncQueueSummary,
   markServerSyncQueueItemFailed,
   markServerSyncQueueItemSyncing,
   removeSyncedServerSyncQueueItems,
+  updateServerSyncQueueItem,
 } from './serverSyncQueue.js'
+
+test('queue refuses a write when storage fails or the pending queue is full', () => {
+  const previousWindow = globalThis.window
+  let stored = '[]'
+  globalThis.window = {
+    localStorage: {
+      getItem: () => stored,
+      setItem: () => {
+        throw new Error('QuotaExceededError')
+      },
+    },
+    dispatchEvent: () => {},
+  }
+  try {
+    assert.throws(
+      () => appendServerSyncQueueItem({ id: 'new' }),
+      /QuotaExceededError/
+    )
+    stored = JSON.stringify([{ id: 'existing', status: 'pending' }])
+    assert.throws(
+      () => updateServerSyncQueueItem('existing', markServerSyncQueueItemSyncing),
+      /QuotaExceededError/
+    )
+    assert.equal(JSON.parse(stored)[0].status, 'pending')
+    stored = '{broken'
+    assert.throws(() => appendServerSyncQueueItem({ id: 'new' }), SyntaxError)
+    assert.equal(stored, '{broken')
+    stored = JSON.stringify(
+      Array.from({ length: 500 }, (_, index) => ({
+        id: `old-${index}`,
+        status: 'pending',
+      }))
+    )
+    globalThis.window.localStorage.setItem = (_, value) => {
+      stored = value
+    }
+    assert.throws(
+      () => appendServerSyncQueueItem({ id: 'new' }),
+      /SERVER_SYNC_QUEUE_FULL/
+    )
+    assert.equal(JSON.parse(stored).length, 500)
+    assert.equal(JSON.parse(stored)[0].id, 'old-0')
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window
+    else globalThis.window = previousWindow
+  }
+})
 
 test('createServerSyncQueueItem adds sync metadata to queued write', () => {
   const item = createServerSyncQueueItem(
@@ -47,10 +96,7 @@ test('getServerSyncQueueSummary counts statuses and ready items', () => {
     { id: 'syncing', status: 'syncing' },
   ]
 
-  const summary = getServerSyncQueueSummary(
-    queue,
-    '2026-06-22T10:00:00.000Z'
-  )
+  const summary = getServerSyncQueueSummary(queue, '2026-06-22T10:00:00.000Z')
 
   assert.equal(summary.total, 5)
   assert.equal(summary.pending, 1)
@@ -97,10 +143,7 @@ test('getReadyServerSyncQueueItems excludes conflicts and failed items before re
     { id: 'conflict', status: 'conflict' },
   ]
 
-  const ready = getReadyServerSyncQueueItems(
-    queue,
-    '2026-06-22T10:00:00.000Z'
-  )
+  const ready = getReadyServerSyncQueueItems(queue, '2026-06-22T10:00:00.000Z')
 
   assert.deepEqual(
     ready.map((item) => item.id),

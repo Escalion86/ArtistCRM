@@ -2,6 +2,7 @@ import { faArrowDown } from '@fortawesome/free-solid-svg-icons/faArrowDown'
 import { faArrowUp } from '@fortawesome/free-solid-svg-icons/faArrowUp'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cn from 'classnames'
+import InputAffixDivider from './InputAffixDivider'
 import InputWrapper from './InputWrapper'
 
 const parseNonNegativeInt = (raw) => {
@@ -66,10 +67,6 @@ const InputDuration = ({
 
   const suffixClass = 'text-disabled flex select-none items-center px-1 text-sm'
 
-  // Разделители на всю высоту поля, цвет как у рамки (border-input)
-  const thinDividerClass = 'w-0 shrink-0 self-stretch border-l border-input'
-  const thickDividerClass = 'w-0 shrink-0 self-stretch border-l-2 border-input'
-
   const arrowsDisabled = disabled
   const effectiveMin = typeof min === 'number' ? min : 0
 
@@ -91,7 +88,7 @@ const InputDuration = ({
     <InputWrapper
       label={label}
       value={total}
-      className={cn('max-w-full', className)}
+      className={cn('w-fit max-w-full', className)}
       required={required}
       error={error}
       disabled={disabled}
@@ -121,9 +118,9 @@ const InputDuration = ({
           disabled={!canIncreaseHours}
           onClick={() => emit(hours + 1, minutes)}
         />
-        <div className={thinDividerClass} />
+        <InputAffixDivider />
         <span className={suffixClass}>ч</span>
-        <div className={thickDividerClass} />
+        <InputAffixDivider thick />
         <ArrowButton
           icon={faArrowDown}
           disabled={!canDecreaseMinutes}
@@ -152,6 +149,7 @@ const InputDuration = ({
           disabled={!canIncreaseMinutes}
           onClick={() => emit(hours, minutes + 1)}
         />
+        <InputAffixDivider />
         <span className={suffixClass}>мин</span>
       </div>
     </InputWrapper>

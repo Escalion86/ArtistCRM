@@ -8,7 +8,24 @@ import {
   getFirstRunStatusEducationItems,
   shouldOpenFirstRunWizard,
   shouldShowColleagueTransferControls,
+  getFirstRunStepIndex,
 } from './firstRunWizard.mjs'
+
+test('resumes saved steps, resets legacy and completed setup safely', () => {
+  assert.equal(getFirstRunStepIndex({ firstRunWizardStep: 'services' }), 3)
+  assert.equal(
+    getFirstRunStepIndex(new Map([['firstRunWizardStep', 'environment']])),
+    1
+  )
+  assert.equal(getFirstRunStepIndex({ firstRunWizardStep: 'transfer' }), 0)
+  assert.equal(
+    getFirstRunStepIndex({
+      firstRunWizardStep: 'services',
+      firstRunWizardCompleted: true,
+    }),
+    0
+  )
+})
 
 test('opens first-run wizard for logged user until completed', () => {
   assert.equal(

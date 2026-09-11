@@ -76,7 +76,6 @@ const AddressPoolPicker = ({
               onManualInput={openAddressEditor}
               error={errors?.address}
             />
-
           </div>
         </div>
       </InputWrapper>

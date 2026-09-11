@@ -1,10 +1,10 @@
 const CLIENT_FIELDS = [
   '_id', 'syncVersion', 'firstName', 'secondName', 'thirdName', 'phone',
   'whatsapp', 'viber', 'telegram', 'email', 'instagram', 'vk',
-  'preferredContactChannel', 'preferredContactChannelOther', 'comment',
-  'clientType', 'town', 'significantDates', 'legalName', 'inn', 'kpp', 'ogrn',
-  'bankName', 'bik', 'checkingAccount', 'correspondentAccount', 'legalAddress',
-  'updatedAt',
+  'preferredContactChannel', 'preferredContactChannelOther',
+  'messengerPushMuted', 'comment', 'clientType', 'town', 'significantDates',
+  'legalName', 'inn', 'kpp', 'ogrn', 'bankName', 'bik', 'checkingAccount',
+  'correspondentAccount', 'legalAddress', 'updatedAt',
 ]
 
 const serializeMobileClient = (client) => {

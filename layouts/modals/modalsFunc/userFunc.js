@@ -6,6 +6,8 @@ import Input from '@components/Input'
 import InputImages from '@components/InputImages'
 import PhoneInput from '@components/PhoneInput'
 import UserRolePicker from '@components/ValuePicker/UserRolePicker'
+import getPersonFullName from '@helpers/getPersonFullName'
+import { buildSingleNamePatch } from '@helpers/personName.mjs'
 import compareArrays from '@helpers/compareArrays'
 import { DEFAULT_USER } from '@helpers/constants'
 import {
@@ -46,15 +48,7 @@ const userFunc = (userId, clone = false) => {
     const setUser = useAtomValue(itemsFuncAtom).user.set
     const users = useAtomValue(usersAtom)
 
-    const [firstName, setFirstName] = useState(
-      user?.firstName ?? DEFAULT_USER.firstName
-    )
-    const [secondName, setSecondName] = useState(
-      user?.secondName ?? DEFAULT_USER.secondName
-    )
-    const [thirdName, setThirdName] = useState(
-      user?.thirdName ?? DEFAULT_USER.thirdName
-    )
+    const [fullName, setFullName] = useState(getPersonFullName(user ?? DEFAULT_USER))
     const [password, setPassword] = useState(
       user?.password ?? DEFAULT_USER.password
     )
@@ -88,6 +82,10 @@ const userFunc = (userId, clone = false) => {
     // }
 
     const onClickConfirm = async () => {
+      if (!fullName.trim()) {
+        addError({ firstName: 'Укажите ФИО' })
+        return
+      }
       // Если создаем нового пользователя в ручную, то сначала проверим - нет ли уже такого номера телефона в системе
       if (!userId && phone) {
         const normalizedPhone = normalizePhone(phone)
@@ -116,9 +114,7 @@ const userFunc = (userId, clone = false) => {
         const result = await setUser(
           {
             _id: user?._id,
-            firstName,
-            secondName,
-            thirdName,
+            ...buildSingleNamePatch(fullName),
             // about,
             // interests,
             // profession,
@@ -197,9 +193,7 @@ const userFunc = (userId, clone = false) => {
 
     useEffect(() => {
       const isFormChanged =
-        user?.firstName !== firstName ||
-        user?.secondName !== secondName ||
-        user?.thirdName !== thirdName ||
+        getPersonFullName(user ?? DEFAULT_USER) !== fullName ||
         (!userId && user?.password !== password) ||
         // user?.about !== about ||
         // user?.interests !== interests ||
@@ -220,9 +214,7 @@ const userFunc = (userId, clone = false) => {
       setOnShowOnCloseConfirmDialog(isFormChanged)
       setDisableConfirm(!isFormChanged)
     }, [
-      firstName,
-      secondName,
-      thirdName,
+      fullName,
       password,
       // about,
       // interests,
@@ -272,39 +264,17 @@ const userFunc = (userId, clone = false) => {
           error={errors.images}
         />
         <Input
-          label="Имя"
-          type="text"
-          value={firstName}
+          label="ФИО"
+          value={fullName}
           onChange={(value) => {
             removeError('firstName')
-            setFirstName(value)
+            setFullName(value)
           }}
-          // labelClassName="w-40"
           error={errors.firstName}
-          autoComplete="one-time-code"
-        />
-        <Input
-          label="Фамилия"
-          type="text"
-          value={secondName}
-          onChange={(value) => {
-            removeError('secondName')
-            setSecondName(value)
-          }}
-          // labelClassName="w-40"
-          error={errors.secondName}
-          autoComplete="one-time-code"
-        />
-        <Input
-          label="Отчество"
-          type="text"
-          value={thirdName}
-          onChange={(value) => {
-            removeError('thirdName')
-            setThirdName(value)
-          }}
-          error={errors.thirdName}
-          autoComplete="one-time-code"
+          showErrorText
+          required
+          fullWidth
+          autoComplete="name"
         />
         {!userId && (
           <Input

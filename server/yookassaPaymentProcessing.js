@@ -51,7 +51,10 @@ const logReferralRewardError = (paymentId, error) => {
   })
 }
 
-const processSucceededYookassaPayment = async ({ payment, providerPayment }) => {
+const processSucceededYookassaPayment = async ({
+  payment,
+  providerPayment,
+}) => {
   if (payment.status === 'succeeded') {
     return { ok: true, alreadyProcessed: true }
   }
@@ -90,7 +93,11 @@ const processSucceededYookassaPayment = async ({ payment, providerPayment }) => 
     if (freshPayment?.status === 'succeeded') {
       return { ok: true, alreadyProcessed: true }
     }
-    return { ok: false, error: 'payment_not_pending', status: freshPayment?.status || '' }
+    return {
+      ok: false,
+      error: 'payment_not_pending',
+      status: freshPayment?.status || '',
+    }
   }
   payment = lockedPayment
 
@@ -100,9 +107,23 @@ const processSucceededYookassaPayment = async ({ payment, providerPayment }) => 
       ? getSbpBonusAmount(payment.amount)
       : 0
 
-  user.balance =
-    Number(user.balance ?? 0) + Number(payment.amount ?? 0) + bonusAmount
-  await user.save()
+  // Баланс может одновременно меняться другим платежом или списанием.
+  await Users.updateOne(
+    { _id: user._id },
+    [
+      {
+        $set: {
+          balance: {
+            $add: [
+              { $ifNull: ['$balance', 0] },
+              Number(payment.amount ?? 0) + bonusAmount,
+            ],
+          },
+        },
+      },
+    ],
+    { updatePipeline: true }
+  )
 
   payment.rawProviderStatus = providerPayment?.status || ''
   payment.paymentMethodType = methodInfo.type
@@ -180,7 +201,10 @@ const syncYookassaPayment = async ({ providerPaymentId, paymentId }) => {
   const providerPayment = await getYookassaPayment(payment.providerPaymentId)
   payment.rawProviderStatus = providerPayment?.status || ''
 
-  if (providerPayment?.status === 'succeeded' && providerPayment?.paid === true) {
+  if (
+    providerPayment?.status === 'succeeded' &&
+    providerPayment?.paid === true
+  ) {
     return processSucceededYookassaPayment({ payment, providerPayment })
   }
 

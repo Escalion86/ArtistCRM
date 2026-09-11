@@ -102,6 +102,10 @@ const clientsSchema = {
     maxlength: 100,
     default: '',
   },
+  messengerPushMuted: {
+    type: Boolean,
+    default: false,
+  },
   comment: {
     type: String,
     maxlength: 2000,

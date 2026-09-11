@@ -66,7 +66,7 @@ const tariffFunc = (tariffId, clone = false) => {
       onClickConfirmRef.current = async () => {
         if (!checkErrors({ title })) {
           closeModal()
-          setTariff(
+          await setTariff(
             {
               _id: tariff?._id,
               title,

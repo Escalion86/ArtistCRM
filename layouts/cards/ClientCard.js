@@ -11,6 +11,8 @@ import formatDate from '@helpers/formatDate'
 import getPersonFullName from '@helpers/getPersonFullName'
 import { useAtomValue } from 'jotai'
 import CardWrapper from '@components/CardWrapper'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faBellSlash } from '@fortawesome/free-solid-svg-icons'
 
 const CONTACT_CHANNEL_LABELS = {
   phone: 'Телефон',
@@ -106,6 +108,15 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
           <div className="card-title min-w-0 flex-1 truncate text-base">
             {getPersonFullName(client, { fallback: '-' })}
           </div>
+          {client.messengerPushMuted ? (
+            <span
+              className="ml-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-gray-500"
+              title="Push-уведомления по входящим сообщениям этого клиента отключены"
+              aria-label="Push-уведомления отключены"
+            >
+              <FontAwesomeIcon icon={faBellSlash} className="h-3.5 w-3.5" />
+            </span>
+          ) : null}
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col justify-center py-2">
@@ -175,6 +186,7 @@ ClientCard.propTypes = {
     phone: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     preferredContactChannel: PropTypes.string,
     preferredContactChannelOther: PropTypes.string,
+    messengerPushMuted: PropTypes.bool,
     significantDates: PropTypes.arrayOf(
       PropTypes.shape({
         title: PropTypes.string,

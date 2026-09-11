@@ -57,7 +57,7 @@ const Input = forwardRef(
       placeholder,
       showErrorText = false,
       fullWidth = false,
-      paddingY = 'small',
+      paddingY = false,
       paddingX = true,
       noMargin = false,
       smallMargin = false,

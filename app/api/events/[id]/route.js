@@ -31,8 +31,9 @@ import {
 } from '@server/eventApiNormalization'
 import {
   getCloseBlockedByObligationsMessage,
-  OBLIGATION_PAYMENT_METHOD,
+  hasObligationPaymentMethod,
 } from '@helpers/transactionObligation'
+import { getEventCloseBlockedReason } from '@helpers/eventCloseSuggestion'
 
 const EVENT_STATUSES = new Set(['draft', 'canceled', 'active', 'closed'])
 
@@ -171,16 +172,38 @@ export const PUT = async (req, { params }) => {
     )
   }
   if (nextStatus === 'closed') {
-    const obligationsCount = await Transactions.countDocuments({
+    const eventTransactions = await Transactions.find({
       tenantId,
       eventId: id,
-      paymentMethod: OBLIGATION_PAYMENT_METHOD,
     })
-    if (obligationsCount > 0) {
+      .select('type amount category paymentMethod')
+      .lean()
+    const financialFieldsChanged =
+      body.contractSum !== undefined || body.isByContract !== undefined
+    const error =
+      oldEvent.status !== 'closed' || financialFieldsChanged
+        ? getEventCloseBlockedReason(
+            {
+              ...oldEvent,
+              contractSum:
+                body.contractSum === undefined
+                  ? oldEvent.contractSum
+                  : Number(body.contractSum) || 0,
+              isByContract:
+                body.isByContract === undefined
+                  ? oldEvent.isByContract
+                  : Boolean(body.isByContract),
+            },
+            eventTransactions
+          )
+        : hasObligationPaymentMethod(eventTransactions)
+          ? getCloseBlockedByObligationsMessage()
+          : ''
+    if (error) {
       return NextResponse.json(
         {
           success: false,
-          error: getCloseBlockedByObligationsMessage(),
+          error,
         },
         { status: 409 }
       )
@@ -275,7 +298,10 @@ export const PUT = async (req, { params }) => {
       update.calendarImportWarnings = []
     }
   }
-  if (oldEvent.importedFromFile && typeof body.fileImportChecked === 'boolean') {
+  if (
+    oldEvent.importedFromFile &&
+    typeof body.fileImportChecked === 'boolean'
+  ) {
     update.fileImportChecked = body.fileImportChecked
     if (update.fileImportChecked) {
       update.fileImportAiFields = []
@@ -342,7 +368,11 @@ export const PUT = async (req, { params }) => {
       { calendarSyncError: 'calendar_sync_unavailable' },
       { returnDocument: 'after' }
     )
-  } else if (event.calendarImportChecked && access?.allowCalendarSync && (!event.importedFromFile || event.fileImportChecked)) {
+  } else if (
+    event.calendarImportChecked &&
+    access?.allowCalendarSync &&
+    (!event.importedFromFile || event.fileImportChecked)
+  ) {
     try {
       await updateEventInCalendar(event, req, user, oldEvent)
       responseEvent = await Events.findByIdAndUpdate(
@@ -392,11 +422,12 @@ export const PUT = async (req, { params }) => {
         }).catch((err) =>
           console.log('Push notification error (task created)', err)
         )
-      } else if (!newTask.done && (
-        oldTask.title !== newTask.title ||
-        String(oldTask.date) !== String(newTask.date) ||
-        oldTask.description !== newTask.description
-      )) {
+      } else if (
+        !newTask.done &&
+        (oldTask.title !== newTask.title ||
+          String(oldTask.date) !== String(newTask.date) ||
+          oldTask.description !== newTask.description)
+      ) {
         // Task updated
         notifyTaskUpdated({
           tenantId,

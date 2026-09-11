@@ -18,7 +18,8 @@ const buildPatch = (user, profile) => {
   if (profile.vkId && user.vkId !== profile.vkId) patch.vkId = profile.vkId
   if (profile.email && !user.email) patch.email = profile.email
   if (profile.firstName && !user.firstName) patch.firstName = profile.firstName
-  if (profile.secondName && !user.secondName)
+  // Existing profile names are user-owned, including a single-field full name.
+  if (profile.secondName && !user.secondName && !user.firstName)
     patch.secondName = profile.secondName
   if (
     profile.image &&

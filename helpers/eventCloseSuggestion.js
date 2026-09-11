@@ -1,4 +1,7 @@
-import { hasObligationPaymentMethod } from './transactionObligation.js'
+import {
+  getCloseBlockedByObligationsMessage,
+  hasObligationPaymentMethod,
+} from './transactionObligation.js'
 
 const CLOSED_BLOCKED_STATUSES = new Set(['draft', 'canceled', 'closed'])
 
@@ -62,4 +65,18 @@ export const shouldSuggestEventClosingOnDismiss = (
     transactions,
     now
   ).shouldSuggestClosing
+}
+
+// Общие финансовые правила интерфейса и API. Дата окончания влияет на
+// предложение закрыть мероприятие, но не запрещает ручное закрытие.
+export const getEventCloseBlockedReason = (event, transactions = []) => {
+  const state = getEventCloseSuggestionState(event, transactions)
+  if (state.hasObligations) return getCloseBlockedByObligationsMessage()
+  if (event?.isByContract && !state.hasTaxes) {
+    return 'Нельзя закрыть мероприятие: добавьте транзакцию «Налоги».'
+  }
+  if (Number(event?.contractSum ?? 0) > state.incomeTotal) {
+    return 'Нельзя закрыть мероприятие: сумма поступлений меньше договорной.'
+  }
+  return ''
 }

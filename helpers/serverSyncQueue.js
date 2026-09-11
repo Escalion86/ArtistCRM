@@ -186,16 +186,15 @@ export const getServerSyncQueueCount = () => readServerSyncQueue().length
 
 export const appendServerSyncQueueItem = (item) => {
   if (typeof window === 'undefined' || !item) return
-  const queue = readServerSyncQueue()
-  const nextQueue = [...queue, createServerSyncQueueItem(item)].slice(
-    -MAX_QUEUE_SIZE
-  )
-  try {
-    window.localStorage.setItem(SERVER_SYNC_QUEUE_KEY, JSON.stringify(nextQueue))
-    emitQueueChanged()
-  } catch (error) {
-    // no-op
-  }
+  // Ошибку чтения/записи нельзя превращать в успешное «сохранено локально».
+  const raw = window.localStorage.getItem(SERVER_SYNC_QUEUE_KEY)
+  const queue = raw ? JSON.parse(raw) : []
+  if (!Array.isArray(queue)) throw new Error('SERVER_SYNC_QUEUE_INVALID')
+  const pending = queue.filter((entry) => entry?.status !== 'synced')
+  if (pending.length >= MAX_QUEUE_SIZE) throw new Error('SERVER_SYNC_QUEUE_FULL')
+  const nextQueue = [...pending, createServerSyncQueueItem(item)]
+  window.localStorage.setItem(SERVER_SYNC_QUEUE_KEY, JSON.stringify(nextQueue))
+  emitQueueChanged()
 }
 
 export const clearServerSyncQueue = () => {
@@ -210,12 +209,8 @@ export const clearServerSyncQueue = () => {
 
 const saveServerSyncQueue = (queue) => {
   if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(SERVER_SYNC_QUEUE_KEY, JSON.stringify(queue))
-    emitQueueChanged()
-  } catch (error) {
-    // no-op
-  }
+  window.localStorage.setItem(SERVER_SYNC_QUEUE_KEY, JSON.stringify(queue))
+  emitQueueChanged()
 }
 
 export const shiftServerSyncQueue = (count = 1) => {
@@ -228,9 +223,7 @@ export const shiftServerSyncQueue = (count = 1) => {
 
 export const replaceServerSyncQueue = (queue = []) => {
   if (!Array.isArray(queue)) return
-  saveServerSyncQueue(
-    removeSyncedServerSyncQueueItems(queue).slice(-MAX_QUEUE_SIZE)
-  )
+  saveServerSyncQueue(removeSyncedServerSyncQueueItems(queue))
 }
 
 export const updateServerSyncQueueItem = (id, updater) => {

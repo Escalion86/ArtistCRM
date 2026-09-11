@@ -1,6 +1,7 @@
 'use client'
 
 import { UpcomingEventsOverview } from '@layouts/modals/modalsFunc/upcomingEventsOverviewFunc'
+import FirstRequestPrompt from '@components/FirstRequestPrompt'
 
 const noop = () => {}
 
@@ -15,6 +16,7 @@ const noop = () => {}
 const AttentionContent = () => (
   <div className="h-full min-h-0 overflow-y-auto p-3 laptop:p-4">
     <div className="mx-auto w-full max-w-3xl">
+      <FirstRequestPrompt />
       <UpcomingEventsOverview closeModal={noop} />
     </div>
   </div>

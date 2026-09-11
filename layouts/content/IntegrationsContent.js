@@ -2143,8 +2143,8 @@ const IntegrationsContent = () => {
                   fullWidth
                 />
               ) : aiAnalysisProvider === 'deepseek' ? (
-                <div className="flex flex-col gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-3">
-                  <div className="text-sm text-blue-900">
+                <Notice tone="info" className="flex flex-col gap-3 rounded-md p-3">
+                  <div>
                     DeepSeek доступен только разработчику и анализирует готовый
                     текст. Для расшифровки аудиозаписей звонков нужен отдельный
                     ключ AITunnel.
@@ -2178,7 +2178,7 @@ const IntegrationsContent = () => {
                       fullWidth
                     />
                   </div>
-                </div>
+                </Notice>
               ) : null}
               {aiUsage?.recent?.length > 0 ? (
                 <div className="rounded-lg border border-gray-200 bg-white p-3">

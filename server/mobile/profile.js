@@ -17,7 +17,7 @@ export const normalizeMobileProfilePatch = (body = {}) => {
   const assignText = (field, maxLength = 100) => {
     if (body[field] !== undefined) update[field] = normalizeText(body[field], maxLength)
   }
-  assignText('firstName')
+  assignText('firstName', 302)
   assignText('secondName')
   assignText('thirdName')
   if (body.email !== undefined) {

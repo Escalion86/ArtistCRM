@@ -94,6 +94,6 @@ test('status education explains all canonical statuses', () => {
 test('exports the agreed preset keys', () => {
   assert.deepEqual(
     ONBOARDING_ACTIVITY_PRESETS.map((preset) => preset.key),
-    ['events', 'photo_video', 'custom_products', 'beauty', 'consulting', 'other']
+    ['events', 'photo_video', 'custom_products', 'beauty', 'consulting', 'repair_home', 'transport_delivery', 'digital_services', 'other']
   )
 })

@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
           setOnboardingRequired(
             Boolean(
               sessionUser &&
-                (!sessionUser.firstName || !sessionUser.secondName)
+                !sessionUser.firstName?.trim()
             )
           )
         }
@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       if (active) setOnboardingRequired(!response.data.completed)
     }).catch(() => {
       // A new account must still finish setup; an existing configured user can work offline.
-      if (active) setOnboardingRequired(!user.firstName || !user.secondName)
+      if (active) setOnboardingRequired(!user.firstName?.trim())
     }).finally(() => {
       if (active) setOnboardingLoading(false)
     })
@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     await setAuthSession(session)
     setUser(session.user)
     setOnboardingRequired(
-      !session.user.firstName || !session.user.secondName
+      !session.user.firstName?.trim()
     )
   }, [queryClient])
 

@@ -283,6 +283,7 @@ export const DEFAULT_CLIENT = Object.freeze({
   vk: '',
   preferredContactChannel: '',
   preferredContactChannelOther: '',
+  messengerPushMuted: false,
   comment: '',
   significantDates: [],
   clientType: 'none',

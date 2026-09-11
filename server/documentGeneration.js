@@ -10,6 +10,23 @@ import {
 const DOCX_MIME =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
+const formatDocumentDate = (value) => {
+  if (
+    value &&
+    (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value))
+  )
+    return null
+  const date = value ? new Date(`${value}T12:00:00`) : new Date()
+  if (Number.isNaN(date.getTime())) return null
+  const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  // Date переносит, например, 31 февраля в март. Для документа это ошибка.
+  if (value && iso !== value) return null
+  return {
+    iso,
+    label: `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`,
+  }
+}
+
 const renderDocxTemplate = ({ templateBase64, variables = {} }) => {
   const bytes = Buffer.from(String(templateBase64 || '').trim(), 'base64')
   if (!bytes.length) throw new Error('DOCX_TEMPLATE_EMPTY')
@@ -40,4 +57,4 @@ const renderDocxTemplate = ({ templateBase64, variables = {} }) => {
   return resultZip.generate({ type: 'nodebuffer', mimeType: DOCX_MIME })
 }
 
-export { DOCX_MIME, renderDocxTemplate }
+export { DOCX_MIME, formatDocumentDate, renderDocxTemplate }

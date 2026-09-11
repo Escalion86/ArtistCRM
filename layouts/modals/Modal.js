@@ -83,6 +83,7 @@ const Modal = ({
   const [bottomLeftComponentState, setBottomLeftComponent] =
     useState(bottomLeftComponent)
   const contentRef = useRef(null)
+  const confirmLockRef = useRef(false)
 
   const setOnConfirmFuncSafe = useCallback(
     (value) => {
@@ -169,37 +170,50 @@ const Modal = ({
         ? onConfirm
         : null
 
+  const runConfirm = useCallback(
+    async (
+      handler,
+      { closeImmediately = false, closeAfterSuccess = false } = {}
+    ) => {
+      if (confirmLockRef.current) return
+
+      confirmLockRef.current = true
+      setConfirmPending(true)
+      try {
+        const result = handler(refreshPage)
+        if (closeImmediately) closeModal()
+        await result
+        if (closeAfterSuccess) closeModal()
+      } finally {
+        confirmLockRef.current = false
+        setConfirmPending(false)
+      }
+    },
+    [closeModal, refreshPage]
+  )
+
   const onConfirmClick = confirmHandler
-    ? waitForConfirm
-      ? async () => {
-          if (confirmPending) return
-          setConfirmPending(true)
-          let completed = false
-          try {
-            await confirmHandler(refreshPage)
-            completed = true
-            closeModal()
-          } finally {
-            if (!completed) setConfirmPending(false)
-          }
-        }
-      : typeof onConfirmFunc === 'function'
-        ? () => onConfirmFunc(refreshPage)
-        : () => {
-            onConfirm(refreshPage)
-            closeModal()
-          }
+    ? () =>
+        runConfirm(confirmHandler, {
+          closeImmediately:
+            !waitForConfirm && typeof onConfirmFunc !== 'function',
+          closeAfterSuccess: waitForConfirm,
+        })
     : undefined
 
-  const onConfirm2Click =
+  const confirm2Handler =
     typeof onConfirm2Func === 'function'
-      ? () => onConfirm2Func(refreshPage)
+      ? onConfirm2Func
       : typeof onConfirm2 === 'function'
-        ? () => {
-            onConfirm2(refreshPage)
-            closeModal()
-          }
-        : undefined
+        ? onConfirm2
+        : null
+
+  const onConfirm2Click = confirm2Handler
+    ? () =>
+        runConfirm(confirm2Handler, {
+          closeImmediately: typeof onConfirm2Func !== 'function',
+        })
+    : undefined
 
   const onCloseButtonClick =
     typeof onCloseButtonFunc === 'function'

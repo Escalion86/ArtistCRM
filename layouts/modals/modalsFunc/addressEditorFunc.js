@@ -75,7 +75,7 @@ const addressEditorFunc = ({
   return {
     title: 'Редактирование адреса',
     confirmButtonName: 'Применить',
-    declineButtonName: 'Отмена',
+    closeButtonName: 'Отмена',
     Children: AddressEditorModal,
   }
 }

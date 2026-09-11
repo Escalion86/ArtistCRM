@@ -43,9 +43,9 @@ const emptyValues = {
   firstName: '', secondName: '', thirdName: '', phone: '', email: '', telegram: '',
   whatsapp: '', viber: '', instagram: '', vk: '', town: '', clientType: 'none',
   preferredContactChannel: '' as NonNullable<Client['preferredContactChannel']>,
-  preferredContactChannelOther: '', comment: '', legalName: '', inn: '', kpp: '',
-  ogrn: '', bankName: '', bik: '', checkingAccount: '', correspondentAccount: '',
-  legalAddress: '',
+  preferredContactChannelOther: '', messengerPushMuted: false, comment: '',
+  legalName: '', inn: '', kpp: '', ogrn: '', bankName: '', bik: '',
+  checkingAccount: '', correspondentAccount: '', legalAddress: '',
 }
 
 const localKey = () => `date-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -76,6 +76,7 @@ export default function ClientEditScreen() {
         clientType: client.clientType || 'none',
         preferredContactChannel: client.preferredContactChannel || '',
         preferredContactChannelOther: client.preferredContactChannelOther || '',
+        messengerPushMuted: client.messengerPushMuted === true,
         comment: client.comment || '', legalName: client.legalName || '',
         inn: client.inn || '', kpp: client.kpp || '', ogrn: client.ogrn || '',
         bankName: client.bankName || '', bik: client.bik || '',

@@ -3,6 +3,7 @@ import { faBan } from '@fortawesome/free-solid-svg-icons/faBan'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cn from 'classnames'
 import { forwardRef } from 'react'
+import InputAffixDivider from './InputAffixDivider'
 
 const InputWrapper = forwardRef(
   (
@@ -118,7 +119,7 @@ const InputWrapper = forwardRef(
           <div
             className={cn(
               '[&:has(:focus)_.groupe]:max-w-full',
-              'tablet:min-h-[28px] flex min-h-[24px] w-full items-center',
+              'tablet:min-h-[28px] flex min-h-[24px] w-full items-center self-stretch',
               wrapperClassName,
               disabled ? 'cursor-not-allowed' : ''
             )}
@@ -139,11 +140,12 @@ const InputWrapper = forwardRef(
             {(postfix || disabled) && (
               <div
                 className={cn(
-                  'text-disabled flex items-center gap-x-1',
+                  'text-disabled flex items-center gap-x-1 self-stretch',
                   postfixClassName
                 )}
               >
-                {postfix}
+                {postfix && <InputAffixDivider />}
+                {postfix && <span className="flex items-center">{postfix}</span>}
                 {disabled && showDisabledIcon && (
                   <FontAwesomeIcon
                     className="text-disabled h-4 w-4"
