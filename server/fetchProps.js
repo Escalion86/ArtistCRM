@@ -4,6 +4,7 @@ import Clients from '@models/Clients'
 import Transactions from '@models/Transactions'
 import Services from '@models/Services'
 import Users from '@models/Users'
+import News from '@models/News'
 import Tariffs from '@models/Tariffs'
 import dbConnect from './dbConnect'
 import mongoose from 'mongoose'
@@ -48,6 +49,7 @@ const buildSafeDefaultPayload = (serverDateTime, user, extra = {}) => ({
   },
   siteSettings: {},
   transactions: [],
+  news: [],
   services: [],
   tariffs: [],
   users: [],
@@ -300,6 +302,7 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
       tariffs,
       users,
       loggedUser,
+      newsList,
     ] = await Promise.all([
       buildEventsPayload(tenantObjectId, page),
       SiteSettings.findOne({ tenantId: tenantObjectId }).lean(),
@@ -308,6 +311,10 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
         ? Users.find(usersQuery).select('-password').lean()
         : Promise.resolve([]),
       user?._id ? Users.findById(user._id).select('-password').lean() : null,
+      News.find({ isPublished: true })
+        .sort({ publishedAt: -1 })
+        .limit(50)
+        .lean(),
     ])
 
     const eventIds = (eventsPayload.events ?? [])
@@ -372,6 +379,7 @@ const fetchProps = async (user, page = 'eventsUpcoming') => {
         JSON.stringify(sanitizeTelegramSiteSettings(siteSettings ?? {}))
       ),
       transactions: JSON.parse(JSON.stringify(transactions)),
+      news: JSON.parse(JSON.stringify(newsList)),
       services: JSON.parse(JSON.stringify(services)),
       tariffs: JSON.parse(JSON.stringify(tariffs)),
       users: JSON.parse(JSON.stringify(usersWithEventStats)),

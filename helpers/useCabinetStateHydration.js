@@ -7,6 +7,7 @@ import clientsAtom from '@state/atoms/clientsAtom'
 import eventsAtom from '@state/atoms/eventsAtom'
 import isSiteLoadingAtom from '@state/atoms/isSiteLoadingAtom'
 import loggedUserAtom from '@state/atoms/loggedUserAtom'
+import newsAtom from '@state/atoms/newsAtom'
 import servicesAtom from '@state/atoms/servicesAtom'
 import serviceGroupsAtom from '@state/atoms/serviceGroupsAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
@@ -26,6 +27,7 @@ const useCabinetStateHydration = (props) => {
     events: initialEvents,
     eventsPaging,
     loggedUser: initialLoggedUser,
+    news: initialNews,
     page,
     services: initialServices,
     siteSettings: initialSiteSettings,
@@ -38,6 +40,7 @@ const useCabinetStateHydration = (props) => {
   const setEvents = useSetAtom(eventsAtom)
   const setIsSiteLoading = useSetAtom(isSiteLoadingAtom)
   const setLoggedUser = useSetAtom(loggedUserAtom)
+  const setNews = useSetAtom(newsAtom)
   const setServices = useSetAtom(servicesAtom)
   const setServiceGroups = useSetAtom(serviceGroupsAtom)
   const setSiteSettings = useSetAtom(siteSettingsAtom)
@@ -59,6 +62,7 @@ const useCabinetStateHydration = (props) => {
     const services = Array.isArray(initialServices) ? initialServices : []
     const tariffs = Array.isArray(initialTariffs) ? initialTariffs : []
     const users = Array.isArray(initialUsers) ? initialUsers : []
+    const news = Array.isArray(initialNews) ? initialNews : []
     const eventsScope = resolveCabinetEventsScope({ page, eventsPaging })
     const eventsQueryPayload = buildEventsQueryPayload({
       events: initialEvents,
@@ -73,6 +77,7 @@ const useCabinetStateHydration = (props) => {
     setTariffs(tariffs)
     setUsers(users)
     setSiteSettings(initialSiteSettings ?? {})
+    setNews(news)
 
     queryClient.setQueryData(
       queryKeys.events({ scope: eventsScope }),
@@ -108,6 +113,7 @@ const useCabinetStateHydration = (props) => {
     initialClients,
     initialEvents,
     initialLoggedUser,
+    initialNews,
     initialServices,
     initialSiteSettings,
     initialTariffs,
@@ -119,6 +125,7 @@ const useCabinetStateHydration = (props) => {
     setEvents,
     setIsSiteLoading,
     setLoggedUser,
+    setNews,
     setServices,
     setSiteSettings,
     setTariffs,

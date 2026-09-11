@@ -20,6 +20,7 @@ import ServicesContent from './ServicesContent'
 import UsersContent from './UsersContent'
 import ProfileContent from './ProfileContent'
 import TariffsContent from './TariffsContent'
+import SiteNewsContent from './SiteNewsContent'
 import TariffSelectContent from './TariffSelectContent'
 import HistoryContent from './HistoryContent'
 import FeedbackContent from './FeedbackContent'
@@ -113,6 +114,10 @@ export const CONTENTS = Object.freeze({
   'site-contacts': {
     Component: SiteContactsSettingsContent,
     name: 'Настройки сайта / Контакты',
+  },
+  'site-news': {
+    Component: SiteNewsContent,
+    name: 'Настройки сайта / Новости платформы',
   },
   tariffs: {
     Component: TariffsContent,

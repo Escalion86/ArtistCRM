@@ -14,6 +14,8 @@ import upcomingEventsOverviewFunc from './modalsFunc/upcomingEventsOverviewFunc'
 import transactionFunc from './modalsFunc/transactionFunc'
 import eventsTagsFunc from './modalsFunc/eventsTagsFunc'
 import townsFunc from './modalsFunc/townsFunc'
+import whatsNewFunc from './modalsFunc/whatsNewFunc'
+import newsFunc from './modalsFunc/newsFunc'
 import eventTypesFunc from './modalsFunc/eventTypesFunc'
 import artistRequisitesEditorFunc from './modalsFunc/artistRequisitesEditorFunc'
 import jsonFunc from './modalsFunc/jsonFunc'
@@ -181,6 +183,17 @@ const modalsFuncGenerator = (router, itemsFunc, loggedUser, options = {}) => {
       towns: () => addModal(townsFunc()),
       eventTypes: () => addModal(eventTypesFunc()),
       artistRequisitesEditor: () => addModal(artistRequisitesEditorFunc()),
+    },
+    whatsNew: {
+      view: () => addModal(whatsNewFunc()),
+    },
+    news: {
+      add: (onSaved) =>
+        loggedUser?.role === 'dev' ? addModal(newsFunc(null, onSaved)) : null,
+      edit: (newsItem, onSaved) =>
+        loggedUser?.role === 'dev'
+          ? addModal(newsFunc(newsItem, onSaved))
+          : null,
     },
     transaction: {
       add: (eventId, props) =>

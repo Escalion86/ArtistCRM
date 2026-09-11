@@ -2,6 +2,7 @@
 
 import { useAtomValue } from 'jotai'
 import MobileBottomNav from '@components/MobileBottomNav'
+import WhatsNewToast from '@components/WhatsNewToast'
 import windowDimensionsTailwindSelector from '@state/selectors/windowDimensionsTailwindSelector'
 
 const CabinetWrapper = ({ children }) => {
@@ -35,6 +36,7 @@ const CabinetWrapper = ({ children }) => {
     >
       {children}
       <MobileBottomNav />
+      <WhatsNewToast />
     </div>
   )
 }

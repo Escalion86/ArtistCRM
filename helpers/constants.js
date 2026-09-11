@@ -21,6 +21,7 @@ import {
   faUsers,
   faWandMagicSparkles,
   faGift,
+  faNewspaper,
 } from '@fortawesome/free-solid-svg-icons'
 import {
   faCalendarCheck,
@@ -729,6 +730,14 @@ export const pages = [
     href: 'registration-trial',
     icon: faGift,
     accessRoles: ['dev', 'admin'],
+  },
+  {
+    id: 35,
+    group: 10,
+    name: 'Новости платформы',
+    href: 'site-news',
+    icon: faNewspaper,
+    accessRoles: ['dev'],
   },
   {
     id: 32,

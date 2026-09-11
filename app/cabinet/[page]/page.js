@@ -41,6 +41,7 @@ const normalizeCabinetProps = (input, sessionUser, page) => {
         ? source.siteSettings
         : {},
     transactions: Array.isArray(source.transactions) ? source.transactions : [],
+    news: Array.isArray(source.news) ? source.news : [],
     services: Array.isArray(source.services) ? source.services : [],
     tariffs: Array.isArray(source.tariffs) ? source.tariffs : [],
     users: Array.isArray(source.users) ? source.users : [],

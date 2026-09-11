@@ -3,9 +3,17 @@
 /* eslint-disable @next/next/no-img-element */
 // import DevSwitch from '@components/DevSwitch'
 import Link from 'next/link'
+import { useAtomValue } from 'jotai'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faBell } from '@fortawesome/free-solid-svg-icons'
 import UserMenu from './UserMenu'
+import unreadNewsSelector from '@state/selectors/unreadNewsSelector'
+import { modalsFuncAtom } from '@state/atoms'
 
 const CabinetHeader = ({ title = '', titleLink, icon, count = null }) => {
+  const unreadNews = useAtomValue(unreadNewsSelector)
+  const modalsFunc = useAtomValue(modalsFuncAtom)
+
   return (
     <div
       className="cabinet-header relative z-20 flex h-16 w-full items-center justify-end gap-x-4 px-3"
@@ -48,6 +56,27 @@ const CabinetHeader = ({ title = '', titleLink, icon, count = null }) => {
         ) : null}
       </div>
 
+      <button
+        type="button"
+        onClick={() => modalsFunc.whatsNew?.view()}
+        className="relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+        title="Что нового"
+        aria-label={
+          unreadNews.length > 0
+            ? `Открыть новости платформы: ${unreadNews.length} непрочитанных`
+            : 'Открыть новости платформы'
+        }
+      >
+        <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
+        {unreadNews.length > 0 ? (
+          <span
+            className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white ring-2 ring-white"
+            title={`${unreadNews.length} непрочитанных новостей`}
+          >
+            {unreadNews.length}
+          </span>
+        ) : null}
+      </button>
       <UserMenu />
     </div>
   )

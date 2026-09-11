@@ -6,9 +6,13 @@
 
 **Architecture:** Новости хранятся в глобальной коллекции `news` (без tenantId — осознанное исключение, записи едины для платформы). Опубликованные новости приезжают в общем payload `fetchProps` → `newsAtom`; непрочитанные вычисляются селектором по `loggedUser.lastSeenNewsAt`. Прочтение = открытие модалки (`POST /api/news/seen`). Админка dev — отдельная страница кабинета с CRUD через API.
 
+**Уточнение UX (2026-09-11):** бейдж колокольчика контрастно показывает количество непрочитанных. При открытии архива раскрывается только самая свежая непрочитанная новость. `POST /api/news/seen` получает её `publishedAt` и обновляет отметку через `$max`; при пустом архиве запрос не отправляется.
+
 **Tech Stack:** Next.js App Router, React, Jotai, Mongoose (MongoDB), Tailwind CSS, `node --test` для юнит-тестов.
 
 **Spec:** `docs/superpowers/specs/2026-09-08-whats-new-notifications-design.md`
+
+> Дополнение от 2026-09-11: по решению пользователя текст новости переведён с textarea на TipTap. Добавлено поле `contentHtml`, серверная HTML-санитизация, загрузка изображений в EscalionCloud и обратная совместимость с существующими `items[]`.
 
 ## Global Constraints
 

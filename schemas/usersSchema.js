@@ -64,6 +64,10 @@ const usersSchema = {
     type: Date,
     default: null,
   },
+  lastSeenNewsAt: {
+    type: Date,
+    default: null,
+  },
   images: {
     type: Array,
     default: [],
