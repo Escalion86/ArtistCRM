@@ -20,7 +20,7 @@ import { getEventTransferDisplay } from '@helpers/eventTransferDisplay'
 import Image from 'next/image'
 import sanitizeHtml from '@helpers/sanitizeHtml'
 import { getAdditionalEventsDisplayGroups } from '@helpers/additionalEvents'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import servicesAtom from '@state/atoms/servicesAtom'
 import siteSettingsAtom from '@state/atoms/siteSettingsAtom'
@@ -39,7 +39,9 @@ import {
   hasObligationPaymentMethod,
   OBLIGATION_PAYMENT_METHOD,
 } from '@helpers/transactionObligation'
-import AdditionalEventCard from './AdditionalEventCard'
+import AdditionalEventCard, {
+  AdditionalEventCardSkeleton,
+} from './AdditionalEventCard'
 import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
 import openEventAdditionalEventViewModal from './eventAdditionalEventViewModal'
 
@@ -340,6 +342,8 @@ const eventViewFunc = (eventId) => {
     const siteSettings = useAtomValue(siteSettingsAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
     const itemsFunc = useAtomValue(itemsFuncAtom)
+    const [pendingAdditionalEventIndex, setPendingAdditionalEventIndex] =
+      useState(null)
 
     const duration = getEventDuration(event)
     const additionalEvents = useMemo(
@@ -454,7 +458,12 @@ const eventViewFunc = (eventId) => {
           const nextItems = currentItems.map((item, idx) =>
             idx === index ? { ...item, ...nextItem } : item
           )
-          await updateAdditionalEvents(nextItems)
+          setPendingAdditionalEventIndex(index)
+          try {
+            await updateAdditionalEvents(nextItems)
+          } finally {
+            setPendingAdditionalEventIndex(null)
+          }
         },
       })
     }
@@ -788,7 +797,12 @@ const eventViewFunc = (eventId) => {
                       <div className="tablet:grid-cols-2 laptop:grid-cols-3 grid grid-cols-1 gap-2">
                         {group.items.map((item) => {
                           const originalIndex = item.originalIndex
-                          return (
+                          return pendingAdditionalEventIndex ===
+                            originalIndex ? (
+                            <AdditionalEventCardSkeleton
+                              key={`additional-event-view-${originalIndex}-pending`}
+                            />
+                          ) : (
                             <AdditionalEventCard
                               key={`additional-event-view-${originalIndex}`}
                               item={item}

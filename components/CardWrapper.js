@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types'
 import cn from 'classnames'
+import SwipeableCard from './SwipeableCard'
 
 const CardWrapper = ({
   style,
@@ -8,6 +9,8 @@ const CardWrapper = ({
   role,
   tabIndex,
   onClick,
+  onSwipeLeft,
+  onSwipeRight,
   noHorizontalPadding = false,
   children,
 }) => (
@@ -15,17 +18,19 @@ const CardWrapper = ({
     style={style}
     className={cn(noHorizontalPadding ? '' : 'px-2', 'py-2', outerClassName)}
   >
-    <div
-      role={role}
-      tabIndex={tabIndex}
-      onClick={onClick}
-      className={cn(
-        'ui-surface-card ui-surface-card--interactive focus-visible:ring-general/60 relative h-full w-full overflow-hidden rounded-lg transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
-        className
-      )}
-    >
-      {children}
-    </div>
+    <SwipeableCard onSwipeLeft={onSwipeLeft} onSwipeRight={onSwipeRight}>
+      <div
+        role={role}
+        tabIndex={tabIndex}
+        onClick={onClick}
+        className={cn(
+          'ui-surface-card ui-surface-card--interactive focus-visible:ring-general/60 relative h-full w-full overflow-hidden rounded-lg transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+          className
+        )}
+      >
+        {children}
+      </div>
+    </SwipeableCard>
   </div>
 )
 
@@ -36,6 +41,8 @@ CardWrapper.propTypes = {
   role: PropTypes.string,
   tabIndex: PropTypes.number,
   onClick: PropTypes.func,
+  onSwipeLeft: PropTypes.func,
+  onSwipeRight: PropTypes.func,
   children: PropTypes.node.isRequired,
 }
 
@@ -46,6 +53,8 @@ CardWrapper.defaultProps = {
   role: 'button',
   tabIndex: 0,
   onClick: null,
+  onSwipeLeft: null,
+  onSwipeRight: null,
 }
 
 export default CardWrapper

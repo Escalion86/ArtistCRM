@@ -71,6 +71,8 @@ const UserCard = ({ userId, user: userProp, hidden = false, style }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && modalsFunc.user.view(user._id)}
+      onSwipeLeft={() => !loading && modalsFunc.user?.edit(user._id)}
+      onSwipeRight={() => !loading && modalsFunc.user?.delete(user._id)}
       className="card-body-pad flex h-full w-full cursor-pointer py-3 pr-3 pl-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} rounded />

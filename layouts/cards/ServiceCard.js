@@ -34,6 +34,8 @@ const ServiceCard = ({ service, style }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && modalsFunc.service?.view(service._id)}
+      onSwipeLeft={() => !loading && modalsFunc.service?.edit(service._id)}
+      onSwipeRight={() => !loading && modalsFunc.service?.delete(service._id)}
       className="card-body-pad group flex h-full w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />

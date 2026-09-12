@@ -4276,51 +4276,62 @@ body.theme-dark .attention-summary-chip {
   border-radius: 50%;
 }
 
-.attention-swipe-row {
+.card-swipe-row {
   position: relative;
+  height: 100%;
   border-radius: 12px;
   overflow: hidden;
 }
 
-.attention-swipe-actions {
+.card-swipe-action {
   position: absolute;
   top: 0;
-  right: 0;
   bottom: 0;
-  display: flex;
-  width: 156px;
-}
-
-.attention-swipe-actions button {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  border: none;
-  padding: 0 4px;
+  gap: 5px;
+  width: 112px;
   color: #ffffff;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  cursor: pointer;
 }
 
-.attention-swipe-actions .ok {
-  background: #16a34a;
+.card-swipe-action svg {
+  width: 18px;
+  height: 18px;
 }
 
-.attention-swipe-actions .move {
-  background: #2563eb;
-}
-
-.attention-swipe-actions .del {
-  flex: 0 0 44px;
+.card-swipe-action--delete {
+  left: 0;
   background: #dc2626;
 }
 
-.attention-swipe-content {
+.card-swipe-action--edit {
+  right: 0;
+  background: #d97706;
+}
+
+.card-swipe-content {
   position: relative;
+  height: 100%;
+  border-radius: inherit;
+  background-color: #ffffff;
+}
+
+body.theme-dark .card-swipe-content {
+  background-color: #18130d;
+}
+
+.additional-event-skeleton-line,
+.additional-event-skeleton-dot {
+  background: #e5e7eb;
+}
+
+body.theme-dark .additional-event-skeleton-line,
+body.theme-dark .additional-event-skeleton-dot {
+  background: rgba(235, 211, 165, 0.18);
 }
 
 .attention-msg-avatar {

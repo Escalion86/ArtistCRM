@@ -31,6 +31,8 @@ const TariffCard = ({ tariff, style, onEdit, onDelete }) => {
     <CardWrapper
       style={style}
       onClick={() => !loading && onEdit?.()}
+      onSwipeLeft={() => !loading && onEdit?.()}
+      onSwipeRight={() => !loading && onDelete?.()}
       className="card-body-pad group flex w-full cursor-pointer p-4 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />

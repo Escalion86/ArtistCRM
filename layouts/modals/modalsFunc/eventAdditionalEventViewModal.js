@@ -1,6 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import CardButtons from '@components/CardButtons'
+import ContactsIconsButtons from '@components/ContactsIconsButtons'
 import formatDateTime from '@helpers/formatDateTime'
+import { formatPhoneWithPlus } from '@helpers/phoneUi'
+import getPersonFullName from '@helpers/getPersonFullName'
+import { useClientsQuery } from '@helpers/useClientsQuery'
 import {
   getEventAddressLine,
   getEventTitle,
@@ -19,6 +23,141 @@ const DetailBlock = ({ label, children }) => (
     <div className="mt-1">{children}</div>
   </div>
 )
+
+const findClientById = (clients, clientId) => {
+  if (!clientId) return null
+  const normalizedId = String(clientId)
+  return (
+    clients.find((client) => String(client?._id) === normalizedId) ?? null
+  )
+}
+
+const EventContactCard = ({ client, label, comment, modalsFunc }) => {
+  const clientName = getPersonFullName(client, {
+    fallback: client ? client._id : 'Контакт не найден',
+  })
+  const phone = formatPhoneWithPlus(client?.phone)
+  const openClient = () => {
+    if (!client?._id) return
+    modalsFunc.client?.view(client._id)
+  }
+  const clientCardProps = client?._id
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        onClick: openClient,
+        onKeyDown: (event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          openClient()
+        },
+      }
+    : {}
+
+  return (
+    <div
+      {...clientCardProps}
+      className={`event-view-kpi focus:ring-general/30 rounded-lg border border-gray-200 bg-white p-2 transition focus:ring-2 focus:outline-none ${
+        client?._id
+          ? 'hover:border-general cursor-pointer hover:shadow-sm'
+          : ''
+      }`}
+    >
+      <div className="text-[11px] font-semibold tracking-wide text-gray-500 uppercase">
+        {label}
+      </div>
+      <div className="mt-0.5 text-sm font-semibold text-gray-900">
+        {clientName}
+      </div>
+      {comment ? (
+        <div className="mt-0.5 whitespace-pre-wrap text-xs text-gray-600">
+          {comment}
+        </div>
+      ) : null}
+      {phone ? <div className="mt-0.5 text-xs text-gray-600">{phone}</div> : null}
+      {client ? (
+        <div
+          className="mt-1"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <ContactsIconsButtons user={client} showChat compactButtons />
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+const EventContactsBlock = ({ event, clients, isPending, modalsFunc }) => {
+  const mainClient = useMemo(
+    () => findClientById(clients, event?.clientId),
+    [clients, event?.clientId]
+  )
+  const additionalContacts = useMemo(() => {
+    const contacts = Array.isArray(event?.otherContacts)
+      ? event.otherContacts
+      : []
+    return contacts
+      .map((contact, index) => {
+        if (!contact?.clientId && !contact?.comment) return null
+        return {
+          key: `${contact?.clientId || 'contact'}-${index}`,
+          client: findClientById(clients, contact?.clientId),
+          comment:
+            typeof contact?.comment === 'string' ? contact.comment : '',
+        }
+      })
+      .filter(Boolean)
+  }, [clients, event?.otherContacts])
+  const hasContactReferences = Boolean(
+    event?.clientId || additionalContacts.length > 0
+  )
+
+  return (
+    <DetailBlock label="Контакты мероприятия">
+      {isPending && hasContactReferences ? (
+        <div
+          className="flex flex-col gap-2"
+          aria-label="Загружаем контакты мероприятия"
+        >
+          <div className="additional-event-skeleton-line h-16 animate-pulse rounded-lg" />
+          {Array.isArray(event?.otherContacts) &&
+          event.otherContacts.length > 0 ? (
+            <div className="additional-event-skeleton-line h-16 animate-pulse rounded-lg" />
+          ) : null}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {event?.clientId ? (
+            <EventContactCard
+              client={mainClient}
+              label="Клиент"
+              modalsFunc={modalsFunc}
+            />
+          ) : (
+            <div className="text-sm text-gray-600">Клиент не указан</div>
+          )}
+          {additionalContacts.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <div className="text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                Доп. контакты
+              </div>
+              {additionalContacts.map((contact) => (
+                <EventContactCard
+                  key={contact.key}
+                  client={contact.client}
+                  label="Доп. контакт"
+                  comment={contact.comment}
+                  modalsFunc={modalsFunc}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
+    </DetailBlock>
+  )
+}
 
 const EventReferenceCard = ({ event, onOpen }) => {
   const address = getEventAddressLine(event)
@@ -68,6 +207,8 @@ const openEventAdditionalEventViewModal = ({
   const displayDateLabel = item?.done ? 'Дата выполнения' : 'Дата и время'
 
   const AdditionalEventViewContent = ({ closeModal, setTopLeftComponent }) => {
+    const { data: clients = [], isPending: areClientsPending } =
+      useClientsQuery()
     const handleOpenEvent = () => {
       closeModal?.()
       setTimeout(() => onOpenEvent?.(event), 150)
@@ -111,6 +252,12 @@ const openEventAdditionalEventViewModal = ({
     return (
       <div className="flex flex-col gap-3 text-sm text-gray-800">
         <EventReferenceCard event={event} onOpen={handleOpenEvent} />
+        <EventContactsBlock
+          event={event}
+          clients={clients}
+          isPending={areClientsPending}
+          modalsFunc={modalsFunc}
+        />
         <DetailBlock label="Статус">
           <div
             className={`text-sm font-semibold ${

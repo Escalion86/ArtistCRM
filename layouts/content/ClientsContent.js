@@ -149,6 +149,7 @@ const ClientsContent = ({ onHeaderCountChange }) => {
           client={client}
           onEdit={() => modalsFunc.client?.edit(client._id)}
           onView={() => modalsFunc.client?.view(client._id)}
+          onDelete={() => modalsFunc.client?.delete(client._id)}
         />
       )
     },

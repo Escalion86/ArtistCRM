@@ -116,6 +116,8 @@ const TransactionCard = ({
       style={style}
       outerClassName="px-2 py-1"
       onClick={() => !loading && onEdit?.()}
+      onSwipeLeft={() => !loading && onEdit?.()}
+      onSwipeRight={onDelete ? () => !loading && onDelete() : null}
       className="transaction-card-shell card-body-pad flex h-full w-full cursor-pointer p-3 pr-3 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />

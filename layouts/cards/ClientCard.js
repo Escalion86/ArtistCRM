@@ -49,7 +49,7 @@ const LAST_REQUEST_STATUS = {
   },
 }
 
-const ClientCard = ({ client, style, onEdit, onView }) => {
+const ClientCard = ({ client, style, onEdit, onView, onDelete }) => {
   const loading = useAtomValue(loadingAtom('client' + client._id))
   const error = useAtomValue(errorAtom('client' + client._id))
   const lastRequestLabel = client.lastRequest
@@ -89,6 +89,8 @@ const ClientCard = ({ client, style, onEdit, onView }) => {
       style={style}
       outerClassName="px-2 py-1"
       onClick={() => !loading && onView?.()}
+      onSwipeLeft={() => !loading && onEdit?.()}
+      onSwipeRight={() => !loading && onDelete?.()}
       className="card-body-pad group flex h-full w-full cursor-pointer p-4 pr-3 text-left hover:border-gray-300"
     >
       <CardOverlay loading={loading} error={error} />
@@ -208,6 +210,7 @@ ClientCard.propTypes = {
   style: PropTypes.shape({}),
   onEdit: PropTypes.func.isRequired,
   onView: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
 }
 
 ClientCard.defaultProps = {

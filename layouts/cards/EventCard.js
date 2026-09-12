@@ -332,6 +332,8 @@ const EventCard = ({
       style={style}
       outerClassName={cn(noHorizontalPadding ? '' : 'px-2', 'py-1')}
       onClick={() => !loading && modalsFunc.event?.view(event._id)}
+      onSwipeLeft={() => !loading && modalsFunc.event?.edit(event._id)}
+      onSwipeRight={() => !loading && modalsFunc.event?.delete(event._id)}
       className="event-card-shell card-body-pad laptop:flex-row laptop:items-start laptop:gap-4 flex min-h-[160px] cursor-pointer flex-col gap-x-3 gap-y-1 overflow-hidden rounded-lg py-3 pr-3 pl-4"
       noHorizontalPadding
     >

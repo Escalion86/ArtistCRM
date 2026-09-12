@@ -12,6 +12,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faPencilAlt } from '@fortawesome/free-solid-svg-icons/faPencilAlt'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import SwipeableCard from '@components/SwipeableCard'
 
 const stopPropagation = (callback) => (event) => {
   event.stopPropagation()
@@ -51,8 +52,10 @@ const AdditionalEventCard = ({
   const [isToggleSaving, setIsToggleSaving] = useState(false)
   const isClickable = typeof onOpen === 'function'
   const title = item?.title || `Событие #${index + 1}`
-  const displayDate = item?.displayDate ?? (item?.done ? item?.doneAt : item?.date)
-  const displayDateLabel = item?.displayDateLabel || (item?.done ? 'Выполнено' : '')
+  const displayDate =
+    item?.displayDate ?? (item?.done ? item?.doneAt : item?.date)
+  const displayDateLabel =
+    item?.displayDateLabel || (item?.done ? 'Выполнено' : '')
 
   const handleToggleDoneClick = async () => {
     if (isToggleSaving) return
@@ -72,126 +75,146 @@ const AdditionalEventCard = ({
   }
 
   return (
-    <div
-      role={isClickable ? 'button' : undefined}
-      tabIndex={isClickable ? 0 : undefined}
-      className={cn(
-        'rounded-xl outline-none',
-        isClickable ? 'cursor-pointer focus:ring-2 focus:ring-general/30' : ''
-      )}
-      onClick={onOpen}
-      onKeyDown={handleKeyDown}
+    <SwipeableCard
+      onSwipeLeft={onEdit ? () => onEdit(index) : null}
+      onSwipeRight={onDelete ? () => onDelete(index) : null}
     >
-      <SurfaceCard
+      <div
+        role={isClickable ? 'button' : undefined}
+        tabIndex={isClickable ? 0 : undefined}
         className={cn(
-          'additional-event-list-card transition',
-          item?.done
-            ? 'additional-event-list-card--done border-emerald-200 bg-emerald-50/60'
-            : 'border-gray-200'
+          'rounded-xl outline-none',
+          isClickable ? 'focus:ring-general/30 cursor-pointer focus:ring-2' : ''
         )}
+        onClick={onOpen}
+        onKeyDown={handleKeyDown}
       >
-        <div className="flex items-start gap-2">
-          <button
-            type="button"
-            disabled={isToggleSaving}
-            aria-busy={isToggleSaving}
-            onClick={stopPropagation(handleToggleDoneClick)}
-            title={
-              isToggleSaving
-                ? 'Сохраняем'
-                : item?.done
-                  ? 'Отметить как не выполнено'
-                  : 'Отметить как выполнено'
-            }
-            aria-label={
-              isToggleSaving
-                ? 'Сохраняем изменение'
-                : item?.done
-                  ? 'Отметить как не выполнено'
-                  : 'Отметить как выполнено'
-            }
-            className={`additional-event-list-check mt-0.5 inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border transition ${
-              isToggleSaving
-                ? 'cursor-wait border-gray-300 bg-gray-100 text-gray-500 opacity-80'
-                : item?.done
-                ? 'border-emerald-500 bg-emerald-500 text-white'
-                : 'border-gray-300 bg-white text-gray-400 hover:border-emerald-400 hover:text-emerald-500'
-            }`}
-          >
-            <FontAwesomeIcon
-              icon={isToggleSaving ? faSpinner : faCircleCheck}
-              className={isToggleSaving ? 'animate-spin' : ''}
-            />
-          </button>
-          <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <div
-                className={`truncate text-sm font-semibold ${
-                  item?.done ? 'text-emerald-700' : 'text-gray-900'
-                }`}
-              >
-                {item?.done ? '✓ ' : ''}
-                {title}
-              </div>
-              <div className="text-xs text-gray-600">
-                {displayDateLabel ? `${displayDateLabel}: ` : ''}
-                {formatDateTime(displayDate)}
-              </div>
-              {item?.description ? (
-                <div className="text-xs text-gray-700 whitespace-pre-wrap">
-                  {item.description}
-                </div>
-              ) : null}
-              {children ? <div className="mt-1">{children}</div> : null}
-            </div>
-            <div
-              className="shrink-0"
-              onClick={(event) => event.stopPropagation()}
-              onKeyDown={(event) => event.stopPropagation()}
+        <SurfaceCard
+          className={cn(
+            'additional-event-list-card transition',
+            item?.done
+              ? 'additional-event-list-card--done border-emerald-200 bg-emerald-50/60'
+              : 'border-gray-200'
+          )}
+        >
+          <div className="flex items-start gap-2">
+            <button
+              type="button"
+              disabled={isToggleSaving}
+              aria-busy={isToggleSaving}
+              onClick={stopPropagation(handleToggleDoneClick)}
+              title={
+                isToggleSaving
+                  ? 'Сохраняем'
+                  : item?.done
+                    ? 'Отметить как не выполнено'
+                    : 'Отметить как выполнено'
+              }
+              aria-label={
+                isToggleSaving
+                  ? 'Сохраняем изменение'
+                  : item?.done
+                    ? 'Отметить как не выполнено'
+                    : 'Отметить как выполнено'
+              }
+              className={`additional-event-list-check mt-0.5 inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border transition ${
+                isToggleSaving
+                  ? 'cursor-wait border-gray-300 bg-gray-100 text-gray-500 opacity-80'
+                  : item?.done
+                    ? 'border-emerald-500 bg-emerald-500 text-white'
+                    : 'border-gray-300 bg-white text-gray-400 hover:border-emerald-400 hover:text-emerald-500'
+              }`}
             >
-              <DropDown
-                placement="right"
-                renderInPortal
-                menuPadding={false}
-                menuClassName="flex-col items-stretch justify-start overflow-hidden"
-                trigger={
-                  <button
-                    type="button"
-                    className="text-general flex h-8 min-h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-transparent p-0 transition hover:border-general/30 hover:bg-general/10"
-                    aria-label="Открыть меню задачи"
-                  >
-                    <FontAwesomeIcon
-                      icon={faEllipsisV}
-                      className="h-4 min-h-4 w-4"
-                    />
-                  </button>
-                }
+              <FontAwesomeIcon
+                icon={isToggleSaving ? faSpinner : faCircleCheck}
+                className={isToggleSaving ? 'animate-spin' : ''}
+              />
+            </button>
+            <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div
+                  className={`truncate text-sm font-semibold ${
+                    item?.done ? 'text-emerald-700' : 'text-gray-900'
+                  }`}
+                >
+                  {item?.done ? '✓ ' : ''}
+                  {title}
+                </div>
+                <div className="text-xs text-gray-600">
+                  {displayDateLabel ? `${displayDateLabel}: ` : ''}
+                  {formatDateTime(displayDate)}
+                </div>
+                {item?.description ? (
+                  <div className="text-xs whitespace-pre-wrap text-gray-700">
+                    {item.description}
+                  </div>
+                ) : null}
+                {children ? <div className="mt-1">{children}</div> : null}
+              </div>
+              <div
+                className="shrink-0"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
               >
-                <AdditionalEventActionItem
-                  icon={faCalendarAlt}
-                  label="Посмотреть мероприятие"
-                  tone="blue"
-                  onClick={onOpenEvent}
-                />
-                <AdditionalEventActionItem
-                  icon={faPencilAlt}
-                  label="Редактировать"
-                  tone="orange"
-                  onClick={() => onEdit?.(index)}
-                />
-                <AdditionalEventActionItem
-                  icon={faTrashAlt}
-                  label="Удалить"
-                  tone="red"
-                  onClick={() => onDelete?.(index)}
-                />
-              </DropDown>
+                <DropDown
+                  placement="right"
+                  renderInPortal
+                  menuPadding={false}
+                  menuClassName="flex-col items-stretch justify-start overflow-hidden"
+                  trigger={
+                    <button
+                      type="button"
+                      className="text-general hover:border-general/30 hover:bg-general/10 flex h-8 min-h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-transparent p-0 transition"
+                      aria-label="Открыть меню задачи"
+                    >
+                      <FontAwesomeIcon
+                        icon={faEllipsisV}
+                        className="h-4 min-h-4 w-4"
+                      />
+                    </button>
+                  }
+                >
+                  <AdditionalEventActionItem
+                    icon={faCalendarAlt}
+                    label="Посмотреть мероприятие"
+                    tone="blue"
+                    onClick={onOpenEvent}
+                  />
+                  <AdditionalEventActionItem
+                    icon={faPencilAlt}
+                    label="Редактировать"
+                    tone="orange"
+                    onClick={() => onEdit?.(index)}
+                  />
+                  <AdditionalEventActionItem
+                    icon={faTrashAlt}
+                    label="Удалить"
+                    tone="red"
+                    onClick={() => onDelete?.(index)}
+                  />
+                </DropDown>
+              </div>
             </div>
           </div>
-        </div>
-      </SurfaceCard>
-    </div>
+        </SurfaceCard>
+      </div>
+    </SwipeableCard>
   )
 }
+
+export const AdditionalEventCardSkeleton = () => (
+  <SurfaceCard className="additional-event-list-card" aria-busy="true">
+    <div className="flex animate-pulse items-start gap-2">
+      <div className="additional-event-skeleton-dot mt-0.5 h-6 w-6 shrink-0 rounded-full" />
+      <div className="min-w-0 flex-1 space-y-2 py-0.5">
+        <div className="additional-event-skeleton-line h-4 w-2/3 rounded" />
+        <div className="additional-event-skeleton-line h-3 w-1/2 rounded" />
+        <div className="additional-event-skeleton-line h-3 w-4/5 rounded" />
+      </div>
+      <div className="additional-event-skeleton-dot h-8 w-8 shrink-0 rounded-full" />
+    </div>
+    <span className="sr-only">Сохраняем задачу</span>
+  </SurfaceCard>
+)
 
 export default AdditionalEventCard

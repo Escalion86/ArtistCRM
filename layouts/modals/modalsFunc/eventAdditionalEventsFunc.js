@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { modalsFuncAtom } from '@state/atoms'
@@ -6,7 +6,9 @@ import SurfaceCard from '@components/SurfaceCard'
 import AppButton from '@components/AppButton'
 import { getAdditionalEventsDisplayGroups } from '@helpers/additionalEvents'
 import openEventAdditionalEventEditorModal from './eventAdditionalEventEditorModal'
-import AdditionalEventCard from './AdditionalEventCard'
+import AdditionalEventCard, {
+  AdditionalEventCardSkeleton,
+} from './AdditionalEventCard'
 import openEventAdditionalEventViewModal from './eventAdditionalEventViewModal'
 import { useEventQuery } from '@helpers/useEventsQuery'
 
@@ -15,6 +17,7 @@ const eventAdditionalEventsFunc = (eventId) => {
     const { data: event } = useEventQuery(eventId)
     const itemsFunc = useAtomValue(itemsFuncAtom)
     const modalsFunc = useAtomValue(modalsFuncAtom)
+    const [pendingAdditionalEvent, setPendingAdditionalEvent] = useState(null)
 
     const additionalEvents = useMemo(
       () =>
@@ -46,7 +49,12 @@ const eventAdditionalEventsFunc = (eventId) => {
           const sourceItems = Array.isArray(event?.additionalEvents)
             ? event.additionalEvents
             : []
-          await updateAdditionalEvents([...sourceItems, nextItem])
+          setPendingAdditionalEvent({ type: 'create' })
+          try {
+            await updateAdditionalEvents([...sourceItems, nextItem])
+          } finally {
+            setPendingAdditionalEvent(null)
+          }
         },
       })
     }
@@ -68,7 +76,12 @@ const eventAdditionalEventsFunc = (eventId) => {
           const nextItems = currentItems.map((item, idx) =>
             idx === index ? { ...item, ...nextItem } : item
           )
-          await updateAdditionalEvents(nextItems)
+          setPendingAdditionalEvent({ type: 'edit', index })
+          try {
+            await updateAdditionalEvents(nextItems)
+          } finally {
+            setPendingAdditionalEvent(null)
+          }
         },
       })
     }
@@ -144,7 +157,9 @@ const eventAdditionalEventsFunc = (eventId) => {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
           <div className="text-sm font-semibold text-gray-700">
-            Всего: {additionalEvents.length}
+            Всего:{' '}
+            {additionalEvents.length +
+              (pendingAdditionalEvent?.type === 'create' ? 1 : 0)}
           </div>
           <AppButton
             variant="secondary"
@@ -155,11 +170,14 @@ const eventAdditionalEventsFunc = (eventId) => {
             Создать задачу
           </AppButton>
         </div>
-        {additionalEvents.length === 0 ? (
+        {pendingAdditionalEvent?.type === 'create' ? (
+          <AdditionalEventCardSkeleton />
+        ) : null}
+        {additionalEvents.length === 0 && !pendingAdditionalEvent ? (
           <SurfaceCard className="text-sm text-gray-500">
             Задач пока нет
           </SurfaceCard>
-        ) : (
+        ) : additionalEvents.length > 0 ? (
           <div className="flex flex-col gap-3">
             {additionalEventGroups.map((group) => (
               <section key={group.key} className="flex flex-col gap-2">
@@ -169,7 +187,12 @@ const eventAdditionalEventsFunc = (eventId) => {
                 {group.items.map((item) => {
                   const originalIndex = item.originalIndex
 
-                  return (
+                  return pendingAdditionalEvent?.type === 'edit' &&
+                    pendingAdditionalEvent.index === originalIndex ? (
+                    <AdditionalEventCardSkeleton
+                      key={`additional-event-item-${originalIndex}-pending`}
+                    />
+                  ) : (
                     <AdditionalEventCard
                       key={`additional-event-item-${originalIndex}`}
                       item={item}
@@ -185,7 +208,7 @@ const eventAdditionalEventsFunc = (eventId) => {
               </section>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     )
   }

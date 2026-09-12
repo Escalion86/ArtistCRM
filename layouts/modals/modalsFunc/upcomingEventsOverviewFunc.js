@@ -19,14 +19,8 @@ import {
 import { modalsFuncAtom } from '@state/atoms'
 import itemsFuncAtom from '@state/atoms/itemsFuncAtom'
 import { useAtomValue } from 'jotai'
-import { motion, useAnimationControls } from 'framer-motion'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faCalendarAlt,
-  faCircleCheck,
-  faTrashAlt,
-} from '@fortawesome/free-solid-svg-icons'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useEventsQuery } from '@helpers/useEventsQuery'
 import { useTransactionsQuery } from '@helpers/useTransactionsQuery'
 import { useClientsQuery } from '@helpers/useClientsQuery'
@@ -97,8 +91,6 @@ const isSameDay = (a, b) => {
 
 const readQueueSummary = () => getServerSyncQueueSummary(readServerSyncQueue())
 
-const SWIPE_ACTIONS_WIDTH = 156
-
 const getInitials = (name) =>
   String(name || '')
     .split(' ')
@@ -107,91 +99,6 @@ const getInitials = (name) =>
     .slice(0, 2)
     .join('')
     .toUpperCase()
-
-// Свайп влево по задаче открывает действия «Готово», «+1 день», «Удалить».
-// На десктопе те же действия есть в меню ⋮ карточки.
-const SwipeableTaskRow = ({ onDone, onPostpone, onDelete, children }) => {
-  const controls = useAnimationControls()
-  const lastDragAt = useRef(0)
-  const openedRef = useRef(false)
-
-  const close = () => {
-    openedRef.current = false
-    controls.start({ x: 0 })
-  }
-
-  const handleDragEnd = async (_, info) => {
-    lastDragAt.current = Date.now()
-    const shouldOpen =
-      info.offset.x < -SWIPE_ACTIONS_WIDTH / 2 || info.velocity.x < -400
-    openedRef.current = shouldOpen
-    await controls.start({ x: shouldOpen ? -SWIPE_ACTIONS_WIDTH : 0 })
-  }
-
-  // Глушим клик по карточке сразу после свайпа; тап по открытой строке
-  // закрывает панель действий, а не открывает карточку
-  const handleClickCapture = (event) => {
-    if (Date.now() - lastDragAt.current < 250 || openedRef.current) {
-      event.preventDefault()
-      event.stopPropagation()
-      if (openedRef.current) close()
-    }
-  }
-
-  return (
-    <div className="attention-swipe-row">
-      <div className="attention-swipe-actions" aria-hidden="true">
-        <button
-          type="button"
-          className="ok"
-          tabIndex={-1}
-          onClick={() => {
-            close()
-            onDone?.()
-          }}
-        >
-          <FontAwesomeIcon icon={faCircleCheck} />
-          Готово
-        </button>
-        <button
-          type="button"
-          className="move"
-          tabIndex={-1}
-          onClick={() => {
-            close()
-            onPostpone?.()
-          }}
-        >
-          <FontAwesomeIcon icon={faCalendarAlt} />
-          +1 день
-        </button>
-        <button
-          type="button"
-          className="del"
-          tabIndex={-1}
-          onClick={() => {
-            close()
-            onDelete?.()
-          }}
-        >
-          <FontAwesomeIcon icon={faTrashAlt} />
-        </button>
-      </div>
-      <motion.div
-        className="attention-swipe-content"
-        drag="x"
-        dragConstraints={{ left: -SWIPE_ACTIONS_WIDTH, right: 0 }}
-        dragElastic={0.08}
-        dragDirectionLock
-        animate={controls}
-        onDragEnd={handleDragEnd}
-        onClickCapture={handleClickCapture}
-      >
-        {children}
-      </motion.div>
-    </div>
-  )
-}
 
 export const UpcomingEventsOverview = ({ closeModal }) => {
   const { data: eventsPayload } = useEventsQuery({
@@ -794,31 +701,6 @@ export const UpcomingEventsOverview = ({ closeModal }) => {
                         ) : null}
                       </AdditionalEventCard>
                     )
-                    if (item.reminderType === 'additional') {
-                      return (
-                        <SwipeableTaskRow
-                          key={`${keyValue}-swipe`}
-                          onDone={() =>
-                            toggleAdditionalEventDone(item.eventId, item.index)
-                          }
-                          onPostpone={() =>
-                            shiftAdditionalEventDate(
-                              item.eventId,
-                              item.index,
-                              1
-                            )
-                          }
-                          onDelete={() =>
-                            confirmDeleteAdditionalEvent(
-                              item.eventId,
-                              item.index
-                            )
-                          }
-                        >
-                          {card}
-                        </SwipeableTaskRow>
-                      )
-                    }
                     return card
                   }
 
